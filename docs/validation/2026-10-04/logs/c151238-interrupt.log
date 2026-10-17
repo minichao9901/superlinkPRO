@@ -1,0 +1,5 @@
+目标类型: SWD/ARM
+CDC/串口桥 = 关
+配置: 1 变量, period=100 us, 探针算出 1 个 span (本地期望 1)
+启动 rc=0
+PASS: interrupted real capture stopped, CDC restored, HID reusable

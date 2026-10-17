@@ -1,0 +1,9 @@
+image: tmp/patch-verification/baseline/akaLinkPro_App_pack.bin (166232 bytes)
+removable drives before: []
+  DFU reboot requested
+waiting for the DFU volume ...
+DFU volume: D:\ (contents: ['INFO.TXT', 'AKALINK.URL', 'AKALINK.HTM', 'System Volume Information'])
+writing D:\akaLinkPro_App_pack.bin ...
+  attempt 1: wrote 166232 bytes
+waiting for the probe to come back ...
+probe is back

@@ -1,0 +1,15 @@
+目标类型: SWD/ARM
+配置: 1 变量, period=2.5 us, 探针算出 1 个 span (本地期望 1)
+启动 rc=0
+（采样结束后 CDC/串口桥 = 开）
+主机收到 5033984 B / 3.00 s -> 1638.4 KB/s；包数 9832，重同步 0
+包类型: {'STAT': 154, 'DATA': 9678}
+probe: produced=1250203 dropped=321 swdErr=0 yield=0 seq=10243 后端=SWD/ARM
+seq 缺口合计 = 0 包
+解出 1200072 个样本（frame 4 B，期望 124 个/包）
+★ 端到端 400.0 kHz（主机到达窗口 1200072 样本 / 3.000455 s）
+探针快照窗口 3.004032 s：产 1201386 拍 = 399.9 kHz；丢 229 拍 = 0.02%；USB 缓冲耗尽 0 拍
+  scheduler skip=229 SWD errors=0 DAP yields=0
+  主机窗口按 USB 返回时刻；探针窗口按快照 tick，边界有 HID/在飞包偏差。
+tick 斜率: 连续+1 占 30008/1200071，跳变丢样本合计 0（probe dropped+usbDrop=321）
+目标 tick 步进中位数 = 0（=1 表示采样率与目标 10 kHz 同拍）

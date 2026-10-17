@@ -1,0 +1,5 @@
+目标类型: SWD/ARM
+配置: 1 变量, period=2.5 us, 探针算出 1 个 span (本地期望 1)
+探针快照窗口 2.004021 s：产 801603 拍 = 400.0 kHz；丢 7 拍 = 0.00%；USB 缓冲耗尽 0 拍
+  scheduler skip=7 SWD errors=0 DAP yields=0
+DISCARD：未认领 USB 数据接口；只测完整采样器，不是 M0 紧循环。

@@ -1,0 +1,40 @@
+-- Application: E:/Share/github/akaLinkPro/firmware/application_5301
+-- Board (custom board): hpm5301evklite from E:/Share/github/akaLinkPro/firmware/application_5301/boards
+-- Found toolchain: gnu (E:\sdk_env_v1.11.0\toolchains\rv32imac_zicsr_zifencei_multilib_b_ext-win)
+-- hpm_sdk: 1.11.0 (E:\sdk_env_v1.11.0\hpm_sdk)
+-- GNU ld linker script: E:/Share/github/akaLinkPro/firmware/application_5301/linker/flash_dfu_app.ld
+-- Configuring done
+-- Generating done
+-- Build files have been written to: E:/Share/github/akaLinkPro/firmware/application_5301/build_dfu_evklite
+[1/6] Building C object CMakeFiles/app.dir/src/main.c.obj
+<command-line>: warning: "FLASH_XIP" redefined
+<command-line>: note: this is the location of the previous definition
+[2/6] Building C object CMakeFiles/app.dir/src/usb/usb_composite.c.obj
+<command-line>: warning: "FLASH_XIP" redefined
+<command-line>: note: this is the location of the previous definition
+[3/6] Building C object CMakeFiles/app.dir/src/api/api_param.c.obj
+<command-line>: warning: "FLASH_XIP" redefined
+<command-line>: note: this is the location of the previous definition
+[4/6] Building C object CMakeFiles/app.dir/src/scope/scope_sampler.c.obj
+<command-line>: warning: "FLASH_XIP" redefined
+<command-line>: note: this is the location of the previous definition
+E:/Share/github/akaLinkPro/firmware/application_5301/src/scope/scope_sampler.c:526:16: warning: 's_rsp_blk' defined but not used [-Wunused-variable]
+  526 | static uint8_t s_rsp_blk[SCOPE_RSP_HDR + SCOPE_SPAN_MAX];
+      |                ^~~~~~~~~
+E:/Share/github/akaLinkPro/firmware/application_5301/src/scope/scope_sampler.c:519:16: warning: 's_rsp_dummy' defined but not used [-Wunused-variable]
+  519 | static uint8_t s_rsp_dummy[8];
+      |                ^~~~~~~~~~~
+[5/6] Linking C executable output\akaLinkPro_App.elf
+E:/sdk_env_v1.11.0/toolchains/rv32imac_zicsr_zifencei_multilib_b_ext-win/bin/../lib/gcc/riscv32-unknown-elf/13.2.0/../../../../riscv32-unknown-elf/bin/ld.exe: warning: output\akaLinkPro_App.elf has a LOAD segment with RWX permissions
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      137176 B       888 KB     15.09%
+             ILM:       31360 B       128 KB     23.93%
+             DLM:      108640 B     130304 B     83.37%
+        AHB_SRAM:       24880 B        32 KB     75.93%
+[pack app] ver=0.1 len=165920 (0x28820) crc32=0xFC751187 time=2026/10/04 16:52:16
+[pack app] out: E:/Share/github/akaLinkPro/firmware/application_5301/build_dfu_evklite/output/akaLinkPro_App_pack.bin / E:/Share/github/akaLinkPro/firmware/application_5301/build_dfu_evklite/output/akaLinkPro_App_pack.hex
+
+[6/6] Generating akaLinkPro_App.hex
+
+[build_dfu_evklite] APP image (flash this): build_dfu_evklite\output\akaLinkPro_App_pack.hex / _pack.bin (linked at 0x80020000, entry 0x80020100)
+[build_dfu_evklite] raw (no header): build_dfu_evklite\output\akaLinkPro_App.hex / .bin

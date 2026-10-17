@@ -1,0 +1,4 @@
+PASS: pending EP11 drain 1 short replies [8]
+PASS: pending EP11 drain 4 short replies [8, 8, 8, 8]
+PASS: pending EP11 drain 16 short replies [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]
+PASS: disabled bridge drains without enabling SPI or resetting USB; HID remains available

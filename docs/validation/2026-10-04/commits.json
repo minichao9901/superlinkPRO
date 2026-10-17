@@ -1,0 +1,137 @@
+[
+  {
+    "index": 1,
+    "source": "86877f1614501bd445c035bca058d8d310a46a5e",
+    "merged": "4895ebf795a82f4d0410d469091c41a61e446926",
+    "title": "feat(scope): add compatible 24MHz tick period configuration",
+    "verification": "主机生产代码测试、完整编译/烧录；2.5 µs 和 3 µs tick 采样实机验证。",
+    "tests": [],
+    "evidence": [
+      "86877f1-build.log",
+      "86877f1-flash.log",
+      "86877f1-hardware.log",
+      "86877f1-host.log",
+      "86877f1-legacy.log"
+    ]
+  },
+  {
+    "index": 2,
+    "source": "eece89380ef066f2006dc322d71e3c4ad0b3044b",
+    "merged": "8ea35ed7c64d97f38ac46017b5e2e61ef34fa70e",
+    "title": "perf(scope): bound single-word sampling to short timed batches",
+    "verification": "主机测试、编译/烧录；短批次开关实机 A/B，对比约 395.1/400.0 kHz。",
+    "tests": [],
+    "evidence": [
+      "eece893-build.log",
+      "eece893-flash.log",
+      "eece893-host.log",
+      "eece893-off.log",
+      "eece893-on.log"
+    ]
+  },
+  {
+    "index": 3,
+    "source": "5d6d5e30c241ddc989a55cf9b3c0192549cc324a",
+    "merged": "90fa5024448e946735fef9bc502843c20f7fdbaa",
+    "title": "feat(scope): expose atomic full-width timing and loss snapshots",
+    "verification": "主机测试、编译/烧录；60 tick 原子状态快照实测约 399.9 kHz。",
+    "tests": [],
+    "evidence": [
+      "5d6d5e3-build.log",
+      "5d6d5e3-flash.log",
+      "5d6d5e3-hardware.log",
+      "5d6d5e3-host.log"
+    ]
+  },
+  {
+    "index": 4,
+    "source": "78cca1d7e7d16e5e1133f34b8249ea37d5ef51ff",
+    "merged": "3e126405257a1408b9818e6be46ac736569cc2e8",
+    "title": "fix(scope-test): bracket live rates and exclude startup and drain",
+    "verification": "测量窗口 7 项单元测试；实机 discard/run 约 400/399.7 kHz。",
+    "tests": [],
+    "evidence": [
+      "78cca1d-discard.log",
+      "78cca1d-run.log",
+      "78cca1d-unit.log"
+    ]
+  },
+  {
+    "index": 5,
+    "source": "a319856eccd1b4668cce19234e677f274ed7eb33",
+    "merged": "5d4d2fd7c03a42a874718896d909410389a0d6f7",
+    "title": "docs(scope): add controlled hardware throughput and regression checklist",
+    "verification": "按实测命令与测量窗口核对验收文档。",
+    "tests": [],
+    "evidence": []
+  },
+  {
+    "index": 6,
+    "source": "6247e41db9c1c47da6cb79120a4564698991cede",
+    "merged": "9b7b7f52add71b73802241dd94f7188e6eb4c93c",
+    "title": "test(scope): cover batched USB backpressure and scalar fallbacks",
+    "verification": "USB 背压、DAP 让路、多 span 主机测试；实机相隔较远的双变量 10 kHz 采样。",
+    "tests": [],
+    "evidence": [
+      "6247e41-host.log",
+      "6247e41-two.log"
+    ]
+  },
+  {
+    "index": 7,
+    "source": "c1512384731af42dd521fda66b73e0f93f984db1",
+    "merged": "ec16ea932d788ca5f96ad1b9c913814540e52ab7",
+    "title": "fix(scope-test): stop sampling and release USB on interrupted measurements",
+    "verification": "中断清理 8 项测试；实机注入 KeyboardInterrupt 后 STOP、CDC 恢复并重新启动。",
+    "tests": [],
+    "evidence": [
+      "c151238-interrupt.log",
+      "c151238-restart.log",
+      "c151238-unit.log"
+    ]
+  },
+  {
+    "index": 8,
+    "source": "2341925b9209599042d48f7d0469d9630191a977",
+    "merged": "093ea34dfd45bb5d81d0869fb71fa20b5ce55824",
+    "title": "fix(api): reject global target changes while RTT or scope is running",
+    "verification": "目标切换保护主机测试、编译/烧录；实机采样运行时返回 -7，空闲时可切换。",
+    "tests": [],
+    "evidence": [
+      "2341925-build.log",
+      "2341925-flash.log",
+      "2341925-hardware.log",
+      "2341925-host.log"
+    ]
+  },
+  {
+    "index": 9,
+    "source": "5d0bcd6bcb4b33a1f8b1c7e5c2a84fd317fb2fd6",
+    "merged": "4ca3e40792ab26163e504cf5b19abae62afa6abd",
+    "title": "fix(rtt): cancel deferred starts when processing a queued stop",
+    "verification": "RTT 排队 STOP 主机测试、编译/烧录；实机 100 次紧邻 START/STOP，无延迟复活。",
+    "tests": [],
+    "evidence": [
+      "5d0bcd6-build.log",
+      "5d0bcd6-flash.log",
+      "5d0bcd6-hardware.log",
+      "5d0bcd6-host.log",
+      "5d0bcd6-integrity.log",
+      "5d0bcd6-target-flash.log"
+    ]
+  },
+  {
+    "index": 10,
+    "source": "8efddff4867f4fef55c97373841d58ae6b6fcd94",
+    "merged": "ff2234da49e0e8742ef07c760d6d5cd4b771dd68",
+    "title": "feat(spi): drain endpoint reads with short replies without resetting USB",
+    "verification": "SPI DRAIN 主机测试、编译/烧录；实机 1/4/16 个挂起读收到短包，HID 保持可用。",
+    "tests": [],
+    "evidence": [
+      "8efddff-build.log",
+      "8efddff-flash.log",
+      "8efddff-hardware.log",
+      "8efddff-host.log"
+    ]
+  }
+]

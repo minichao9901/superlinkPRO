@@ -1,0 +1,12 @@
+-- Application: E:/Share/github/akaLinkPro/firmware/application_5301
+-- Board (custom board): hpm5301evklite from E:/Share/github/akaLinkPro/firmware/application_5301/boards
+-- Found toolchain: gnu (E:\sdk_env_v1.11.0\toolchains\rv32imac_zicsr_zifencei_multilib_b_ext-win)
+-- hpm_sdk: 1.11.0 (E:\sdk_env_v1.11.0\hpm_sdk)
+-- GNU ld linker script: E:/Share/github/akaLinkPro/firmware/application_5301/linker/flash_dfu_app.ld
+-- Configuring done
+-- Generating done
+-- Build files have been written to: E:/Share/github/akaLinkPro/firmware/application_5301/build_dfu_evklite
+ninja: no work to do.
+
+[build_dfu_evklite] APP image (flash this): build_dfu_evklite\output\akaLinkPro_App_pack.hex / _pack.bin (linked at 0x80020000, entry 0x80020100)
+[build_dfu_evklite] raw (no header): build_dfu_evklite\output\akaLinkPro_App.hex / .bin

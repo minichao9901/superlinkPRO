@@ -1,0 +1,1 @@
+PASS: active RTT target change rejected; 100 back-to-back START/STOP cycles settled idle rc=0; no delayed restart
