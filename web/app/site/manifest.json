@@ -109,7 +109,7 @@
     "app/rtt/mock.js": "713da5c0c48d4a912ed9da57dbaf5decf824e57be3b185adc70023e02a1c072d",
     "app/rtt/protocol.js": "0104940dc646b390b28fcb6a4eeb2aedaa22b5b75585b6f45d05d6908b9835ef",
     "app/rtt/riscv-mem.js": "8456a9f67a47cdb52f36b1c7a3231a7da44b41073808658fdd5514644ded0f03",
-    "app/rtt/view.js": "4cebf02d73ca8bfdb74db42158c0e98815e7aa37335935854a028b2dfe565b87",
+    "app/rtt/view.js": "dce4a508b03267effecfa38e41bee849da88ed78ba614f1cec76adf1334b9e76",
     "app/scope/array-vars.js": "acef3efbffe7e2c70958e06c8dc8d0ea3fe123db3928a4baa6463f5ea9cafb5b",
     "app/scope/mock.js": "06cd937bb48f81dee9c7a1d5753e8dd1b3b177c4823f21e0f67d4b71484d4ef6",
     "app/scope/protocol.js": "6a7d8e083306e07e57f868508bab32882f94fbf916544a60ba1738798bf287dd",
@@ -173,6 +173,6 @@
     "app/ui/workspace.js": "25b6ce94e5d90302a37e6cec2b7e35c975af95ce29bef1094a4493f3890fc0b7",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "592bd608c91e9a5ebc1cd01f69c54fdbb63a5f38ea1ebdebbc45b7bf82d0465f",
-  "outputBytes": 1328739
+  "outputSha256": "6aafcf9b3e675bfd218c0a7df5b5c9c90ff4ab169eb1c5bfe3f98cb64c0201d9",
+  "outputBytes": 1329592
 }

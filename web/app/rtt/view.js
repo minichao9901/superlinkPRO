@@ -230,6 +230,17 @@ export class RttView {
       const id = chip.value, arch = chipArchOf(id);
       store.set(arch === 'riscv' ? 'rtt.rvChip' : 'rtt.ocdTarget', id);
       if (arch === 'riscv') rememberHpmBoard(id);
+      /**
+       * 🚨 **换芯片必须清掉手填的 RTT 地址**：`#r-addr` 绑的是 `rtt.addr`，它是"上一个目标
+       *    `.bss` 里的地址"，换目标后必然失效；旧值留着会让 locate() 直接去读那一格并抛 FAULT
+       *    （2026-10 现场：HPM6800 的 0x4c0003c0 落到 H743 上）。清空后 locate() 会走
+       *    "按新芯片 RAM 范围自动扫描"，这才是换目标该有的行为。
+       */
+      if (String($('r-addr').value || '').trim()){
+        $('r-addr').value = '';
+        store.set('rtt.addr', '');
+        setStatus($('r-err'), '换了芯片：已清空手填的 RTT 地址（下次连接会按新 RAM 范围自动扫描）');
+      }
       const wantRv = arch === 'riscv';
       if (wantRv !== ($('r-target').value === 'riscv')){
         $('r-target').value = wantRv ? 'riscv' : 'swd';
@@ -471,7 +482,26 @@ export class RttView {
       }
       this._uiConnected(true);
       if ($('r-record-auto').checked && !this.rec.active) this._autoStartRecord();
-      if (this.stream) this._stats(); else await this._startRtt(g);
+      /**
+       * 🚨 **探针连通 ≠ RTT 控制块就绪**，两者必须分开报错（用户 2026-10 现场质问：
+       *    "连接探针以前不依赖 RTT 地址，只要 probe 可用就能连"）。
+       *    这里的失败只说明"控制块没找到 / 那一格读不通"，探针本身是好的 ——
+       *    所以**不断开探针、不写「连接失败」**，只把原因写进状态条并给出重试入口。
+       *    （旧写法把 _startRtt 放在外层 try 里 → 它的异常会触发 disconnect() + "连接失败"，
+       *      把"探针明明连上了"说成连接失败，还顺手把探针断掉。）
+       */
+      const probeNow = this.probe;
+      if (this.stream) this._stats();
+      else {
+        try { await this._startRtt(g); }
+        catch (e){
+          if (g === this._sessionGen && this.probe === probeNow){
+            this._err(e);
+            setStatus($('r-err'), '探针已连接 · RTT 控制块未就绪：' + (e?.message || e)
+              + ' —— 探针保持连接；点【扫描控制块】或【载入 ELF】可重试', 'warn');
+          }
+        }
+      }
     } catch (e){
       /**
        * 🚨 收尾时**要把错误留在状态栏上**（2026-10 真机走查踩到）：
@@ -549,10 +579,31 @@ export class RttView {
     const ranges = parseRanges($('r-range').value);
     setStatus($('r-err'), '正在查找 RTT 控制块…');
     // 定位是"一次性的关键动作" → 严格档（扫描要跨很多地址，读到残渣就会锁错控制块）
-    const found = await this._strict(() => Rtt.locate(probe, {
-      addr, ranges,
-      onProgress: (p, a) => setStatus($('r-err'), `扫描控制块 ${(p * 100) | 0}%  @0x${a.toString(16)}`),
+    const locate = a => this._strict(() => Rtt.locate(probe, {
+      addr: a, ranges,
+      onProgress: (p, at) => setStatus($('r-err'), `扫描控制块 ${(p * 100) | 0}%  @0x${at.toString(16)}`),
     }));
+    let found;
+    try {
+      found = await locate(addr);
+    } catch (e){
+      /**
+       * 🚨 手填地址读不通时**不要直接失败**：`#r-addr` 是 store 绑定的（键 `rtt.addr`），
+       *    换固件/换目标后它仍然保留上一次的值。2026-10 现场就是这么翻的车 ——
+       *    同一个 origin 下的老页面留下了 F103 时代的 `0x4c0003c0`（HPM6800 的地址），
+       *    换到 H743 后那格必然读 FAULT，于是"探针好好的却报连接失败"。
+       *    探针本身是好的 ⇒ 退回"按当前 RAM 范围自动扫描"，扫到就把地址回填。
+       */
+      if (!addr || !ranges.length || !active()) throw e;
+      setStatus($('r-err'), `地址 0x${addr.toString(16)} 读不通（${e.message}）—— 改为在 RAM 范围内自动扫描…`, 'warn');
+      found = await locate(0);
+      if (!active()) return;
+      if (found){
+        $('r-addr').value = '0x' + found.toString(16);
+        store.set('rtt.addr', $('r-addr').value);
+        toast(`已自动找回 RTT 控制块 0x${found.toString(16)}（原地址 0x${addr.toString(16)} 无效）`, 'ok');
+      }
+    }
     if (!active()) return;
     if (!found) throw new Error('没找到 SEGGER RTT 控制块：固件里编进 RTT 了吗？RAM 范围填对了吗？（也可以载入 .elf 用符号定位）');
     const rtt = new Rtt(probe, { addr: found });
