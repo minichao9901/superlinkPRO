@@ -20,22 +20,33 @@ const host=embeddedHost(),target=new EtmTarget(log,{host});
  * `globalThis.__etmApiBase` 是静态副本 bootstrap 预先算好的值（同 (1) 的优先级）。
  */
 function resolveApiBase(){
-  const attr=document.body?.dataset?.apiBase;
+  /**
+   * 🚨 本模块会被 **Node 直接 import**（`tools/selftest/etm-ui-sequences.test.mjs` 在无 DOM 环境下
+   *    断言页面序列）——所以任何浏览器全局都必须按"可能不存在"处理。
+   *    2026-10-18 全量回归就栽在这：顶层 `const apiBase=resolveApiBase()` 里直接用了 `location`，
+   *    Node 里没有这个全局 → import 阶段就 `ReferenceError: location is not defined`，
+   *    整个 ETM UI 套件（200+ 断言）全红。浏览器里行为与之前完全一致。
+   */
+  const attr=globalThis.document?.body?.dataset?.apiBase;
   if(attr)return attr;
   const injected=globalThis.__etmApiBase;
   if(injected)return injected;
-  const query=new URLSearchParams(location.search).get('api');
-  if(query)return query;
-  let saved=null;try{saved=localStorage.getItem('etm.apiBase');}catch{}
+  const loc=globalThis.location;
+  if(loc?.search){
+    const query=new URLSearchParams(loc.search).get('api');
+    if(query)return query;
+  }
+  let saved=null;try{saved=globalThis.localStorage?.getItem('etm.apiBase');}catch{}
   if(saved)return saved;
-  return /\.github\.io$/i.test(location.hostname)?'http://127.0.0.1:8899/etm/api/':'/api/';
+  return /\.github\.io$/i.test(loc?.hostname||'')?'http://127.0.0.1:8899/etm/api/':'/api/';
 }
 const apiBase=(()=>{const value=resolveApiBase();return value.endsWith('/')?value:value+'/';})();
 /** 把服务端返回的 `download` 字段（可能是 `/etm/api/...` 这种根相对路径）绑到 API 源上。 */
 function apiUrl(value){
   if(!value)return value;
   if(/^[a-z]+:/i.test(value))return value;
-  return new URL(value,new URL(apiBase,location.href)).href;
+  const href=globalThis.location?.href||'http://127.0.0.1/';   // Node 里没有 location（同上）
+  return new URL(value,new URL(apiBase,href)).href;
 }
 async function api(path,body){return requestJson(apiBase+path,body===undefined?{}:{method:'POST',...(body instanceof FormData?{body}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})},{timeout:path.endsWith('/overview')?300000:45000});}
 function log(message){$('log').textContent=new Date().toLocaleTimeString('zh-CN')+' '+message+'\n'+$('log').textContent;controls();}
