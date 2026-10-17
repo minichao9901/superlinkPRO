@@ -582,7 +582,14 @@ async function rttForward(){
   await cdp.eval(`(()=>{ document.getElementById('h-addr').value = '0x' + (${cbAddr}).toString(16);
                          document.getElementById('h-size').value = '0x1000'; })()`);
   console.log(`   [转发] 控制块地址取自 ELF：0x${cbAddr.toString(16)}（HPM 自动搜扫不到这个区）`);
-  await cdp.eval(`document.getElementById('h-reconnect').click()`, true);
+  /**
+   * ⚠️ 页面里这个按钮早叫 **`h-refresh`**（「刷新」）；`#h-reconnect` 是**陈旧 id**
+   *    → getElementById 返回 null → `null.click()` 抛 TypeError，整轮 campaign 中断
+   *    （2026-10-18 现场：`hw-random-flow-6800evk` 报 `Cannot read properties of null (reading 'click')`）。
+   *    与 `hw-campaign.mjs` 那次是同一类问题，这里照同样写法：两个都试 + 带 catch。
+   */
+  await cdp.eval(`(()=>{ const b=document.getElementById('h-refresh')||document.getElementById('h-reconnect');
+      if (b) b.click(); })()`, true).catch(() => {});
   await nap(800);
   if (!await cdp.evalJson(`!!window.__tools.hid.dev?.connected`)){
     await cdp.eval(`document.getElementById('h-connect').click()`, true);
