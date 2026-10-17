@@ -8,6 +8,4 @@
 \copyright  Copyright (c) 2018, ARM Limited. All Rights Reserved.
 \copyright  Copyright (c) 2019, ARM Limited. All Rights Reserved.
 \copyright  Copyright (c) 2020, ARM Limited. All Rights Reserved.
-\copyright  Copyright (c) 2022, ARM Limited. All Rights Reserved.
-\copyright  Copyright (c) 2023, ARM Limited. All Rights Reserved.
 \copyright  Copyright (c) 2024, ARM Limited. All Rights Reserved.

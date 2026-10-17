@@ -7,9 +7,16 @@
  *   · DAP_Transfer 每条传输在请求里固定占 5 字节（1 请求字节 + 4 字节 data），读也要占位
  *   · DAP_TransferBlock 响应 = [回显, count_lo, count_hi, ack, data...]
  *   · DAP_ResetTarget 响应 = [回显, DAP_OK, 执行标志]
+ *
+ * ⚠️ **本文件是探针驱动的唯一真源**（7 个共享驱动之一，见 web/docs/driver-unification.md）。
+ *    ETM 页用的副本 `etm/web/app/shared/rtt/dap-webusb.js` 由
+ *    `node tools/dev/sync-shared-drivers.mjs` 生成 —— **不要手改副本**（漂移会被
+ *    `node tools/selftest/shared-drivers.test.mjs` 的 sha256 对账拦下）。
+ *    不做跨子树 import 的理由：ETM 页必须能独立启动（etm/start-web.ps1），也要能进便携桥包。
  */
 import { u32le, u32leBytes } from '../core/bin.js';
 import { UsbLease } from '../core/usb-device.js';
+import { OperationBudget } from '../core/operation-budget.js';
 /**
  * 等待原语（见 core/pace.js 的整段说明）：
  * 🚨 轮询间隔**不能用 setTimeout** —— 页面不可见时浏览器把短延时钳到 ≥1 s，
@@ -74,17 +81,18 @@ export async function withTimeout(p, ms, what){
 }
 
 /**
- * USB 端口复位（清挂起传输）；**永不抛异常**，成功返回 true。
+ * USB 端口复位（清挂起传输）；成功返回 true，**永不抛异常**。
  *
- * 2026-10 真机定因：`USBDevice.reset()` 在这颗复合探针上（Windows）经常直接失败，
- * 报 `Failed to execute 'reset' on 'USBDevice': Unable to reset the device`。
- * 参考实现 pyOCD 打开探针时**根本不 reset**，只做 claim_interface
- * （pyocd/probe/pydapaccess/interface/pyusb_backend.py:126-130）；
- * 我们只把 reset 当作"上次会话遗留挂起传输"的**尽力清理**：
- *   · 失败绝不能打断打开/认领流程（原来 lease 分支没有 try/catch，
- *     异常一路抛到 _claim()，页面于是停在"已连接但无通信"——就是这个 bug）；
- *   · 失败只留一条可读警告，后面照常 claim。
- * 目标板没接 NRST 时尤其重要：这里绝不能要求"拔插一次"才能继续。
+ * 2026-10 真机定因（ETM 页那侧先踩到、合并时并进来）：
+ *   `USBDevice.reset()` 在这颗复合探针上（Windows）经常直接失败，
+ *   报 `Failed to execute 'reset' on 'USBDevice': Unable to reset the device`。
+ *   参考实现 pyOCD 打开探针时**根本不 reset**，只做 claim_interface
+ *   （pyocd/probe/pydapaccess/interface/pyusb_backend.py:126-130）；
+ *   我们只把 reset 当作「上次会话遗留挂起传输」的**尽力清理**：
+ *     · 失败绝不能打断打开/认领流程（原来 lease 分支没有 try/catch，
+ *       异常一路抛到 _claim()，页面于是停在「已连接但无通信」——就是这个 bug）；
+ *     · 失败只留一条可读警告，后面照常 claim。
+ *   目标板没接 NRST 时尤其重要：这里绝不能要求「拔插一次」才能继续。
  */
 async function resetDevice(device, lease){
   try {
@@ -147,6 +155,8 @@ export class WebUsbDapProbe {
      * 🚨 一次 FAULT 会把整条 SWD 链路打死，abort()/清 sticky 都救不回来，只有 `_targetInit()` 管用。
      */
     this._faulted = false;
+    this._targetNeedsReconnect = false;
+    this._dapPort = null;
     this.faultHeals = 0;
     /** @type {((s:string)=>void)|null} 关键恢复动作的文字回执（页面日志用） */
     this.onLog = null;
@@ -198,7 +208,17 @@ export class WebUsbDapProbe {
    *   skipInfo=true 连 DAP_Info 都不问，让命令流与"验证过的裸客户端"完全一致
    *   clockKhz>0 指定 SWD 时钟；不指定则从高到低自动选（见 CLOCK_CANDIDATES）
    */
-  async _setup({ skipTargetInit = false, skipInfo = false, skipClearHalt = false, clockKhz = 0, framing = null } = {}){
+  async _budgeted(label, fn){
+    if (this._operationBudget) return fn();
+    // Keep the current stage for timeout errors; routine DAP traffic is not a user-facing event.
+    this._operationBudget = new OperationBudget(label, 15000);
+    try { return await this._operationBudget.step('开始', fn); }
+    finally { this._operationBudget = null; }
+  }
+  async _setup(opts = {}){
+    return this._budgeted('连接探针', () => this._setupNow(opts));
+  }
+  async _setupNow({ skipTargetInit = false, skipInfo = false, skipClearHalt = false, clockKhz = 0, framing = null } = {}){
     this._closing = false;
     this.skipTargetInit = skipTargetInit;
     this.skipClearHalt = skipClearHalt;
@@ -244,6 +264,7 @@ export class WebUsbDapProbe {
 
   /** USB 层：打开设备、找 bulk 端点、认领接口、清端点、同步清队列 */
   async _claim(){
+    this._operationBudget?.check('认领 USB 接口');
     this._usb ||= new UsbLease(this.device, 'dap');
     const d = this.device = this._usb.device;
     // 🚨 上一次会话如果有过超时，USB 栈里可能还挂着传输 —— 会偷响应、甚至让
@@ -320,8 +341,9 @@ export class WebUsbDapProbe {
       catch (e){ console.warn(`clearHalt(${dir}) 失败：${e.message}`); }
     }
     // 🚨 清陈旧响应只能靠上面这些 clearHalt（端点复位）。
-    //    **不要**用"一串短超时 transferIn 去排空"：WebUSB 没有取消接口，超时的那次
+    //    **不要**用「一串短超时 transferIn 去排空」：WebUSB 没有取消接口，超时的那次
     //    传输会一直挂着，把后续响应偷走 —— 实测会把「响应回显不匹配」变成「USB 读 超时」。
+    //    （这一条是 ETM 页侧真机踩到后写下的，合并时保留 —— 见 docs/driver-unification.md）
     await this.resync();
     this._watchUsb();
     this._ready = true;
@@ -338,6 +360,7 @@ export class WebUsbDapProbe {
     this.clockTried = [];
     let last = null;
     for (const khz of WebUsbDapProbe.CLOCK_CANDIDATES){
+      this._operationBudget?.check(`协商 SWD 时钟 ${khz} kHz`);
       this.clockTried.push(khz);
       try {
         await this._targetInit({ clock: khz * 1000 });
@@ -346,6 +369,7 @@ export class WebUsbDapProbe {
         return this.clockHz;
       } catch (e){
         last = e;
+        if (e.code === 'OPERATION_TIMEOUT') throw e;
         console.warn(`[dap] ${khz} kHz 不通：${e.message}`);
         // 每档失败后把 USB 会话重开一遍：拉过/折腾过的 SWD 引擎往往要重开会话才肯恢复。
         // `targetInit: false` = 只重开会话，别拿**旧时钟**再协商一次（马上要用新档试）
@@ -415,6 +439,7 @@ export class WebUsbDapProbe {
 
   /** 一条命令的"写 + 读"，不做陈旧包重试（只给封包探测用）*/
   async _ctrlRaw(cmd, payload, timeout = 1500){
+    timeout = Math.min(timeout, this._operationBudget?.check('探测 USB 封包') ?? timeout);
     const n = 1 + (payload ? payload.length : 0);
     const req = this._framing === 'pad' ? new Uint8Array(this.pkt) : new Uint8Array(n);
     req[0] = cmd;
@@ -429,6 +454,11 @@ export class WebUsbDapProbe {
 
   async _ctrl(cmd, payload, { deadline = Infinity } = {}){
     if (!this._ready || (this._closing && cmd !== CMD.Disconnect)) throw new Error('探针未连接或正在断开');
+    if (this._targetNeedsReconnect && [CMD.Transfer, CMD.TransferBlock, 0x14].includes(cmd)) {
+      const error = new Error('USB 已恢复，但目标调试连接已失效；请重新连接目标');
+      error.code = 'DAP_SESSION_LOST';
+      throw error;
+    }
     const n = 1 + (payload ? payload.length : 0);
     if (n > this.pkt) throw new Error(`CMSIS-DAP 命令太长（${n} > ${this.pkt} 字节/包）`);
     /**
@@ -443,7 +473,7 @@ export class WebUsbDapProbe {
     req[0] = cmd;
     if (payload) req.set(payload, 1);
     const remaining = () => {
-      const left = deadline - (globalThis.performance?.now() ?? Date.now());
+      const left = Math.min(deadline - (globalThis.performance?.now() ?? Date.now()), this._operationBudget?.check(`DAP 命令 0x${cmd.toString(16)}`) ?? Infinity);
       if (left <= 0) throw new Error('USB 命令时间预算已耗尽');
       return Math.min(3000, left);
     };
@@ -471,6 +501,11 @@ export class WebUsbDapProbe {
         continue;
       }
       this.lastOkAt = Date.now();           // 链路心跳（见构造函数里的说明）
+      if (cmd === CMD.Connect && (res[1] === 1 || res[1] === 2)) {
+        this._dapPort = res[1];
+        this._targetNeedsReconnect = false;
+        if (res[1] === 2) this._faulted = false;
+      }
       return res.subarray(1);
     }
     this.xferFails++;
@@ -491,8 +526,12 @@ export class WebUsbDapProbe {
     dirty.add(this.device);
     this.xferFails++;
     if (this._recovering || this._closing) return;
+    this._faulted = true;
+    this._targetNeedsReconnect = true;
     this._recovering = true;
     this.recoveries++;
+    const budget = this._operationBudget;
+    this._operationBudget = null; // Native-request retirement must complete even after the logical budget.
     try {
       console.warn(`[dap] ${what} 超时 → 自动复位 USB 端口并清队列`);
       this._note(`${what} 超时 → 自动复位 USB 端口并清队列（第 ${this.recoveries} 次）`);
@@ -506,7 +545,7 @@ export class WebUsbDapProbe {
       this._recovering = false;
       console.warn('[dap] 超时后自动恢复失败：' + e.message + '（可能要拔插一次探针）');
       this._note('超时后自动恢复失败：' + e.message + '（可能要拔插一次探针）');
-    }
+    } finally { this._operationBudget = budget; }
   }
 
   /**
@@ -520,20 +559,27 @@ export class WebUsbDapProbe {
    *
    * 做法：FAULT 当场只**标脏**（把错误如实抛给调用方，那一次操作确实失败了），
    *       **下一次**访问前先花一次 `_targetInit()` 把口子重新初始化，再照常干活。
-   *       在锁外调用 —— `_targetInit` 内部会用公开的读写路径，锁里调用会自锁死。
+   * 恢复和随后一次访问必须共用内存锁。初始化使用私有传输路径，不重入公开内存接口。
    */
   async _healIfFaulted(){
-    if (!this._faulted || this._recovering) return false;
-    this._faulted = false;                       // 先清：自愈过程里的访问别再触发一轮
+    return this._withLock(() => this._healFaultLocked());
+  }
+
+  async _healFaultLocked(){
+    if (!this._faulted && !this._targetNeedsReconnect) return false;
+    if (this._recovering || this._dapPort === 2) throw new Error('调试连接尚未恢复，请断开后重新连接目标');
     this._recovering = true;
     try {
       await this._targetInit({ clock: this.clockHz || null });
+      this._faulted = false;
+      this._targetNeedsReconnect = false;
       this.faultHeals = (this.faultHeals || 0) + 1;
       this._note(`上次访问撞上总线 FAULT → 已重新初始化调试口（第 ${this.faultHeals} 次），可以继续操作`);
       return true;
     } catch (e){
+      this._faulted = true;
       this._note('总线 FAULT 后自愈失败：' + (e?.message || e) + '（可能要拔插一次探针）');
-      return false;
+      throw e;
     } finally {
       this._recovering = false;
     }
@@ -566,11 +612,13 @@ export class WebUsbDapProbe {
      *    实测短超时不影响正常路径（响应来得远早于 600 ms），只把坏情况的死等砍掉 2/3。
      */
     for (let i = 0; i < n; i++){
+      this._operationBudget?.check('清理旧 USB 应答');
       try { await withTimeout(this.device.transferOut(this.epOut, req), 600, 'USB 同步写'); }
       catch { dirty.add(this.device); this._note('清队列时 USB 写超时（探针不应答）'); return 0; }
     }
     let saw = 0;
     for (let i = 0; i < n; i++){
+      this._operationBudget?.check('读取旧 USB 应答');
       let r;
       try { r = await withTimeout(this.device.transferIn(this.epIn, this.pkt), 600, 'USB 同步读'); }
       catch { this._note(`清队列只吃掉 ${saw} 条陈旧响应就超时了（探针没在回包）`); break; }
@@ -590,7 +638,11 @@ export class WebUsbDapProbe {
    *    写 DP ABORT 的 STKCMPERR|STKERR|WDERR|ORUNERR(=0x1E) 就是干这个的。
    */
   async abort(){
-    try { await this._ctrl(CMD.WriteABORT, Uint8Array.of(0x1e, 0x00, 0x00, 0x00)); } catch {}
+    // DAP_WriteABORT carries a DAP index before the 32-bit ABORT value.
+    try {
+      const res = await this._ctrl(CMD.WriteABORT, Uint8Array.of(0, 0x1e, 0, 0, 0));
+      return res[0] === 0;
+    } catch { return false; }
   }
 
   async setClock(hz){
@@ -719,6 +771,9 @@ export class WebUsbDapProbe {
    * 少一步都不行：早期版本漏了 SWD_Configure、把激活序列拆成三次发，结果所有传输 NO ACK。
    */
   async _targetInit({ clock = null } = {}){
+    return this._budgeted('恢复 SWD 调试连接', () => this._targetInitNow({clock}));
+  }
+  async _targetInitNow({ clock = null } = {}){
     const hz = Number(clock || this.clockHz || 1_000_000);
     this._posted = false;                             // 新会话：未完成的 posted 写作废
     const port = await this._ctrl(CMD.Connect, Uint8Array.of(1));      // 1 = SWD
@@ -769,6 +824,7 @@ export class WebUsbDapProbe {
      *    但读出来是 0x9576B58B 这种垃圾）。顺序 [0,2,1,3]：F103 第一下就中。
      */
     this.apIndex = 0;
+    this.cswUsed = null; // A reconnect must discover this target again.
     for (const ap of [0, 2, 1, 3]){
       /**
        * CSW 也一起扫候选值 —— 出处 docs/openocd-flow.md（:1825/:1832/:1871）：
@@ -783,13 +839,16 @@ export class WebUsbDapProbe {
           await this._transfer([{ ap: true, rnw: false, addr: AP_CSW, data: csw >>> 0 }]);
           await this._transfer([{ ap: true, rnw: false, addr: AP_TAR, data: 0xE000ED00 }]);
           const v = ((await this._transfer([{ ap: true, rnw: true, addr: AP_DRW }]))[0]) >>> 0;
-          if (v && v !== 0xffffffff){ this.apIndex = ap; this.cswUsed = csw; break; }
+          if ((v >>> 24) === 0x41 && ((v >>> 16) & 15) === 15 && ((v >>> 4) & 4095)){
+            this.apIndex = ap; this.cswUsed = csw; break;
+          }
         } catch (e){ /* 这组不行，试下一个 */ }
         try { await this._transfer([{ ap: false, rnw: false, addr: 0x00, data: 0x0000001e }]); } catch {}
       }
       if (this.cswUsed) break;
       try { await this._transfer([{ ap: false, rnw: false, addr: 0x00, data: 0x0000001e }]); } catch {}
     }
+    if (!this.cswUsed){ this._faulted = true; throw new Error('未找到返回有效 ARM CPUID 的内存 AP'); }
     await this._transfer([{ ap: false, rnw: false, addr: DP_SELECT, data: (this.apIndex << 24) >>> 0 }]);
     await waitMs(20);            // 真实 20 ms（不受后台节流影响，见 pace.js）
     /**
@@ -810,6 +869,14 @@ export class WebUsbDapProbe {
     const want = (csw & ~0x3f) | 0x02 | 0x10;
     if (want !== csw) await this._writeAP(AP_CSW, want);
     this.csw = want;
+    // Failed discovery candidates may set the FAULT latch. Clear it only after
+    // a fresh memory transaction proves that the selected AP actually works.
+    const check = await this._readMemOnce(0xe000ed00, 4);
+    const cpuid = new DataView(check.buffer, check.byteOffset, 4).getUint32(0, true);
+    if ((cpuid >>> 24) !== 0x41 || ((cpuid >>> 16) & 15) !== 15 || !((cpuid >>> 4) & 4095)){
+      this._faulted = true; throw new Error('AP 初始化后的 CPUID 核验失败');
+    }
+    this._faulted = false;
   }
 
   /** DP 读是「挂起读」：读一次拿的是上一次的结果，所以读两遍 */
@@ -1000,8 +1067,10 @@ export class WebUsbDapProbe {
   }
 
   async readMem(addr, len, apIndex = 0){
-    await this._healIfFaulted();                 // 上次撞过 FAULT → 先把口子修回来（锁外做）
-    return await this._withLock(() => this._readMemLocked(addr, len, apIndex));
+    return this._withLock(async () => {
+      await this._healFaultLocked();
+      return this._readMemLocked(addr, len, apIndex);
+    });
   }
 
   /** Fault diagnostics must preserve the scene: never initialize/heal the target transport. */
@@ -1013,22 +1082,24 @@ export class WebUsbDapProbe {
     });
   }
 
-  /** Control register writes must not read back/retry self-clearing or keyed values. */
+  /** Keyed/self-clearing control writes: one send, no readback retry or healing. */
   async writeMemDiagnostic(addr, bytes){
-    if(this._faulted||this._recovering)throw Error('调试口已有 FAULT；控制写未自动重初始化目标');
+    if(this._faulted||this._recovering)throw new Error('调试口已有 FAULT；控制写未自动重初始化目标');
     return this._withLock(()=>{
-      if(this._faulted||this._recovering)throw Error('调试口已有 FAULT；控制写未自动重初始化目标');
+      if(this._faulted||this._recovering)throw new Error('调试口已有 FAULT；控制写未自动重初始化目标');
       return this._writeMemOnce(addr,bytes,0);
     });
   }
 
-  /** Explicit transport-only recovery. No target reset/resume or trace register writes. */
+  /** Explicit recovery preserves CPU execution state; the caller decides what follows. */
   async recoverDebugPort(){
-    if(this._recovering)throw Error('调试口正在恢复');
-    this._recovering=true;this._faulted=false;
-    try{await this._targetInit({clock:this.clockHz||null});return true;}
-    catch(e){this._faulted=true;throw e;}
-    finally{this._recovering=false;}
+    return this._withLock(async()=>{
+      if(this._recovering)throw new Error('调试口正在恢复');
+      this._recovering=true;this._faulted=true;
+      try{await this._targetInit({clock:this.clockHz||null});this._faulted=false;this._targetNeedsReconnect=false;return true;}
+      catch(e){this._faulted=true;throw e;}
+      finally{this._recovering=false;}
+    });
   }
 
   async regReadDiagnostic(regsel){
@@ -1136,7 +1207,7 @@ export class WebUsbDapProbe {
        */
       const n = Math.min(got, words, vals.length);
       for (let i = 0; i < n; i++) dv.setUint32(a - start + i * 4, vals[i] >>> 0, true);
-      if (n === 0) break;
+      if (n === 0) throw new Error(`内存块读取无进展：0x${a.toString(16)}，还需 ${end - a} 字节（返回 ${got} 字，数据 ${vals.length} 字）`);
       a += n * 4;
     }
     return bytes.subarray(addr - start, addr - start + len);
@@ -1178,8 +1249,10 @@ export class WebUsbDapProbe {
    *    只影响 RAM/调试寄存器的写（都是幂等的），不会对 flash 重复编程。
    */
   async writeMem(addr, bytes, apIndex = 0){
-    await this._healIfFaulted();                 // 同 readMem：上次撞过 FAULT 就先修口子
-    return await this._withLock(() => this._writeMemLocked(addr, bytes, apIndex));
+    return this._withLock(async () => {
+      await this._healFaultLocked();
+      return this._writeMemLocked(addr, bytes, apIndex);
+    });
   }
 
   async _writeMemLocked(addr, bytes, apIndex = 0){
@@ -1254,6 +1327,7 @@ export class WebUsbDapProbe {
     // TAR and its following DRW transfer are one transaction. A concurrent
     // memory read must not redirect this control write to a different address.
     return this._withLock(async()=>{
+      await this._healFaultLocked();
       await this._setTAR(0xE000EDF0);
       await this._transferBlock(false, 1, AP_DRW, Uint32Array.of(value >>> 0));
     });
