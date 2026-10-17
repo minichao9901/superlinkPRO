@@ -256,12 +256,12 @@ static const struct
     uint8_t len;
     uint8_t type;
     uint8_t scheme;
-    char url[sizeof("minichao9901.github.io/web-serial-rtt-tools") - 1];
+    char url[sizeof("minichao9901.github.io/superlinkPRO") - 1];
 } USBD_WebUSBURLDescriptor = {
-    sizeof("minichao9901.github.io/web-serial-rtt-tools") - 1 + 3,
+    sizeof("minichao9901.github.io/superlinkPRO") - 1 + 3,
     WEBUSB_URL_TYPE,
     WEBUSB_URL_SCHEME_HTTPS,
-    "minichao9901.github.io/web-serial-rtt-tools"};
+    "minichao9901.github.io/superlinkPRO"};
 
 #define URL_DESCRIPTOR_LENGTH sizeof(USBD_WebUSBURLDescriptor)
 
