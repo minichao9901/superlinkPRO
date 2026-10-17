@@ -239,6 +239,17 @@ static int rtt_swd_set_clock(uint32_t hz)
     return (s_resp[1] == DAP_OK) ? 0 : -1;
 }
 
+/* 换档后的静默期（缺陷 1 修复，2026-10-18）：SWD 换频后目标端的采样窗口需要重新同步，
+ * 立刻发第一笔事务是最容易踩瞬态的时刻。这里空转约几 µs —— 期间时钟线保持空闲高，
+ * 目标端看到的就是"没有事务"，不违反协议。耗时量级 10 µs 以内，对启动无感。 */
+static void rtt_swd_settle_delay(void)
+{
+    for (volatile uint32_t i = 0U; i < 480U; i++)
+    {
+        /* 空转即可：目的只是让 SWCLK 停一小会儿 */
+    }
+}
+
 /* Debug-port bring-up：官方 swd_host 的 swd_init() + swd_init_debug()。
  * 顺序不能反：swd_init() 里的 DAP_Setup() 会把时钟重置成默认档并加载 Slow
  * blob，所以 SWJ_Clock 必须在其之后、swd_init_debug() 之前调用。
@@ -273,13 +284,40 @@ static int rtt_swd_init(void)
      * 实测「4 MHz Slow 档直跳 60/80 MHz」在换挡后的头几次访问上就失败，而
      * 「20 MHz 档跳到 60/80 MHz」是稳的（低档初始化后切上去，60/80 MHz 稳态
      * 能跑 3431/3476 KB/s），这里就显式复现那条能工作的路径。 */
-    (void)rtt_swd_set_clock(RTT_SWD_RAMP_HZ);
-    (void)swd_clear_errors();
+    /**
+     * 🚨 **逐级爬坡 + 静默期 + 检查返回值**（2026-10-18 缺陷 1/3 修复）。
+     *
+     * 旧实现：20 MHz 斜坡（且 `(void)` 丢弃返回值）→ 直接切 60 MHz → 立刻发第一笔 DP 读。
+     * 问题：20 → 60 是 **3× 直跳**，换频后目标端采样窗口还没重新同步就收到事务，
+     * 首发最易失步（实测 60 MHz 13%/670 次首发失败，45 MHz 0/301）。
+     *
+     * 现在：按阶梯从低到高，每一跳的倍率 ≤1.5×（20→30→36→45→60），每跳之间给一段
+     * 静默期，并且**检查每一次换挡的返回值** —— 任一级失败就返回 -1（旧代码吞掉失败后
+     * 等于 4 MHz 直跳 60 MHz，而固件自己的注释就写了那条路"头几次访问就失败"）。
+     */
+    {
+        static const uint32_t climb[] = RTT_CLOCK_LADDER;   /* {60,45,36,30,20,10} 降序 */
+
+        for (int i = (int)RTT_CLOCK_LADDER_LEN - 1; i >= 0; i--)
+        {
+            if (climb[i] >= s_swd_clock_hz)
+            {
+                continue;                      /* 只爬**低于**目标的档 */
+            }
+            if (rtt_swd_set_clock(climb[i]) != 0)
+            {
+                return -1;
+            }
+            (void)swd_clear_errors();
+            rtt_swd_settle_delay();
+        }
+    }
 
     if (rtt_swd_set_clock(s_swd_clock_hz) != 0)
     {
         return -1;
     }
+    rtt_swd_settle_delay();
     if (s_delay_override != 0xFFU)
     {
         DAP_Data.clock_delay = s_delay_override; /* SWJ_Clock 会重设，压回覆盖值 */
@@ -519,6 +557,27 @@ int rtt_bridge_link_recover(void)
         s_swd_ready = 0U;
         return rtt_swd_init();
     }
+    /**
+     * 🚨 **先在同一档重来一次，仍失败才降档**（2026-10-18 定因，见
+     * docs/probe-60mhz-instability-analysis.md）。
+     *
+     * 旧实现无条件 `rtt_clock_step_down()` → 一次换档瞬态（60 MHz 首发 AP 验收读失败，
+     * 实测 13%/670 次，45 MHz 为 0/301）就把**整场会话**永久降到 45 MHz，
+     * 转发吞吐 2.9 → 2.45 MB/s（-18%）。但证据表明链路本身在 60 MHz 是干净的：
+     *   · 稳态 60 MHz `regression-swd` P2 = 2977 KB/s **LOSSLESS**；
+     *   · 失败后**再 start 一次**（重新 init）在 60 MHz 成功率 ≈87%。
+     * 也就是说"同档重 init"就够，降档是过度反应。
+     *
+     * 所以这里：清错 → 同档重 init；只有**同档也失败**才降一档（真超规格时仍能退）。
+     */
+    rtt_clear_link_errors();
+    s_swd_ready = 0U;
+    if (rtt_swd_init() == 0)
+    {
+        return 0;
+    }
+
+    /* 同档两次都不行：说明该档确实不稳，按阶梯降一档再试。 */
     if (rtt_clock_step_down() == 0)
     {
         rtt_clear_link_errors();
