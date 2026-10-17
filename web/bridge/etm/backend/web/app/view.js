@@ -10,7 +10,33 @@ import {COMMON_TARGETS,completeClocks,targetPort} from './clock.js';
 const $=id=>document.getElementById(id),hex=n=>'0x'+(n>>>0).toString(16).padStart(8,'0'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const state={records:[],current:null,job:null,operation:false,elfInfo:null,elfId:null,elfFile:null,sourceFiles:{},sourceSnapshot:null,sourceCompat:false,sources:new SourceStore(),entryAddress:null,hseValues:{stm32h7b0:25,stm32h743:25,stm32f103ze:8},symbolAddress:null,pendingBreakpointRestore:[],lastTraceConfig:null,waiting:false,traceConfigDirty:false};
 const host=embeddedHost(),target=new EtmTarget(log,{host});
-const apiBase=document.body.dataset.apiBase||'/api/';
+/**
+ * API base（本地桥地址）的三级来源 + 默认值。见 web/docs/etm-online-bridge.md。
+ *   1) `data-api-base` 属性：本地 `serve-etm.py` 注入 `/etm/api/`；静态副本的 bootstrap 也会写它；
+ *   2) `?api=` 查询参数：主页面探测到桥后传给 iframe（跨端口/跨源时用）；
+ *   3) `localStorage['etm.apiBase']`：上次成功连接的桥，刷新后仍然记得；
+ *   4) 默认：本站是 github.io（Pages 线上页）→ `http://127.0.0.1:8899/etm/api/`（本机桥）；
+ *      其它情况（独立 ETM 服务/同源工作台）→ `/api/`（由注入或同源提供）。
+ * `globalThis.__etmApiBase` 是静态副本 bootstrap 预先算好的值（同 (1) 的优先级）。
+ */
+function resolveApiBase(){
+  const attr=document.body?.dataset?.apiBase;
+  if(attr)return attr;
+  const injected=globalThis.__etmApiBase;
+  if(injected)return injected;
+  const query=new URLSearchParams(location.search).get('api');
+  if(query)return query;
+  let saved=null;try{saved=localStorage.getItem('etm.apiBase');}catch{}
+  if(saved)return saved;
+  return /\.github\.io$/i.test(location.hostname)?'http://127.0.0.1:8899/etm/api/':'/api/';
+}
+const apiBase=(()=>{const value=resolveApiBase();return value.endsWith('/')?value:value+'/';})();
+/** 把服务端返回的 `download` 字段（可能是 `/etm/api/...` 这种根相对路径）绑到 API 源上。 */
+function apiUrl(value){
+  if(!value)return value;
+  if(/^[a-z]+:/i.test(value))return value;
+  return new URL(value,new URL(apiBase,location.href)).href;
+}
 async function api(path,body){return requestJson(apiBase+path,body===undefined?{}:{method:'POST',...(body instanceof FormData?{body}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})},{timeout:path.endsWith('/overview')?300000:45000});}
 function log(message){$('log').textContent=new Date().toLocaleTimeString('zh-CN')+' '+message+'\n'+$('log').textContent;controls();}
 function error(e){log(e.message);$('job-state').textContent=e.message;$('job-state').classList.add('bad');}
@@ -262,7 +288,7 @@ $('sources-files').onchange=async()=>{
     await store.setExpectedPaths(info.sourceFiles);store.indexFileList(files);await saveSourceStore(store);
   }catch(e){error(e);}finally{state.operation=false;$('sources-files').value='';controls();}
 };
-$('capture-file').onchange=async()=>{if(state.operation||state.job){error(Error('请等待当前操作完成后再导入'));$('capture-file').value='';return;}try{await perform(async()=>{const f=$('capture-file').files[0];if(!f)return;const form=new FormData();form.append('capture',f);if(!f.name.toLowerCase().endsWith('.etmrecord')){if(!state.elfInfo)throw Error('导入原始 CSV/BIN 前请在调试页载入匹配 ELF；记录包可直接导入');if(state.elfFile)form.append('elf',state.elfFile);else{const response=await fetch(state.elfInfo.download||apiBase+'record-firmware/'+state.elfId);if(!response.ok)throw Error('先选择匹配 ELF');form.append('elf',new Blob([await response.arrayBuffer()]),'firmware.elf');}form.append('config',JSON.stringify(externalDecodeConfig()));form.append('fraction',$('fraction').value);form.append('glitchNs',$('glitch-ns').value);for(const [name,text]of Object.entries(state.sourceFiles))form.append('sources',new Blob([text]),name);}const saved=await api('import',form);await refreshRecords();await watchJob((await api('decode/'+saved.record,{})).job);},{hardware:false});}catch(e){error(e);}finally{$('capture-file').value='';}};
+$('capture-file').onchange=async()=>{if(state.operation||state.job){error(Error('请等待当前操作完成后再导入'));$('capture-file').value='';return;}try{await perform(async()=>{const f=$('capture-file').files[0];if(!f)return;const form=new FormData();form.append('capture',f);if(!f.name.toLowerCase().endsWith('.etmrecord')){if(!state.elfInfo)throw Error('导入原始 CSV/BIN 前请在调试页载入匹配 ELF；记录包可直接导入');if(state.elfFile)form.append('elf',state.elfFile);else{const response=await fetch(apiUrl(state.elfInfo.download)||apiBase+'record-firmware/'+state.elfId);if(!response.ok)throw Error('先选择匹配 ELF');form.append('elf',new Blob([await response.arrayBuffer()]),'firmware.elf');}form.append('config',JSON.stringify(externalDecodeConfig()));form.append('fraction',$('fraction').value);form.append('glitchNs',$('glitch-ns').value);for(const [name,text]of Object.entries(state.sourceFiles))form.append('sources',new Blob([text]),name);}const saved=await api('import',form);await refreshRecords();await watchJob((await api('decode/'+saved.record,{})).job);},{hardware:false});}catch(e){error(e);}finally{$('capture-file').value='';}};
 function sideButtonLabel(){$('toggle-settings').textContent=innerWidth<=780?'采集设置':document.body.classList.contains('side-hidden')?'显示控制':'收起控制';}
 $('help').onclick=()=>$('help-dialog').showModal();$('close-help').onclick=()=>$('help-dialog').close();$('toggle-settings').onclick=()=>{document.body.classList.toggle(innerWidth<=780?'settings-open':'side-hidden');sideButtonLabel();};window.addEventListener('resize',sideButtonLabel);sideButtonLabel();
 $('toggle-source').onclick=()=>{const open=document.body.classList.toggle('source-open');$('toggle-source').textContent=open?'轨迹':'源码';$('toggle-source').setAttribute('aria-expanded',String(open));};

@@ -63,7 +63,7 @@
     "app/elf/dwarf.js": "3fcce77dce04388b2652efd5cba53c3b0570ee1002de804ded6627fbc60fa200",
     "app/elf/elf.js": "01906fc7a926c2c51f69d3240b28a8484d90542f50a8c63d4aa70b6d201d158e",
     "app/elf/lines.js": "eb2a9815d75c298981ec9c830b9d94058f4757a59064c9d0ee9d2d09763bdd7c",
-    "app/etm/view.js": "bc68126f9d2b2c30e669bdbe68a293a0f1210a90af310b50baf3947c49f6da8f",
+    "app/etm/view.js": "f0e965c7c92faa4ab0ce8d1fd7ae9c634b6ebe1c945f51b181cabb94ff430f97",
     "app/flash/algos.js": "eaf20e3215338cb40e897932ef67d2ae2b1f914cdbfe83655c4ce0f087a17064",
     "app/flash/data-clock.js": "ef9a2269c9675e3af86702e700dce90655403536cf559e2adbbeba8bc1dce327",
     "app/flash/devid.js": "4a98855b9cec59eb1290f512952031d7372d346f1488d351f0c4f78b4a43c538",
@@ -173,6 +173,6 @@
     "app/ui/workspace.js": "25b6ce94e5d90302a37e6cec2b7e35c975af95ce29bef1094a4493f3890fc0b7",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "6aafcf9b3e675bfd218c0a7df5b5c9c90ff4ab169eb1c5bfe3f98cb64c0201d9",
-  "outputBytes": 1329592
+  "outputSha256": "5975f1377af4094628b330313c48e2815ae33f08a15ad8421d539e6eb5ee751c",
+  "outputBytes": 1333067
 }

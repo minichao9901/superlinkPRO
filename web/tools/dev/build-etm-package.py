@@ -32,7 +32,7 @@ def main():
     # A pre-commit build must also ship newly introduced bundle source modules.
     public_files+=list(json.loads((ROOT/'app/site/manifest.json').read_text(encoding='utf8'))['inputs'])
     # Include new app files introduced by this task before their first commit.
-    public_files+=['app/gen/etm-kit.js','app/gen/etm-kit-src.js','docs/etm-integration.md','docs/h743-web-review-2026-10-17.md','docs/etm-audit-2026-10-14.md','docs/etm-review-followup-2026-10-15.md']
+    public_files+=['app/gen/etm-kit.js','app/gen/etm-kit-src.js','docs/etm-integration.md','docs/etm-online-bridge.md','docs/h743-web-review-2026-10-17.md','docs/etm-audit-2026-10-14.md','docs/etm-review-followup-2026-10-15.md']
     for name in sorted(set(public_files)):
         original=ROOT/name
         if original.is_file() and original.suffix!='.map':

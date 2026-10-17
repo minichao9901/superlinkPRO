@@ -24,7 +24,9 @@ def main():
                 target=dest/'vendor/native-runtime-licenses'/name/file.name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(file,target)
     # Keep mutable records beside the portable executable, outside packaged read-only resources.
     server=dest/'server.py';text=server.read_text(encoding='utf8')
-    text=text.replace('import base64\n','import base64\nimport os\n',1).replace("RECORDS = ROOT / 'records'","RECORDS = Path(os.environ.get('WEB_ETM_RECORDS', str(ROOT / 'records')))")
+    # etm/server.py 本身已经 import os（CORS 白名单要用环境变量）→ 只在缺的时候补，避免重复 import。
+    if 'import os\n' not in text: text=text.replace('import base64\n','import base64\nimport os\n',1)
+    text=text.replace("RECORDS = ROOT / 'records'","RECORDS = Path(os.environ.get('WEB_ETM_RECORDS', str(ROOT / 'records')))")
     server.write_text(text,encoding='utf8')
     # Windows command-line/file APIs use UTF-16; the memory manifest uses UTF-8.
     native=dest/'native/decoder.cpp';text=native.read_text(encoding='utf8')

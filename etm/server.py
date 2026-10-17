@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import math
+import os
 import re
 import socket
 import sys
@@ -50,14 +51,59 @@ def file_hash(path):
 ACTIVE = ('queued', 'starting', 'armed', 'saving', 'decoding')
 
 
+# ---- 跨源：GitHub Pages 上的页面 + 本机桥（见 web/docs/etm-online-bridge.md）----
+# 允许的来源：本机回环（任意端口）+ 线上页面 origin；可用环境变量 ETM_CORS_ORIGINS
+# 追加（逗号分隔的 scheme://host[:port]）。同源请求本来就不需要 CORS —— 这里只是
+# **额外允许**，不改变同源行为。不要改成 `*`（会把本机上任何网页都放进来）。
+CORS_PAGE_HOSTS = {'minichao9901.github.io'}
+CORS_LOCAL_RE = re.compile(r'^https?://(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$')
+
+def cors_extra_origins():
+    value = os.environ.get('ETM_CORS_ORIGINS', '')
+    return {item.strip().rstrip('/') for item in value.split(',') if item.strip()}
+
+def cors_origin():
+    origin = request.headers.get('Origin')
+    if not origin:
+        return None
+    origin = origin.rstrip('/')
+    if origin in cors_extra_origins():
+        return origin
+    parts = urlsplit(origin)
+    if parts.scheme == 'https' and parts.hostname in CORS_PAGE_HOSTS:
+        return origin
+    return origin if CORS_LOCAL_RE.match(origin) else None
+
+def cors_path():
+    path = request.path or ''
+    return '/api/' in path or path.endswith('integration.json')
+
 @app.before_request
 def local_only():
     if request.remote_addr not in ('127.0.0.1', '::1'):
         abort(403)
     if urlsplit('//'+request.host).hostname not in ('127.0.0.1','localhost','::1'):
         abort(403)
-    if request.method != 'GET' and request.headers.get('Origin') not in (None, request.host_url.rstrip('/')):
+    if request.method not in ('GET', 'OPTIONS') and request.headers.get('Origin') not in (None, request.host_url.rstrip('/')) and cors_origin() is None:
         abort(403)
+
+@app.before_request
+def cors_preflight():
+    # 跨源预检：204 空响应，CORS 头由 after_request 统一加（同源请求不受影响）。
+    if request.method == 'OPTIONS' and cors_path():
+        return app.response_class(status=204)
+
+@app.after_request
+def cors_headers(response):
+    if cors_path():
+        origin = cors_origin()
+        if origin:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers.add('Vary', 'Origin')
+            response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+            response.headers['Access-Control-Max-Age'] = '600'
+    return response
 
 
 @app.errorhandler(Exception)

@@ -101,6 +101,7 @@
 | `docs/decisions.md` | D-1 ~ D-6 的已批准决策与两条必须传给下游的踩坑 | ✅ 已完成 |
 | `docs/merge-verification.md` | 迁移对账（文件数 / 字节数 / 逐文件 sha256 与已知差异） | ⏳ t7 |
 | `web/docs/driver-unification.md` | 探针驱动去重定稿（真源 / 生成副本 / sha256 守卫 / 取舍理由；索引在 `docs/driver-unification.md`） | ✅ 已完成（t6） |
+| `web/docs/etm-online-bridge.md` | ETM 线上页（GitHub Pages）+ 本地桥（跨源）的拓扑、桥地址配置、端口探测、CORS 白名单与排障 | ✅ 已完成（t8） |
 
 各子树自带的说明文档仍在原位：`firmware/README.md`、`web/README.md`、`etm/README.md`
 （以及各自的 `docs/`）。

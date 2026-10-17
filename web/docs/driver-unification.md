@@ -15,17 +15,18 @@
 
 ---
 
-## 1. 同名文件有 4 处，各自角色不同（别误判为「还有 3 份驱动」）
+## 1. 同名文件有 5 处，各自角色不同（别误判为「还有 4 份驱动」）
 
 | 位置 | 角色 | 谁维护 |
 | --- | --- | --- |
 | `web/app/rtt/dap-webusb.js`、`web/app/core/{usb-device,probe-bus,pace,bin,operation-budget}.js`、`web/app/dbg/{bp,source}.js` | **唯一真源（8 文件）** | 人工 |
 | `etm/web/app/shared/**`（同样 8 个路径 + `README.md`） | **生成副本**（ETM 页 `./shared/...` 引用） | `sync-shared-drivers.mjs` 生成 |
-| `web/bridge/etm/backend/web/app/shared/**` | ETM **便携包运行快照**（`etm@a2922f8` 的派生，见 `bridge/etm/provenance.json`） | `sync-etm-runtime.py` 生成；本次未重生成（见 §7） |
+| `web/etm/app/shared/**` | **线上页副本**里的同一套驱动（Pages 上 `web/etm/` 是 `etm/web/` 的静态副本，见 `web/docs/etm-online-bridge.md`） | `sync-etm-page.mjs` 生成（其上游是 `etm/web`，最终仍来自真源） |
+| `web/bridge/etm/backend/web/app/shared/**` | ETM **便携包运行快照**（当前快照由 `sync-etm-runtime.py` 从 `etm/` 重新生成，`provenance.json` 记录 sourceRevision） | `sync-etm-runtime.py` 生成 |
 | `web/docs/validation/20261016-sram-root-cause-134100/baseline-app_rtt_dap-webusb.js` | 2026-10 验收留档的**基线副本**（证据，不参与运行） | 只读证据 |
 
-`grep -r dap-webusb.js` 全仓会命中 4 个文件：**1 真源 + 1 生成副本 + 1 快照 + 1 历史证据**。
-没有任何第二份手写驱动。
+`grep -r dap-webusb.js` 全仓会命中 5 个文件：**1 真源 + 2 生成副本（ETM 页 + 线上页）+ 1 便携包快照 + 1 历史证据**。
+没有任何第二份手写驱动；两处页面副本都由 sha256 守卫（`shared-drivers.test.mjs` + `etm-page-copy.test.mjs`）。
 
 ---
 
@@ -140,12 +141,11 @@ t6 任务书写「ETM 页面源码并入 `web/app/etm/`」。实测与 `docs/mer
 
 ## 7. 已知遗留（刻意留给后续，不是漏）
 
-1. **`web/bridge/etm/backend/**` 运行快照未重生成**：`sync-etm-runtime.py` 需要
-   `etm/build-native/vendor/OpenCSD/*.a`（gitignored、未迁）、`etm/records/`（未迁，Demo 来源）与 msys64 g++。
-   条令：改了 `etm/**` 之后跑
-   `python tools/dev/sync-etm-runtime.py --etm-root ../etm` + `python tools/dev/build-etm-package.py`，
-   并确认 `provenance.json` 里 `sourceRepository='etm'`。快照里的 8 个 shared 副本因此仍是 a2922f8 那版
-   （旧 ETM 驱动）——**它是自洽的旧包**；页面运行走 `etm/web`（`make serve-etm`）就是统一后的驱动。
+1. ~~**`web/bridge/etm/backend/**` 运行快照未重生成**~~ → **t8 已重生成**（`sync-etm-runtime.py --etm-root ../etm`，
+   59 文件；`provenance.json` 的 `sourceRepository='etm'`、`sourceRevision` 指向当前 HEAD），并重打了便携包。
+   条令不变：改了 `etm/**`（含 ETM 页）之后要重跑
+   `python tools/dev/sync-etm-runtime.py --etm-root ../etm` + `python tools/dev/build-etm-package.py`；
+   改了 `etm/web/**` 还要跑 `node tools/dev/sync-etm-page.mjs`（线上副本）。
 2. `web/kill-web.bat` 的进程匹配串仍写死 `*web-serial-rtt-tools*`（按命令行匹配 node 进程），合并后开发
    服务器路径是 `superlinkPRO\web` → 它杀不到；`make serve-stop` 按端口杀不受影响。改它要小心该文件的
    GBK 编码（不在 §2.4 清单，未动）。
@@ -153,3 +153,5 @@ t6 任务书写「ETM 页面源码并入 `web/app/etm/`」。实测与 `docs/mer
    路径，不在 §2.4 的 5 文件内；重建固件前需按新路径调整。
 4. `web/docs/etm-integration.md` 里保留「来源 `web-etm-trace` master@12746fc」的出处说明 —— 那是
    provenance（最后凭据），不是运行依赖。
+5. 线上页副本（`web/etm/**`）由 `sync-etm-page.mjs` 生成：改了 `etm/web/**` **必须重跑**，否则
+   `make check` 的 `--check` 与 `etm-page-copy.test.mjs` 会红（见 `web/docs/etm-online-bridge.md`）。
