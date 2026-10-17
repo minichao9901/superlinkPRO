@@ -1,0 +1,26 @@
+{
+  "id": "icn3311b",
+  "file": "customer/peripherals/icn3311b/icn3311b.c",
+  "registered_name": "icn3311",
+  "pixel_align": 2,
+  "res_w": 410,
+  "res_h": 502,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_dsi",
+      "itf": "LCDC_INTF_DSI",
+      "freq": null,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888"
+    },
+    {
+      "name": "lcdc_int_cfg_spi",
+      "itf": "QAD_SPI_ITF",
+      "freq": 24000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888"
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 43,
+  "hal_delay_count": 8,
+  "hal_delayus_count": 0
+}

@@ -1,0 +1,36 @@
+
+$ git cherry-pick -n 799d6a2
+
+$ git diff --cached --name-only
+app/core/probe-users.js
+app/hid/view.js
+app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/managed-stage2.mjs
+PASS managed handoff, queued START cancellation, flash protection and independent I2C
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/target-switch.test.mjs
+target-switch: active/pending scope and RTT forwarding cannot mutate global backend PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-watchdog.test.mjs
+scope-watchdog: slow packet cadence, fast failure, stale generation, discard mode PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 799d6a2
+fix(probe): arbitrate engine reconfiguration and avoid stopping unacquired starts
+
+$ git commit -C 799d6a2
+[main 594ad6c] fix(probe): arbitrate engine reconfiguration and avoid stopping unacquired starts
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:30:33 2026 +0900
+ 3 files changed, 46 insertions(+), 7 deletions(-)
+
+$ git rev-parse HEAD
+594ad6c2a866fa17ccf513b94a57da9f2192d9ea

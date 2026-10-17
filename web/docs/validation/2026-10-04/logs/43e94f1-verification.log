@@ -1,0 +1,28 @@
+
+$ git cherry-pick -n 43e94f1
+
+$ git diff --cached --name-only
+app/rtt/view.js
+tools/selftest/rtt-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-lifecycle.test.mjs
+rtt-lifecycle: stale successful/failed polls cannot publish, stop replacement or schedule old workers PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/rtt-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 43e94f1
+fix(rtt): isolate scans and polling by session generation
+
+$ git commit -C 43e94f1
+[main 9aa259e] fix(rtt): isolate scans and polling by session generation
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:26:38 2026 +0900
+ 2 files changed, 84 insertions(+), 24 deletions(-)
+ create mode 100644 tools/selftest/rtt-lifecycle.test.mjs
+
+$ git rev-parse HEAD
+9aa259e7d51b78df2f21f281689b9c603e18e76f

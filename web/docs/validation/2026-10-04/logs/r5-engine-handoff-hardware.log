@@ -1,0 +1,31 @@
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 1/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 2/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 3/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 4/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 5/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 6/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 7/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 8/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 9/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+PASS engine handoff 10/10 Scope->RTT/CDC->Debug; real samples and F103CB identity; confirmed STOP; same live I2C session and unchanged 256-byte EEPROM; resets=0
+PASS final cleanup {"owners":[],"failures":0,"identityReads":10,"usb":{"closes":30,"resets":0,"releases":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"claims":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}}

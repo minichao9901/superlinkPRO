@@ -1,0 +1,35 @@
+
+$ git cherry-pick -n c6f8769
+
+$ git diff --cached --name-only
+app/rtt/dap-webusb.js
+app/rtt/view.js
+app/scope/view.js
+tools/selftest/rtt-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-lifecycle.test.mjs
+rtt-lifecycle: stale successful/failed polls cannot publish, stop replacement or schedule old workers PASS
+rtt-lifecycle: target reset drains reader and cannot rescan a replacement session PASS
+rtt-lifecycle: failed connect retains its original error without duplicate cleanup PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/dap-webusb.js
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/rtt-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s c6f8769
+fix(lifecycle): preserve connect errors and bound late recovery cleanup
+
+$ git commit -C c6f8769
+[main 0d2cabd] fix(lifecycle): preserve connect errors and bound late recovery cleanup
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:44:43 2026 +0900
+ 4 files changed, 10 insertions(+), 2 deletions(-)
+
+$ git rev-parse HEAD
+0d2cabd43633c541113160a593e4adac02f9284e

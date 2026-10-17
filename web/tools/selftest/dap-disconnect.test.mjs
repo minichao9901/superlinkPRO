@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';
+let release;const held=new Promise(r=>release=r),events=[];
+const p=Object.create(WebUsbDapProbe.prototype);Object.assign(p,{_ready:true,_lockChain:held,device:{releaseInterface:async()=>events.push('release'),close:async()=>events.push('close')},_unwatchUsb(){}});
+const ctrl=p._ctrl;p._ctrl=async()=>events.push('disconnect');
+const disconnect=p.disconnect();assert.equal(p._closing,true);await new Promise(r=>setImmediate(r));assert.deepEqual(events,[]);
+await assert.rejects(ctrl.call(p,5),/正在断开/);release();await disconnect;assert.deepEqual(events,['disconnect','release','close']);
+p._onXferTimeout=WebUsbDapProbe.prototype._onXferTimeout;await p._onXferTimeout('old');assert.equal(p._recovering,undefined,'late timeout cannot reopen a closed session');
+console.log('dap-disconnect: drains memory lock, rejects late traffic, late timeout cannot recover closed session PASS');
+await p.disconnect();assert.deepEqual(events,['disconnect','release','close'],'repeated DAP disconnect cannot send a late engine STOP');

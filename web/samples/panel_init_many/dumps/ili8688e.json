@@ -1,0 +1,107 @@
+{
+  "id": "ili8688e",
+  "file": "customer/peripherals/ili8688e/ili8688e.c",
+  "registered_name": "ili8688e",
+  "pixel_align": 2,
+  "res_w": null,
+  "res_h": null,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_dsi",
+      "itf": "LCDC_INTF_DSI",
+      "freq": null,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888"
+    },
+    {
+      "name": "lcdc_int_cfg_qadspi",
+      "itf": "QAD_SPI_ITF",
+      "freq": 48000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    }
+  ],
+  "tables": [
+    {
+      "name": "lcd_init_cmds",
+      "row_count": 11,
+      "rows": [
+        [
+          255,
+          [
+            134,
+            136,
+            0
+          ]
+        ],
+        [
+          42,
+          [
+            0,
+            0,
+            1,
+            111
+          ]
+        ],
+        [
+          43,
+          [
+            0,
+            0,
+            1,
+            191
+          ]
+        ],
+        [
+          53,
+          [
+            0
+          ]
+        ],
+        [
+          54,
+          [
+            64
+          ]
+        ],
+        [
+          81,
+          [
+            255
+          ]
+        ],
+        [
+          83,
+          [
+            36
+          ]
+        ],
+        [
+          196,
+          [
+            0
+          ]
+        ],
+        [
+          58,
+          [
+            119
+          ]
+        ],
+        [
+          196,
+          [
+            128
+          ]
+        ],
+        [
+          58,
+          [
+            85
+          ]
+        ]
+      ]
+    }
+  ],
+  "lcd_writereg_count": 16,
+  "hal_delay_count": 4,
+  "hal_delayus_count": 0
+}

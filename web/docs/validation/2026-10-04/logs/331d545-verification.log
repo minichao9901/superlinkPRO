@@ -1,0 +1,41 @@
+
+$ git cherry-pick -n 331d545
+
+$ git diff --cached --name-only
+app/scope/transport.js
+app/scope/view.js
+tools/selftest/usb-transports.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-transports.test.mjs
+usb-transports: DAP disconnect/legacy cleanup preserve independent SPI interface PASS
+usb-transports: Scope clean close preserves SPI; dirty close retains lease until exclusive recovery PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-transport.test.mjs
+scope-transport: rearm, ordering, bounded reads, stop/restart, decoder error, stall, disconnect PASS
+scope-transport: stalled restart resets/retire reads; failed reset blocks capture PASS
+scope-transport: replacing transport cannot orphan native reads on the same device PASS
+scope-transport: quiesce drains producer-completed reads without rearming or resetting normal captures PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-lifecycle.test.mjs
+scope-lifecycle: double start, cancellation during CONFIG/STATUS, STOP before USB drain PASS
+scope-lifecycle: STOP errors propagate while USB drains; rejected input does not send STOP PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/transport.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/usb-transports.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 331d545
+refactor(scope): release only owned USB endpoints and guard dirty recovery
+
+$ git commit -C 331d545
+[main b39383e] refactor(scope): release only owned USB endpoints and guard dirty recovery
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 16:24:35 2026 +0900
+ 3 files changed, 39 insertions(+), 14 deletions(-)
+
+$ git rev-parse HEAD
+b39383e99f7ae5cb8a3d41b3ba7a8b3c651c28fa

@@ -1,0 +1,24 @@
+
+$ git cherry-pick -n 40a4941
+
+$ git diff --cached --name-only
+app/hid/probe.js
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/hid-channel.test.mjs
+hid-channel: shared response queue, handle reference ownership, independent devices and close cancellation PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/probe.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 40a4941
+fix(hid): coordinate command responses across same-origin tabs
+
+$ git commit -C 40a4941
+[main 3ee08b9] fix(hid): coordinate command responses across same-origin tabs
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:30:33 2026 +0900
+ 1 file changed, 24 insertions(+), 5 deletions(-)
+
+$ git rev-parse HEAD
+3ee08b9bb50753441991c8efe7d6c7721448b103

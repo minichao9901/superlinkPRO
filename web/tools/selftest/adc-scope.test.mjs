@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {AdcScopeStore,envelope} from '../../app/analog/scope-store.js';
+const s=new AdcScopeStore(16);
+s.append({codes:Uint16Array.from([0,0,0,0,60000,60000,60000,60000,0,0,0,0]),rate:1000,bits:16});
+const frame=s.frame({timeDiv:.001,reference:3.3,level:1.65,trigger:'normal'});assert.ok(frame.triggered);assert.equal(frame.start,2);
+assert.equal(s.frame({timeDiv:.001,level:4,trigger:'normal'}),null);
+s.append({codes:Uint16Array.from({length:12},(_,i)=>i+100),rate:1000,bits:16});assert.equal(s.length,16);assert.equal(s.total,24);
+assert.deepEqual(Array.from({length:12},(_,i)=>s.code(12+i)),Array.from({length:12},(_,i)=>100+i));
+assert.equal(s.csv().split('\n').length,17);
+const points=new Uint16Array(10000);points[5555]=65535;assert.equal(Math.max(...envelope(points,100).map(p=>p.max)),65535);
+s.reset();assert.equal(s.frame({timeDiv:.001}),null);
+s.append({codes:Uint16Array.from([0,0,60000,60000,60000,60000,60000,60000,60000,60000]),rate:1000,bits:16});
+assert.equal(s.frame({timeDiv:.001,trigger:'normal',level:1.65}).start,0,'earliest valid pretrigger crossing is included');
+console.log('ADC scope: bounded history/ring wrap, rising trigger/pretrigger, normal hold, CSV, pixel spike envelope PASS');

@@ -1,0 +1,29 @@
+
+$ git cherry-pick -n 9bb25cb
+
+$ git diff --cached --name-only
+app/core/usb-device.js
+tools/selftest/usb-device.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-device.test.mjs
+usb-device: shared lifecycle, endpoint exclusion, interface refs, guarded reset, alias identity PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/usb-device.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/usb-device.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 9bb25cb
+feat(core): share USB device and interface lifecycle with guarded reset
+
+$ git commit -C 9bb25cb
+[main e379335] feat(core): share USB device and interface lifecycle with guarded reset
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 16:20:29 2026 +0900
+ 2 files changed, 121 insertions(+)
+ create mode 100644 app/core/usb-device.js
+ create mode 100644 tools/selftest/usb-device.test.mjs
+
+$ git rev-parse HEAD
+e379335191057251a552511d96d398a06f4884b1

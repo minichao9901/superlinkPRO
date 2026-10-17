@@ -1,0 +1,20 @@
+{
+  "id": "ili9327",
+  "file": "customer/peripherals/ili9327/ili9327.c",
+  "registered_name": "ili9327",
+  "pixel_align": 1,
+  "res_w": 240,
+  "res_h": 400,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg",
+      "itf": "LCDC_INTF_DBI_8BIT_B",
+      "freq": 12000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 26,
+  "hal_delay_count": 5,
+  "hal_delayus_count": 1
+}

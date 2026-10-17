@@ -1,0 +1,33 @@
+
+$ git cherry-pick -n 87a7256
+
+$ git diff --cached --name-only
+app/scope/transport.js
+app/scope/view.js
+tools/selftest/scope-transport.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-transport.test.mjs
+scope-transport: rearm, ordering, bounded reads, stop/restart, decoder error, stall, disconnect PASS
+scope-transport: stalled restart resets/retire reads; failed reset blocks capture PASS
+scope-transport: replacing transport cannot orphan native reads on the same device PASS
+scope-transport: quiesce drains producer-completed reads without rearming or resetting normal captures PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/transport.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/scope-transport.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 87a7256
+perf(scope): drain submitted reads before disabling the producer
+
+$ git commit -C 87a7256
+[main 371c8fe] perf(scope): drain submitted reads before disabling the producer
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:45:46 2026 +0900
+ 3 files changed, 16 insertions(+)
+
+$ git rev-parse HEAD
+371c8feca5582ce541ab4fae4dff7f74762dbf51

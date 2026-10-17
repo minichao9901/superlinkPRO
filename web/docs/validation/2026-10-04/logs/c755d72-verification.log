@@ -1,0 +1,45 @@
+
+$ git cherry-pick -n c755d72
+
+$ git diff --cached --name-only
+app/core/usb-device.js
+app/rtt/dap-webusb.js
+tools/selftest/dap-disconnect.test.mjs
+tools/selftest/usb-device.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dap-disconnect.test.mjs
+dap-disconnect: drains memory lock, rejects late traffic, late timeout cannot recover closed session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-device.test.mjs
+usb-device: shared lifecycle, endpoint exclusion, interface refs, guarded reset, alias identity PASS
+usb-device: native timeout retains ownership and prevents late lifecycle races PASS
+usb-device: failed setup retains requests, later exclusive reconnect recovers abandoned handles PASS
+usb-device: physical unplug invalidates canonical handle before same-serial reconnect PASS
+usb-device: duplicate and unacquired close are harmless to remaining peers PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-transports.test.mjs
+usb-transports: DAP disconnect/legacy cleanup preserve independent SPI interface PASS
+usb-transports: Scope clean close preserves SPI; dirty close retains lease until exclusive recovery PASS
+usb-transports: SPI clean close preserves Scope; timed-out native OUT is tracked and cannot reset Scope PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/usb-device.js
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/dap-webusb.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/dap-disconnect.test.mjs
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/usb-device.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s c755d72
+fix(usb): make repeated release and DAP disconnect idempotent
+
+$ git commit -C c755d72
+[main dce564b] fix(usb): make repeated release and DAP disconnect idempotent
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 16:42:50 2026 +0900
+ 4 files changed, 15 insertions(+), 1 deletion(-)
+
+$ git rev-parse HEAD
+dce564b3194291d87f5c258aceec244326724048

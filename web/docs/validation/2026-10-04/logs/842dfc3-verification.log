@@ -1,0 +1,45 @@
+
+$ git cherry-pick -n 842dfc3
+
+$ git diff --cached --name-only
+Makefile
+tools/selftest/hid-channel.test.mjs
+tools/selftest/probe-cross-tab.test.mjs
+tools/selftest/probe-integration.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/hid-channel.test.mjs
+hid-channel: shared response queue, handle reference ownership, independent devices and close cancellation PASS
+hid-channel: timeout and close settle a response even while sendReport is stalled PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-cross-tab.test.mjs
+probe-cross-tab: simultaneous acquisition has one winner, later handoff drains the previous owner PASS
+probe-cross-tab: passive HID command responses serialize across tab handles and closing cancels a lock waiter PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-integration.test.mjs
+probe-integration: real entry points serialize setup, coexist on disjoint resources, cancel queued START and protect flash PASS
+probe-integration: unknown firmware stop cannot be bypassed by a later feature PASS
+probe-integration: manual release and managed takeover share one complete USB close PASS
+probe-integration: firmware START pending retains ownership until STOP completion is confirmed PASS
+probe-integration: cancelling during backend preparation cannot create a later debug session PASS
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/hid-channel.test.mjs
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-cross-tab.test.mjs
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-integration.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 842dfc3
+test(probe): cover managed feature handoffs and shared HID channels
+
+$ git commit -C 842dfc3
+[main 6bc5e57] test(probe): cover managed feature handoffs and shared HID channels
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:50:21 2026 +0900
+ 4 files changed, 220 insertions(+), 2 deletions(-)
+ create mode 100644 tools/selftest/probe-cross-tab.test.mjs
+ create mode 100644 tools/selftest/probe-integration.test.mjs
+
+$ git rev-parse HEAD
+6bc5e571d493826ff4f241d157992ad524070418

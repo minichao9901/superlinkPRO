@@ -1,0 +1,31 @@
+
+$ git cherry-pick -n 47afffd
+
+$ git diff --cached --name-only
+app/dbg/view.js
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-backend-lifecycle.test.mjs
+dbg-backend-lifecycle: ARM/RISC-V switch waits for old actions and disconnect before replacing session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-handoff.test.mjs
+probe-handoff: debugger cancels queue, drains action before close; flash releases debugger before USB cleanup PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/dbg/view.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 47afffd
+refactor(debug): acquire probe resources through the manager
+
+$ git commit -C 47afffd
+[main ea9b376] refactor(debug): acquire probe resources through the manager
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:22:33 2026 +0900
+ 1 file changed, 19 insertions(+), 8 deletions(-)
+
+$ git rev-parse HEAD
+ea9b3760c3934234738fd541c0f47afc91c6b7e3

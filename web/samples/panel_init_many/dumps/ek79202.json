@@ -1,0 +1,35 @@
+{
+  "id": "ek79202",
+  "file": "customer/peripherals/ek79202/ek79202.c",
+  "registered_name": "ek79202",
+  "pixel_align": 1,
+  "res_w": null,
+  "res_h": null,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg",
+      "itf": "AUTO_SELECTED_DPI_INTFACE",
+      "freq": 60.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888",
+      "timing": {
+        "PCLK_polarity": 0,
+        "DE_polarity": 0,
+        "VS_polarity": 1,
+        "HS_polarity": 1,
+        "VS_width": 3,
+        "HS_width": 10,
+        "VBP": 10,
+        "VAH": 800,
+        "VFP": 10,
+        "HBP": 180,
+        "HAW": 1280,
+        "HFP": 170,
+        "interrupt_line_num": 1
+      }
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 0,
+  "hal_delay_count": 0,
+  "hal_delayus_count": 1
+}

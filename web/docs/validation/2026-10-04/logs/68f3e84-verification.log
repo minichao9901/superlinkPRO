@@ -1,0 +1,29 @@
+
+$ git cherry-pick -n 68f3e84
+
+$ git diff --cached --name-only
+app/core/recorder.js
+tools/selftest/recorder-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/recorder-lifecycle.test.mjs
+recorder-lifecycle: single picker/stop, close barrier, clean restart and stop during opening PASS
+recorder-lifecycle: write error survives stop, remains visible, stops later batches and recovers after close PASS
+recorder-lifecycle: unload stays protected through zero backlog and pending close PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/recorder.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/recorder-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 68f3e84
+fix(recorder): keep unload protection until the file is committed
+
+$ git commit -C 68f3e84
+[main 9eb0668] fix(recorder): keep unload protection until the file is committed
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 19:21:20 2026 +0900
+ 2 files changed, 21 insertions(+), 3 deletions(-)
+
+$ git rev-parse HEAD
+9eb06682632eddda39efdd972ef17f79b5d13242

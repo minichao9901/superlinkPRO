@@ -1,0 +1,28 @@
+
+$ git cherry-pick -n 1a6a227
+
+$ git diff --cached --name-only
+app/flash/view.js
+tools/selftest/flash-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/flash-lifecycle.test.mjs
+flash-lifecycle: preparation, duplicate click, disconnect ownership, cancellation and errors PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/flash/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/flash-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 1a6a227
+fix(flash): reserve operation through preparation and disconnect
+
+$ git commit -C 1a6a227
+[main b681878] fix(flash): reserve operation through preparation and disconnect
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:19:13 2026 +0900
+ 2 files changed, 27 insertions(+), 4 deletions(-)
+ create mode 100644 tools/selftest/flash-lifecycle.test.mjs
+
+$ git rev-parse HEAD
+b681878a9ffcd2bd9bbf1ce92a1e0c1dd6d2dd8f

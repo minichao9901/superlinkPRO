@@ -1,0 +1,31 @@
+
+$ git cherry-pick -n 0ff1f43
+
+$ git diff --cached --name-only
+app/scope/transport.js
+app/scope/view.js
+tools/selftest/scope-transport.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-transport.test.mjs
+scope-transport: rearm, ordering, bounded reads, stop/restart, decoder error, stall, disconnect PASS
+scope-transport: stalled restart resets/retire reads; failed reset blocks capture PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/transport.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/scope-transport.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 0ff1f43
+fix(scope): retire timed-out USB reads before restarting capture
+
+$ git commit -C 0ff1f43
+[main 6c46966] fix(scope): retire timed-out USB reads before restarting capture
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:29:45 2026 +0900
+ 3 files changed, 52 insertions(+), 1 deletion(-)
+
+$ git rev-parse HEAD
+6c4696676b75d50a8b75984c38521546652d50a0

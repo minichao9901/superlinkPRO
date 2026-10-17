@@ -1,0 +1,1 @@
+spi-teardown: EP11 drain preserves peer, cancels delivery/rearm, guards old firmware and timed-out OUT PASS

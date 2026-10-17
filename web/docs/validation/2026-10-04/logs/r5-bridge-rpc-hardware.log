@@ -1,0 +1,1 @@
+PASS real OpenOCD/F103CB: delayed Tcl response triggers socket retirement, queued RPC rejects, fresh connection reads correct chip ID

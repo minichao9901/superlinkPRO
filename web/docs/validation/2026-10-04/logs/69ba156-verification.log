@@ -1,0 +1,13 @@
+
+$ git cherry-pick -n 69ba156
+
+$ git diff --cached --name-only
+Makefile
+app/core/recorder.js
+app/hid/stream.js
+app/rtt/view.js
+app/serial/assistant.js
+tools/selftest/recorder-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/recorder-lifecycle.test.mjs
+recorder-lifecycle: single picker/stop, close barrier, clean restart and stop during opening PASS

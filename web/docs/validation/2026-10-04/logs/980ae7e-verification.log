@@ -1,0 +1,66 @@
+
+$ git cherry-pick -n 980ae7e
+
+$ git diff --cached --name-only
+app/core/cdc-mode.js
+app/core/probe-manager.js
+app/core/probe-users.js
+app/hid/view.js
+app/main.js
+app/scope/view.js
+app/serial/session.js
+tools/selftest/cdc-mode.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/cdc-mode.test.mjs
+cdc-mode: shared receiver/source handoff, UART TX guard, optional pause ownership, unrelated ports, cancelled native open PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+probe-manager: preemption drains cancelled reconnect without waiting for its own queue PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-integration.test.mjs
+probe-integration: real entry points serialize setup, coexist on disjoint resources, cancel queued START and protect flash PASS
+probe-integration: unknown firmware stop cannot be bypassed by a later feature PASS
+probe-integration: manual release and managed takeover share one complete USB close PASS
+probe-integration: firmware START pending retains ownership until STOP completion is confirmed PASS
+probe-integration: cancelling during backend preparation cannot create a later debug session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-lifecycle.test.mjs
+scope-lifecycle: double start, cancellation during CONFIG/STATUS, STOP before USB drain PASS
+scope-lifecycle: STOP errors propagate while USB drains; rejected input does not send STOP PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-cdc-lifecycle.test.mjs
+rtt-cdc-lifecycle: stop cancels pending start, waits for firmware STOP completion, propagates failure PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/cdc-mode.js
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-manager.js
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/main.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/serial/session.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/cdc-mode.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 980ae7e
+feat(cdc): arbitrate UART RTT and Scope pause modes without reopening streams
+
+$ git commit -C 980ae7e
+[main 899efbc] feat(cdc): arbitrate UART RTT and Scope pause modes without reopening streams
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 16:36:56 2026 +0900
+ 8 files changed, 169 insertions(+), 19 deletions(-)
+ create mode 100644 app/core/cdc-mode.js
+ create mode 100644 tools/selftest/cdc-mode.test.mjs
+
+$ git rev-parse HEAD
+899efbcba74150a3574d2453fc303cc6c323a2da

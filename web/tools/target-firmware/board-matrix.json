@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "description": "活动板卡与每个测试例程的唯一构建产物入口。路径相对于仓库根。",
+  "generatedDirectoryPattern": "tools/target-firmware/**/(build|build-*)",
+  "boards": {
+    "f103cb": {
+      "status": "active",
+      "label": "STM32F103CB",
+      "chip": "stm32f103",
+      "target": "swd",
+      "memory": { "flash": 131072, "ram": 20480 },
+      "viewerRange": "0x20000000-0x20005000",
+      "examples": {
+        "rtt": {
+          "project": "tools/target-firmware/stm32f103_rtt_speed",
+          "script": "tools/target-firmware/stm32f103_rtt_speed/build.ps1",
+          "args": ["-Board", "cb"],
+          "buildArtifact": "tools/target-firmware/stm32f103_rtt_speed/build-cb/fw.elf",
+          "publishedArtifact": null
+        },
+        "rtt-seq": {
+          "project": "tools/target-firmware/stm32f103_rtt_seq",
+          "script": "tools/target-firmware/stm32f103_rtt_seq/build.ps1",
+          "args": ["-Board", "cb"],
+          "buildArtifact": "tools/target-firmware/stm32f103_rtt_seq/build-cb/fw.elf",
+          "publishedArtifact": null
+        },
+        "scope": {
+          "project": "tools/target-firmware/stm32f103_scope",
+          "script": "tools/target-firmware/stm32f103_scope/build.ps1",
+          "args": ["-Board", "cb"],
+          "buildArtifact": "tools/target-firmware/stm32f103_scope/build-cb/fw.elf",
+          "publishedArtifact": null
+        },
+        "dbgstress": {
+          "project": "tools/target-firmware/stm32f103_dbgstress",
+          "script": "tools/target-firmware/stm32f103_dbgstress/build.ps1",
+          "args": ["-Board", "cb"],
+          "buildArtifact": "tools/target-firmware/stm32f103_dbgstress/build-cb/fw.elf",
+          "publishedArtifact": null
+        }
+      }
+    },
+    "f103ze": {
+      "status": "active",
+      "label": "STM32F103ZE",
+      "chip": "stm32f103",
+      "target": "swd",
+      "memory": { "flash": 524288, "ram": 65536 },
+      "viewerRange": "0x20000000-0x20005000",
+      "examples": {
+        "rtt": {
+          "project": "tools/target-firmware/stm32f103_rtt_speed",
+          "script": "tools/target-firmware/stm32f103_rtt_speed/build.ps1",
+          "args": ["-Board", "ze"],
+          "buildArtifact": "tools/target-firmware/stm32f103_rtt_speed/build-ze/fw.elf",
+          "publishedArtifact": "tools/target-firmware/stm32f103_rtt_speed/fw.elf"
+        },
+        "rtt-seq": {
+          "project": "tools/target-firmware/stm32f103_rtt_seq",
+          "script": "tools/target-firmware/stm32f103_rtt_seq/build.ps1",
+          "args": ["-Board", "ze"],
+          "buildArtifact": "tools/target-firmware/stm32f103_rtt_seq/build-ze/fw.elf",
+          "publishedArtifact": "tools/target-firmware/stm32f103_rtt_seq/fw.elf"
+        },
+        "scope": {
+          "project": "tools/target-firmware/stm32f103_scope",
+          "script": "tools/target-firmware/stm32f103_scope/build.ps1",
+          "args": ["-Board", "ze"],
+          "buildArtifact": "tools/target-firmware/stm32f103_scope/build/fw.elf",
+          "publishedArtifact": "tools/target-firmware/stm32f103_scope/fw.elf"
+        },
+        "dbgstress": {
+          "project": "tools/target-firmware/stm32f103_dbgstress",
+          "script": "tools/target-firmware/stm32f103_dbgstress/build.ps1",
+          "args": ["-Board", "ze"],
+          "buildArtifact": "tools/target-firmware/stm32f103_dbgstress/build/fw.elf",
+          "publishedArtifact": "tools/target-firmware/stm32f103_dbgstress/fw.elf"
+        }
+      }
+    },
+    "h743": {
+      "status": "active",
+      "label": "STM32H743",
+      "chip": "stm32h7",
+      "target": "swd",
+      "memory": { "flash": 2097152, "ram": 1048576 },
+      "viewerRange": "0x24000000-0x24005000",
+      "examples": {
+        "rtt": {
+          "project": "tools/target-firmware/stm32h743_rtt_speed",
+          "script": "tools/target-firmware/stm32h743_rtt_speed/build.ps1",
+          "args": [],
+          "buildArtifact": "tools/target-firmware/stm32h743_rtt_speed/build/fw.elf",
+          "publishedArtifact": "tools/target-firmware/stm32h743_rtt_speed/fw.elf"
+        },
+        "scope": {
+          "project": "tools/target-firmware/stm32h743_scope",
+          "script": "tools/target-firmware/stm32h743_scope/build.ps1",
+          "args": [],
+          "buildArtifact": "tools/target-firmware/stm32h743_scope/build/fw.elf",
+          "publishedArtifact": "tools/target-firmware/stm32h743_scope/fw.elf"
+        },
+        "dbgstress": {
+          "project": "tools/target-firmware/stm32h743_dbgstress",
+          "script": "tools/target-firmware/stm32h743_dbgstress/build.ps1",
+          "args": [],
+          "buildArtifact": "tools/target-firmware/stm32h743_dbgstress/build/fw.elf",
+          "publishedArtifact": "tools/target-firmware/stm32h743_dbgstress/fw.elf"
+        }
+      }
+    },
+    "6800evk": {
+      "status": "active",
+      "label": "HPM6800EVK",
+      "chip": "hpm6800evk",
+      "target": "riscv",
+      "memory": { "flash": null, "ram": null },
+      "viewerRange": null,
+      "examples": {
+        "rtt": {
+          "project": "tools/target-firmware/hpm6800evk_rtt_flood",
+          "script": "tools/target-firmware/hpm6800evk_rtt_flood/build.ps1",
+          "args": ["-BuildType", "flash_xip"],
+          "buildArtifact": "tools/target-firmware/hpm6800evk_rtt_flood/build/flash_xip/output/demo.elf",
+          "publishedArtifact": "tools/target-firmware/hpm6800evk_rtt_flood/fw.elf"
+        },
+        "scope": {
+          "project": "tools/target-firmware/hpm6800evk_scope",
+          "script": "tools/target-firmware/hpm6800evk_scope/build.ps1",
+          "args": ["-BuildType", "flash_xip"],
+          "buildArtifact": "tools/target-firmware/hpm6800evk_scope/build/flash_xip/output/demo.elf",
+          "publishedArtifact": "tools/target-firmware/hpm6800evk_scope/fw.elf"
+        },
+        "dbgstress": {
+          "project": "tools/target-firmware/hpm6800evk_dbgstress",
+          "script": "tools/target-firmware/hpm6800evk_dbgstress/build.ps1",
+          "args": ["-BuildType", "flash_xip"],
+          "buildArtifact": "tools/target-firmware/hpm6800evk_dbgstress/build/flash_xip/output/demo.elf",
+          "publishedArtifact": "tools/target-firmware/hpm6800evk_dbgstress/fw.elf"
+        }
+      }
+    },
+    "5301evklite": {
+      "status": "active",
+      "label": "HPM5301EVKLite",
+      "chip": "hpm5301evklite",
+      "target": "riscv",
+      "memory": { "flash": null, "ram": null },
+      "viewerRange": "0x00080000-0x00090000",
+      "examples": {
+        "rtt": {
+          "project": "tools/target-firmware/hpm5301evklite_rtt_flood",
+          "script": "tools/target-firmware/hpm5301evklite_rtt_flood/build.ps1",
+          "args": ["-BuildType", "flash_xip"],
+          "buildArtifact": "tools/target-firmware/hpm5301evklite_rtt_flood/build/flash_xip/output/demo.elf",
+          "publishedArtifact": "tools/target-firmware/hpm5301evklite_rtt_flood/fw.elf"
+        },
+        "scope": {
+          "project": "tools/target-firmware/hpm5301evklite_scope",
+          "script": "tools/target-firmware/hpm5301evklite_scope/build.ps1",
+          "args": ["-BuildType", "flash_xip"],
+          "buildArtifact": "tools/target-firmware/hpm5301evklite_scope/build/flash_xip/output/demo.elf",
+          "publishedArtifact": "tools/target-firmware/hpm5301evklite_scope/fw.elf"
+        },
+        "dbgstress": {
+          "project": "tools/target-firmware/hpm5301evklite_dbgstress",
+          "script": "tools/target-firmware/hpm5301evklite_dbgstress/build.ps1",
+          "args": ["-BuildType", "flash_xip"],
+          "buildArtifact": "tools/target-firmware/hpm5301evklite_dbgstress/build/flash_xip/output/demo.elf",
+          "publishedArtifact": "tools/target-firmware/hpm5301evklite_dbgstress/fw.elf"
+        },
+        "spi-echo": {
+          "project": "tools/target-firmware/hpm5301evklite_spi_echo",
+          "script": "tools/target-firmware/hpm5301evklite_spi_echo/build.ps1",
+          "args": ["-BuildType", "flash_xip"],
+          "buildArtifact": "tools/target-firmware/hpm5301evklite_spi_echo/build/flash_xip/output/demo.elf",
+          "publishedArtifact": "tools/target-firmware/hpm5301evklite_spi_echo/fw.elf"
+        },
+        "spi-dma": {
+          "project": "tools/target-firmware/hpm5301evklite_spi_dma",
+          "script": "tools/target-firmware/hpm5301evklite_spi_dma/build.ps1",
+          "args": ["-BuildType", "flash_xip"],
+          "buildArtifact": "tools/target-firmware/hpm5301evklite_spi_dma/build/flash_xip/output/demo.elf",
+          "publishedArtifact": "tools/target-firmware/hpm5301evklite_spi_dma/fw.elf"
+          },
+          "spi-master-dma": {
+            "project": "tools/target-firmware/hpm5301evklite_spi_master",
+            "script": "tools/target-firmware/hpm5301evklite_spi_master/build.ps1",
+            "args": [],
+            "buildArtifact": "tools/target-firmware/hpm5301evklite_spi_master/build/flash_xip/output/demo.elf",
+            "publishedArtifact": "tools/target-firmware/hpm5301evklite_spi_master/fw.elf"
+        }
+      }
+    }
+  },
+  "legacy": [
+    { "id": "f103c8", "status": "legacy", "reason": "容量兼容例程，完整流程不使用", "projects": ["stm32f103_rtt_speed", "stm32f103_rtt_seq", "stm32f103_scope"] },
+    { "id": "stm32f103-generic", "status": "legacy", "reason": "早期 UART/RTT 与行号夹具，保留给手工调试", "projects": ["stm32f103"] },
+    { "id": "h7b0", "status": "legacy", "reason": "旧 H7B0 例程，完整流程不使用", "projects": ["stm32h7b0_rtt_speed", "stm32h7b0_scope"] }
+  ]
+}

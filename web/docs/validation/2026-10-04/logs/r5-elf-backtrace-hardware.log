@@ -1,0 +1,151 @@
+{
+  "frames": [
+    {
+      "pc": 134217950,
+      "sp": 536891312,
+      "kind": "current",
+      "lookup": 134217950,
+      "name": "deep_l5+0x4",
+      "loc": {
+        "addr": 134217950,
+        "end": 134217954,
+        "line": 9,
+        "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+        "isStmt": false,
+        "prologueEnd": false,
+        "seqEnd": false,
+        "seq": 0,
+        "idx": 37
+      }
+    },
+    {
+      "pc": 134218120,
+      "sp": 536891312,
+      "kind": "ehabi",
+      "lookup": 134218118,
+      "name": "engine_deep_l4+0xa",
+      "loc": {
+        "addr": 134218116,
+        "end": 134218120,
+        "line": 86,
+        "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+        "isStmt": false,
+        "prologueEnd": false,
+        "seqEnd": false,
+        "seq": 9,
+        "idx": 90
+      }
+    },
+    {
+      "pc": 134218136,
+      "sp": 536891320,
+      "kind": "ehabi",
+      "lookup": 134218134,
+      "name": "engine_deep_l3+0x8",
+      "loc": {
+        "addr": 134218132,
+        "end": 134218136,
+        "line": 93,
+        "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+        "isStmt": false,
+        "prologueEnd": false,
+        "seqEnd": false,
+        "seq": 10,
+        "idx": 95
+      }
+    },
+    {
+      "pc": 134218154,
+      "sp": 536891328,
+      "kind": "ehabi",
+      "lookup": 134218152,
+      "name": "engine_deep_l2+0xc",
+      "loc": {
+        "addr": 134218150,
+        "end": 134218154,
+        "line": 100,
+        "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+        "isStmt": false,
+        "prologueEnd": false,
+        "seqEnd": false,
+        "seq": 11,
+        "idx": 101
+      }
+    },
+    {
+      "pc": 134218176,
+      "sp": 536891336,
+      "kind": "ehabi",
+      "lookup": 134218174,
+      "name": "deep_l1+0xa",
+      "loc": {
+        "addr": 134218172,
+        "end": 134218176,
+        "line": 108,
+        "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+        "isStmt": false,
+        "prologueEnd": false,
+        "seqEnd": false,
+        "seq": 12,
+        "idx": 108
+      }
+    },
+    {
+      "pc": 134218194,
+      "sp": 536891344,
+      "kind": "ehabi",
+      "lookup": 134218192,
+      "name": "engine_deep_chain+0x4",
+      "loc": {
+        "addr": 134218190,
+        "end": 134218194,
+        "line": 114,
+        "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+        "isStmt": false,
+        "prologueEnd": false,
+        "seqEnd": false,
+        "seq": 13,
+        "idx": 114
+      }
+    },
+    {
+      "pc": 134218620,
+      "sp": 536891352,
+      "kind": "ehabi",
+      "lookup": 134218618,
+      "name": "main+0x86",
+      "loc": {
+        "addr": 134218614,
+        "end": 134218622,
+        "line": 74,
+        "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/main.c",
+        "isStmt": true,
+        "prologueEnd": false,
+        "seqEnd": false,
+        "seq": 22,
+        "idx": 229
+      }
+    },
+    {
+      "pc": 134220014,
+      "sp": 536891384,
+      "kind": "ehabi",
+      "lookup": 134220012,
+      "name": "Reset_Handler+0x38",
+      "loc": {
+        "addr": 134220010,
+        "end": 134220014,
+        "line": 55,
+        "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/startup.c",
+        "isStmt": true,
+        "prologueEnd": false,
+        "seqEnd": false,
+        "seq": 30,
+        "idx": 518
+      }
+    }
+  ],
+  "reason": "到达栈末端",
+  "scan": false
+}
+PASS real F103CB: deep EHABI chain, source lines, bounded candidate scan, registers unchanged

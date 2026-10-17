@@ -1,0 +1,29 @@
+
+$ git cherry-pick -n 37f196b
+
+$ git diff --cached --name-only
+app/core/probe-manager.js
+tools/selftest/probe-manager.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+probe-manager: preemption drains cancelled reconnect without waiting for its own queue PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-manager.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-manager.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 37f196b
+fix(probe): settle cancelled queued reconnects before teardown waits
+
+$ git commit -C 37f196b
+[main c860b57] fix(probe): settle cancelled queued reconnects before teardown waits
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:25:49 2026 +0900
+ 2 files changed, 26 insertions(+), 2 deletions(-)
+
+$ git rev-parse HEAD
+c860b57b6fc478439e59bada2e1b06859a002761

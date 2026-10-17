@@ -1,0 +1,5 @@
+[dap] 同步清队列：吃掉 8 条陈旧响应
+PASS real production SPI: 1 pending EP11 reads retired in 19.2ms; DAP + HID live, no device reset/close
+PASS real production SPI: 4 pending EP11 reads retired in 16.6ms; DAP + HID live, no device reset/close
+PASS real production SPI: 16 pending EP11 reads retired in 20.5ms; DAP + HID live, no device reset/close
+PASS real production shared HID: 100 concurrent same-command requests, closing one client preserves the other

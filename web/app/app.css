@@ -1,0 +1,1455 @@
+:root{
+  --bg:#0d1117; --bg2:#161b22; --bg3:#1c232c; --bg4:#232c38;
+  --fg:#e6edf3; --fg2:#9aa4af; --line:#28313b;
+  --acc:#58a6ff; --ok:#3fb950; --warn:#d29922; --err:#f85149;
+  --text-xs:12px; --text-sm:13px; --text-md:14px; --text-lg:16px; --text-xl:20px;
+  --radius-sm:3px; --radius-control:5px; --radius-card:8px; --label-w:88px;
+  --space-sm:6px; --space-md:10px;
+  --mono:"Cascadia Mono","JetBrains Mono",Consolas,"DejaVu Sans Mono","Courier New",monospace;
+  --ui:-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Noto Sans SC",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+
+/* 加载遮罩：模块多（20+），慢网络下页面会"看着像坏的"（下拉空、按钮点了没反应）—— 用遮罩讲清楚。
+   main.js 初始化完会把它摘掉。 */
+#boot-mask{
+  position:fixed;inset:0;z-index:999;background:#0d1117f2;display:flex;
+  align-items:center;justify-content:center;backdrop-filter:blur(2px);
+}
+#boot-mask .boot-box{
+  display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;
+  color:var(--fg2);font-size:var(--text-sm);max-width:420px;padding:0 20px;
+}
+#boot-mask .boot-box b{color:var(--fg);font-size:var(--text-lg)}
+body{
+  margin:0;background:var(--bg);color:var(--fg);font:var(--text-sm)/1.5 var(--ui);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+button,input,select,textarea{font-family:inherit;font-size:var(--text-sm);color:var(--fg)}
+button{
+  background:var(--bg3);border:1px solid var(--line);border-radius:var(--radius-control);
+  padding:4px 10px;cursor:pointer;white-space:nowrap;
+}
+button:hover{background:var(--bg4);border-color:#3d4855}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:#1f6feb;border-color:#2b7cf5;color:#fff}
+button.primary:hover{background:#2b7cf5}
+.ghost{background:transparent;text-decoration:none;color:var(--fg2);display:inline-block;padding:4px 8px;border-radius:var(--radius-control);border:1px solid transparent}
+.ghost:hover{color:var(--fg);background:var(--bg3);border-color:var(--line)}
+button.mini{padding:1px 7px;font-size:var(--text-xs)}
+input,select,textarea{background:var(--bg3);border:1px solid var(--line);border-radius:var(--radius-control);padding:3px 6px;min-width:0}
+input[type=checkbox]{accent-color:var(--acc);vertical-align:-1px;margin:0 3px 0 0}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
+code{font-family:var(--mono);background:var(--bg3);padding:0 4px;border-radius:var(--radius-sm)}
+
+/* ---------------- 顶栏 ---------------- */
+.topbar{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:4px 10px;
+  position:relative;z-index:30;
+  background:var(--bg2);border-bottom:1px solid var(--line);flex:none;
+}
+.brand{font-weight:600;letter-spacing:.2px}
+/* 常用入口可滚动，其余工具由“更多功能”展开。 */
+.tabs{display:flex;gap:2px;min-width:0;padding-bottom:0}
+.tabs .tab{flex:none}
+.tab{background:transparent;border:1px solid transparent;color:var(--fg2);padding:3px 10px;border-radius:var(--radius-control)}
+.tab:hover{color:var(--fg);background:var(--bg3)}
+.tab.active{background:var(--bg3);border-color:var(--line);color:var(--fg);font-weight:600}
+.topright{grid-column:3;grid-row:1;justify-self:end;display:flex;align-items:center;gap:6px;min-width:0}
+.topbar>.topright #global-nrst-control{flex:none}
+.topbar>.topright #btn-global-reset,.topbar>.topright #btn-fullscreen{flex:none;white-space:nowrap}
+.flag{font-size:var(--text-xs);padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--fg2);white-space:nowrap}
+.flag-on{color:#0d1117;background:var(--ok);border-color:var(--ok);font-weight:600}
+.flag-warn{color:#0d1117;background:var(--warn);border-color:var(--warn);font-weight:600}
+.flag-err{color:var(--err);border-color:var(--err)}
+.build-stamp{color:var(--fg2);font-size:var(--text-xs)}
+.app-more{position:relative;font-size:var(--text-xs)}
+.app-more>summary{cursor:pointer;list-style:none;padding:2px 7px;border-radius:var(--radius-control);color:var(--fg2)}
+.app-more>summary::-webkit-details-marker{display:none}
+.app-more>summary:hover{color:var(--fg);background:var(--bg3)}
+.more-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60;display:flex;flex-direction:column;gap:3px;min-width:174px;padding:7px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 24px #0008}
+.more-menu>.ghost{text-align:left}
+.more-menu>.build-stamp{display:block;padding:5px 8px;border-top:1px solid var(--line)}
+.app-more:not([open])>.more-menu{display:none}
+button.primary:disabled{background:var(--bg3);border-color:var(--line);color:var(--fg2)}
+button.danger{color:var(--err);border-color:#f8514966}
+button.danger:hover:enabled{background:#f851491a;border-color:var(--err)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* ---------------- 布局 ---------------- */
+main{flex:1;min-height:0;position:relative}
+.panel{position:absolute;inset:0;display:none;padding:10px}
+.panel.active{display:block}
+.ws{display:grid;grid-template-columns:308px minmax(0,1fr);gap:10px;height:100%}
+.side{overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:9px;padding-right:2px}
+/* 🚨 flex 子项的 min-width 默认是 auto —— 只要卡片里有一个不肯换行的元素（长下拉文本、长句子），
+   整个 fieldset 就会被撑到比侧栏还宽；再配 overflow-x:hidden，字就是被**裁掉**（看不见，也不滚动）。
+   🚨 同理 flex-shrink 默认是 1 —— 卡片多了以后它们会被**压扁**（而不是撑出滚动条），
+   被压扁的卡片内部按钮就"显示不出来"了。所以这里必须 flex:none：卡片保持自然高度，超出交给滚动。 */
+.side>fieldset{min-width:0;flex:none}
+.side .hint,.side p,.side .chk,.side label,.side .row>span{overflow-wrap:anywhere;min-width:0}
+.side select,.side input{max-width:100%}
+/* 工具侧栏：顶部 tab、独立滚动的设置、底部常驻运行控制。 */
+.side.tool-side{overflow:hidden;min-height:0;gap:0}
+.tool-side [hidden]{display:none!important}
+.tool-side-tabs{display:flex;flex:none;gap:4px;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.tool-side-tabs button{flex:1;min-width:0;padding:6px 3px;background:transparent;border-color:transparent;color:var(--fg2)}
+.tool-side-tabs button[aria-selected=true]{background:var(--bg2);border-color:var(--line);color:var(--acc)}
+.tool-side-panel{flex:1 1 0;min-height:0;min-width:0;overflow:auto;padding-right:2px}
+.tool-side-panel>fieldset{min-width:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:4px 2px 12px;margin-bottom:12px}
+.tool-side-panel>fieldset:last-child{border-bottom:0;margin-bottom:0}
+.tool-side-panel>fieldset>legend{padding:0;font-weight:600;color:var(--fg)}
+.tool-side-actions{flex:none;border-top:1px solid var(--line);padding:8px 2px 2px;margin-top:10px}
+.tool-side-actions .hint{margin-top:5px}
+.tool-side-actions p{font-size:var(--text-xs);line-height:1.5;margin:5px 0 0}
+.tool-side-panel .chk{white-space:normal}
+.tool-side-panel .row>input,.tool-side-panel .row>select{min-width:0}
+.tool-side-panel .sidebar-note>summary{display:flex;justify-content:space-between;align-items:center;list-style:none}
+.tool-side-panel .sidebar-note>summary::after{content:'▸'}
+.tool-side-panel .sidebar-note[open]>summary::after{content:'▾'}
+.sidebar-help-section{border-bottom:1px solid var(--line);padding:9px 2px;margin:0}
+.sidebar-help-section>summary{font-weight:600}
+.sidebar-parameter-help{font-size:var(--text-xs);line-height:1.6;margin:10px 0}
+.sidebar-parameter-help dt{color:var(--fg);margin-top:10px}
+.sidebar-parameter-help dd{margin:3px 0 0;overflow-wrap:anywhere}
+.main{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
+fieldset{border:1px solid var(--line);border-radius:var(--radius-card);padding:6px 10px 9px;margin:0;background:var(--bg2)}
+legend{font-size:var(--text-xs);color:var(--fg2);padding:0 5px;letter-spacing:.4px}
+.row{display:flex;align-items:center;gap:6px;margin:5px 0}
+.row>span:first-child{flex:none;width:var(--label-w);color:var(--fg2);font-size:var(--text-xs)}
+.row input,.row select{flex:1}
+/* ---- 装不下时**换行**，而不是被裁掉（2026-10-02 全站 review 的 #1 问题）----
+   `.row` 是 flex 且**不换行**：里面一旦有"压不下去"的子项（`.num` 是 flex:none!important、
+   按钮、复选框、原生下拉）就顶宽整行的 min-content，父容器又带 overflow:hidden
+   → **右侧控件被裁掉而且拉不回来**（SPI 桥页那条擦写行实测 809px 挤进 640px 的盒子，
+   "擦除 / 写+校验 / 写测速"直接看不见）。
+   两个变体按需开，不动默认行为：
+     .row.wrap —— 允许换行；控件换到下一行后 flex:1 会把它撑满
+     .row.wide —— 同上，但控件**一定**独占一行（值很长的路径输入框用：多看见十几个字符） */
+.row.wrap,.row.wide{flex-wrap:wrap}
+.row.wide>input,.row.wide>select{flex:1 1 100%}
+/* cfg 行：输入框要占满剩余宽度（之前被挤成几十像素，占位文字都溢出框外），右边挂「选择…」 */
+.cfgrow{align-items:center}
+.cfgrow>input{flex:1 1 auto;min-width:0;width:100%}
+.cfgrow>button{flex:none;white-space:nowrap;padding:4px 9px;font-size:var(--text-xs)}
+.btnrow{justify-content:flex-start}
+.btnrow>button{flex:1}
+.sigrow{gap:16px}
+.sigrow label{font-size:var(--text-xs);color:var(--fg2)}
+.hint{font-size:var(--text-xs);color:var(--fg2);line-height:1.5;margin:7px 0 0}
+.spacer{flex:1}
+
+/* ---------------- 工具条 / 分段按钮 ---------------- */
+.toolbar{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;flex:none;
+  background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius-card);padding:5px 9px;
+}
+.chk{font-size:var(--text-xs);color:var(--fg2);display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.chk select{padding:2px 4px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius-control);overflow:hidden}
+.seg button{border:none;border-radius:0;background:transparent;color:var(--fg2);padding:3px 9px}
+.seg button.on{background:#1f6feb;color:#fff}
+
+/* ---------------- 接收区 ---------------- */
+.rx{
+  flex:1;min-height:0;margin:0;overflow:auto;padding:8px 10px;
+  background:#010409;border:1px solid var(--line);border-radius:var(--radius-card);
+  font:var(--text-sm)/1.55 var(--mono);white-space:pre-wrap;word-break:break-word;
+}
+.rx:empty::before{content:var(--empty-message,"连接后这里显示接收数据。");color:#4a5563}
+.stats{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex:none;
+  font-size:var(--text-xs);color:var(--fg2);background:var(--bg2);
+  border:1px solid var(--line);border-radius:var(--radius-card);padding:4px 9px;
+}
+.stats b{color:var(--fg);font-weight:600}
+/* J-Scope 状态行右侧的读数会随鼠标动（"0 µs" ↔ "10.94 s"）：它一变长就可能让整行换行，
+   而画布是 flex:1 —— 行高一变，图就跟着上下跳一格。所以让它**只会被压缩**、不会被折行。
+   读数开头是最要紧的（游标 t / A·B·Δt），从尾部省略不丢关键信息。 */
+#sc-window{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+#sc-markhint{flex:none;white-space:nowrap}
+.err{color:var(--err)}
+.ok{color:var(--ok)}
+.sendbar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none;
+  background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius-card);padding:5px 9px;
+}
+.num{width:64px;flex:none!important}
+/* 🚨 `.tx` 是给「文本发送」那个 textarea 用的（min-height:52px 是**输入框**的最小高度）。
+   调试页的源码行原来也叫 `.tx`（`<span class="tx">`）→ 被这条全局规则命中，**每一行源码都被
+   撑到 52px**（用户看到的"行距太大太大了"就是这个）。源码行已改名 `.srctx`，别再用 `.tx`。 */
+.tx{width:100%;flex:none;resize:vertical;min-height:52px;font-family:var(--mono)}
+.rtt-in{flex:1;font-family:var(--mono)}
+
+/* ---------------- 终端 ---------------- */
+.termbox{flex:1;min-height:0;background:#010409;border:1px solid var(--line);border-radius:var(--radius-card);padding:5px 4px 4px 7px}
+.termbox .xterm{height:100%}
+.termbox .xterm-viewport::-webkit-scrollbar{width:10px}
+.rttbox{position:relative;flex:1;min-height:0;display:flex}
+.rttbox>.termbox,.rttbox>.rx{flex:1;min-width:0}
+.rtt-empty{position:absolute;inset:0;display:grid;place-content:center;gap:4px;text-align:center;color:var(--fg2);font:13px/1.6 var(--ui);pointer-events:none}
+.rtt-empty[hidden]{display:none}
+
+/* ---------------- 快捷发送 ---------------- */
+.qrow{display:flex;align-items:center;gap:4px;margin:4px 0}
+.qrow .qidx{width:14px;color:var(--fg2);font-size:var(--text-xs);text-align:right;flex:none}
+.qrow .qlabel{width:66px;flex:none}
+.qrow .qbody{flex:1;font-family:var(--mono)}
+.qrow button{padding:3px 7px;flex:none}
+
+/* ---------------- 提示 / 对话框 ---------------- */
+.toasts{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:7px;z-index:50;max-width:46ch}
+.toast{
+  background:var(--bg3);border:1px solid var(--line);border-left:3px solid var(--acc);
+  border-radius:var(--radius-card);padding:7px 11px;font-size:var(--text-sm);box-shadow:0 6px 18px #0009;
+  animation:tin .16s ease-out;
+}
+.toast.t-ok{border-left-color:var(--ok)}
+.toast.t-err{border-left-color:var(--err)}
+.toast.t-warn{border-left-color:var(--warn)}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+dialog{
+  background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:var(--radius-card);
+  max-width:66ch;padding:16px 20px;line-height:1.65;
+}
+dialog::backdrop{background:#000a}
+dialog h2{margin:0 0 10px;font-size:var(--text-lg)}
+dialog h3{margin:14px 0 5px;font-size:var(--text-sm);color:var(--acc)}
+dialog ul,dialog ol{margin:4px 0;padding-left:20px}
+dialog form{margin-top:16px;text-align:right}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#2b3541;border-radius:var(--radius-control)}
+::-webkit-scrollbar-thumb:hover{background:#3a4653}
+::-webkit-scrollbar-track{background:transparent}
+
+/* 烧录器进度条 */
+#f-bar{width:220px;height:8px;accent-color:#58a6ff}
+
+/* ---------------- 工程生成 ---------------- */
+#tab-gen.dragging{outline:2px dashed var(--acc);outline-offset:-6px}
+#tab-gen .side .row>span:first-child{width:var(--label-w)}   /* 参数名比别的页长（OpenOCD 接口…） */
+/* 右列 = tab 面板（照 #spi/#i2c 那套）；左栏卡片按 `data-dock` 分组，切 tab 时只显示当组。
+   为什么 tab 化见 index.html 里的注释：13 个产物挤一条栏、桥包另占一行，且左栏太长。 */
+#tab-gen .main{gap:6px}
+#tab-gen .gendock{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;flex:1 1 auto}
+#tab-gen .dockpage{display:none;flex:1 1 auto;min-height:0;flex-direction:column;gap:6px}
+#tab-gen .dockpage.on{display:flex}
+#tab-gen .dockpage>.toolbar{margin:0;flex:none}
+#tab-gen .dockpage>p.hint{margin:0;flex:none}
+#g-files,#g-kit-files{flex-wrap:wrap;border-radius:var(--radius-control)}
+#g-dock-pill{color:var(--fg2)}
+/* 🚨 `.scroll` 是**按页写的**（`#tab-spi .scroll` / `#tab-i2c .scroll` / `#tab-panel .scroll`），
+   本页原来没有这条 → 「调试参数」的表格撑高后被 `.gendock{overflow:hidden}` 裁掉、**连滚动条都没有**
+   （用户 2026-10 现场："下面显示不全，还没有滑条"）。这里补上本页的滚动区规则：
+   吃满剩余高度 + 自己滚（`min-height:0` 是关键，flex 子项默认 min-height:auto 会顶破父容器）。 */
+#tab-gen .dockpage>.scroll{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;
+  border:1px solid var(--line);border-radius:var(--radius-card);margin-top:0}
+/* 预览：代码别折行（横向滚），并吃掉剩余高度 */
+#g-preview,#g-kit-preview{white-space:pre;overflow:auto;flex:1 1 auto;min-height:0}
+.fixlist{margin:4px 0 0;padding-left:18px}
+.fixlist li{margin:3px 0}
+.fixlist code{font-size:var(--text-xs)}
+
+/* 「调试参数」tab 的参数一览表：左列参数名、右列值（等宽，长路径不截断、点一下复制） */
+.gparamtab{width:100%;border-collapse:collapse;font-size:var(--text-xs)}
+.gparamtab td{padding:2px 8px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+.gparamtab tr.gparamhead td{padding-top:8px;color:var(--acc);font-weight:600;font-size:var(--text-xs);
+  letter-spacing:.4px;border-bottom:1px solid var(--line);background:rgba(74,163,255,.06)}
+.gparamtab td.gpk{width:150px;color:var(--fg2);white-space:nowrap}
+.gparamtab td.gpv code{font-family:var(--mono);font-size:var(--text-xs);color:#cdd6e4;white-space:pre-wrap;
+  word-break:break-all;cursor:copy;border-bottom:1px dashed transparent}
+.gparamtab td.gpv code:hover{color:#9fd0ff;border-bottom-color:#9fd0ff}
+
+/* ---------------- 终端页的 RTT→CDC 转发面板 ---------------- */
+#tab-terminal .side .row>span:first-child{width:var(--label-w)}   /* 「RTT 地址 / 搜索长度」比默认 60px 宽些 */
+
+/* ---------------- RTT 转发页 ---------------- */
+#tab-rttcdc .side .row>span:first-child{width:var(--label-w)}
+#tab-spicdc .side .row>span:first-child{width:var(--label-w)}
+#si-state{white-space:pre-line;font:var(--text-xs)/1.7 var(--mono)}
+
+/* ---------------- J-Scope 波形页 ---------------- */
+#tab-scope .side .row>span:first-child{width:var(--label-w)}
+/* 置灰的整行（当前只有"SWD 时钟"这一格：RISC-V/JTAG 下那一档没意义）。
+   🚨 这条不是装饰：view.js 里 `clkRow.classList.toggle('off', riscv)` 早就有了，
+   而 `.off` 一直没有样式 = 切到 JTAG 后那一格**看起来完全正常**（用户会以为它还在起作用）。 */
+#tab-scope .row.off{opacity:.55}
+#tab-scope .row em.unit{flex:none;color:var(--fg2);font-size:var(--text-xs);font-style:normal;width:26px}
+.varlist{
+  border:1px solid var(--line);border-radius:var(--radius-control);background:var(--bg2);
+  max-height:210px;overflow:auto;margin:6px 0 0;padding:2px;
+}
+.varlist .vrow{display:flex;align-items:center;gap:6px;padding:2px 4px;border-radius:var(--radius-sm);font-size:var(--text-xs)}
+.varlist .vrow:hover{background:var(--bg3)}
+.varlist .vrow.sel{background:#132a45}
+.varlist .vrow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono)}
+.varlist .vrow .ty{color:var(--fg2);font-size:var(--text-xs);flex:none}
+.varlist .vrow .ad{color:var(--fg2);font-size:var(--text-xs);font-family:var(--mono);flex:none}
+.varlist .vrow.dis{opacity:.45}
+.varlist .vsect{padding:4px 6px 2px;color:var(--fg2);font-size:var(--text-xs);border-top:1px solid var(--line);margin-top:2px}
+.plotwrap{position:relative;flex:1;min-height:260px;display:flex}
+#sc-canvas{flex:1;width:100%;height:100%;min-height:260px;border-radius:var(--radius-control);cursor:crosshair}
+.legend{
+  position:absolute;right:8px;top:8px;background:rgba(13,17,23,.82);border:1px solid var(--line);
+  border-radius:var(--radius-control);padding:4px 7px;font-size:var(--text-xs);font-family:var(--mono);max-width:46%;
+  display:flex;flex-direction:column;gap:2px;pointer-events:auto;
+}
+.legend .lrow{display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.legend .lrow.off{opacity:.4;text-decoration:line-through}
+.legend .dot{width:8px;height:8px;border-radius:2px;flex:none}
+.legend .lv{margin-left:auto;color:var(--fg2)}
+.legend:empty{display:none}
+
+@media (max-width:860px){
+  body{overflow:auto}
+  .ws{grid-template-columns:1fr;height:auto}
+  .panel:not([data-workspace])>.ws>.side.tool-side{height:36vh;min-height:220px}
+  .panel{position:static}
+  main{min-height:0}
+  .panel.active{display:block}
+  .rx{min-height:45vh}
+  .termbox{min-height:55vh}
+}
+
+/* ---- SPI/QSPI 两页（#spi 桥 / #panel 屏）----
+   日志框是"帧流水"（每帧一行 + 应答一行），所以用等宽 + 预换行；颜色只分四档。 */
+#tab-spi .side .row>span:first-child,#tab-panel .side .row>span:first-child{width:var(--label-w)}
+/* 屏页「型号与推荐值」的说明：三行小表（协议 / 接线 / 注意），label 定宽 34px、值自动换行。
+   原来是一整段密排文字（见 panel-view.fillPresetNote 的注释）。 */
+#pn-preset-note{margin:4px 0 0}
+#pn-preset-note .noterow{display:flex;gap:6px;margin:2px 0;font-size:var(--text-xs);line-height:1.45;color:var(--fg2)}
+#pn-preset-note .noterow>b{flex:0 0 34px;color:var(--fg3,var(--fg2));font-weight:500}
+#pn-preset-note .noterow>span{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;font-family:var(--mono)}
+#tab-spi .row>span:first-child,#tab-panel .row>span:first-child{width:74px}
+#tab-spi .framegrid,#tab-panel .framegrid{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+/* 🚨 grid 项默认 `min-width:auto`：里面那行一旦压不下去（长下拉 / 多个按钮），
+   整个 grid 就会被顶宽、把兄弟列挤出容器（review 实测 809px 挤进 640px）。
+   给每一项 `min-width:0` 是 grid 里"允许收缩"的标准开关。 */
+#tab-spi .framegrid>*,#tab-panel .framegrid>*{min-width:0}
+/* 数字格默认 `.num{width:64px;flex:none!important}`（全局规则，别的地方靠它对齐）。
+   在格子（grid 列）里它压不下去：dock 一出现纵向滚动条，列宽少 11px，这一格就顶出去
+   （review 复测实测 `#sp-flash-card 642>631`）。这里允许它在格子里收缩到 44px 起步。 */
+#tab-spi .framegrid .num,#tab-panel .framegrid .num{width:auto;min-width:44px;flex:1 1 44px!important}
+#tab-spi .framegrid .row>span:first-child,#tab-panel .framegrid .row>span:first-child{width:62px}
+#tab-spi .tx,#tab-panel .tx{min-height:44px}
+/* ---- 桥页右区：**一个带 tab 的面板**（命令表 / 脚本 / Flash 测试 / 回环自检）+ 常驻日志 ----
+   以前是"单列 4 块、整体滚动、每块各自限高"，用户反馈"有点繁琐"：命令表只露约 7 行
+   （限高 146px 是为了别把中列占满），Flash 卡的输出/写数据框又钉死 150px，想同时看
+   "命令表"和"它在跑什么"得在三张卡之间滚。改成照 #dbg / #i2c 那套 .docktabs/.dockpage 之后
+   每块**吃满整块高度**；日志与运行胶囊仍然常驻（tab 化不该把过程视图藏起来）。
+   🚨 下面**没有任何 max-height 限高**：高度由 `.dockpage{flex:1}` 分配。 */
+#tab-spi .spdock{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;flex:1 1 auto}
+#tab-spi .main{gap:4px}
+#tab-spi .docktabs{margin-left:2px;vertical-align:middle}
+#tab-spi .docktabs button{font-size:var(--text-xs);padding:2px 10px}
+#tab-spi .dockpage{display:none;flex:1 1 auto;min-height:0;flex-direction:column;gap:6px}
+#tab-spi .dockpage.on{display:flex}
+#tab-spi .dockpage .toolrow{margin:0}
+/* ---- 窄窗 / 矮窗别把控件吃掉（review 实测两处）----
+   ① 横向：dock 里的**按钮行**默认不换行 → 擦写行（复选框 + 下拉 + 3 个按钮）压不下去，
+      整行 809px 挤进 640px 的盒子，右边两个按钮被 overflow:hidden 裁掉且拉不回来。
+      🚨 只给 `.btnrow`（一整行按钮那种）开换行：`.framegrid` 里的"标签 + 控件"行**不能换行**——
+      一换行输入框就掉到标签下面，反而更难读；那种行靠 `.framegrid>*{min-width:0}` + 控件自身
+      `min-width:0` 收缩就够了。
+   ② 纵向：`.dockpage` 是 flex 容器且没滚动 —— 里面固定高度的块加起来超过盒子高度时，
+      底部内容同样被裁掉（1200x700 实测 427 > 381）。给它自己的纵向滚动兜底。 */
+#tab-spi .dockpage{overflow-y:auto;overflow-x:hidden}
+#tab-spi .dockpage .row.btnrow{flex-wrap:wrap;row-gap:4px}
+/* tab 里的滚动区吃满剩余高度（共用规则里的 `.scroll{max-height:200px}` 在这里必须让位 ——
+   那是给屏页的，动它会连带改到 #tab-panel） */
+#tab-spi .scroll.fill{flex:1 1 auto;min-height:0;max-height:none;margin-top:0}
+#tab-spi .log.fill{flex:1 1 auto;min-height:70px;height:auto;max-height:none}
+#tab-spi .dockpage>p.hint{flex:none;margin:0}
+#tab-spi .dockpage>.row{flex:none}
+/* 运行胶囊：切到哪个 tab 都看得到"桥在跑什么"（busy 会把大半个页面的按钮灰掉，原因就在这） */
+#tab-spi .dockrun{color:var(--fg2);font-size:var(--text-xs);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tab-spi .dockrun.on{color:var(--ok)}
+#tab-spi .dockrun.warn{color:var(--warn)}
+#tab-spi .dockrun.err{color:var(--err)}
+#tab-spi .grip{flex:none;background:transparent;border-radius:var(--radius-sm);position:relative}
+#tab-spi .grip::after{content:"";position:absolute;background:var(--line);border-radius:2px;opacity:.7}
+#tab-spi .grip:hover::after{background:var(--acc);opacity:1}
+#tab-spi .grip-h{height:9px;margin:0;cursor:row-resize}
+#tab-spi .grip-h::after{left:35%;right:35%;top:3px;height:3px}
+#tab-spi .toolrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+#tab-spi .toolrow.nw{flex-wrap:nowrap;overflow:hidden}
+#tab-spi .toolrow>span:first-child{color:var(--fg2);font-size:var(--text-xs);flex:none}
+#tab-spi .toolrow select{max-width:340px}
+#tab-spi .toolrow.nw #sp-dsl-sum{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-spi .toolrow.nw button{flex:none}
+/* 命令表：10 行**全展开**（tab 化之前被限到 146px，只露约 7 行 —— 那是"繁琐"的主要来源之一）。
+   🚨 `table-layout:fixed` 是必需的：auto 布局下 `td{max-width}` **不生效**，结果列里的长文本
+   会把列宽撑开、把表格顶出横向滚动条（I2C 页实测踩过）。fixed 之后**没写宽度的列会平分剩余
+   空间**，所以序号列必须显式给死，否则会分到一大块。 */
+#tab-spi table.cmdtab{table-layout:fixed;font-size:var(--text-xs)}
+#tab-spi table.cmdtab th{padding:1px 4px;white-space:nowrap;position:sticky;top:0;background:var(--bg2);z-index:1}
+#tab-spi table.cmdtab td{padding:0 3px;overflow:hidden}
+#tab-spi table.cmdtab td.idx{color:var(--fg2);width:18px;text-align:right;padding-right:5px}
+#tab-spi table.cmdtab td.res{font-size:var(--text-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tab-spi table.cmdtab td.res.ok{color:var(--ok)}
+#tab-spi table.cmdtab td.res.bad{color:var(--err)}
+#tab-spi input.cell,#tab-spi select.cell{
+  width:100%;padding:0 4px;height:20px;font-family:var(--mono);font-size:var(--text-xs);background:var(--bg3);
+  border:1px solid var(--line);border-radius:var(--radius-control);color:var(--fg);
+}
+#tab-spi input.cell:focus{outline:1px solid var(--acc);border-color:var(--acc)}
+#tab-spi table.cmdtab th:nth-child(1){width:26px}
+#tab-spi table.cmdtab th:nth-child(2){width:56px}
+#tab-spi table.cmdtab th:nth-child(3){width:52px}
+#tab-spi table.cmdtab th:nth-child(4){width:62px}
+#tab-spi table.cmdtab th:nth-child(5){width:82px}
+#tab-spi table.cmdtab th:nth-child(6){width:56px}
+#tab-spi table.cmdtab th:nth-child(7){width:56px}
+/* tx 让它跟着窗口伸缩、结果列固定 180px：只固定一边的话，宽窗口下另一边会失控
+   （用户："数据区域太短了，结果区域太宽了"—— 那是 tx 固定 148 + 结果自动 的锅） */
+#tab-spi table.cmdtab th:nth-child(8){width:auto}
+#tab-spi table.cmdtab th:nth-child(9){width:180px}
+/* 🚨 `.tx` 是 `width:100%;flex:none`：放在 flex 行里会**比容器宽出一个 label 的宽度**，
+   于是冒出一条"拖了也没用"的横向滑条（用户现场：滑条能左右拖但什么也不动）。
+   在行内让它参与收缩即可。 */
+#tab-spi .row>.tx{width:auto;flex:1 1 auto;min-width:0}
+#sp-dsl-text{
+  width:100%;flex:1 1 auto;min-height:110px;max-height:none;font-family:var(--mono);font-size:var(--text-xs);
+  line-height:1.45;resize:vertical;white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:hidden;overflow-y:auto;
+}
+/* flash 卡的按钮行：**别再被拉伸**。
+   `.btnrow>button{flex:1}`（全局，第 92 行）在这里的后果是 `读一段`/`读测速` 各被拉到 591px 宽、
+   擦除那行四个控件各 328px（用户："布局是不是有点奇怪？"）。工具栏那些按钮是内容宽的，
+   这里对齐它们；`测速量` 那个 label 自带 margin-left:auto 仍然靠右。 */
+#sp-flash-card .row.btnrow>button,#sp-flash-card .row.btnrow>select{flex:0 0 auto}
+#sp-flash-card .row.btnrow>select{max-width:240px}
+/* 🚨 行距/tab 间隙压紧**不是抠像素**：这一卡的控件行最多（工具行 / 参数行 / 提示 / 读行 /
+   擦写行 / 写数据行 / 填图案行），接线说明通过上方「接线」按钮查看，避免在编辑区下方重复占行 ——
+   用户 2026-10 的原话是"写数据框高度还可以高出一行字来"。实测：把"我确认要擦写"并进擦除行
+   （省 24px）、行距 3→2（省 ~14px）、tab 间隙 6→4（省 ~20px）之后，820 高的窗口下
+   两个数据窗口从 110px 长到 ~139px —— 正好一行多。
+   ⚠️ 这里必须写 `#tab-spi #sp-flash-card`（两个 id）：`#tab-spi .dockpage` 的 (1,1,0)
+   会压过单 id 的 (1,0,0)，间隙就静默不生效了。 */
+#tab-spi #sp-flash-card{gap:3px}
+#sp-flash-card>.row,#sp-flash-card>.toolrow{margin:2px 0}
+#sp-flash-card>.hint{margin:3px 0 0}
+#sp-flash-card .row.btnrow>label.chk.arm{flex:0 0 auto;margin-right:auto}
+/* 四个参数**排一行**（原来是 2×2，读模式那个长下拉把 dummy 顶到最右边，看着很散）——
+   顺带省下一整行的高度。窄窗口下 grid 自己会挤，不会溢出。 */
+#sp-flash-card .framegrid{grid-template-columns:1.35fr .75fr 1.1fr .75fr}
+#sp-flash-card .framegrid .row{margin:3px 0}
+/* flash 卡：输出框与「写数据」**平分剩余高度**。
+   🚨 用户 2026-10 明确要求过"两个窗口等高（都按读数据那个高度来）"，tab 化之后要保持。
+   🚨 这里必须写 `#tab-spi #sp-flash-card`（两个 id）：`#tab-spi .dockpage>.row{flex:none}`
+      的特异性 (1,2,0) 比 `#sp-flash-card .datarow` (1,1,0) 高 —— 少了这个 `#tab-spi`，
+      写数据框就只会停在 `min-height` 上（实测 90px，而读数据 183px，"等高"被静默改坏）。 */
+#tab-spi #sp-flash-card #sp-fl-out{margin-top:0;flex:1 1 0;min-height:80px}
+/* 🚨 这一行必须给**和 .log 一样的上下 padding/border**，否则永远差 14px 不等高：
+   `flex-basis:0` 下浏览器按**内容盒**算基准，边框盒再各自加上自己的 padding/border ——
+   两个盒子 padding 不一样，分到的"内容高"一样、边框盒就不一样（实测 175 vs 161，
+   差值 = log 的 6+6 padding + 0.8×2 border = 13.6px）。只补上下，左右不动，标签对齐不受影响。 */
+#tab-spi #sp-flash-card .datarow{
+  flex:1 1 0;min-height:80px;align-items:stretch;margin:0;
+  padding:6px 0;border-top:0.8px solid transparent;border-bottom:0.8px solid transparent;
+}
+#tab-spi #sp-flash-card #sp-fl-data{flex:1 1 auto;height:auto;min-height:0}
+#sp-flash-card .datarow>span{padding-top:4px}
+#tab-spi #sp-flash-card .fl-write-tools{display:flex;flex:0 0 140px;flex-direction:column;justify-content:center;gap:6px;min-width:0}
+#tab-spi #sp-flash-card .fl-write-tools>button{flex:0 0 auto}
+#tab-spi #sp-flash-card .fl-write-tools>.row{flex:none;flex-wrap:nowrap;gap:3px;margin:0}
+#tab-spi #sp-flash-card .fl-write-tools .num{width:48px;min-width:48px;flex:0 0 48px!important}
+#tab-spi #sp-flash-card .fl-write-tools .label-auto{width:auto!important}
+#sp-flash-card .framegrid .row>span:first-child{width:56px}
+/* 语法速查：折叠块里是**预排文本**（等宽 + 保留换行），别被挤成一坨 */
+#tab-spi .dslhelp{margin-top:0;flex:none}
+#tab-spi .dslhelp summary{color:var(--fg2);font-size:var(--text-xs);cursor:pointer}
+#tab-spi .dslhelp .hint{white-space:pre-wrap;font-family:var(--mono);font-size:var(--text-xs);line-height:1.5;margin:5px 0 0;max-height:240px;overflow:auto}
+.log{
+  flex:0 0 auto;height:30%;min-height:126px;overflow:auto;background:var(--bg);border:1px solid var(--line);
+  border-radius:var(--radius-card);padding:6px 8px;font-family:var(--mono);font-size:var(--text-xs);line-height:1.5;
+  white-space:pre-wrap;word-break:break-all;margin:0;
+}
+.log .dim{color:var(--fg2)}
+.log .warn{color:var(--warn)}
+.log .err{color:var(--err)}
+.log .ok{color:var(--ok)}
+table.sp{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:var(--text-xs)}
+table.sp th{color:var(--fg2);text-align:left;padding:3px 6px;border-bottom:1px solid var(--line);font-weight:600}
+table.sp td{padding:2px 6px;border-bottom:1px solid var(--bg3)}
+/* 解析结果表：行高压紧（矮窗口里表头 + 行距能吃掉一半高度，用户只能看到 1 行） */
+#tab-panel table.sp th{padding:2px 6px;white-space:nowrap}   /* 「延时」这种两字表头别被挤成两行 */
+#tab-panel table.sp td{padding:1px 6px}
+/**
+ * 🚨 表头**吸顶**（用户 2026-09-30："往下拉表头就上去了，看不到 byte 索引了"）：
+ * 表头里挂着**字节序号标尺**（0 1 2 3…），表一滚尺子就没了 —— 参数列那么多格子根本数不清。
+ * 参照 `tools/bmp_sender.html` 的 `.cmdtbl th{position:sticky;top:0}`：
+ *   · `top:0` 相对的是最近的滚动祖先 = `#pn-code-wrap`（`.scroll`），不是视口；
+ *   · **必须给背景色**：不给的话行会从表头底下透出来（position:sticky 不会自动遮挡）；
+ *   · `z-index` 要高过行里的输入框，否则聚焦时 border 会画到表头上面。
+ * 配套：`#pn-code-tab` 的 border-collapse 改成 separate —— collapse 模式下 Chrome 的 sticky
+ * 表头会把下边框"留"在滚动区外（表头看着像浮在半空，没有分隔线）。
+ */
+#pn-code-tab{border-collapse:separate;border-spacing:0}
+#pn-code-tab thead th{
+  position:sticky;top:0;z-index:3;background:var(--bg2);
+  box-shadow:inset 0 -1px 0 var(--line);       /* 代替被 separate 干掉的 border-bottom */
+}
+table.sp tr.ok td{color:var(--ok)}
+table.sp tr.bad td{color:var(--err)}
+#tab-spi .scroll,#tab-panel .scroll{overflow:auto;max-height:200px;border:1px solid var(--line);border-radius:var(--radius-card);margin-top:6px}
+/* 占位卡片（还没做的功能）：明确"还没做"，不是坏掉的控件 */
+fieldset[disabled]{opacity:.62}
+fieldset[disabled] legend::after{content:' · 未实现';color:var(--warn)}
+
+/* ---- 屏页（#panel）----
+   右列 = **一个带 tab 的面板**（刷屏 / 面板初始化 / 读回）+ 常驻日志 + 状态条
+   （用户 2026-10："右边部分参考调试器界面做成分 tab，现在有点繁琐"）。
+   改之前是"四张卡纵堆 + 整列滚动"：1600×900 下内容 1597px / 可视 836px，每次要滚 761px，
+   而且三处高度写死（解析表 360 / 日志 190 / 预览画布 170），矮窗口里三块互相挤。
+   现在每块**吃满整块高度**，日志与运行状态常驻 —— tab 化不该把过程视图藏起来。
+   侧栏卡片按 DOM 顺序排（探针 → 屏型号 → 面板档 → 当前生效 → 面板电源/显示）。 */
+#tab-panel .main{gap:3px;overflow:hidden;padding-right:3px}
+/* 🚨 flex 子项的 min-width 默认是 auto：卡片里只要有不肯收缩的东西（.toolrow.nw 不换行、表格的
+   最小内容宽），fieldset 就会被撑到 ~713px —— 920px 视口下整页冒横向滚动条（实测定位）。
+   桥页的 .busstack>fieldset 早已加了同款纪律，这里对齐它。 */
+#tab-panel .main>fieldset{min-width:0}
+/* dock 本体的规则与 #tab-spi .spdock / #tab-i2c .i2cdock 逐条对应（各页各写一份，别互相关联）。
+   🚨 下面**没有任何 max-height 限高**：高度由 `.dockpage{flex:1}` 分配。 */
+#tab-panel .paneldock{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;flex:1 1 auto}
+#tab-panel .docktabs{margin-left:2px;vertical-align:middle}
+#tab-panel .docktabs button{font-size:var(--text-xs);padding:2px 10px}
+/* `overflow-y:auto` 是**兜底**：正常情况下当前 tab 刚好装下（自测里断言不出现滚动）；
+   矮到装不下时宁可让当前这块自己滚，也不要把它裁掉。 */
+#tab-panel .dockpage{display:none;flex:1 1 auto;min-height:0;flex-direction:column;gap:6px;overflow-y:auto;overflow-x:hidden}
+#tab-panel .dockpage.on{display:flex}
+#tab-panel .dockpage .toolrow{margin:0}
+/* 🚨 tab 页里的**控件行一律不许被压**：flex 列布局默认 `flex-shrink:1`，窗口一矮就把它们
+   压到几像素 —— 字被切掉一半（用户 2026-10 截图："箭头所指的地方字都被掩盖了一半"，
+   实测 730 高的窗口下摘要行只剩 **4px**、内容要 22px）。
+   该让位的只有那张表 / 那块画布（下面单独给 `flex:1 1 auto` + `min-height`），
+   实在装不下就让 tab 页自己滚（`overflow-y:auto` 是兜底）。 */
+#tab-panel .dockpage>*{flex:none}
+#tab-panel .dockpage>p.hint{margin:0}
+#tab-panel .dockpage>.row{flex:none}
+/* 运行胶囊：切到哪个 tab 都看得到"屏页在跑什么"（刷图 / 重放 / 读回 / 播放） */
+#tab-panel .dockrun{color:var(--fg2);font-size:var(--text-xs);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tab-panel .dockrun.on{color:var(--ok)}
+#tab-panel .dockrun.warn{color:var(--warn)}
+#tab-panel .dockrun.err{color:var(--err)}
+#tab-panel .grip{flex:none;background:transparent;border-radius:var(--radius-sm);position:relative}
+#tab-panel .grip::after{content:"";position:absolute;background:var(--line);border-radius:2px;opacity:.7}
+#tab-panel .grip:hover::after{background:var(--acc);opacity:1}
+#tab-panel .grip-h{height:9px;margin:0;cursor:row-resize}
+#tab-panel .grip-h::after{left:35%;right:35%;top:3px;height:3px}
+#tab-panel #pn-grip-log{height:5px}
+/* 解析表：**不再写死 360px** —— tab 化之后它吃满剩余高度（文本框那截用 #pn-grip-code 拖）。
+   矮窗口下也不再被别的卡挤扁（用户："初始化部分被压缩得太厉害了"）。 */
+#tab-panel #pn-code-wrap{flex:1 1 auto;min-height:120px;height:auto;max-height:none}
+/* 源码编辑区默认只占工作区的 11%：代码较长时自身滚动，需要时用分隔条展开，
+   初始可见更多解析步骤与字节表格。 */
+#tab-panel #pn-code-text{height:11%;min-height:56px;max-height:200px;flex:none}
+#tab-panel #pn-code-card{gap:3px}
+/* 日志常驻：高度落在 #pn-logbox 上（`.log` 自己按 30% 算会因为父高为 0 而塌掉），可拖 + 记 store */
+#tab-panel #pn-logbox{flex:0 0 auto;height:110px;min-height:72px;display:flex;flex-direction:column}
+#tab-panel #pn-logbox .log{height:100%;min-height:0;flex:1 1 auto}
+/* 预览画布：**填满所在行**（object-fit:contain 保比例、绝不拉变形；image-rendering:pixelated
+   保证放大后仍是硬边）。原来是 max-height:170px 写死 —— 360×360 的屏缩到 138×170 根本看不清。
+   🚨 画布必须**绝对定位**：`height:100%` 在"高度由内容决定"的父级里会退化成 auto，
+   而 canvas 是带固有比例的可替换元素 —— 宽度一撑开，高度按 240:296 反算回去（实测 730×904），
+   把整页顶爆。绝对定位之后它不参与布局，盒子多高它就多高。 */
+#tab-panel .canvasrow,#tab-panel .readrow{flex:1 1 auto;min-height:170px;align-items:stretch;margin-top:6px}
+#tab-panel .canvasrow>.canvasbox,#tab-panel .readrow>.canvasbox{
+  position:relative;flex:0 0 auto;width:clamp(200px,34%,440px);min-height:0;
+}
+/* 🚨 右侧那列控制在矮窗口里比整行还高（9 行控件 ≈ 249px）：flex 行**单行**布局下，
+   行的交叉尺寸 = 最高那个 item 的内容高 —— 于是画布会被"撑"到 249，比行本身（235）还高、
+   压到下面的提示上。`max-height:100%` 把它的假设交叉尺寸夹回行高（行的行高是确定的），
+   多余的部分让它自己滚：1600×900 及以上不会出现滚动条，只有很矮的窗口才有。 */
+#tab-panel .canvasrow>.imginfo,#tab-panel .readrow>.imginfo{max-height:100%;overflow-y:auto;overflow-x:hidden;min-height:0}
+#tab-panel #pn-canvas,#tab-panel #pn-read-canvas{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+  background:#000;border:1px solid var(--line);border-radius:var(--radius-control);image-rendering:pixelated;
+}
+/* 动画块保持自然高度（它的高度让给上面那张画布） */
+#tab-panel .animbox{flex:none}
+/* 拖放区压扁一点：它只是"选图入口"，别占掉命令区的高度（图案按钮就在上面一行） */
+#tab-panel .drop{padding:5px 9px;margin:4px 0;font-size:var(--text-xs)}
+/* 刷图、参数、动画在同一页：大预览 + 紧凑参数列 + 底部播放工具条。 */
+#tab-panel #pn-img-card{overflow:hidden;gap:5px}
+#tab-panel .pn-image-tools{display:flex;align-items:center;gap:8px;min-width:0;background:var(--bg2)}
+#tab-panel .pn-image-tools>button{flex:none}
+#tab-panel #pn-img-info{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
+#tab-panel #pn-img-card .canvasrow{min-height:205px;margin:0;flex-wrap:nowrap;gap:16px}
+#tab-panel #pn-img-card .canvasrow>.canvasbox{width:auto;flex:0 0 55%;min-width:0}
+#tab-panel #pn-img-card #pn-canvas{max-width:none}
+#tab-panel #pn-image-drop.hot{outline:2px dashed var(--acc);outline-offset:-3px}
+#tab-panel #pn-img-card .pn-image-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;align-content:start;flex:1;min-width:0;max-height:none;overflow:visible;padding:4px 0}
+#tab-panel .pn-image-settings .wide{grid-column:1/-1}
+#tab-panel .pn-image-settings .row{margin:0;gap:6px;min-width:0;flex-wrap:nowrap}
+#tab-panel .pn-image-settings .row>span:first-child{width:48px;font-size:var(--text-xs)}
+#tab-panel .pn-image-settings .row.wide>span:first-child{width:64px}
+#tab-panel .pn-image-settings .row>select{min-width:0;width:0;flex:1}
+#tab-panel .pn-image-settings .num{width:56px;padding:3px 6px}
+#tab-panel .pn-image-settings .chk{font-size:var(--text-xs);white-space:nowrap;min-width:0}
+#tab-panel .pn-clock-live{font-size:var(--text-xs);white-space:nowrap;color:var(--fg2)}
+#tab-panel #pn-custom-size[hidden]{display:none}
+#tab-panel .pn-image-help{font-size:var(--text-xs);color:var(--fg2)}
+#tab-panel .pn-image-help summary{cursor:pointer}
+#tab-panel .pn-image-help[open]{max-height:130px;overflow:auto}
+#tab-panel .pn-image-help p{margin:4px 0}
+#tab-panel #pn-img-card .animbox{display:flex;align-items:center;gap:10px;margin:0;padding:6px 0 0;border-top:1px solid var(--line);min-width:0}
+#tab-panel #pn-img-card .animbox>.row{margin:0;gap:6px;flex:none;flex-wrap:wrap}
+#tab-panel #pn-img-card .animbox>.row>span:first-child{width:auto;font-size:var(--text-xs)}
+#tab-panel #pn-img-card .animrow{margin:0;flex:1;min-width:0}
+#tab-panel #pn-anim-info{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+/* 视频元素仅用于浏览器解码；所有画面统一显示在主画布中。 */
+#tab-panel #pn-image-drop video{position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none}
+@media(max-width:1100px){
+  #tab-panel #pn-img-card .canvasrow>.canvasbox{flex:1}
+  #tab-panel #pn-img-card .pn-image-settings{flex:0 0 300px;gap:7px 8px}
+  #tab-panel #pn-patterns button{font-size:11px;padding:2px 5px}
+  #tab-panel #pn-patterns .pattern-label{width:32px}
+  #tab-panel #pn-img-card .animbox>.row{gap:4px}
+}
+@media(max-width:700px){
+  #tab-panel #pn-img-card{overflow:visible}
+  #tab-panel #pn-img-card .canvasrow{flex-direction:column;flex:none;min-height:0}
+  #tab-panel #pn-img-card .canvasrow>.canvasbox{flex:none;height:220px}
+  #tab-panel #pn-img-card .pn-image-settings{flex:none}
+  #tab-panel #pn-img-card .animbox{flex-wrap:wrap}
+}
+#tab-panel .toolrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 7px}
+/* 初始化卡片里的固定行压紧一点：矮窗口下这些"工具条"加起来能吃掉 150px，
+   压紧后省下来的高度全给文本框和表格（用户："初始化部分被压缩得太厉害了"）。 */
+#tab-panel #pn-code-card .toolrow{margin:0 0 4px}
+#tab-panel #pn-code-card .row{margin:3px 0}
+#tab-panel #pn-code-card>.row.btnrow{margin:0;gap:6px}
+#tab-panel #pn-code-card>.row.btnrow button{flex:0 0 auto;padding:2px 8px}
+#tab-panel #pn-code-card>.row.btnrow #pn-code-prog{flex:1;min-width:0;text-align:right}
+/* 摘要 + 导出按钮挤一行（折行会白吃 28px 高度，那点高度留给文本框和表格） */
+#tab-panel .toolrow.nw{flex-wrap:nowrap;overflow:hidden}
+#tab-panel .toolrow.nw #pn-code-sum{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-panel .toolrow.nw button{flex:none}
+#tab-panel .toolrow>span:first-child{color:var(--fg2);font-size:var(--text-xs);flex:none}
+#tab-panel .toolrow select{max-width:340px}
+#pn-code-text{
+  width:100%;font-family:var(--mono);font-size:var(--text-xs);line-height:1.45;
+  resize:none;white-space:pre;overflow:auto;
+}
+#tab-panel .scroll{max-height:none;margin-top:0}
+/* 预览画布的高度规则在上面 dock 段里（填满所在行 + object-fit:contain）——
+   原来这里是 `#tab-panel #pn-canvas{max-height:170px}`（写死），已删除。 */
+#tab-panel .imginfo .row{margin:3px 0}
+#tab-panel .imgrow{gap:10px}
+/* 日志：常驻的一块滚动区 + 右上角浮动"清空"（不占额外高度） */
+#tab-panel .logbox,#tab-spi .logbox{position:relative}
+#tab-panel .logbox .log{height:100%}
+/* 桥页的日志直接放在 .main 里：高度落在 logbox 上（.log 自己按 30% 算会因为父高为 0 而塌掉）。
+   24% 而不是 30%：矮窗口（580px）里日志让出的这 26px 正好让下一块卡片露出来。 */
+#tab-spi #sp-logbox{flex:0 0 auto;height:24%;min-height:96px;display:flex;flex-direction:column}
+#tab-spi #sp-logbox .log{height:100%;min-height:0;flex:1 1 auto}
+#tab-panel .logclear{position:absolute;top:4px;right:10px;z-index:3;opacity:.9}
+/* 大卡片可以折叠（legend 里那个小按钮）：收起时只留标题行，并且**明确标出"已折叠"**
+   —— 只有一行小字的话，用户会以为功能没了（实测就这么反馈过） */
+fieldset.folded > *:not(legend){display:none}
+fieldset.folded{padding-bottom:6px}
+fieldset.folded > legend{color:var(--acc)}
+fieldset.folded > legend::after{content:' · 已折叠';color:var(--fg2);font-size:var(--text-xs)}
+.foldbtn{margin-left:8px;padding:0 6px;font-size:var(--text-xs)}
+#pn-code-sum.ok{color:var(--ok)} #pn-code-sum.warn{color:var(--warn)} #pn-code-sum.err{color:var(--err)}
+/* ---- 解析表：每个参数字节一个**可编辑的十六进制格子**（做法照 tools/bmp_sender.html）----
+   直接敲就能改；点一下开「位开关板」逐位改。格子宽度固定 25px —— 表头那行"字节标尺"
+   靠它对齐（等宽字体里空格宽度也一致，尺子和格子才天然对齐；改宽度必须两边一起改）。 */
+#pn-code-body input.bx{
+  width:25px;padding:0 2px;height:19px;text-align:center;
+  font-family:var(--mono);font-size:var(--text-xs);background:var(--bg3);
+  border:1px solid var(--line);border-radius:var(--radius-sm);color:var(--fg);
+}
+#pn-code-body input.bx:hover{border-color:var(--acc)}
+#pn-code-body input.bx:focus{outline:1px solid var(--acc);border-color:var(--acc)}
+#pn-code-body input.bx.cmd{color:#9fd0ff;font-weight:600}
+#pn-code-body input.bx.bad{border-color:var(--err);background:#3a1a1a}
+/* 改过的行：底色 + 格子变色（一眼看出哪几行不是原表；行尾会给「改回」） */
+#pn-code-body tr.dirty td{background:#ffb02010}
+#pn-code-body tr.dirty input.bx{background:#3a2f12;border-color:#8f6c18;color:#ffd479}
+/* 字节标尺（在"参数"表头格里）：字号/间距必须和格子一致，否则越往后越偏 */
+#pn-code-tab .ruler{margin-top:3px;color:#6b7385;font-weight:400;letter-spacing:normal;white-space:nowrap}
+#pn-code-tab .ruler span{display:inline-block;width:25px;text-align:center}
+/* 参数列不许折行：折了标尺就对不上（窄窗口让表格自己横向滚，与参考页一致） */
+#pn-code-tab td.params,#pn-code-tab td.acts{white-space:nowrap}
+#pn-code-tab td{vertical-align:middle}
+
+/* 位开关板（.bitpop）：照 tools/bmp_sender.html —— 8 个大方块（bit 号 / 0|1 / 权重）
+   + 和原值不同的位套黄框 + 一排快捷键。
+   position:fixed：表格在 overflow:auto 的容器里，absolute 会被裁掉；滚动时由 JS 重新定位。 */
+.bitpop{
+  position:fixed;z-index:60;background:var(--bg2);border:1px solid var(--acc);
+  border-radius:var(--radius-card);padding:10px 12px;box-shadow:0 12px 34px #000b;
+}
+.bitpop[hidden]{display:none}
+.bitpop .bp-head{display:flex;align-items:baseline;gap:4px}
+.bitpop .btitle{font-weight:600;font-size:var(--text-sm);margin-right:10px}
+.bitpop .bval{font-family:var(--mono);font-size:var(--text-sm);color:var(--fg2)}
+.bitpop .bits{display:flex;gap:6px;margin-top:9px}
+.bitpop .bit{
+  display:flex;flex-direction:column;align-items:center;gap:0;width:47px;padding:5px 0 4px;
+  border:1px solid var(--line);background:#12141a;border-radius:var(--radius-card);cursor:pointer;transition:.1s;
+}
+.bitpop .bit:hover{border-color:var(--acc)}
+.bitpop .bit .bk{font-size:var(--text-xs);color:var(--fg2);line-height:1.2}
+.bitpop .bit .bv{font-family:var(--mono);font-size:var(--text-lg);font-weight:700;line-height:1.25;color:#6b7385}
+.bitpop .bit .bw{font-size:var(--text-xs);color:#5c6373;line-height:1.2}
+.bitpop .bit .bn{font-size:var(--text-xs);color:var(--fg2);line-height:1.2;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bitpop .bit.on{background:#12365c;border-color:var(--acc)}
+.bitpop .bit.on .bv{color:#9fd0ff}
+.bitpop .bit.chg{outline:2px solid var(--warn);outline-offset:-2px}
+.bitpop .bit.chg .bw{color:var(--warn)}
+.bitpop .bp-acts{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.bitpop .hint{margin:7px 0 0;max-width:440px}
+.drop{
+  border:2px dashed var(--line);border-radius:var(--radius-card);padding:9px;text-align:center;
+  color:var(--fg2);cursor:pointer;font-size:var(--text-sm);margin:5px 0;transition:.15s;
+}
+.drop.hot{border-color:var(--acc);background:#4ea1ff12;color:var(--fg)}
+.imgrow{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-top:8px}
+.canvasbox{flex:none}
+#pn-canvas{
+  background:#000;border:1px solid var(--line);border-radius:var(--radius-control);image-rendering:pixelated;
+  max-width:min(42vw,380px);height:auto;
+}
+.imginfo{flex:1;min-width:240px}
+.imginfo .row>span:first-child{width:74px}
+.imginfo .num{width:72px}
+/* 动画 / 视频：源片小预览 + 状态行（发送是节拍器，状态行每帧刷新） */
+#tab-panel .animbox{margin-top:9px;border-top:1px solid var(--line);padding-top:8px}
+#tab-panel .animrow{display:flex;gap:10px;align-items:flex-start;margin-top:5px}
+#pn-anim-video{
+  width:132px;max-height:100px;flex:none;border:1px solid var(--line);border-radius:var(--radius-control);
+  background:#000;display:none;
+}
+#pn-anim-video.on{display:block}
+#pn-anim-info{flex:1;min-width:0;white-space:pre-wrap}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chips button{padding:2px 8px;font-size:var(--text-xs)}
+.chips button.on{border-color:var(--acc);background:#1f6feb;color:#fff}
+#pn-img-sum{white-space:pre-wrap}
+
+/* ---- 引脚分配图：点「引脚分配图」弹出的模态窗（两列表格，40 针全显示）---- */
+.pinmodal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.62);
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.pinmodal[hidden]{display:none}
+.pinmodal-box{background:var(--bg2,#1b1b1b);border:1px solid var(--line,#3a3a3a);border-radius:var(--radius-card);
+  width:min(820px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 14px 44px rgba(0,0,0,.55)}
+.pinmodal-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line,#3a3a3a)}
+.pinmodal-head b{font-size:var(--text-md)}
+.pinmodal-head .hint{flex:1;margin:0}
+.pinmodal-body{padding:8px 14px 14px;overflow:auto}
+.pintab{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
+.pintab td{padding:3px 8px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
+.pintab td.p-pin{width:36px;text-align:right;color:var(--fg2,#999);font-family:ui-monospace,Consolas,monospace}
+.pintab td.p-name{font-family:ui-monospace,Consolas,monospace;width:50%}
+.pintab .p-mark{display:inline-block;width:1.3em;text-align:center}
+.pintab .p-note{margin-left:10px;color:var(--fg2,#999);font-size:var(--text-xs)}
+.pintab .p-sel{margin-left:10px;color:#66ccff;font-size:var(--text-xs)}
+.pintab .is-spi{color:#7ee787}
+.pintab .is-vcom{color:#79c0ff}
+.pintab .is-aux{color:#ffd479}
+.pintab .is-no{color:#ff7b72}
+.pintab .is-plain{color:var(--fg2,#999)}
+/* I2C 桥的固定脚（PA29=SCL / PA28=SDA）：**无论配置与否都显示**，因为它们在固件里是写死的 ——
+   接线的人必须一眼看到这两根已经名花有主（详见 i2c_bridge.c 的 BOARD_I2C_BRIDGE_*_PAD）。 */
+.pintab .is-i2c{color:#c792ea}
+.pintab .is-signal{color:#79c0ff;font-weight:600}
+.pintab .is-ground{color:#7ee787}
+.pinmap-board{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:4px 0 8px}
+.pinmap-board select{max-width:100%}
+.pinmap-notes{padding-left:20px;font-size:var(--text-sm);line-height:1.5}
+.pinmap-notes li{margin:5px 0}
+.pintab .is-i2c .p-fixed{margin-left:8px;padding:0 5px;border:1px solid rgba(199,146,234,.5);
+  border-radius:var(--radius-sm);font-size:var(--text-xs);color:#c792ea}
+.pintab .p-sel.is-bad{color:#ff7b72;font-weight:600}
+/* 未配置、按屏型号推荐值先标出来的脚位（虚线）—— 接线时照它接，配完会变成实心 */
+.pintab .p-sel.is-dflt{color:#8fa6bb;border-bottom:1px dashed rgba(143,166,187,.65)}
+/* 图上"没出现"的线（比如 QSPI 不需要 DC）：明说原因，别让人以为是漏画 */
+#sp-pinmap-miss{color:#ffd479}
+#sp-pinmap-miss:empty{display:none}
+
+/* ============================ USB→I2C 桥（#tab-i2c） ============================
+   右列 = 一个带 tab 的面板 + **常驻**日志（照「调试器」页的 .docktabs / .dockpage 那套）。
+   为什么改成 tab：原来五张卡片纵向堆在一个滚动区里、每张都被迫限高（命令表只能看见 7 行、
+   脚本框一屏就满），而且"正在跑的结果"与"实时值"永远没法同屏。tab 化之后每块**吃满整块高度**；
+   日志与运行状态仍然常驻 —— tab 化不该把"过程视图"也一起藏起来。
+   🚨 下面**没有**任何 max-height 限高：高度由 `.dockpage{flex:1}` 分配，
+      给里面的 .scroll 加 max-height 会让 tab 化白做（第一版就是这么被限住的）。 */
+#tab-i2c .side .row>span:first-child,#tab-i2c .row>span:first-child{width:var(--label-w)}
+#tab-i2c .main{gap:6px}
+#tab-i2c .i2cdock{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;flex:1 1 auto}
+#tab-i2c .docktabs{margin-left:2px;vertical-align:middle}
+#tab-i2c .docktabs button{font-size:var(--text-xs);padding:2px 10px}
+#tab-i2c .dockpage{display:none;flex:1 1 auto;min-height:0;flex-direction:column;gap:6px}
+#tab-i2c .dockpage.on{display:flex}
+#tab-i2c .dockpage .toolrow{margin:0}
+/* tab 里的滚动区吃满剩余高度（`.scroll` 基础规则里的 max-height:200px 在这里必须让位） */
+#tab-i2c .scroll,#tab-i2c .scroll.fill{overflow:auto;max-height:none;border:1px solid var(--line);border-radius:var(--radius-card);margin-top:0}
+#tab-i2c .scroll.fill{flex:1 1 auto;min-height:0}
+/* 运行胶囊：切到哪个 tab 都能看到"定时任务还在跑 / 跑了多少拍 / 失败几笔" */
+#tab-i2c .dockrun{color:var(--fg2);font-size:var(--text-xs);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tab-i2c .dockrun.on{color:var(--ok)}
+#tab-i2c .dockrun.warn{color:var(--warn)}
+#tab-i2c .dockrun.err{color:var(--err)}
+#tab-i2c .grip{flex:none;background:transparent;border-radius:var(--radius-sm);position:relative}
+#tab-i2c .grip::after{content:"";position:absolute;background:var(--line);border-radius:2px;opacity:.7}
+#tab-i2c .grip:hover::after{background:var(--acc);opacity:1}
+#tab-i2c .grip-h{height:9px;margin:0;cursor:row-resize}
+#tab-i2c .grip-h::after{left:35%;right:35%;top:3px;height:3px}
+#tab-i2c #i2-logbox{flex:0 0 auto;height:22%;min-height:96px;display:flex;flex-direction:column}
+#tab-i2c .logbox{position:relative}
+#tab-i2c #i2-logbox .log{height:100%;min-height:0;flex:1 1 auto}
+#tab-i2c .logclear{position:absolute;top:4px;right:10px;z-index:3;opacity:.9}
+/* 命令表：行高压紧（现在能吃满高度，别再限高）
+   🚨 `table-layout:fixed` 是必需的：auto 布局下 `td{max-width}` **不生效**，结果列里那段长
+   十六进制会把列宽整个撑开、把表格顶出横向滚动条（实测）。fixed 之后 th 上写的宽度才算数，
+   `td.res` 的 ellipsis 也才真的截断（完整内容挂 title，hover 能看）。 */
+#tab-i2c table.cmdtab{table-layout:fixed;font-size:var(--text-xs)}
+#tab-i2c table.cmdtab th{padding:1px 4px;white-space:nowrap;position:sticky;top:0;background:var(--bg2);z-index:1}
+#tab-i2c table.cmdtab td{padding:0 3px;overflow:hidden}
+#tab-i2c table.cmdtab td.idx{color:var(--fg2);width:18px;text-align:right;padding-right:5px}
+#tab-i2c table.cmdtab td.res{font-size:var(--text-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tab-i2c table.cmdtab td.res.ok{color:var(--ok)}
+#tab-i2c table.cmdtab td.res.bad{color:var(--err)}
+#tab-i2c table.cmdtab td.res.warn{color:var(--warn)}
+#tab-i2c table.cmdtab td.res.dim{color:var(--fg2)}
+#tab-i2c input.cell,#tab-i2c select.cell{
+  width:100%;padding:0 4px;height:20px;font-family:var(--mono);font-size:var(--text-xs);background:var(--bg3);
+  border:1px solid var(--line);border-radius:var(--radius-control);color:var(--fg);
+}
+#tab-i2c select.cell{padding:0}
+#tab-i2c input.cell:focus{outline:1px solid var(--acc);border-color:var(--acc)}
+#tab-i2c input.cell:disabled,#tab-i2c select.cell:disabled{opacity:.35;background:transparent;border-color:transparent}
+/* 列宽：序号/操作/器件/子地址/数据/读长/解码/周期/结果。
+   🚨 fixed 布局下**没写宽度的列会平分剩余空间** —— `#` 曾经因此拿到 233px（一个序号占了
+   六分之一屏）。所以序号必须显式给死；「数据」与「解码 as」故意留 auto，让它俩吃掉余量
+   （它们装的是长短不一的十六进制与表达式，跟着窗口伸缩最合适）。结果列给死 300px：
+   只固定一边的话宽窗口下另一边会失控（同 #spi 的教训）。 */
+#tab-i2c table.cmdtab th:nth-child(1){width:26px}
+#tab-i2c table.cmdtab th:nth-child(2){width:60px}
+#tab-i2c table.cmdtab th:nth-child(3){width:62px}
+#tab-i2c table.cmdtab th:nth-child(4){width:78px}
+#tab-i2c table.cmdtab th:nth-child(5){width:auto}
+#tab-i2c table.cmdtab th:nth-child(6){width:58px}
+#tab-i2c table.cmdtab th:nth-child(7){width:auto}
+#tab-i2c table.cmdtab th:nth-child(8){width:82px}
+#tab-i2c table.cmdtab th:nth-child(9){width:300px}
+#i2-dsl-text{
+  width:100%;flex:1 1 auto;min-height:110px;max-height:none;font-family:var(--mono);font-size:var(--text-xs);
+  line-height:1.45;resize:vertical;white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:hidden;overflow-y:auto;
+}
+#tab-i2c .dslhelp{margin-top:0;flex:none}
+#tab-i2c .dslhelp summary{color:var(--fg2);font-size:var(--text-xs);cursor:pointer}
+#tab-i2c .dslhelp .hint{white-space:pre-wrap;font-family:var(--mono);font-size:var(--text-xs);line-height:1.5;margin:5px 0 0;max-height:240px;overflow:auto}
+#tab-i2c #i2-dsl-errwrap{flex:none;max-height:120px}
+#tab-i2c .toolrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+#tab-i2c .toolrow.nw{flex-wrap:nowrap;overflow:hidden}
+#tab-i2c .toolrow>span:first-child{color:var(--fg2);font-size:var(--text-xs);flex:none}
+#tab-i2c .toolrow select{max-width:330px}
+#tab-i2c .toolrow.nw #i2-dsl-sum{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-i2c .toolrow.nw button{flex:none}
+#tab-i2c .dockpage>p.hint{flex:none;margin:0}
+/* 扫到的那一行被"选用"时高亮（一眼看出当前选的是哪个器件） */
+#tab-i2c #i2-scan-body tr.on{background:rgba(74,163,255,.13)}
+#tab-i2c #i2-scan-body tr.on td:first-child{color:var(--acc)}
+#tab-i2c #i2-scan-body button{margin-right:4px}
+#tab-i2c #i2-live-body canvas.spark{display:block;width:284px;height:20px}
+#tab-i2c #i2-live-body td{padding:1px 6px}
+#tab-i2c #i2-dsl-sum.ok{color:var(--ok)}
+#tab-i2c #i2-dsl-sum.warn{color:var(--warn)}
+#tab-i2c #i2-dsl-sum.err{color:var(--err)}
+
+/* ---- 寄存器面板（`#i2c` 与 `#spi` 各有一个，共用这一套样式）：16 列的字节表 + 位开关板 ----
+   表格本身吃满高度（.scroll.fill 已经在管滚动），格子做小一点、密一点：
+   128 个字节要能一屏看完，才谈得上"扫一眼看哪儿变了"。
+   ⚠️ 这些类**不带页面前缀**（两个页面共用）：`.regtab` 只在寄存器面板里用，别拿它当通用表格类。 */
+.regtab{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:var(--text-xs)}
+.regtab th,.regtab td{padding:1px 2px;text-align:center;border:none}
+.regtab thead th{color:var(--fg2);font-weight:400;font-size:var(--text-xs);position:sticky;top:0;
+  background:var(--bg2,#1b1b1b);z-index:1}
+.regtab td.ra,.regtab th.ra{color:var(--fg2);text-align:right;padding-right:8px;white-space:nowrap;font-size:var(--text-xs)}
+.regtab td.rascii,.regtab th.rascii{color:#8fa6bb;text-align:left;padding-left:10px;
+  white-space:pre;letter-spacing:.5px}
+.regtab td.rbc{padding:0 1px}
+/* 每个字节 = 一个按钮；改过的套黄框（和 .bitpop 的 chg 同一套语义） */
+.regtab button.rb{width:26px;padding:1px 0;font-family:var(--mono);font-size:var(--text-xs);
+  background:#171b21;color:#cdd6e4;border:1px solid #2b3340;border-radius:var(--radius-sm);cursor:pointer}
+.regtab button.rb:hover{border-color:var(--acc);background:#1d2530}
+.regtab button.rb.chg{border-color:var(--warn);background:#3a2f12;color:#ffd479;font-weight:700}
+.regtab button.rb:focus{outline:1px solid var(--acc)}
+.bitpop .bx{width:42px;text-align:center;font-family:var(--mono)}
+.bitpop .bx.bad{border-color:var(--err);background:#3a1a1a}
+
+/* ============================ 调试器（#tab-dbg） ============================ */
+/**
+ * 版式（2026-10-02 按用户要求照 Ozone 重排）：
+ *   左边一列 = **源码（上，占大头）+ 命令行（下，也够大）**，中间一条横分隔条可拖；
+ *   右边一条**局部 tab** 面板（寄存器 / 内存 / 变量 / RTT）顶到满高 —— 不再把四块平铺成小格子；
+ *   左右之间也有分隔条。两处尺寸都记在 localStorage（dbg.dockW / dbg.termH）。
+ */
+#tab-dbg .mono{font-family:var(--mono)}
+#tab-dbg .side [hidden]{display:none!important}
+#tab-dbg .side>[role=tabpanel]{flex:none;min-width:0;display:flex;flex-direction:column;gap:12px}
+#tab-dbg .side [role=tabpanel]>fieldset{min-width:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:4px 2px 8px}
+#tab-dbg .side [role=tabpanel]>fieldset:last-child{border-bottom:0}
+#tab-dbg .side [role=tabpanel]>fieldset>legend{padding:0;font-weight:600;color:var(--fg)}
+#tab-dbg .d-side-tabs{display:flex;flex:none;gap:5px;position:sticky;top:0;z-index:3;background:var(--bg);padding:0 0 10px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+#tab-dbg .d-side-tabs button{flex:1;min-width:0;padding:6px 4px;color:var(--fg2);background:transparent;border-color:transparent}
+#tab-dbg .d-side-tabs button[aria-selected=true]{color:var(--acc);background:var(--bg2);border-color:var(--line)}
+#tab-dbg .d-side-count{font-size:11px;color:var(--fg2)}
+#tab-dbg #d-elf-info{white-space:normal;overflow-wrap:anywhere}
+#tab-dbg #d-bp-cap{font-size:11px;margin-left:6px;font-weight:normal}
+#tab-dbg #d-bt-status:empty{display:none}
+#tab-dbg .side .row>span:first-child{width:var(--label-w)}
+#tab-dbg .main{gap:8px;min-height:0}
+#tab-dbg .toolbar{flex:none}
+#tab-dbg #d-pc{font-size:var(--text-xs);color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34ch}
+#tab-dbg #d-src-pos{font-size:var(--text-xs);color:#ffd479;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44ch}
+
+/* ---- 工作区：左列（源码+命令行） | 分隔条 | 右侧 tab 面板 ---- */
+#tab-dbg .dbgwork{display:flex;align-items:stretch;flex:1 1 auto;min-height:0;min-width:0}
+/**
+ * 🚨 `flex-basis` 必须是 **0**（不是 auto）：basis=auto 时会拿"内容高度"当基准，
+ *    而 fieldset 的内容高度是整份源码的行数（实测 687px 且**不肯让**），于是命令行被压到 128px ——
+ *    拖分隔条也只是把源码撑得更高（实测：把命令行 basis 从 348 改到 200，命令行反而只剩 110px）。
+ *    basis:0 + grow:1 才是"占满剩下的空间"，配合 min-height 当下限。
+ */
+#tab-dbg .dbgleft{display:flex;flex-direction:column;flex:1 1 0;min-width:280px;min-height:0}
+#tab-dbg .dbgbox{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+#tab-dbg .dbgbox>legend{white-space:nowrap;overflow:hidden}
+#tab-dbg .dbgbox>legend .hint{margin:0;display:inline}
+#tab-dbg .foldbtn{margin-left:6px;padding:0 6px;font-size:var(--text-xs);color:var(--fg2);background:transparent;border-color:transparent}
+#tab-dbg .foldbtn:hover{color:var(--fg);border-color:var(--line);background:var(--bg3)}
+
+/* 分隔条（能拖）：横的那条调命令行高度，竖的那条调右侧面板宽度 */
+#tab-dbg .grip{flex:none;background:transparent;border-radius:var(--radius-sm);position:relative}
+#tab-dbg .grip::after{content:"";position:absolute;background:var(--line);border-radius:2px;opacity:.7}
+#tab-dbg .grip:hover::after{background:var(--acc);opacity:1}
+#tab-dbg .grip-h{height:9px;margin:3px 0;cursor:row-resize}
+#tab-dbg .grip-h::after{left:35%;right:35%;top:3px;height:3px}
+#tab-dbg .grip-v{width:11px;margin:0 2px;cursor:col-resize}
+#tab-dbg .grip-v::after{top:35%;bottom:35%;left:4px;width:3px}
+#tab-dbg.gripping{cursor:inherit;user-select:none}
+#tab-dbg.gripping iframe{pointer-events:none}
+
+/* 源码：占左列剩余高度（默认大头）。basis 必须是 0 —— 见上面 .dbgleft 那段 🚨 */
+#tab-dbg .dbgsrc{flex:1 1 0;min-height:120px}
+#tab-dbg .srclist{flex:1 1 auto;min-height:0;overflow:auto;font-size:var(--text-xs);line-height:1.4;
+  background:#010409;border-radius:var(--radius-control);padding:2px 0}
+#tab-dbg .srcrow{display:flex;gap:8px;padding:0 6px;white-space:pre}
+#tab-dbg .srcrow .ln{flex:none;width:44px;text-align:right;color:#4a5563;cursor:pointer;user-select:none}
+#tab-dbg .srcrow .ln:hover{color:var(--acc);text-decoration:underline}
+#tab-dbg .srcrow.bp .ln{color:var(--err);font-weight:600}
+#tab-dbg .srcrow.cur{background:#16281a}
+#tab-dbg .srcrow.cur .ln{color:var(--acc)}
+#tab-dbg .srcrow.cur .srctx{color:#fff}
+/* 🚨 类名是 `.srctx` 不是 `.tx`：`.tx` 被「文本发送」那个 textarea 的全局规则占着（min-height:52px），
+   用它会把每一行源码撑到 52px —— 就是用户报的"行距太大"。 */
+#tab-dbg .srcrow .srctx{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#tab-dbg .srctx .src-keyword{color:#c792ea}
+#tab-dbg .srctx .src-type{color:#80cbc4}
+#tab-dbg .srctx .src-function{color:#82aaff}
+#tab-dbg .srctx .src-number{color:#f7c87c}
+#tab-dbg .srctx .src-string{color:#c3e88d}
+#tab-dbg .srctx .src-comment{color:#8b9bad}
+#tab-dbg .srctx .src-directive{color:#f0a5bf}
+#tab-dbg #d-src-file{font-size:var(--text-xs);color:var(--fg2)}
+
+/* 命令行：占左列下面（默认 flex-basis 28%，拖动后是 px），输出区 + 贴底输入行 */
+#tab-dbg .dbgterm{flex:0 1 28%;min-height:110px;max-height:82%}
+#tab-dbg #d-out{flex:1 1 auto;min-height:0;height:auto;overflow:auto;background:#010409}
+#tab-dbg #d-out .cmdecho{color:#9fd0ff}
+#tab-dbg .sendbar.terminal{flex:none;margin-top:5px;gap:6px;flex-wrap:nowrap}
+#tab-dbg .sendbar.terminal .prompt{color:var(--ok);flex:none;font-size:var(--text-sm);padding-left:2px}
+#tab-dbg .sendbar.terminal input{flex:1 1 auto;min-width:0;background:#010409}
+#tab-dbg .sendbar.terminal button{flex:none}
+
+/* ---- 右侧 tab 面板 ---- */
+#tab-dbg .dbgdock{flex:0 0 380px;min-width:250px;max-width:760px}
+#tab-dbg .docktabs{margin-left:2px;vertical-align:middle}
+#tab-dbg .docktabs button{font-size:var(--text-xs);padding:2px 9px}
+#tab-dbg .dockpage{display:none;flex:1 1 auto;min-height:0;flex-direction:column;gap:5px}
+#tab-dbg .dockpage.on{display:flex}
+#tab-dbg .dockpage .toolrow{margin:0}
+@supports (selector(:has(*))){
+  /* 面板窄的时候（<420px）内存那行的"地址/长度"别把按钮挤没了 */
+  #tab-dbg .dbgdock .toolrow{flex-wrap:wrap;row-gap:4px}
+}
+
+/* USB→ADC / DAC：复用侧栏、工作区与分段标签的全站样式；两页共享同一 AnalogSession。 */
+#tab-analog .an-shell{display:flex;flex-direction:column;gap:6px;height:100%;min-height:0}
+#tab-analog .an-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:4px;flex:none;min-width:0}
+#tab-analog .an-toolbar>.row{margin:0;flex:none;min-width:0}
+#tab-analog #an-state{margin:0;min-width:120px;flex:1 1 auto;overflow-wrap:anywhere}
+#tab-analog .an-tabs{align-self:flex-start;margin-left:2px;vertical-align:middle}
+#tab-analog .an-page{display:none;flex:1 1 auto;min-height:0}
+#tab-analog .an-page.on{display:block}
+#tab-analog .an-page>.ws{height:100%;min-height:0}
+#tab-analog .an-page .work{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
+#tab-analog .an-page .work fieldset{min-width:0;flex:none}
+/* UI review 2026-10-06: shared cards, notes, logs and numeric typography. */
+.mono,.address,.stats,.flag,.dockrun{font-variant-numeric:tabular-nums}
+.mono,.address,.stats,.dockrun{font-family:var(--mono)}
+.address{min-width:12ch;flex:1}
+.helpnote{margin-top:var(--space-sm);font-size:var(--text-xs);color:var(--fg2)}
+.helpnote summary{cursor:pointer;user-select:none}
+.helpnote[open] summary{color:var(--fg)}
+.helpnote .hint{margin:5px 0}
+.eventlog{background:var(--bg)}
+.rx[data-empty]:empty::before,.log[data-empty]:empty::before{content:attr(data-empty);color:var(--fg2);font:var(--text-xs)/1.5 var(--ui)}
+.dockhead{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:none;padding:0 0 7px;margin-bottom:6px;border-bottom:1px solid var(--line);min-width:0}
+.dockhead .hint{margin:0}
+.dockhead .docktabs{flex:none}
+.dockhead .spacer{min-width:0}
+.loghead{display:flex;align-items:center;gap:6px;flex:none;min-height:28px;padding:0 0 4px;color:var(--fg2);font-size:var(--text-xs)}
+.loghead strong{font-weight:500}
+.loghead .mini{font-family:var(--ui)}
+.logbox .loghead+.log{height:auto;flex:1 1 auto;min-height:0}
+#tab-spi .logclear{position:absolute;top:4px;right:10px;z-index:3;opacity:.9}
+#tab-analog .side .row>span:first-child{white-space:nowrap}
+.flush{margin:0!important}
+.row>span.label-auto{width:auto!important}
+.stat-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stat-group+.stat-group{border-left:1px solid var(--line);padding-left:14px}
+.stat-caption{color:var(--fg2);font-weight:400}
+.pattern-groups{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.pattern-group{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.pattern-label{color:var(--fg2);font-size:var(--text-xs);width:42px;flex:none}
+.pattern-group button{display:inline-flex;align-items:center;gap:5px}
+.pattern-swatch{width:10px;height:10px;border-radius:2px;border:1px solid #ffffff44}
+.qrow[hidden]{display:none}
+#s-quick-add{margin-top:6px}
+.i2-address-map{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:4px;flex:none}
+.i2-address-map button{padding:4px 1px;font:var(--text-xs)/1.4 var(--mono);color:var(--fg2);background:var(--bg);border-radius:var(--radius-sm)}
+.i2-address-map button.ack{color:var(--ok);border-color:#3fb95088;background:#3fb95018}
+.i2-address-map button.selected{outline:2px solid var(--acc);outline-offset:0}
+.i2-address-map button:disabled{opacity:1;cursor:default}
+.i2-address-map button.reserved{border-style:dashed;opacity:.45}
+#tab-i2c .scan-key{flex:none;margin:0}
+#tab-analog .an-toolbar>.btnrow{justify-content:flex-start}
+#tab-analog .an-toolbar>.btnrow>button{flex:none;min-width:96px}
+#tab-analog .an-work{overflow:auto;padding:0}
+#tab-analog .an-plot{position:relative;flex:1 1 auto;min-height:260px;border:1px solid var(--line);border-radius:var(--radius-card);overflow:hidden;background:#090f17}
+#tab-analog .an-plot canvas{position:absolute;inset:0;width:100%;height:100%}
+#tab-analog .an-reading{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+#tab-analog #an-adc-canvas{touch-action:none;cursor:crosshair}
+#tab-analog .an-cursor-toolbar{flex-wrap:wrap;gap:6px 10px;flex:none;padding:5px 9px}
+#tab-analog .an-cursor-toolbar>label{display:flex;align-items:center;gap:5px}
+#tab-analog .an-cursor-values{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;flex:none;font:var(--text-xs)/1.5 var(--mono)}
+#tab-analog .an-cursor-group{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-width:0}
+#tab-analog .an-cursor-values[hidden],#tab-analog .an-cursor-group[hidden]{display:none}
+#tab-analog .an-cursor-values label{white-space:nowrap}
+#tab-analog .an-cursor-values input{width:80px;max-width:100px;font-family:var(--mono)}
+#tab-analog .an-cursor-values b{color:var(--fg);font-weight:500;white-space:nowrap}
+#tab-analog .an-t1{color:#63bdff} #tab-analog .an-t2{color:#c591ff}
+#tab-analog .an-v1{color:#51dbb1} #tab-analog .an-v2{color:#ff9b73}
+#tab-analog .an-measurements{display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;flex:none;padding:4px 10px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--bg2)}
+#tab-analog .an-measurements>div{display:flex;align-items:baseline;gap:7px;min-width:0;white-space:nowrap}
+#tab-analog .an-measurements span{color:var(--fg2);font-size:var(--text-xs)}
+#tab-analog .an-measurements strong{color:#ffd15c;font:var(--text-sm)/1.4 var(--mono);white-space:nowrap}
+#tab-analog #an-value{font:var(--text-lg)/1.4 var(--mono);color:var(--acc)}
+#tab-analog #an-code{font-family:var(--mono);margin:0}
+#tab-analog .stats{flex:none}
+@media (max-width:860px){
+  .topright{flex-wrap:wrap;justify-content:flex-end;gap:4px}
+  .build-stamp{display:none}
+  #tab-analog .an-plot{flex:none;height:50vh}
+}
+@media (max-width:540px){
+  .i2-address-map{gap:2px}
+}
+@media (max-width:860px){
+  #tab-analog .an-shell{height:auto;min-height:calc(100vh - 150px)}
+  #tab-analog .an-page{flex:none;min-height:55vh}
+  #tab-analog .an-page>.ws{height:auto}
+}
+
+/* 寄存器表 */
+#tab-dbg .reglist{flex:1 1 auto;min-height:0;overflow:auto;font-size:var(--text-xs);font-family:var(--mono)}
+#tab-dbg .regrow{display:flex;align-items:center;gap:5px;padding:0 3px;border-radius:var(--radius-sm)}
+#tab-dbg .regrow:hover{background:var(--bg3)}
+#tab-dbg .regrow .rn{flex:none;width:62px;color:var(--fg2)}
+#tab-dbg .regrow input.rv{flex:none;width:94px;font-size:var(--text-xs);padding:0 5px;background:transparent;border:1px solid transparent;border-radius:var(--radius-sm)}
+#tab-dbg .regrow input.rv:hover{border-color:var(--line)}
+#tab-dbg .regrow input.rv:focus{border-color:var(--acc);background:var(--bg)}
+#tab-dbg .regrow .note{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg2);font-size:var(--text-xs)}
+#tab-dbg .regrow.chg{background:#3a2f12}
+#tab-dbg .regrow.chg input.rv{color:#ffd479}
+
+/* 内存：窄面板里一行的字节数由 JS 按宽度算（16 或 8） */
+#tab-dbg .hexdump{flex:1 1 auto;min-height:0;overflow:auto;font-size:var(--text-xs);line-height:1.5}
+#tab-dbg .hxrow{white-space:pre}
+#tab-dbg .hxa{color:var(--fg2);margin-right:8px}
+#tab-dbg .by{display:inline-block;min-width:19px;text-align:center;border-radius:var(--radius-sm)}
+#tab-dbg .by.w{cursor:pointer}
+#tab-dbg .by.w:hover{background:#1f6feb;color:#fff}
+#tab-dbg .asc{color:var(--fg2);margin-left:8px}
+#tab-dbg .memedit input{flex:0 0 auto;width:104px}
+#tab-dbg .memedit input#d-mem-ev{width:136px}
+#tab-dbg .memedit button{flex:none}
+
+/* 变量（符号列表 + 监视窗口，同一个 tab 上下分）
+   🚨 两个列表都用 `flex:1 1 0`（**basis 0**）—— 用户 2026-10 的要求是"各占一半高度"。
+      写成 `flex:1 1 auto` 时 flex-basis 取的是**内容高度**：符号列表装几十上百行、
+      监视窗口常常只有两三行，于是剩余空间按 100:3 分，监视窗口被压到只剩一条缝
+      （用户截图就是这个现象）。basis 归零之后两边从同一起跑线开始分，才是真正的一半一半。
+      两个 min-height 也必须写成同一个值，否则面板很矮时又会一边多一边少。 */
+#tab-dbg .symlist{flex:1 1 0;min-height:64px;overflow:auto;font-size:var(--text-xs);font-family:var(--mono);
+  border:1px solid var(--line);border-radius:var(--radius-control);padding:2px;background:var(--bg)}
+#tab-dbg .symrow{display:flex;align-items:center;gap:5px;padding:0 3px;border-radius:var(--radius-sm);cursor:pointer}
+#tab-dbg .symrow:hover{background:var(--bg3)}
+#tab-dbg .symrow .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .symrow .ad{flex:none;color:var(--fg2);font-size:var(--text-xs)}
+#tab-dbg .symrow .ty{flex:none;color:var(--acc);font-size:var(--text-xs);max-width:9ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .symrow button{padding:0 5px;font-size:var(--text-xs);flex:none}
+#tab-dbg .symmore{color:var(--fg2);font-size:var(--text-xs);padding:2px 3px}
+#tab-dbg .watchlist{flex:1 1 0;min-height:64px;overflow:auto;font-size:var(--text-xs);font-family:var(--mono);
+  border:1px solid var(--line);border-radius:var(--radius-control);padding:2px;background:var(--bg)}
+#tab-dbg .wrow{display:flex;align-items:baseline;gap:6px;padding:0 3px;border-radius:var(--radius-sm)}
+#tab-dbg .wrow:hover{background:var(--bg3)}
+/* 变量名列：原来 13ch（≈91px）连 `_SEGGER_RTT_` 都放不下，一律截成 `_SEGGER_RT…`。
+   放宽到 20ch 并允许它按内容伸缩（`flex:0 1 auto` + `min-width:0`）：短名字不多占地方，
+   长名字尽量显全；完整的表达式/地址/类型本来就在 title 里（悬浮可见）。 */
+#tab-dbg .wrow .nm{flex:0 1 auto;min-width:0;max-width:20ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .wrow .vl{flex:1 1 auto;min-width:0;text-align:right;color:var(--ok);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .wrow .ty{flex:none;color:var(--fg2);font-size:var(--text-xs);max-width:8ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* SVD 外设寄存器解码页 */
+#tab-dbg .svdtools{align-items:center}
+#tab-dbg .svdvalue.chg,#tab-dbg .svdfield.chg .fv{color:#ffb86c}
+#tab-dbg .svdfield.chg{background:#39281c}
+#tab-dbg #d-svd-auto-note:empty{display:none}
+#tab-dbg #d-svd-info{flex:1 1 auto;min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-xs);line-height:1.5}
+#tab-dbg #d-svd-periph{flex:1 1 88px;min-width:72px}
+#tab-dbg #d-svd-reg{flex:1 1 120px;min-width:92px}
+#tab-dbg #d-svd-reg-info{margin:0;padding:3px 6px;border:1px solid var(--line);border-radius:var(--radius-control);white-space:pre-wrap;overflow:auto;max-height:78px;font-size:var(--text-xs);line-height:1.5}
+#tab-dbg .svdvalue{padding:3px 8px;border:1px solid var(--line);border-radius:var(--radius-control);background:#010409;color:var(--ok);font:12px/1.5 var(--mono);min-height:0}
+#tab-dbg .svdfields{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--bg);font:12px/1.5 var(--mono);padding:2px 0}
+/* 位段和访问权限是一个整体，不能在窄列里拆成两行；否则同一张表的行高会随字段内容变化，
+   右侧的 [msb:lsb] / read-write 也会看起来上下错位。第三列使用统一宽度，面板太窄时由
+   svdfields 的横向滚动承载，保证每一行的三列仍在同一条基线上。 */
+#tab-dbg .svdfield{display:grid;grid-template-columns:minmax(88px,1fr) 72px 126px;align-items:center;gap:8px;min-height:0;padding:0 6px;line-height:1.5;border-bottom:0;border-radius:var(--radius-sm)}
+#tab-dbg .svdfield .fn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .svdfield .fv{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;color:var(--ok)}
+#tab-dbg .svdfield .fb{min-width:max-content;text-align:right;color:var(--fg2);white-space:nowrap}
+#tab-dbg .svdfield:hover{background:var(--bg3)}
+#tab-dbg .wrow .x{padding:0 4px;font-size:var(--text-xs);flex:none}
+#tab-dbg .wrow.chg .vl{color:#ffd479}
+#tab-dbg .wrow.bad .vl{color:var(--err)}
+/* 结构体/数组树：展开箭头 + 缩进的成员行（2026-10 加） */
+#tab-dbg .wrow .exp{padding:0 4px;font-size:var(--text-xs);line-height:1.1;flex:none;min-width:17px}
+#tab-dbg .wrow .exsp{flex:none;width:17px}
+#tab-dbg .wkid{display:flex;align-items:baseline;gap:6px;padding:0 3px;border-radius:var(--radius-sm);font-size:var(--text-xs);color:var(--fg)}
+#tab-dbg .wkid:hover{background:var(--bg3)}
+#tab-dbg .wkid .nm{flex:0 1 auto;min-width:0;max-width:18ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .wkid .vl{flex:1 1 auto;min-width:0;text-align:right;color:var(--ok);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .wkid .ty{flex:none;color:var(--fg2);font-size:var(--text-xs);max-width:10ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .wkid.dim .vl{color:var(--fg2)}
+#tab-dbg .wkid.bf .vl{color:#ffd479}
+
+/* RTT tab */
+#tab-dbg #d-rtt{flex:1 1 auto;min-height:0;overflow:auto;margin:0}
+
+/* 断点列表（还在侧栏） */
+#tab-dbg .bplist{max-height:120px;overflow:auto;font-size:var(--text-xs)}
+#tab-dbg .bprow{display:flex;align-items:center;gap:6px;padding:1px 3px;border-radius:var(--radius-sm)}
+#tab-dbg .bprow:hover{background:var(--bg3)}
+#tab-dbg .bprow span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .bprow button{padding:0 6px;flex:none}
+#tab-dbg #d-bt-list{max-height:220px}
+#tab-dbg #d-bt-list button{width:100%;min-width:0;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 窗口窄：右侧面板压到下面去（仍然是一整条 tab 面板，不再平铺） */
+@media (max-width:1050px){
+  #tab-dbg .dbgwork{flex-wrap:wrap}
+  #tab-dbg .dbgleft{flex:1 1 100%}
+  #tab-dbg .grip-v{display:none}
+  #tab-dbg .dbgdock{flex:1 1 100%;max-width:none;min-height:220px;max-height:46vh}
+}
+
+/* RTT 输出窗在没有数据时的占位（.rx 的默认文案是"接收区"，这里说清楚该点什么） */
+#tab-dbg #d-rtt:empty::before{content:"（点「定位并开始」：留空地址就用 .elf 里的 _SEGGER_RTT 符号）";color:#4a5563}
+
+/* Selected debugger frames and locals; scoped to the debugger tab. */
+#tab-dbg #d-bt-list button[aria-pressed="true"]{background:var(--bg3);font-weight:700}
+#tab-dbg #d-locals{max-height:240px;overflow-wrap:anywhere;white-space:normal}
+#tab-dbg #d-locals>div,#tab-dbg #d-locals>details{padding:3px 0}
+#tab-dbg #d-locals summary{cursor:pointer}
+
+/* 紧凑工作区：保留字号和操作尺寸，把空间让给源码与波形。 */
+.panel[data-workspace]{padding:6px 8px}
+.panel[data-workspace]>.ws{grid-template-columns:280px minmax(0,1fr);gap:8px}
+.panel[data-workspace] .side{gap:4px;padding-right:8px;border-right:1px solid var(--line)}
+.panel[data-workspace] .side>fieldset{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:4px 2px 8px}
+.panel[data-workspace] .side>fieldset:last-child{border-bottom:0}
+.panel[data-workspace] .side>fieldset>legend{padding:0;font-weight:600;color:var(--fg)}
+.panel[data-workspace] .main{gap:6px}
+.panel[data-workspace] .toolbar{gap:6px;padding:4px 6px;border-radius:6px;background:transparent}
+.workspace-button{flex:none;padding:2px 7px;font-size:var(--text-xs);background:transparent;border-color:transparent;color:var(--fg2)}
+.workspace-button:hover,.workspace-button[aria-pressed="true"]{color:var(--fg);background:var(--bg3);border-color:var(--line)}
+.workspace-help{margin-top:4px;font-size:var(--text-xs);color:var(--fg2)}
+.workspace-help>summary{cursor:pointer}
+.panel[data-workspace].sidebar-collapsed>.ws,.panel[data-workspace][data-focus]>.ws{grid-template-columns:minmax(0,1fr)}
+.panel[data-workspace].sidebar-collapsed>.ws>.side,.panel[data-workspace][data-focus]>.ws>.side{display:none}
+body.workspace-focused>.topbar{display:none}
+#tab-dbg .dbgbox{border-radius:6px;padding:4px 7px 6px}
+#tab-dbg .dbgbox>legend{display:flex;align-items:center;gap:5px;max-width:100%;width:100%;padding:0 2px}
+#tab-dbg .dbgbox>legend .workspace-button{margin-left:auto}
+#tab-dbg #d-src-file{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#tab-dbg .dbgbox>legend .docktabs{flex:1;min-width:0;overflow-x:auto}
+#tab-dbg .docktabs>button{flex:none}
+#tab-dbg .dbgbox .srclist,#tab-dbg #d-out{border:0;border-radius:3px}
+#tab-dbg .dbgterm>.sendbar{border:0;background:transparent;padding:4px 0 0}
+#tab-dbg .grip-h{height:7px;margin:1px 0}
+#tab-dbg[data-focus="src"] #d-box-term,#tab-dbg[data-focus="src"] #d-grip-term,
+#tab-dbg[data-focus="src"] #d-grip-dock,#tab-dbg[data-focus="src"] #d-box-dock,
+#tab-dbg[data-focus="term"] #d-box-src,#tab-dbg[data-focus="term"] #d-grip-term,
+#tab-dbg[data-focus="term"] #d-grip-dock,#tab-dbg[data-focus="term"] #d-box-dock,
+#tab-dbg[data-focus="dock"] .dbgleft,#tab-dbg[data-focus="dock"] #d-grip-dock{display:none}
+#tab-dbg[data-focus="src"] .dbgleft,#tab-dbg[data-focus="term"] .dbgleft{min-width:0;flex:1}
+#tab-dbg[data-focus="term"] #d-box-term,#tab-dbg[data-focus="dock"] #d-box-dock{flex:1 1 0;min-width:0;max-width:none;max-height:none}
+@media(min-width:760px){
+  #tab-dbg.sidebar-collapsed .dbgwork,#tab-dbg[data-focus] .dbgwork{flex-wrap:nowrap}
+  #tab-dbg.sidebar-collapsed .dbgleft,#tab-dbg[data-focus="work"] .dbgleft{flex:1 1 0}
+  #tab-dbg.sidebar-collapsed .dbgdock,#tab-dbg[data-focus="work"] .dbgdock{flex:0 1 380px;min-height:0;max-height:none}
+  #tab-dbg.sidebar-collapsed .grip-v,#tab-dbg[data-focus="work"] .grip-v{display:block}
+}
+@media(max-width:860px){
+  .panel[data-workspace]>.ws{grid-template-columns:240px minmax(0,1fr)}
+  .panel[data-workspace] .side .row>span:first-child{width:72px}
+}
+@media(max-width:600px){
+  .panel[data-workspace]>.ws{grid-template-columns:minmax(0,1fr);overflow:auto}
+  .panel[data-workspace]>.ws>.side{max-height:36vh;border-right:0;border-bottom:1px solid var(--line)}
+  .panel[data-workspace]>.ws>.side.tool-side{height:36vh;min-height:220px}
+  .panel[data-workspace] .main{min-height:400px}
+}
+
+/* 单行工具入口与共享分隔线，减少工作台的容器层次。 */
+.topbar>.brand{grid-column:1;grid-row:1;white-space:nowrap;letter-spacing:0}
+.topbar>#tabs{grid-column:2;grid-row:1;display:flex;align-items:center;gap:6px;overflow:visible;scrollbar-width:none;padding:0}
+.primary-tabs{display:flex;align-items:center;gap:1px;flex:1 1 auto;overflow-x:auto;scrollbar-width:none;min-width:0}
+.primary-tabs>.tab{padding:4px 7px}
+.tool-switch{position:relative;flex:none;min-width:0;font-size:var(--text-xs)}
+.tool-switch>summary{display:block;list-style:none;cursor:pointer;padding:4px 7px;border:1px solid transparent;border-radius:var(--radius-control);color:var(--fg2);white-space:nowrap}
+.tool-switch>summary::-webkit-details-marker{display:none}
+.tool-switch>summary:hover,.tool-switch[open]>summary{color:var(--fg);background:var(--bg3)}
+.tool-switch.has-current>summary{color:var(--acc)}
+.tool-menu{position:absolute;top:calc(100% + 5px);right:0;z-index:60;width:220px;max-width:calc(100vw - 24px);max-height:calc(100vh - 55px);overflow:auto;display:flex;flex-direction:column;gap:1px;padding:5px;background:var(--bg2);border:1px solid var(--line);border-radius:4px;box-shadow:0 8px 24px #0008}
+.tool-switch:not([open])>.tool-menu{display:none}
+.tool-menu>.tab{text-align:left;padding:4px 9px;border-radius:3px;font-weight:400}
+.tool-menu>.tab.active{background:var(--bg3);border-color:transparent;color:var(--acc);font-weight:600}
+.side>fieldset{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:4px 2px 8px}
+.side>fieldset:last-child{border-bottom:0}
+.side>fieldset>legend{padding:0;font-weight:600;color:var(--fg)}
+#tab-spi #sp-box-dock{border:0;border-radius:0;background:transparent;padding:0}
+#tab-spi .dockhead{padding-bottom:4px;margin-bottom:4px}
+.toolbar,.panel[data-workspace] .toolbar{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:4px 2px}
+.stats{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent}
+.rx{border:0;border-radius:0}
+#tab-dbg .dbgbox{border:0;border-radius:0;background:transparent;padding:0}
+#tab-dbg .dbgbox>legend{padding:0;min-height:24px;border-bottom:1px solid var(--line)}
+#tab-dbg .dbgbox .srclist,#tab-dbg #d-out{border-radius:0;background:var(--bg)}
+#tab-dbg .grip-h::after{left:0;right:0;height:1px}
+#tab-dbg .grip-v::after{top:0;bottom:0;width:1px}
+#tab-dbg .docktabs{border:0;border-radius:0;background:transparent}
+#tab-dbg .docktabs>button{padding:2px 7px;border-bottom:2px solid transparent}
+#tab-dbg .docktabs>button.on{background:transparent;color:var(--acc);border-bottom-color:var(--acc)}
+#sc-canvas{border-radius:0}
+@media(max-width:640px){.topbar{gap:5px;padding:4px 6px}.primary-tabs>.tab{padding:4px 5px}.tool-switch>summary{padding:4px 5px}.topbar>.topright{gap:3px}}
+@media(max-width:540px){.topbar{grid-template-columns:auto minmax(0,1fr)}.topbar>.brand{grid-column:1;grid-row:1}.topbar>#tabs{grid-column:2;grid-row:1}.topbar>.topright{grid-column:1/-1;grid-row:2;justify-self:stretch;justify-content:flex-start;flex-wrap:wrap;max-width:100%}}
+
+#g-files,#g-kit-files,#g-etm-files{display:flex;flex:1 1 0;min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:thin}
+#g-files>button,#g-kit-files>button,#g-etm-files>button{flex:none}
+[role="tab"]:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.connection-summary{flex:none;color:var(--fg2);font-size:var(--text-xs);padding:5px 2px;border-bottom:1px solid var(--line);line-height:1.6}
+@media(max-width:700px){
+  #pn-read-card>.toolrow.nw{flex-wrap:wrap;overflow:visible}
+  #pn-read-card .toolrow>label{flex-wrap:nowrap}
+  #g-files,#g-kit-files,#g-etm-files{flex-basis:100%;width:100%}
+}
+
+/* 表头与所有成员行共享列宽；窄面板横向滚动，标题在纵向滚动时固定。 */
+#tab-dbg .inspector-table{padding:0;border:0;border-radius:0;overflow:auto;background:transparent;position:relative}
+#tab-dbg .inspector-table .table-row{display:grid;grid-template-columns:var(--table-cols);gap:4px;align-items:center;min-width:var(--table-min);width:max(100%,var(--table-min));padding:1px 4px;border-radius:0;line-height:1.5}
+#tab-dbg .inspector-table .table-head{position:sticky;top:0;z-index:2;background:var(--bg2);color:var(--fg2);border-bottom:1px solid var(--line);font-family:var(--ui);user-select:none}
+#tab-dbg .table-col{position:relative;min-width:0;white-space:nowrap;overflow:visible;padding:2px 0}
+#tab-dbg .column-grip{position:absolute;top:0;bottom:0;right:-4px;width:8px;cursor:col-resize;touch-action:none}
+#tab-dbg .column-grip::after{content:'';position:absolute;left:3px;top:4px;bottom:4px;width:1px;background:var(--line)}
+#tab-dbg .column-grip:hover::after,#tab-dbg .column-grip:focus::after{background:var(--acc)}
+#tab-dbg .inspector-table .cell-name{display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden}
+#tab-dbg .inspector-table .cell-value{min-width:0}
+#tab-dbg .inspector-table .nm,#tab-dbg .inspector-table .rn,#tab-dbg .inspector-table .ty,#tab-dbg .inspector-table .ad,#tab-dbg .inspector-table .note{min-width:0;max-width:none;width:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-dbg .inspector-table .nm{flex:1}
+#tab-dbg .inspector-table .vl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;color:var(--ok)}
+#tab-dbg .inspector-table .vl.err,#tab-dbg .inspector-table .wrow.bad .vl{color:var(--err)}
+#tab-dbg .inspector-table .vl.dim{color:var(--fg2)}
+#tab-dbg .inspector-table .ty,#tab-dbg .inspector-table .ad{color:var(--fg2)}
+#tab-dbg .inspector-table .ad{text-align:right}
+#tab-dbg .inspector-table .regrow input.rv{width:100%;text-align:right;color:var(--fg);border-radius:2px}
+#tab-dbg .inspector-table .regrow.chg input.rv{color:#ffd479}
+#tab-dbg .inspector-table .regrow.chg{background:#3a2f12}
+#tab-dbg .inspector-table .regrow:hover,#tab-dbg .inspector-table .wrow:hover,#tab-dbg .inspector-table .wkid:hover,#tab-dbg .inspector-table .symrow:hover{background:var(--bg3)}
+#tab-dbg .inspector-table .hint,#tab-dbg .inspector-table .symmore{padding:4px;white-space:normal}
+
+/* Fault diagnostics / acquisition quality drawer preserve waveform height. */
+.diag-drawer { position: fixed; z-index: 90; right: 12px; top: 110px; bottom: 12px; width: min(520px, calc(100vw - 24px)); background: #10161d; border: 1px solid #405063; border-radius: 10px; box-shadow: 0 8px 36px #0009; display: flex; flex-direction: column; }
+.diag-drawer[hidden] { display: none; }
+.diag-head { display: flex; align-items: center; gap: 8px; padding: 12px; border-bottom: 1px solid #354151; }
+.diag-head b { flex: 1; }
+.diag-body { overflow: auto; min-height: 0; padding: 10px; }
+.dockpage[data-dock="fault"] { overflow: auto; }
+.diag-findings p { margin: 0 0 8px; padding: 9px 10px; background: #1a2430; border-left: 3px solid #519dff; border-radius: 4px; font-size: 13px; line-height: 1.5; }
+.diag-findings small, .diag-table small { display: block; color: #a2adbb; margin-top: 3px; }
+.diag-settings { display: grid; grid-template-columns: minmax(100px, 35%) 1fr; gap: 6px 12px; font-size: 12px; margin: 12px 0; }
+.diag-settings dt { color: #a2adbb; }
+.diag-settings dd { margin: 0; overflow-wrap: anywhere; }
+.diag-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.diag-table td, .diag-table th { padding: 7px 4px; border-bottom: 1px solid #303944; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.diag-table td:nth-child(2) { font-family: monospace; white-space: nowrap; }
+.diag-body details { margin-top: 12px; font-size: 13px; }
+.diag-body details summary { cursor: pointer; color: #a2adbb; }
+.diag-frame { width: 100%; max-width: 100%; overflow: hidden; text-overflow: ellipsis; text-align: left; margin: 3px 0; font: 12px monospace; }
+@media (max-width: 700px) { .diag-drawer { top: 12px; } }
+
+/* 视觉收敛：保持技术数据密度，降低层叠边框、分隔条和空状态的视觉噪声。 */
+.topbar{border-bottom-color:#222a33}
+.app-more>summary{color:var(--fg2)}
+.app-more[open]>.more-menu{border-color:#303a46;box-shadow:0 8px 22px #0006}
+.tool-menu{border-color:#303a46;box-shadow:0 8px 22px #0006;border-radius:6px}
+fieldset,.toolbar,.sendbar,.stats,.an-measurements,.an-plot,
+#tab-spi .scroll,#tab-panel .scroll,#tab-i2c .scroll,#tab-gen .dockpage>.scroll,
+#tab-dbg .symlist,#tab-dbg .watchlist{border-color:var(--line)}
+.hint,.workspace-help{font-size:12.5px;line-height:1.6;color:var(--fg2)}
+.rx,.termbox{background:#0a0f15}
+.rx:empty,.log[data-empty]:empty{position:relative}
+.rx:empty::before,.log[data-empty]:empty::before{
+  position:absolute;inset:50% 16px auto;transform:translateY(-50%);display:block;
+  max-width:calc(100% - 32px);margin:0 auto;text-align:center;color:#89939e;
+  font:13px/1.6 var(--ui);pointer-events:none
+}
+#tab-spi .grip::after,#tab-panel .grip::after,#tab-i2c .grip::after,#tab-dbg .grip::after{
+  background:#35404d;opacity:.55
+}
+#tab-spi .grip:hover::after,#tab-panel .grip:hover::after,#tab-i2c .grip:hover::after,#tab-dbg .grip:hover::after{
+  background:var(--acc);opacity:.9
+}
+#tab-spi .grip-h::after,#tab-panel .grip-h::after,#tab-i2c .grip-h::after,#tab-dbg .grip-h::after{
+  left:44%;right:44%;top:4px;height:1px
+}
+#tab-dbg .grip-v::after{top:44%;bottom:44%;left:5px;width:1px}
+.diag-drawer{border-color:#303a46;border-radius:8px;box-shadow:0 8px 28px #0007}
+.diag-head{border-bottom-color:#2a3440}
+.diag-findings p{border-left-width:2px}
+
+/* SWO capture and offline analysis */
+#tab-swo [hidden],.sw-modal [hidden]{display:none!important}
+#tab-swo .sw-side-nav{display:flex;gap:4px;border-bottom:1px solid var(--line);padding-bottom:6px;position:sticky;top:0;background:var(--bg);z-index:2}
+#tab-swo .sw-side-nav button{flex:1;border-color:transparent;background:transparent}
+#tab-swo .sw-side-nav button[aria-selected=true]{color:var(--acc);background:var(--bg2);border-color:var(--line)}
+#tab-swo .sw-side-tools{margin:9px 0 12px}
+#tab-swo .sw-elf-reminder{font-size:11px;margin-top:10px}
+.sw-modal{width:min(850px,calc(100vw - 32px));max-width:850px;max-height:calc(100dvh - 40px);overflow:auto;padding:20px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:var(--radius-card)}
+.sw-modal::backdrop{background:#0009}
+.sw-modal-head{display:flex;align-items:center;justify-content:space-between;gap:15px;position:sticky;top:-20px;background:var(--bg);padding:8px 0;z-index:2}
+.sw-modal-head h2{font-size:18px;margin:0}
+.sw-calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sw-modal .row>span{width:108px;flex-shrink:0;font-size:12px}
+.sw-modal .row input,.sw-modal .row select{width:100%;min-width:0;flex:1}
+.sw-modal .chk{font-size:12px;line-height:1.6}
+.sw-modal p{font-size:13px;line-height:1.75;overflow-wrap:anywhere}
+.sw-modal pre{font:12px/1.8 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg2);padding:12px;border-radius:6px}
+.sw-calc-result{padding:12px;margin:12px 0;background:var(--bg2);border-left:2px solid var(--acc);font-size:13px;line-height:1.8;white-space:pre-line;overflow-wrap:anywhere}
+.sw-calc-result.bad{border-color:var(--warn)}
+.sw-help-nav{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;margin:14px 0}
+.sw-help-nav a{color:var(--acc);text-decoration:none}
+.sw-help-nav a:hover,.sw-help-nav a:focus-visible{text-decoration:underline}
+.sw-modal h3{font-size:15px;margin:20px 0 8px;scroll-margin-top:60px}
+@media(max-width:650px){.sw-calc-grid{grid-template-columns:1fr}.sw-modal{padding:12px}.sw-modal-head{top:-12px}}
+#tab-swo .sw-fold{margin:7px 0 0;border-top:1px solid var(--line);padding-top:6px}
+#tab-swo .sw-fold>summary{cursor:pointer;color:var(--fg2);font-size:12px;user-select:none}
+#tab-swo .sw-fold[open]>summary{margin-bottom:8px;color:var(--fg)}
+#tab-swo .sw-target-info{margin:4px 0;padding:4px 7px;background:var(--bg2);border-left:2px solid var(--acc);white-space:pre-line;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+#tab-swo .sw-target-info.bad{border-color:var(--warn);color:var(--warn)}
+#tab-swo .sw-record-layout{display:flex;flex:1;flex-direction:column;min-height:0;min-width:0}
+#tab-swo .sw-side-nav,#tab-swo .sw-side-tools{flex:none}
+#tab-swo .sw-side-tools{margin:8px 0}
+#tab-swo #sw-record-steps>fieldset{padding-bottom:8px;margin-bottom:8px}
+#tab-swo .sw-wide{display:block;width:100%;min-width:0}
+#tab-swo .sw-elf-info{overflow-wrap:anywhere;white-space:pre-line;margin:6px 0 0;font:11px/1.5 var(--mono)}
+#tab-swo #sw-entry-elf-pick{white-space:normal}
+#tab-swo .sw-symbol-list{max-height:148px;overflow:auto;border:1px solid var(--line);border-radius:4px;margin-top:6px;font:11px/1.6 var(--mono)}
+#tab-swo .sw-symbol-row{display:flex;align-items:center;gap:5px;padding:2px 4px;border-bottom:1px solid var(--line)}
+#tab-swo .sw-symbol-row:last-child{border-bottom:0}
+#tab-swo .sw-symbol-row:hover{background:var(--bg3)}
+#tab-swo .sw-symbol-row button{flex:none;width:23px;min-width:23px;padding:0 4px;color:var(--acc)}
+#tab-swo .sw-symbol-name{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-swo .sw-symbol-row small{flex:none;color:var(--fg2);font:10px var(--mono)}
+#tab-swo .sw-break-hint{font-size:11px;line-height:1.5;margin:5px 0}
+#tab-swo .sw-break-command{gap:6px}
+#tab-swo #sw-entry-spec{width:0;min-width:0;flex:1;font:12px var(--mono)}
+#tab-swo .sw-breakpoint-list{max-height:132px;overflow:auto;font-size:12px}
+#tab-swo .sw-breakpoint-row{display:flex;align-items:center;gap:6px;padding:4px 2px;border-bottom:1px solid var(--line)}
+#tab-swo .sw-breakpoint-row.selected{background:#5bae441f}
+#tab-swo .sw-breakpoint-row input{flex:none;width:13px;margin:0}
+#tab-swo .sw-breakpoint-description{flex:1;min-width:0;overflow-wrap:anywhere;font:12px/1.5 var(--mono)}
+#tab-swo .sw-breakpoint-description small{display:block;color:var(--fg2);font:11px var(--mono)}
+#tab-swo .sw-breakpoint-row button{flex:none;padding:0 5px}
+#tab-swo #sw-entry-state{font-size:11px;line-height:1.5;margin:6px 0}
+#tab-swo #sw-reset-entry{margin:5px 0}
+#tab-swo .sw-capture-actions{margin-top:6px;background:var(--bg)}
+#tab-swo .sw-capture-actions button{padding:6px 4px;font-size:12px}
+#tab-swo .sw-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#tab-swo .sw-match-summary{margin:8px 0;font-size:12px;color:var(--acc);line-height:1.6;overflow-wrap:anywhere}
+#tab-swo .sw-match-summary.bad{color:var(--warn)}
+#tab-swo #sw-files{overflow-wrap:anywhere}
+#tab-swo .sw-main{gap:7px;overflow:hidden}
+#tab-swo .sw-toolbar{gap:12px;flex-wrap:wrap;position:relative}
+#tab-swo .sw-display-controls{display:flex;align-items:center;gap:9px;margin-left:auto}
+#tab-swo .sw-display-controls>button{font-size:12px;white-space:nowrap}
+#tab-swo .sw-toolbar-help>summary{cursor:pointer;color:var(--fg2);font-size:12px;white-space:nowrap;user-select:none}
+#tab-swo .sw-toolbar-help[open]>summary{color:var(--acc)}
+#tab-swo .sw-toolbar-popover{position:absolute;top:calc(100% + 5px);left:0;right:0;z-index:5;margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--bg2);box-shadow:0 5px 18px #0005;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+#tab-swo .sw-boundary{color:#d4b777;border-left:2px solid #d29922}
+#tab-swo .sw-range{flex:none;margin:0}
+#tab-swo .sw-range input[type=number]{width:85px;max-width:110px;flex:none}
+#tab-swo .sw-range>span{width:auto;flex:none}
+#tab-swo .sw-range input[type=text],#sw-filter{min-width:100px;flex:1}
+#tab-swo #sw-chart-zoom{flex:none}
+#tab-swo .zoom-controls{display:flex;align-items:center;gap:3px}
+#tab-swo .zoom-button{display:grid;place-items:center;width:27px;height:27px;padding:3px}
+#tab-swo .zoom-button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+#tab-swo .sw-chart-box{height:235px;min-height:150px;flex:0 1 235px;background:var(--bg);border-bottom:1px solid var(--line)}
+#tab-swo .sw-chart-box[hidden]{display:none}
+#sw-chart{display:block;width:100%;height:100%;cursor:crosshair;user-select:none;touch-action:none}
+#tab-swo .sw-play{flex:none;flex-wrap:wrap;margin:0;gap:6px}
+#tab-swo .sw-play input{min-width:80px;flex:1}
+#tab-swo .sw-play>span{width:auto;color:var(--fg2);font:11px var(--mono);max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tab-swo .sw-detail{flex:1;min-height:140px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px}
+#tab-swo .sw-events,#tab-swo .sw-source{display:flex;flex-direction:column;min-height:0;min-width:0}
+#tab-swo .sw-pages{flex:none;margin:0 0 5px}
+#tab-swo .sw-pages>span{width:auto;flex:1;color:var(--fg2);font-size:11px}
+#tab-swo .sw-table-scroll{overflow:auto;flex:1;min-height:0}
+#tab-swo .sw-table{width:100%;border-collapse:collapse;font:11px/1.5 var(--mono);white-space:nowrap}
+#tab-swo .sw-table th{position:sticky;top:0;background:var(--bg2);text-align:left;color:var(--fg2);z-index:1}
+#tab-swo .sw-table th,#tab-swo .sw-table td{padding:4px 6px;border-bottom:1px solid #242c35}
+#tab-swo .sw-table tr[tabindex]{cursor:pointer}
+#tab-swo .sw-table tr[tabindex]:hover{background:var(--bg3)}
+#tab-swo .sw-gap{color:var(--err)}
+#sw-source-title{flex:none;padding:5px 0;color:var(--acc);font:11px/1.5 var(--mono);overflow-wrap:anywhere}
+#sw-source{flex:1;min-height:0;overflow:auto;margin:0;background:var(--bg);font:12px/1.65 var(--mono);padding:6px 0}
+#sw-source>span{display:block;white-space:pre}
+#sw-source .sw-current-line{background:#5bae441f;color:#d9efc8}
+#tab-swo .sw-hot{display:flex;flex-direction:column;gap:2px;max-height:250px;overflow:auto}
+#tab-swo .sw-hot-row{display:block;text-align:left;font:11px/1.6 var(--mono);white-space:nowrap;border:0;border-left:3px solid var(--hot);background:transparent;padding:3px 7px}
+#tab-swo .sw-hot-row:hover{background:var(--bg3)}
+#sw-warning.bad{color:var(--warn)}
+#sw-edges{max-height:min(260px,50vh);overflow:auto}
+@media(max-width:1000px){#tab-swo .sw-detail{grid-template-columns:1fr}#tab-swo .sw-source{min-height:130px}#tab-swo .sw-detail{overflow:auto}#tab-swo .sw-events{min-height:200px}#tab-swo .sw-chart-box{flex-basis:170px}}
+@media(max-width:860px){#tab-swo{overflow:auto}#tab-swo .sw-main{min-height:820px}#tab-swo .ws{height:auto;min-height:100%}}
+
+#tab-swo .sw-table tr.sw-selected{background:#5bae441f;color:#d9efc8}

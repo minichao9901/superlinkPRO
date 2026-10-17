@@ -1,0 +1,314 @@
+
+$ git cherry-pick -n 94ceeb4
+
+$ git diff --cached --name-only
+app/i2c/session.js
+app/i2c/view.js
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/i2c-proto.test.mjs
+== 1. 报文偏移（与 proto.h / i2c_bridge_test.py 对账）==
+  PASS  HID 命令码 = 0x36
+  PASS  data[0] = action(XFER=5)
+  PASS  data[1] = flags（保留，必须 0）
+  PASS  data[2] = dev
+  PASS  data[3] = addr_len
+  PASS  data[4] = wr_len
+  PASS  data[5] = rd_len
+  PASS  data[6..9] = addr 4 B（子地址按原序，后面补 0）
+  PASS  data[10..] = wr_data
+  PASS  总长 = 1 + 9 + wr_len
+  PASS  子地址两个字节按原序发出（不是小端翻转）
+  PASS  ENABLE 的 req[4] = 1（开）
+  PASS  ENABLE 的 req[4] = 0（关）
+  PASS  SCAN = action 7
+  PASS  RESULT = action 6
+  PASS  PINTEST = action 11
+  PASS  DBG = action 10
+  PASS  BITPROBE 的 req[4] = 7 位地址
+  PASS  配置块 16 B
+  PASS  scl_hz 小端 400000 = 0x00061A80
+  PASS  偏移 4 = pullup
+  PASS  偏移 5 = retries
+  PASS  偏移 6 = flags（必须 0）
+  PASS  parseCfg 读回 sclHz
+  PASS  res[1] = 0x36（命令回显 —— AkaLinkHid._handleInput 按它匹配）
+  PASS  res[2] = action 回显
+  PASS  状态字 = res[3..6] 小端
+  PASS  bit0 ENABLED
+  PASS  bit1 PENDING
+  PASS  bit2 BUS_OK
+  PASS  bit3 SDA 电平
+  PASS  bit4 SCL 电平
+  PASS  bit8..15 = 最近一次完成事务的错误码
+  PASS  bit16..23 = 完成计数
+  PASS  bit24..31 = 本命令结果码
+  PASS  RESULT：res[7] = 错误码
+  PASS  RESULT：res[8] = 长度
+  PASS  RESULT：res[9..] = 数据
+== 2. 计数器 / 扫描位图 / PINTEST / 分片计划 ==
+  PASS  frames_ok
+  PASS  frames_err
+  PASS  bytes_tx
+  PASS  bytes_rx
+  PASS  nack_addr
+  PASS  nack_data
+  PASS  bus_recover
+  PASS  actual_scl_hz
+  PASS  last_ticks → µs（24 MHz tick）
+  PASS  位图 → 地址列表（bit0 = 0x08）
+  PASS  全 0 位图 = 没有器件
+  PASS  PINTEST 空闲 SDA
+  PASS  PINTEST 空闲 SCL
+  PASS  PINTEST 事务中拉低过 SCL
+  PASS  问题位图取 bit8..15（bit0/1 是"空闲电平=1"这两个正常信号）
+  PASS  bit16=1 且问题位图=0 ⇒ 桥侧正常
+  PASS  问题位图非 0 ⇒ 桥侧异常
+  PASS  问题文案说清了是什么
+  PASS  0x50 认成 EEPROM
+  PASS  0x68 认成 MPU6050
+  PASS  0x48 认成 ADS1115
+  PASS  第一笔是设地址指针
+  PASS  设地址指针那笔不读
+  PASS  256 B → 1 笔设指针 + 5 笔 54/54/54/54/40
+  PASS  第一片 54 B
+  PASS  末片 40 B
+  PASS  续读片不带子地址（靠器件内部指针自增）
+  PASS  reset 模式：每片都带子地址
+  PASS  reset 模式的第二片子地址 = 0x10 + 54 = 0x46
+  PASS  探测的线序描述
+  PASS  写子地址再读要有 repeated START
+  PASS  纯读没有 repeated START
+  PASS  只写没有 repeated START
+== 3. 组包上限：越界必须在主机侧就拦住 ==
+  PASS  写 52 B 被拒（上限 51）
+  PASS  读 55 B 被拒（上限 54）
+  PASS  子地址 5 B 被拒（上限 4）
+  PASS  地址 bit7 置位被拒（7 位地址）
+  PASS  actXfer({dev:0x7f,…}) 不抛（7 位地址上界）
+  PASS  E_BUSY 的文案告诉用户"等一下重发"
+  PASS  E_NO_ADDR 的文案指向器件侧
+== 4. 假器件：EEPROM 的页写与 tWR ==
+  PASS  页写成功
+  PASS  写完之后立刻读被 NACK（tWR 还没过）
+  PASS  tWR 中读仍被 NACK
+  PASS  tWR 过后读回原值
+  PASS  跨页写在页内回绕（后两个字节盖回页首 —— 这就是"必须页对齐"的原因）
+  PASS  读自增 ①
+  PASS  地址指针在片间自增（不带子地址也接着读）
+  PASS  写保护 → 数据相位 NACK
+== 5. 假器件：MPU6050 / ADS1115 的换算要对得上手册 ==
+  PASS  WHO_AM_I = 0x68
+  PASS  温度按手册逆运算存（解出来 ≈36.5 ℃，不是 73 ℃）
+  PASS  加速度 z ≈ 1 g（重力压在 z 上）
+  PASS  PWR_MGMT_1 上电默认 0x40（SLEEP=1，真器件如此）
+  PASS  ADS1115 配置寄存器上电默认 0x8583
+  PASS  未启动转换时结果是 0
+  PASS  配置字写进去了（bit15 OS 是"读回状态"，会变）
+  PASS  MUX = 100（AIN0 对 GND）
+  PASS  PGA = 001（±4.096 V）
+  PASS  AIN0 按 125 µV/LSB 解出来 ≈1.000 V（正弦在 300 s 过零）
+  PASS  转换完成后 OS 读回 1（＝空闲）
+  PASS  转换没到点：读到的还是上一次的结果（上电后是 0）
+  PASS  ……过了 1/DR 才出新的转换结果
+  PASS  连续模式：比数据率还快的第二次读还是同一个值（受 DR 节流）
+== 5b. 假件 Si5351 的寄存器地址（按数据手册 / AN619）==
+  PASS  0x03 输出使能：复位值 0x00 = 四路都开着
+  PASS  0x10 = CLK0 控制（AN619 复位值 0x00）
+  PASS  往 0x03 写 0x0f 回读还是 0x0f（它只管开关，= 关掉 CLK0..CLK3）
+  PASS  CLK0 控制写在 0x10 上（不是 0x03）
+  PASS  0xB1 PLL 软复位是自清位：写完回读就是 0（寄存器文件够大，没绕回 0x31）
+== 6. 假探针：登记 + 轮询 RESULT 的语义 ==
+  PASS  刚上电未使能
+  PASS  STATUS 恒成功
+  PASS  未使能时 XFER 回 E_DISABLED（与上游 a4d5205 的修法一致）
+  PASS  ENABLE 1 之后已使能
+  PASS  XFER 被受理
+  PASS  受理后 PENDING=1（事务在主循环里做）
+  PASS  并发 XFER 回 E_BUSY（不是排队执行）
+  PASS  第一轮 RESULT 还在做（pendingExtra=1）
+  PASS  第二轮做完了
+  PASS  完成计数 +1
+  PASS  错误码 0
+  PASS  读回 4 B
+  PASS  wr_len=52 越界 → E_RANGE
+  PASS  flags 非 0 → E_RANGE
+  PASS  RESET 清计数器
+  PASS  bus_recover 计 1 次
+  PASS  RESET 保留配置（400 kHz 还在）
+== 7. 会话层端到端（假探针）：扫描 / EEPROM 写读 / 计数器 ==
+  PASS  connect(mock) 成功
+  PASS  会话已连接
+  PASS  连上时桥还没使能
+  PASS  setEnabled(true) 之后已使能
+  PASS  默认档 100 kHz
+  PASS  扫描到四个假器件（按地址升序）
+  PASS  页写成功
+  PASS  tWR 过后回读成功
+  PASS  回读逐字节对得上
+  PASS  每笔事务都有耗时记录
+  PASS  不存在的地址 → E_NO_ADDR
+  PASS  配置生效并回读
+  PASS  pullup 回读
+  PASS  PINTEST 判"桥这一侧正常"
+  PASS  并发三笔被串行化，全部拿到 0x68
+  PASS  frames_ok 记下 6 笔成功事务
+  PASS  nack_addr 记下那次不存在地址
+  PASS  frames_err 记下 1 笔失败
+  PASS  disconnect 之后已断开
+== 8. 失联记账：连续超时要置 lost 并停轮询 ==
+  PASS  连续 3 次超时 → lost
+  PASS  日志里明确提示拔插 USB
+  PASS  失联后事务直接拒绝并说明原因
+== 9. 执行器：稳态不刷日志（否则日志环十几秒就被冲干净）==
+  PASS  循环脚本解析零错误
+  PASS  20 ms 周期跑 0.7 s 采了 36 次
+  PASS  每次采样都是 0x68（读数正确）
+  PASS  🚨 成功日志只有前几拍（2 条），没有按采样次数刷屏
+  PASS  日志条数（2）远少于采样次数（36）
+  PASS  器件不存在 → 记下 35 笔失败
+  PASS  错误日志被限量（7 条，远少于 35 笔失败）
+  PASS  每笔失败事务的耗时 20.4 ms（不许接近 2 s 的 resultTimeout）
+== 10. readLong：长读自动分片（对上层就是"读 N 个字节"）==
+  PASS  短读成功
+  PASS  短读只有 1 笔（不分片）
+  PASS  短读内容对
+  PASS  256 B 长读成功
+  PASS  拼回来 256 B
+  PASS  自动分成 5 笔（54×4 + 40）
+  PASS  默认 reset 模式
+  PASS  256 B 逐字节与写入的图案一致（分片拼接没串位）
+  PASS  🚨 中间 5 笔**不往日志里写**，只出一行结果（"让外部看不到"就靠这条）
+  PASS  ……那一行说清了总长与笔数
+  PASS  ptr 模式 120 B 长读成功
+  PASS  ……读回 120 B
+  PASS  ……mode 标成 ptr
+  PASS  ptr 模式：1 笔设指针 + 3 片 = 4 笔
+  PASS  第一笔带子地址（设地址指针）
+  PASS  ……而且不读数据
+  PASS  后续每一片都**不带**子地址（靠器件内部指针自增）
+  PASS  续片 54 B
+  PASS  末片 12 B
+  PASS  ptr 模式拼回来的内容也对
+  PASS  第 3 片失败 → 整个长读报那个错误码
+  PASS  🚨 失败时**不返回半截数据**（读到一半的值没有意义）
+  PASS  报告断在第 3 片
+  PASS  ……并且说清"第几片/共几片"
+  PASS  失败也只出一行日志
+  PASS  ……那一行说清了已经读回多少（方便判断器件是不是半路掉线）
+
+== 结果：178 项通过 / 0 项失败 ==
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/i2c-registers.test.mjs
+== A. planWrite：长写分片（每片自带子地址）==
+  PASS  128 B / 51 → 3 片
+  PASS  bytes 记账 = 128
+  PASS  每片长度 51/51/26
+  PASS  第二、三片的子地址被 bump 到 0x33 / 0x66
+  PASS  第二片首字节 = 数据里的第 51 个
+  PASS  没有一片超过协议上限 51
+  PASS  chunkMax=8 → 16 B 分 2 片（页写档位）
+  PASS  按页分片的子地址 0x00 / 0x08
+  PASS  稀疏改动 → 3 片（连续段各成一片）
+  PASS  每片记着起始偏移
+  PASS  第一片 = 偏移 0..2 的值
+  PASS  第二片的子地址 = 0x10 + 6
+  PASS  offsets=[] → 一片都不发
+  PASS  空数据 → 一片都不发
+  PASS  越界/非法下标被丢掉，只算合法的那两个
+  PASS  chunkMax 给大了会被夹回协议上限 51（4 B 一片）
+  PASS  2 字节地址：首片 0x0100
+  PASS  2 字节地址 + 偏移 60 → 0x013C（跨字节进位对）
+== B. registers.js：输入解析 / diff / ASCII / bit ==
+  PASS  parseDev('0x50')
+  PASS  parseDev('50') 也认（不带 0x）
+  PASS  首尾空格无所谓
+  PASS  parseDev 拒 0x07（低于扫描范围）
+  PASS  parseDev 拒 0x78（高于 7 位可用范围）
+  PASS  parseDev 拒空
+  PASS  parseDev 拒非十六进制
+  PASS  1 B 地址：0x00
+  PASS  起始留空 = 0x00（读整个器件）
+  PASS  2 B 地址：大端 0x0100 → 01 00
+  PASS  地址宽度 0 → 不带子地址（纯读）
+  PASS  1 B 地址格塞 0x1234 → 报错（提示改成 2 B）
+  PASS  2 B 地址格塞 0x12345 → 报错
+  PASS  长度留空 = 128
+  PASS  parseLen('128')
+  PASS  parseLen('0x10') = 16（也吃十六进制）
+  PASS  parseLen 拒 0
+  PASS  parseLen 拒 > 4096
+  PASS  parseLen 拒小数
+  PASS  diff 找到 2 处改动
+  PASS  diff 的偏移是 1 / 3
+  PASS  diff 记着 原值→新值
+  PASS  没改 → 没有偏移（写回会被拦下）
+  PASS  ASCII 列：可打印原样，其余一个点（0x00 与 0x1f 各一个点）
+  PASS  ASCII 支持 from/len 切片
+  PASS  1 B 地址：偏移 0 → 0x00
+  PASS  1 B 地址：偏移 42 → 0x2A（大写十六进制）
+  PASS  2 B 地址：0x0100 + 60 → 0x013C
+  PASS  2 B 地址跨字节进位也对
+  PASS  地址宽度 0（纯读）→ 只标偏移
+  PASS  bitsOf(0x81)：bit0 与 bit7 为 1
+  PASS  setBit 置位
+  PASS  setBit 清位
+  PASS  toggleBit 翻转
+  PASS  popcount = 8 + 0 + 2
+  PASS  翻转再翻回来 = 原值
+  PASS  摘要：没读过时说清计划
+  PASS  摘要：报改动个数
+== C. 端到端（假探针）：读 128 B → 改位 → 只写改动 → 回读对账 ==
+  PASS  connect(mock) 成功
+  PASS  种数据成功（128 B 分片写）
+  PASS  读 128 B 成功
+  PASS  读回 128 B
+  PASS  128 B 分了 3 笔（54/54/20）
+  PASS  读回的数据与种下去的一致
+  PASS  面板 diff 出的改动下标 = 0 / 5 / 127
+  PASS  「只写改动」成功
+  PASS  只发了 3 个字节
+  PASS  3 个分散字节 → 3 笔事务
+  PASS  回读与改后的缓冲逐字节一致（没改的字节也没被动过）
+  PASS  中间没改的字节保持原样
+  PASS  整块写回 128 B → 3 片
+  PASS  整块写回后回读依旧一致
+  PASS  2 字节子地址也能写（假 EEPROM 只取低字节，但不该报错）
+== D. EEPROM 页写回卷 + tWR（这面板为什么要给「写分片 / 片间等待」）==
+  PASS  按页写 + 等 tWR：两片都成功
+  PASS  按页写回读一致（这就是面板「写分片 8 B + 片间等待 6 ms」的用法）
+  PASS  一片 16 B 跨页：桥侧看着"写成功"（器件 ACK 了）
+  PASS  但回读**与写入不一致** —— 页写回卷真的会把数据写花
+  PASS  不等 tWR 连发：第 2 片失败并被如实报出来
+== E. 页对齐（只设 chunkMax 挡不住"起始地址不是页倍数"）==
+  PASS  从 0x05 起按页 8 分片：没有一片跨页
+  PASS  从 0x05 起 16 B 分 3 片
+  PASS  分片起点跟着页边界走（0x05..07 / 08..0F / 10..14）
+  PASS  只改 +6..+9 且跨页：拆成 +6..+7 与 +8..+9
+  PASS  2 字节地址 0x0105、页 32：没有一片跨页
+  PASS  第一片收窄到 27 B（0x105 在页内偏移 5）
+  PASS  pageSize=0（寄存器型器件）：行为与以前一致，不切
+  PASS  场景 A：从 0x05 写 16 B 提交成功
+  PASS  场景 A：回读逐字节一致（审查里这里是花的）
+  PASS  场景 B：只改 +6..+9（跨页）回读逐字节一致
+  PASS  反证：不给页大小时器件照样回 OK（"写成功"是假的）
+  PASS  反证：不给页大小时数据确实是花的
+
+OK  88 通过 / 0 失败
+
+$ C:\Program Files\nodejs\node.exe --check app/i2c/session.js
+
+$ C:\Program Files\nodejs\node.exe --check app/i2c/view.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 94ceeb4
+fix(i2c): include automatic enable in managed connection setup
+
+$ git commit -C 94ceeb4
+[main de21259] fix(i2c): include automatic enable in managed connection setup
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:47:20 2026 +0900
+ 2 files changed, 8 insertions(+), 9 deletions(-)
+
+$ git rev-parse HEAD
+de212598e1b6b964788ecc242c8ce3495d7faa83

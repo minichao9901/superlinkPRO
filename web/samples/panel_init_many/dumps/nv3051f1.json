@@ -1,0 +1,35 @@
+{
+  "id": "nv3051f1",
+  "file": "customer/peripherals/nv3051f1/nv3051f1.c",
+  "registered_name": "nv3051f1",
+  "pixel_align": 2,
+  "res_w": 800,
+  "res_h": 2048,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_dsi",
+      "itf": "LCDC_INTF_DSI_VIDEO",
+      "freq": null,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888",
+      "timing": {
+        "VS_width": 2,
+        "HS_width": 2,
+        "VBP": 14,
+        "VFP": 16,
+        "HBP": 44,
+        "HFP": 46,
+        "interrupt_line_num": 1
+      }
+    }
+  ],
+  "tables": [
+    {
+      "name": "H034A01_NV3051_800x800_init_cmds",
+      "row_count": 0,
+      "rows": []
+    }
+  ],
+  "lcd_writereg_count": 14,
+  "hal_delay_count": 7,
+  "hal_delayus_count": 0
+}

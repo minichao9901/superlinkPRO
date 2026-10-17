@@ -1,0 +1,31 @@
+
+$ git cherry-pick -n 8da9f25
+
+$ git diff --cached --name-only
+app/flash/view.js
+app/hid/view.js
+tools/selftest/rtt-cdc-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-cdc-lifecycle.test.mjs
+rtt-cdc-lifecycle: stop cancels pending start, waits for firmware STOP completion, propagates failure PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/flash/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/rtt-cdc-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 8da9f25
+fix(rtt-cdc): drain pending starts and confirm queued firmware stops
+
+$ git commit -C 8da9f25
+[main 078ce85] fix(rtt-cdc): drain pending starts and confirm queued firmware stops
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:36:39 2026 +0900
+ 3 files changed, 58 insertions(+), 22 deletions(-)
+ create mode 100644 tools/selftest/rtt-cdc-lifecycle.test.mjs
+
+$ git rev-parse HEAD
+078ce858cb6f848b078ac6d59042d09664626521

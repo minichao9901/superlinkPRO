@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>HPM5301EVKLite J3 40pin</title>
+<style>
+  :root{
+    --line:#d6dae1; --fg:#1b1f24; --fg2:#5a6472; --bg:#fff;
+    --fix:#1f6feb; --ok:#1a7f37; --warn:#9a6700; --bad:#b42318; --pwr:#6b7280; --nc:#a8b0bb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:13px/1.35 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{width:1120px;padding:20px 22px 16px}
+  h1{margin:0 0 2px;font-size:19px;letter-spacing:.2px}
+  .sub{color:var(--fg2);font-size:12px;margin-bottom:12px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  .pin{display:grid;grid-template-columns:30px 84px 46px 1fr;align-items:center;
+    gap:6px;border-bottom:1px solid var(--line);border-left:3px solid var(--nc);
+    padding:3.5px 6px;min-height:23px}
+  .n{color:var(--fg2);font:12px/1 ui-monospace,Consolas,monospace;text-align:right}
+  .silk{font:11.5px/1 ui-monospace,Consolas,monospace;color:var(--fg2);overflow:hidden;white-space:nowrap}
+  .mcu{font:12px/1 ui-monospace,Consolas,monospace;font-weight:600}
+  .role{font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .k-fix{border-left-color:var(--fix)}   .k-fix .role{color:var(--fix)}
+  .k-ok{border-left-color:var(--ok)}     .k-ok .role{color:var(--ok)}
+  .k-warn{border-left-color:var(--warn)} .k-warn .role{color:var(--warn)}
+  .k-bad{border-left-color:var(--bad)}   .k-bad .role{color:var(--bad)}
+  .k-pwr{border-left-color:var(--pwr)}   .k-pwr .role{color:var(--fg2)}
+  .k-nc{border-left-color:#e6e9ee}       .k-nc .role{color:var(--nc)}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:11.5px;color:var(--fg2)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .note{margin-top:9px;font-size:11.5px;color:var(--fg2);line-height:1.6}
+  .note b{color:var(--fg)}
+  .hw{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:#fafbfc;
+      font:11.5px/1.75 ui-monospace,Consolas,monospace;color:#24292f;white-space:pre}
+</style></head>
+<body><div class="wrap">
+  <h1>HPM5301EVKLite · J3 40pin 引脚定义</h1>
+  <div class="sub">俯视（1 / 2 脚在 USB 那一端）· 标记口径与页面里的「引脚分配图」一致 ·
+    星号脚是 SPI/QSPI 桥固定占用，换不了；圆圈脚是辅助脚（DC / RST / BL / CS_AUX / TE）可以随便挑</div>
+
+    <div class="row">
+      <div class="pin k-pwr">
+        <span class="n">1</span>
+        <span class="silk">3V3</span>
+        <span class="mcu"></span>
+        <span class="role">3.3V 电源（给屏供电）</span>
+      </div>
+      <div class="pin k-pwr">
+        <span class="n">2</span>
+        <span class="silk">5V</span>
+        <span class="mcu"></span>
+        <span class="role">5V（一般不用，屏多是 3.3V）</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-pwr">
+        <span class="n">3</span>
+        <span class="silk">I2C_SDA</span>
+        <span class="mcu">PB09</span>
+        <span class="role">CDC 虚拟串口 RX（UART2_RXD）</span>
+      </div>
+      <div class="pin k-pwr">
+        <span class="n">4</span>
+        <span class="silk">5V</span>
+        <span class="mcu"></span>
+        <span class="role">5V</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-pwr">
+        <span class="n">5</span>
+        <span class="silk">I2C_SCL</span>
+        <span class="mcu">PB08</span>
+        <span class="role">CDC 虚拟串口 TX（UART2_TXD）</span>
+      </div>
+      <div class="pin k-pwr">
+        <span class="n">6</span>
+        <span class="silk">GND</span>
+        <span class="mcu"></span>
+        <span class="role">地</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-ok">
+        <span class="n">7</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PA02</span>
+        <span class="role">空闲 · 辅助脚（推荐 RST）</span>
+      </div>
+      <div class="pin k-fix">
+        <span class="n">8</span>
+        <span class="silk">UART_TXD</span>
+        <span class="mcu">PB15</span>
+        <span class="role">D3 / IO3（quad 四线档用）</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-pwr">
+        <span class="n">9</span>
+        <span class="silk">GND</span>
+        <span class="mcu"></span>
+        <span class="role">地</span>
+      </div>
+      <div class="pin k-fix">
+        <span class="n">10</span>
+        <span class="silk">UART_RXD</span>
+        <span class="mcu">PB14</span>
+        <span class="role">D2 / IO2（quad 四线档用）</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-ok">
+        <span class="n">11</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PA31</span>
+        <span class="role">空闲 · 辅助脚（推荐 BL）</span>
+      </div>
+      <div class="pin k-nc">
+        <span class="n">12</span>
+        <span class="silk">NC</span>
+        <span class="mcu"></span>
+        <span class="role">未连接</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-fix">
+        <span class="n">13</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PB11</span>
+        <span class="role">SCLK（SPI2_SCLK，固定）</span>
+      </div>
+      <div class="pin k-pwr">
+        <span class="n">14</span>
+        <span class="silk">GND</span>
+        <span class="mcu"></span>
+        <span class="role">地</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-nc">
+        <span class="n">15</span>
+        <span class="silk">NC</span>
+        <span class="mcu"></span>
+        <span class="role">未连接</span>
+      </div>
+      <div class="pin k-nc">
+        <span class="n">16</span>
+        <span class="silk">NC</span>
+        <span class="mcu"></span>
+        <span class="role">未连接</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-pwr">
+        <span class="n">17</span>
+        <span class="silk">3V3</span>
+        <span class="mcu"></span>
+        <span class="role">3.3V 电源（给屏供电）</span>
+      </div>
+      <div class="pin k-nc">
+        <span class="n">18</span>
+        <span class="silk">NC</span>
+        <span class="mcu"></span>
+        <span class="role">未连接</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-warn">
+        <span class="n">19</span>
+        <span class="silk">SPI_MOSI</span>
+        <span class="mcu">PA29</span>
+        <span class="role">空闲（原 SPI1 MOSI）· 板上有 10k 上拉，可当辅助脚</span>
+      </div>
+      <div class="pin k-pwr">
+        <span class="n">20</span>
+        <span class="silk">GND</span>
+        <span class="mcu"></span>
+        <span class="role">地</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-ok">
+        <span class="n">21</span>
+        <span class="silk">SPI_MISO</span>
+        <span class="mcu">PA28</span>
+        <span class="role">空闲（原 SPI1 MISO）</span>
+      </div>
+      <div class="pin k-nc">
+        <span class="n">22</span>
+        <span class="silk">NC</span>
+        <span class="mcu"></span>
+        <span class="role">未连接</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-ok">
+        <span class="n">23</span>
+        <span class="silk">SPI_SCLK</span>
+        <span class="mcu">PA27</span>
+        <span class="role">空闲（原 SPI1 SCLK）</span>
+      </div>
+      <div class="pin k-ok">
+        <span class="n">24</span>
+        <span class="silk">SPI_CS0</span>
+        <span class="mcu">PA26</span>
+        <span class="role">空闲（原 SPI1 显示 CS）· 辅助脚</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-pwr">
+        <span class="n">25</span>
+        <span class="silk">GND</span>
+        <span class="mcu"></span>
+        <span class="role">地</span>
+      </div>
+      <div class="pin k-fix">
+        <span class="n">26</span>
+        <span class="silk">SPI_CS1</span>
+        <span class="mcu">PB10</span>
+        <span class="role">CS（SPI2_CS，固定）</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-fix">
+        <span class="n">27</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PB12</span>
+        <span class="role">D1 / MISO（SPI2_MISO，固定）</span>
+      </div>
+      <div class="pin k-fix">
+        <span class="n">28</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PB13</span>
+        <span class="role">D0 / MOSI（SPI2_MOSI，固定）</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-bad">
+        <span class="n">29</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PY00</span>
+        <span class="role">PIOC 域 —— 固件 v1 不支持</span>
+      </div>
+      <div class="pin k-pwr">
+        <span class="n">30</span>
+        <span class="silk">GND</span>
+        <span class="mcu"></span>
+        <span class="role">地</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-bad">
+        <span class="n">31</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PY01</span>
+        <span class="role">PIOC 域 —— 固件 v1 不支持</span>
+      </div>
+      <div class="pin k-warn">
+        <span class="n">32</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PA09</span>
+        <span class="role">空闲 · TinyUF2 按键脚，慎用</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-bad">
+        <span class="n">33</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PA10</span>
+        <span class="role">板载 LED 任务每 50 ms 写它 → 出不来持续电平</span>
+      </div>
+      <div class="pin k-pwr">
+        <span class="n">34</span>
+        <span class="silk">GND</span>
+        <span class="mcu"></span>
+        <span class="role">地</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-nc">
+        <span class="n">35</span>
+        <span class="silk">NC</span>
+        <span class="mcu"></span>
+        <span class="role">未连接</span>
+      </div>
+      <div class="pin k-bad">
+        <span class="n">36</span>
+        <span class="silk">UART_LOG_TX</span>
+        <span class="mcu">PA00</span>
+        <span class="role">log_printf 占用（UART0 控制台）</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-bad">
+        <span class="n">37</span>
+        <span class="silk">GPIO</span>
+        <span class="mcu">PA30</span>
+        <span class="role">USB0_PWR：被板上 Q1 常态短到地，拉不动</span>
+      </div>
+      <div class="pin k-bad">
+        <span class="n">38</span>
+        <span class="silk">UART_LOG_RX</span>
+        <span class="mcu">PA01</span>
+        <span class="role">log_printf 占用（UART0 控制台）</span>
+      </div></div>
+    <div class="row">
+      <div class="pin k-pwr">
+        <span class="n">39</span>
+        <span class="silk">GND</span>
+        <span class="mcu"></span>
+        <span class="role">地</span>
+      </div>
+      <div class="pin k-nc">
+        <span class="n">40</span>
+        <span class="silk">NC</span>
+        <span class="mcu"></span>
+        <span class="role">未连接</span>
+      </div></div>
+  <div class="legend">
+    <span><i style="background:var(--fix)"></i>★ 桥固定占用（SPI2）</span>
+    <span><i style="background:var(--ok)"></i>○ 空闲，可当辅助脚</span>
+    <span><i style="background:var(--warn)"></i>△ 能用但要留意</span>
+    <span><i style="background:var(--bad)"></i>⛔ 别用</span>
+    <span><i style="background:var(--pwr)"></i>● 电源 / 地 / VCOM</span>
+  </div>
+  <div class="note">
+    <b>实测推荐</b>：RST = <b>J3[7] PA02</b>、BL = <b>J3[11] PA31</b>（两根都用逻辑分析仪量过，电平干净）。
+    接屏时 <b>GND 必须接</b>（6 / 9 / 14 / 20 / 25 / 30 / 34 / 39 任一根），VCC 接 <b>J3[1] 或 J3[17]</b> 的 3V3。
+  </div>
+  <div class="hw">4 线 SPI + DC（AXS15352 档 1）   SCLK=J3[13]  MOSI=J3[28]  CS=J3[26]  DC=J3[24]  RST=J3[7]  BL=J3[11]
+QSPI 四线（ST77916 档 2）     SCLK=J3[13]  D0=J3[28]  D1=J3[27]  D2=J3[10]  D3=J3[8]  CS=J3[26]  RST=J3[7]  BL=J3[11]
+外接 SPI NOR flash（四线）     CS=J3[26]  SCLK=J3[13]  IO0=J3[28]  IO1=J3[27]  IO2=J3[10]  IO3=J3[8]
+回环自检（一根跳线）           J3[28] MOSI ──跳线── J3[27] MISO</div>
+</div></body></html>

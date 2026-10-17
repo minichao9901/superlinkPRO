@@ -1,0 +1,4 @@
+PASS stm32f103_scope F103CB: complete parsed load image matches GNU objcopy (3388 bytes), truncated table rejected
+PASS stm32f103_dbgstress F103CB: complete parsed load image matches GNU objcopy (9520 bytes), truncated table rejected
+PASS stm32f103_rtt_speed F103CB: complete parsed load image matches GNU objcopy (1052 bytes), truncated table rejected
+PASS stm32f103_rtt_seq F103CB: complete parsed load image matches GNU objcopy (1104 bytes), truncated table rejected

@@ -1,0 +1,43 @@
+
+$ git cherry-pick -n 3092783
+
+$ git diff --cached --name-only
+app/core/usb-device.js
+app/rtt/dap-webusb.js
+app/scope/transport.js
+app/spi/transport.js
+tools/selftest/usb-device.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-device.test.mjs
+usb-device: shared lifecycle, endpoint exclusion, interface refs, guarded reset, alias identity PASS
+usb-device: native timeout retains ownership and prevents late lifecycle races PASS
+usb-device: failed setup retains requests, later exclusive reconnect recovers abandoned handles PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-transports.test.mjs
+usb-transports: DAP disconnect/legacy cleanup preserve independent SPI interface PASS
+usb-transports: Scope clean close preserves SPI; dirty close retains lease until exclusive recovery PASS
+usb-transports: SPI clean close preserves Scope; timed-out native OUT is tracked and cannot reset Scope PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/usb-device.js
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/dap-webusb.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/transport.js
+
+$ C:\Program Files\nodejs\node.exe --check app/spi/transport.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/usb-device.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 3092783
+fix(usb): recover abandoned setup leases only after live peers release
+
+$ git commit -C 3092783
+[main 5b517c2] fix(usb): recover abandoned setup leases only after live peers release
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 16:37:49 2026 +0900
+ 5 files changed, 22 insertions(+), 3 deletions(-)
+
+$ git rev-parse HEAD
+5b517c203632edaca231bd7f28c4bdf73cc4e9d0

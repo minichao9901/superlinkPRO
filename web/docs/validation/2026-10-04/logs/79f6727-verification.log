@@ -1,0 +1,32 @@
+
+$ git cherry-pick -n 79f6727
+
+$ git diff --cached --name-only
+app/flash/view.js
+app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/integration-before-pending.mjs
+probe-integration: real entry points serialize setup, coexist on disjoint resources, cancel queued START and protect flash PASS
+probe-integration: unknown firmware stop cannot be bypassed by a later feature PASS
+probe-integration: manual release and managed takeover share one complete USB close PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/flash-lifecycle.test.mjs
+flash-lifecycle: preparation, duplicate click, disconnect ownership, cancellation and errors PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/flash/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 79f6727
+fix(probe): drain duplicate releases and avoid acquiring for invalid flash input
+
+$ git commit -C 79f6727
+[main 0b936f6] fix(probe): drain duplicate releases and avoid acquiring for invalid flash input
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:42:24 2026 +0900
+ 2 files changed, 8 insertions(+)
+
+$ git rev-parse HEAD
+0b936f68eb31a43b38734105c11678e7e0a8369d

@@ -1,0 +1,20 @@
+{
+  "id": "gc9c01",
+  "file": "customer/peripherals/gc9c01/gc9c01.c",
+  "registered_name": "gc9c01",
+  "pixel_align": 1,
+  "res_w": null,
+  "res_h": null,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_spi",
+      "itf": "QAD_SPI_ITF",
+      "freq": 24000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 77,
+  "hal_delay_count": 3,
+  "hal_delayus_count": 1
+}

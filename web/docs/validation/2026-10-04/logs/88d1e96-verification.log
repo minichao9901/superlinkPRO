@@ -1,0 +1,36 @@
+
+$ git cherry-pick -n 88d1e96
+
+$ git diff --cached --name-only
+app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-lifecycle.test.mjs
+scope-lifecycle: double start, cancellation during CONFIG/STATUS, STOP before USB drain PASS
+scope-lifecycle: STOP errors propagate while USB drains; rejected input does not send STOP PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-transport.test.mjs
+scope-transport: rearm, ordering, bounded reads, stop/restart, decoder error, stall, disconnect PASS
+scope-transport: stalled restart resets/retire reads; failed reset blocks capture PASS
+scope-transport: replacing transport cannot orphan native reads on the same device PASS
+scope-transport: quiesce drains producer-completed reads without rearming or resetting normal captures PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+probe-manager: preemption drains cancelled reconnect without waiting for its own queue PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 88d1e96
+refactor(scope): arbitrate capture lifecycle without changing bulk readers
+
+$ git commit -C 88d1e96
+[main 78e9fd6] refactor(scope): arbitrate capture lifecycle without changing bulk readers
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:25:49 2026 +0900
+ 1 file changed, 41 insertions(+), 8 deletions(-)
+
+$ git rev-parse HEAD
+78e9fd62181dacdde7f808e29409ce73eda1a536

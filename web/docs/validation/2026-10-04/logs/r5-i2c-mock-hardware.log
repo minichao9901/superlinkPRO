@@ -1,0 +1,1 @@
+PASS real I2C-to-mock switch: malformed disable response prevents replacement and retains pin ownership; retry confirms bridge disabled before entering mock

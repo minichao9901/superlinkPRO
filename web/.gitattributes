@@ -1,0 +1,23 @@
+# 对账基线必须**原样**保存字节：Python 工具（uvprojx2cmake.py）在 Windows 上写出的是 CRLF，
+# 而本仓库 core.autocrlf=true 会把文本文件规整成 LF 再存 —— 那样基线就不是 Python 的真产物了
+# （本地 checkout 又会转回 CRLF，于是"本机过、别处崩"）。这里把整棵 fixtures 目录标成不做换行转换。
+tools/fixtures/gen/** -text
+tools/fixtures/gen/mdk-arm/test_sram.bin binary
+# DWARF 解析的对账基线是**真 ELF**（二进制）：同样绝不能被换行转换碰（碰了段表/偏移全废）
+tools/fixtures/dwarf/** binary
+# 屏页「动画 / 视频」的示例素材：二进制容器，换行转换会直接毁掉它（README.md 不在此列，正常当文本处理）
+samples/anim/*.gif binary
+samples/anim/*.apng binary
+samples/anim/*.webp binary
+samples/anim/*.mp4 binary
+samples/anim/*.webm binary
+# 屏页「图片通路」/「图片刷屏」的 BMP 测试图样与示例素材：BMP 是二进制（含 16bpp BI_BITFIELDS
+# 的掩码头），换行转换会毁掉像素数据。只圈 *.bmp —— 同目录的 README.md / manifest.json
+# 仍是文本（diff 看得见），所以别写成 samples/test_images/** binary。
+samples/test_images/**/*.bmp binary
+
+*.bat -text
+
+# Keep the official Keil XML byte-for-byte, including vendor formatting.
+app/dbg/svd/STM32H7*.svd -text -whitespace
+app/dbg/svd/*.svd.gz binary

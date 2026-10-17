@@ -1,0 +1,22 @@
+
+$ git cherry-pick -n cee031d
+
+$ git diff --cached --name-only
+app/core/build.js
+docs/stability-fixes-2026-10-04.md
+
+$ C:\Program Files\nodejs\node.exe --check app/core/build.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s cee031d
+docs(stability): record validation and identify the fixed web build
+
+$ git commit -C cee031d
+[main 303924f] docs(stability): record validation and identify the fixed web build
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:48:52 2026 +0900
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+$ git rev-parse HEAD
+303924f5c1b084b2cb4d873afad53db6e1ec7215

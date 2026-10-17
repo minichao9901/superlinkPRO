@@ -1,0 +1,29 @@
+
+$ git cherry-pick -n 81f6796
+
+$ git diff --cached --name-only
+app/main.js
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/managed-stage.mjs
+PASS production managed entry points: Scope -> debugger handoff, I2C coexistence, shutdown
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+probe-manager: preemption drains cancelled reconnect without waiting for its own queue PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/main.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 81f6796
+refactor(app): install one resource manager before feature initialization
+
+$ git commit -C 81f6796
+[main 0e77bf1] refactor(app): install one resource manager before feature initialization
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:27:38 2026 +0900
+ 1 file changed, 12 insertions(+), 15 deletions(-)
+
+$ git rev-parse HEAD
+0e77bf1061537a9e06dd783a4971cd5cda0384ff

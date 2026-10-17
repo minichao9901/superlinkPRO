@@ -1,0 +1,242 @@
+[
+  {
+    "id": "atk7016",
+    "registered_name": "atk7016",
+    "ic": "atk7016",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/atk7016/atk7016.c",
+    "hor_res": null,
+    "ver_res": null,
+    "pixel_align": 1,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg",
+        "guard": null,
+        "selected": true,
+        "interface": "dpi",
+        "freq_hz": 48000000,
+        "color_mode": "rgb888",
+        "timing": {
+          "PCLK_polarity": 0,
+          "DE_polarity": 0,
+          "VS_polarity": 1,
+          "HS_polarity": 1,
+          "PCLK_force_on": 1,
+          "VS_width": 3,
+          "HS_width": 20,
+          "VBP": 20,
+          "VAH": null,
+          "VFP": 12,
+          "HBP": 140,
+          "HAW": null,
+          "HFP": 160,
+          "interrupt_line_num": 1
+        }
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          { "type": "comment", "text": "Initialize LCD low level bus layer: memcpy(&hlcdc->Init, &lcdc_int_cfg, sizeof(LCDC_InitTypeDef)); HAL_LCDC_Init(hlcdc);" },
+          { "type": "reset", "state": 0 },
+          { "type": "delay_us", "us": 10 },
+          { "type": "reset", "state": 1 }
+        ]
+      }
+    ],
+    "display_on_sequence": [],
+    "display_off_sequence": [],
+    "notes": [
+      "无初始化命令表：LCD_Init 只做 memcpy 配置到 LCDC + HAL_LCDC_Init + 硬件复位，没有任何 LCD 命令写入",
+      "分辨率来自板级宏：timing 中 .VAH = LCD_VER_RES_MAX、.HAW = LCD_HOR_RES_MAX，本文件无法确定数值，故 hor_res/ver_res 与 timing 的 VAH/HAW 均记为 null",
+      "接口写为 AUTO_SELECTED_DPI_INTFACE，按归一化表记为 dpi；文件内仅此一个接口配置，无 ifdef 守卫",
+      "LCD_DisplayOn/LCD_DisplayOff 为空实现，故 display_on_sequence/display_off_sequence 均为空数组",
+      "LCD_ReadID 返回固定常量 LCD_ID=0x85，无实际读命令，未记录"
+    ]
+  },
+  {
+    "id": "ek79001",
+    "registered_name": "ek79001",
+    "ic": "ek79001",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/ek79001/ek79001.c",
+    "hor_res": 1024,
+    "ver_res": 600,
+    "pixel_align": 1,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg",
+        "guard": null,
+        "selected": true,
+        "interface": "dpi",
+        "freq_hz": 48000000,
+        "color_mode": "rgb888",
+        "timing": {
+          "PCLK_polarity": 0,
+          "DE_polarity": 0,
+          "VS_polarity": 1,
+          "HS_polarity": 1,
+          "PCLK_force_on": 0,
+          "VS_width": 3,
+          "HS_width": 20,
+          "VBP": 23,
+          "VAH": 600,
+          "VFP": 12,
+          "HBP": 160,
+          "HAW": 1024,
+          "HFP": 160,
+          "interrupt_line_num": 1
+        }
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          { "type": "comment", "text": "Initialize LCD low level bus layer: memcpy(&hlcdc->Init, &lcdc_int_cfg, sizeof(LCDC_InitTypeDef)); HAL_LCDC_Init(hlcdc);" },
+          { "type": "reset", "state": 0 },
+          { "type": "delay_us", "us": 10 },
+          { "type": "reset", "state": 1 }
+        ]
+      }
+    ],
+    "display_on_sequence": [],
+    "display_off_sequence": [],
+    "notes": [
+      "无初始化命令表：LCD_Init 只做 memcpy 配置到 LCDC + HAL_LCDC_Init + 硬件复位，没有任何 LCD 命令写入",
+      "分辨率为文件中字面值：.VAH=600、.HAW=1024，即 1024x600",
+      "接口写为 AUTO_SELECTED_DPI_INTFACE，按归一化表记为 dpi；文件内仅此一个接口配置，无 ifdef 守卫",
+      "LCD_DisplayOn/LCD_DisplayOff 为空实现，故 display_on_sequence/display_off_sequence 均为空数组",
+      "LCD_ReadID 返回固定常量 LCD_ID=0x85，无实际读命令，未记录"
+    ]
+  },
+  {
+    "id": "ek79202",
+    "registered_name": "ek79202",
+    "ic": "ek79202",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/ek79202/ek79202.c",
+    "hor_res": 1280,
+    "ver_res": 800,
+    "pixel_align": 1,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg",
+        "guard": null,
+        "selected": true,
+        "interface": "dpi",
+        "freq_hz": 60000000,
+        "color_mode": "rgb888",
+        "timing": {
+          "PCLK_polarity": 0,
+          "DE_polarity": 0,
+          "VS_polarity": 1,
+          "HS_polarity": 1,
+          "VS_width": 3,
+          "HS_width": 10,
+          "VBP": 10,
+          "VAH": 800,
+          "VFP": 10,
+          "HBP": 180,
+          "HAW": 1280,
+          "HFP": 170,
+          "interrupt_line_num": 1
+        }
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          { "type": "comment", "text": "Initialize LCD low level bus layer: memcpy(&hlcdc->Init, &lcdc_int_cfg, sizeof(LCDC_InitTypeDef)); HAL_LCDC_Init(hlcdc);" },
+          { "type": "reset", "state": 0 },
+          { "type": "delay_us", "us": 10 },
+          { "type": "reset", "state": 1 }
+        ]
+      }
+    ],
+    "display_on_sequence": [],
+    "display_off_sequence": [],
+    "notes": [
+      "无初始化命令表：LCD_Init 只做 memcpy 配置到 LCDC + HAL_LCDC_Init + 硬件复位，没有任何 LCD 命令写入",
+      "分辨率为文件中字面值：.VAH=800、.HAW=1280，即 1280x800",
+      "接口写为 AUTO_SELECTED_DPI_INTFACE，按归一化表记为 dpi；文件内仅此一个接口配置，无 ifdef 守卫",
+      "LCD_DisplayOn/LCD_DisplayOff 为空实现，故 display_on_sequence/display_off_sequence 均为空数组",
+      "LCD_ReadID 返回固定常量 LCD_ID=0x85，无实际读命令，未记录",
+      "该配置的 .dpi 结构未包含 PCLK_force_on 字段（与 atk7016/ek79001 不同）"
+    ]
+  },
+  {
+    "id": "jd9165a",
+    "registered_name": "jd9165a",
+    "ic": "jd9165a",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/jd9165a/jd9165a.c",
+    "hor_res": 1024,
+    "ver_res": 600,
+    "pixel_align": 1,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg",
+        "guard": null,
+        "selected": true,
+        "interface": "dpi",
+        "freq_hz": 48000000,
+        "color_mode": "rgb888",
+        "timing": {
+          "PCLK_polarity": 0,
+          "DE_polarity": 0,
+          "VS_polarity": 1,
+          "HS_polarity": 1,
+          "VS_width": 2,
+          "HS_width": 24,
+          "VBP": 23,
+          "VAH": 600,
+          "VFP": 12,
+          "HBP": 160,
+          "HAW": 1024,
+          "HFP": 160,
+          "interrupt_line_num": 1
+        }
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          { "type": "comment", "text": "Initialize LCD low level bus layer: memcpy(&hlcdc->Init, &lcdc_int_cfg, sizeof(LCDC_InitTypeDef)); HAL_LCDC_Init(hlcdc);" },
+          { "type": "reset", "state": 0 },
+          { "type": "delay_us", "us": 10 },
+          { "type": "reset", "state": 1 }
+        ]
+      }
+    ],
+    "display_on_sequence": [],
+    "display_off_sequence": [],
+    "notes": [
+      "无初始化命令表：LCD_Init 只做 memcpy 配置到 LCDC + HAL_LCDC_Init + 硬件复位，没有任何 LCD 命令写入",
+      "分辨率为文件中字面值：.VAH=600、.HAW=1024，即 1024x600",
+      "接口写为 AUTO_SELECTED_DPI_INTFACE，按归一化表记为 dpi；文件内仅此一个接口配置，无 ifdef 守卫",
+      "LCD_DisplayOn/LCD_DisplayOff 为空实现，故 display_on_sequence/display_off_sequence 均为空数组",
+      "LCD_ReadID 返回固定常量 LCD_ID=0x85，无实际读命令，未记录",
+      "该配置的 .dpi 结构未包含 PCLK_force_on 字段（与 atk7016/ek79001 不同）"
+    ]
+  }
+]

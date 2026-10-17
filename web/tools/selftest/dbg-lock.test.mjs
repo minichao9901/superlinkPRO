@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { DebugSession } from '../../app/dbg/session.js';
+const gate=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
+const tick=()=>new Promise(r=>setImmediate(r));
+const s=new DebugSession(),a=gate(),b=gate();
+const first=s.exclusive(()=>a.promise);await tick();const second=s.exclusive(()=>b.promise);
+assert.equal(s._opDepth,2);a.resolve();await first;await tick();assert.equal(s._opBusy,true);
+assert.deepEqual(await s.tryExclusive(()=>assert.fail('must skip')),{skipped:true});b.resolve();await second;assert.equal(s._opBusy,false);
+await assert.rejects(s.exclusive(()=>{throw new Error('test');}),/test/);assert.equal(s._opDepth,0);
+assert.deepEqual(await s.tryExclusive(()=>42),{skipped:false,value:42});
+console.log('dbg-lock: queued foreground work excludes background polling and releases after failure PASS');

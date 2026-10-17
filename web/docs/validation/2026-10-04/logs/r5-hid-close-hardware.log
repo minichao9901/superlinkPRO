@@ -1,0 +1,2 @@
+PASS real scope: native HID close failure retains callable original handle and resource ownership; retry closes actual OS HID handle and releases
+PASS real spi: native HID close failure retains callable original handle and resource ownership; retry closes actual OS HID handle and releases

@@ -1,0 +1,35 @@
+{
+  "id": "qx_4300j40r38",
+  "file": "customer/peripherals/qx_4300j40r38/qx_4300j40r38.c",
+  "registered_name": "qx_4300j40r38",
+  "pixel_align": 1,
+  "res_w": null,
+  "res_h": null,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg",
+      "itf": "AUTO_SELECTED_DPI_INTFACE",
+      "freq": 25.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888",
+      "timing": {
+        "PCLK_polarity": 0,
+        "DE_polarity": 0,
+        "VS_polarity": 1,
+        "HS_polarity": 1,
+        "VS_width": 4,
+        "HS_width": 4,
+        "VBP": 8,
+        "VAH": 480,
+        "VFP": 4,
+        "HBP": 18,
+        "HAW": 800,
+        "HFP": 14,
+        "interrupt_line_num": 1
+      }
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 0,
+  "hal_delay_count": 0,
+  "hal_delayus_count": 1
+}

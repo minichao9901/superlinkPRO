@@ -1,0 +1,30 @@
+
+$ git cherry-pick -n 70912b7
+
+$ git diff --cached --name-only
+app/rtt/dap-webusb.js
+tools/selftest/dap-register-ready.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dap-register-ready.test.mjs
+dap-register-ready: timeout rejected before stale data read, ready handshake returns value PASS
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/dap-register-real.mjs
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: r0 REGRDY handshake
+
+0 !== 264205699
+
+    at file:///E:/web-serial-rtt-tools/tmp/patch-verification/dap-register-real.mjs:11:10
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 264205699,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.13.1

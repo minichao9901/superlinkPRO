@@ -1,0 +1,277 @@
+[
+  {
+    "id": "ls013b7dd02",
+    "registered_name": "ls013b7dd02",
+    "ic": "LS013B7DD02",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/ls013b7dd02/ls013b7dd02.c",
+    "hor_res": 260,
+    "ver_res": 260,
+    "pixel_align": 1,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg",
+        "guard": null,
+        "selected": true,
+        "interface": "jdi_parallel",
+        "freq_hz": 60,
+        "color_mode": "rgb565",
+        "timing": {
+          "bank_col_head": 0,
+          "valid_columns": 260,
+          "bank_col_tail": 8,
+          "bank_row_head": 0,
+          "valid_rows": 260,
+          "bank_row_tail": 4
+        }
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          {"type": "reset", "state": 0},
+          {"type": "delay_us", "us": 10},
+          {"type": "reset", "state": 1}
+        ]
+      }
+    ],
+    "display_on_sequence": [
+      {"type": "comment", "text": "LCD_WriteReg(REG_DISPLAY_ON, NULL, 0) 被注释掉，DisplayOn 不发任何面板命令"},
+      {"type": "comment", "text": "SF32LB58X JDI 帧时钟：hwp_lptim3->ARR = 32768 / lcdc_int_cfg.freq(60) = 546；->CMP = 546/2 = 273；CR |= LPTIM_CR_ENABLE | LPTIM_CR_CNTSTRT"},
+      {"type": "comment", "text": "SF32LB58X 引脚/极性：LPSYS_AON CR1 PBR_SEL0 = 2、PBR_SEL1 = 3；RTC PBR3R SEL = 3 (frp)、PBR4R SEL = 2 (xfrp)、PBR5R SEL = 3 (vcom)"}
+    ],
+    "display_off_sequence": [],
+    "notes": [
+      "无初始化命令表：LCD_Init 只有总线初始化（memcpy + HAL_LCDC_Init）与复位时序 BSP_LCD_Reset(0) -> HAL_Delay_us(10) -> BSP_LCD_Reset(1)，没有任何面板寄存器写入（JDI 并行屏由 LCDC/JDI 硬件时序驱动）",
+      "lcdc_int_cfg 是文件内唯一的 LCDC_InitTypeDef；.freq = 60 是 JDI 刷新率（Hz），由 DisplayOn 中 32768/freq 用作 LPTIM3 ARR，并非总线时钟Hz",
+      "LCD_ReadID 不读面板，直接返回编译期常量 THE_LCD_ID = 0x1d1",
+      "LCD_DisplayOn 的 0x29 写入被注释，实际执行的是 SF32LB58X 的 LPTIM3/RTC 配置（已按 comment 步骤记录）",
+      "LCD_DisplayOff 的 REG_DISPLAY_OFF(0x28) 写入被注释，函数体为空"
+    ]
+  },
+  {
+    "id": "st7789v",
+    "registered_name": "st7789v",
+    "ic": "ST7789V",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/st7789v/st7789v.c",
+    "hor_res": 240,
+    "ver_res": 240,
+    "pixel_align": 1,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg",
+        "guard": null,
+        "selected": true,
+        "interface": "spi_nodcx_2data",
+        "freq_hz": 24000000,
+        "color_mode": "rgb565",
+        "timing": null
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": "#ifndef LCD_USING_ROUND_TYPE1",
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          {"type": "reset", "state": 0},
+          {"type": "delay_us", "us": 10},
+          {"type": "reset", "state": 1},
+          {"type": "cmd", "cmd": 16, "data": [], "expr": "REG_SLEEP_IN"},
+          {"type": "delay", "ms": 10},
+          {"type": "cmd", "cmd": 1, "data": [], "expr": "0x01 sw reset"},
+          {"type": "delay", "ms": 200},
+          {"type": "cmd", "cmd": 17, "data": [], "expr": "REG_SLEEP_OUT"},
+          {"type": "delay", "ms": 120},
+          {"type": "cmd", "cmd": 54, "data": [0], "expr": "REG_NORMAL_DISPLAY"},
+          {"type": "cmd", "cmd": 58, "data": [85], "expr": "REG_COLOR_MODE"},
+          {"type": "cmd", "cmd": 33, "data": [], "expr": "REG_DISPLAY_INVERSION"},
+          {"type": "cmd", "cmd": 231, "data": [16], "expr": "REG_SPI2EN"},
+          {"type": "cmd", "cmd": 224, "data": [208, 19, 26, 10, 10, 38, 63, 84, 84, 24, 20, 20, 48, 51], "expr": "REG_PV_GAMMA_CTRL"},
+          {"type": "cmd", "cmd": 225, "data": [208, 19, 26, 10, 10, 38, 63, 84, 84, 26, 22, 22, 50, 53], "expr": "REG_NV_GAMMA_CTRL"},
+          {"type": "cmd", "cmd": 198, "data": [7], "expr": "REG_FR_CTRL"},
+          {"type": "cmd", "cmd": 53, "data": [0], "expr": "REG_TEARING_EFFECT"},
+          {"type": "cmd", "cmd": 41, "data": [], "expr": "REG_DISPLAY_ON"}
+        ]
+      },
+      {
+        "label": "round_type1",
+        "guard": "#ifdef LCD_USING_ROUND_TYPE1",
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          {"type": "reset", "state": 0},
+          {"type": "delay_us", "us": 10},
+          {"type": "reset", "state": 1},
+          {"type": "cmd", "cmd": 16, "data": [], "expr": "REG_SLEEP_IN"},
+          {"type": "delay", "ms": 10},
+          {"type": "cmd", "cmd": 1, "data": [], "expr": "0x01 sw reset"},
+          {"type": "delay", "ms": 200},
+          {"type": "cmd", "cmd": 17, "data": [], "expr": "REG_SLEEP_OUT"},
+          {"type": "delay", "ms": 120},
+          {"type": "cmd", "cmd": 54, "data": [0], "expr": "REG_NORMAL_DISPLAY"},
+          {"type": "cmd", "cmd": 58, "data": [85], "expr": "REG_COLOR_MODE"},
+          {"type": "cmd", "cmd": 33, "data": [], "expr": "REG_DISPLAY_INVERSION"},
+          {"type": "cmd", "cmd": 231, "data": [16], "expr": "REG_SPI2EN"},
+          {"type": "cmd", "cmd": 224, "data": [112, 4, 8, 9, 9, 5, 42, 51, 65, 7, 19, 19, 41, 47], "expr": "REG_PV_GAMMA_CTRL"},
+          {"type": "cmd", "cmd": 225, "data": [112, 3, 9, 10, 9, 6, 43, 52, 65, 7, 18, 20, 40, 46], "expr": "REG_NV_GAMMA_CTRL"},
+          {"type": "cmd", "cmd": 198, "data": [7], "expr": "REG_FR_CTRL"},
+          {"type": "cmd", "cmd": 53, "data": [0], "expr": "REG_TEARING_EFFECT"},
+          {"type": "cmd", "cmd": 41, "data": [], "expr": "REG_DISPLAY_ON"}
+        ]
+      }
+    ],
+    "display_on_sequence": [
+      {"type": "cmd", "cmd": 41, "data": [], "expr": "REG_DISPLAY_ON"}
+    ],
+    "display_off_sequence": [
+      {"type": "cmd", "cmd": 40, "data": [], "expr": "REG_DISPLAY_OFF"}
+    ],
+    "notes": [
+      "初始化全部为内联 LCD_WriteReg 顺序写（无静态初始化表），parameter[] 复用数组，数值已按写入时刻计算为实际字节",
+      "两段 #if 0 死代码未计入：(1) CASET/RASET/RAM 黑屏填充块（LCD_IO_WriteData16(0) 循环，含 THE_LCD_PIXEL_WIDTH-1 表达式）；(2) PORCH/GATE/VCOM/LCM/VDV/FR/Power 设置块（REG_PORCH_CTRL 0xB2 等，值 0x0C,0x0C,0x00,0x33,0x33 / 0x35 / 0x1F / 0x2C / 0x01,0xC3 / 0x20 / 0x0F / 0xA4,0xA1，其中 REG_POWER_CTRL 写参数 len=1 但赋了两个参数），以及该块内 CANVAS_* 寄存器操作",
+      "Gamma 设置受 #ifdef LCD_USING_ROUND_TYPE1 分支影响：round_type1 与 default（#else 分支）两条序列仅 gamma 两条命令不同，其余步骤完全相同；guard 为语义等价写法",
+      "LCD_Init 末尾依次发 FR_CTRL(0xC6,0x07)、TEARING_EFFECT(0x35,0x00)、DISPLAY_ON(0x29)，0x29 之后无延时",
+      "lcdc_int_cfg.cfg.spi = {dummy_clock:0, syn_mode:HAL_LCDC_SYNC_VER, vsyn_polarity:0, vsyn_delay_us:1000, hsyn_num:0}；SPI 类配置按 SPEC 不填 timing",
+      "LCD_ReadID 经 HAL_LCDC_ReadU8Reg 读 REG_LCD_ID(0x04) 4 字节（读操作不记录）；LCD_ReadMode 在读模式下将总线频率临时切到 4MHz，读后恢复 24MHz",
+      "LCD_ReadPixel 会先写 0x3A=0x66 再读 0x2E(0x2E 读 4 字节) 最后回写 0x3A=0x55，属于运行时操作，未计入初始化",
+      "LCD_SetBrightness 中计算 bright 但写入了 &br（原始代码笔误），非初始化流程"
+    ]
+  },
+  {
+    "id": "st7789h2",
+    "registered_name": "st7789h2",
+    "ic": "ST7789H2",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/st7789h2/st7789h2.c",
+    "hor_res": 240,
+    "ver_res": 240,
+    "pixel_align": 1,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg",
+        "guard": null,
+        "selected": true,
+        "interface": "spi_dcx_1data",
+        "freq_hz": 24000000,
+        "color_mode": "rgb565",
+        "timing": null
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          {"type": "reset", "state": 0},
+          {"type": "delay_us", "us": 10},
+          {"type": "reset", "state": 1},
+          {"type": "cmd", "cmd": 16, "data": [], "expr": "REG_SLEEP_IN"},
+          {"type": "delay", "ms": 10},
+          {"type": "cmd", "cmd": 1, "data": [], "expr": "0x01 sw reset"},
+          {"type": "delay", "ms": 200},
+          {"type": "cmd", "cmd": 17, "data": [], "expr": "REG_SLEEP_OUT"},
+          {"type": "delay", "ms": 120},
+          {"type": "cmd", "cmd": 54, "data": [0], "expr": "REG_NORMAL_DISPLAY"},
+          {"type": "cmd", "cmd": 58, "data": [85], "expr": "REG_COLOR_MODE"},
+          {"type": "cmd", "cmd": 33, "data": [], "expr": "REG_DISPLAY_INVERSION"},
+          {"type": "cmd", "cmd": 224, "data": [208, 8, 17, 8, 12, 21, 57, 51, 80, 54, 19, 20, 41, 45], "expr": "REG_PV_GAMMA_CTRL"},
+          {"type": "cmd", "cmd": 225, "data": [208, 8, 16, 8, 6, 6, 57, 68, 81, 11, 22, 20, 47, 49], "expr": "REG_NV_GAMMA_CTRL"},
+          {"type": "cmd", "cmd": 179, "data": [1, 15, 15], "expr": "ST7789H2_FRAME_CTRL (0xB3)"},
+          {"type": "cmd", "cmd": 41, "data": [], "expr": "REG_DISPLAY_ON"},
+          {"type": "cmd", "cmd": 53, "data": [0], "expr": "REG_TEARING_EFFECT"}
+        ]
+      }
+    ],
+    "display_on_sequence": [
+      {"type": "cmd", "cmd": 41, "data": [], "expr": "REG_DISPLAY_ON"}
+    ],
+    "display_off_sequence": [
+      {"type": "cmd", "cmd": 40, "data": [], "expr": "REG_DISPLAY_OFF"}
+    ],
+    "notes": [
+      "初始化全部为内联 LCD_WriteReg 顺序写（无静态初始化表），parameter[] 复用数组，数值已按写入时刻计算为实际字节",
+      "两段 #if 0 死代码未计入：(1) PORCH/GATE/VCOM/LCM/VDV/FR/Power 设置块（REG_PORCH_CTRL 0xB2 等，值 0x0C,0x0C,0x00,0x33,0x33 / 0x35 / 0x1F / 0x2C / 0x01,0xC3 / 0x20 / 0x0F / 0xA4,0xA1，其中 REG_POWER_CTRL 写参数 len=1 但赋了两个参数）；(2) CASET/RASET/RAM 黑屏填充块（240x240 循环 LCD_IO_WriteData16(0x0000)，含 THE_LCD_PIXEL_WIDTH-1/THE_LCD_PIXEL_HEIGHT-1 表达式）",
+      "LCD_Init 中 DISPLAY_ON(0x29) 在 TEARING_EFFECT(0x35,0x00) 之前发出（顺序与 st7789v 相反），0x29 前后均无延时",
+      "lcdc_int_cfg.cfg.spi = {dummy_clock:1, syn_mode:HAL_LCDC_SYNC_DISABLE, vsyn_polarity:0, vsyn_delay_us:1000, hsyn_num:0}；SPI 类配置按 SPEC 不填 timing",
+      "LCD_ReadID 经 HAL_LCDC_ReadU8Reg 读 REG_LCD_ID(0x04) 3 字节（读操作不记录）；LCD_ReadMode 在读模式下将总线频率临时切到 4MHz，读后恢复 24MHz",
+      "THE_LCD_ID = 0x85（本文件宏）但 EXPORT2 注册 id 为 0x858552，两处不一致；LCD_SetBrightness 以 ST7789H2_BRIGHTNESS_MAX=127 换算刻度",
+      "LCD_ReadPixel 会先写 0x3A=0x66 读 0x2E(4 字节) 后回写 0x3A 按 color_mode 恢复，属于运行时操作，未计入初始化"
+    ]
+  },
+  {
+    "id": "ST7789_DBI",
+    "registered_name": "st7789_dbi",
+    "ic": "st7789_dbi",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/ST7789_DBI/st7789_dbi.c",
+    "hor_res": 320,
+    "ver_res": 480,
+    "pixel_align": 1,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg",
+        "guard": null,
+        "selected": true,
+        "interface": "dbi_8bit_b",
+        "freq_hz": 12000000,
+        "color_mode": "rgb565",
+        "timing": null
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          {"type": "reset", "state": 1},
+          {"type": "delay", "ms": 1},
+          {"type": "reset", "state": 0},
+          {"type": "delay_us", "us": 20},
+          {"type": "reset", "state": 1},
+          {"type": "delay", "ms": 50},
+          {"type": "cmd", "cmd": 17, "data": [], "expr": "0x11 sleep out"},
+          {"type": "delay", "ms": 120},
+          {"type": "comment", "text": "清 GRAM（非面板命令）：HAL_LCDC_Next_Frame_TE(hlcdc, 0); HAL_LCDC_SetROIArea(hlcdc, 0, 0, 319, 479); HAL_LCDC_LayerSetFormat(DEFAULT, RGB565); HAL_LCDC_LayerDisable(DEFAULT); HAL_LCDC_SetBgColor(hlcdc, 0, 0, 0); HAL_LCDC_SendLayerData2Reg(hlcdc, REG_WRITE_RAM(0x3C), 1); HAL_LCDC_LayerEnable(DEFAULT)"},
+          {"type": "cmd", "cmd": 41, "data": [], "expr": "0x29 display on"}
+        ]
+      }
+    ],
+    "display_on_sequence": [
+      {"type": "cmd", "cmd": 41, "data": [], "expr": "REG_DISPLAY_ON"},
+      {"type": "comment", "text": "BSP_GPIO_Set_BL(LCD_BL_EN_PIN = 96+3 = 99, 1) 点亮背光 (GPIO_B03)"}
+    ],
+    "display_off_sequence": [
+      {"type": "comment", "text": "BSP_GPIO_Set_BL(LCD_BL_EN_PIN = 99, 0) 关闭背光"},
+      {"type": "cmd", "cmd": 40, "data": [], "expr": "REG_DISPLAY_OFF"},
+      {"type": "cmd", "cmd": 16, "data": [], "expr": "REG_SLEEP_IN"},
+      {"type": "delay", "ms": 50}
+    ],
+    "notes": [
+      "无静态初始化表，初始化全部内联；实际生效路径只写 0x11、0x29 两个面板命令，其余寄存器配置均为注释/死代码",
+      "复位时序比较特殊：BSP_LCD_Reset(1) -> 1ms -> BSP_LCD_Reset(0) -> 20us -> BSP_LCD_Reset(1) -> 50ms（先拉高再拉低脉冲）",
+      "大量 // 注释掉的配置命令未计入：0xE9(0x20)、0x36(0x40)、0x3A(0x05)、0xB2(5字节)、0xB7(0x56)、0xBB(0x20)、0xC0(0x20)、0xC2(0x01)、0xC3(0x0F)、0xC4(0x20)、0xC6(0x0F,注释为60Hz)、0xD0(0xA4,0xA1)、0xD6(0xA1)、0xE0/0xE1(各14字节 gamma)、0x35(0x00)、0x20；另有 #if 0 块内的 0x2B/0x2A CASET/RASET 写入（末行 0xEF/0x3F 与 THE_LCD_PIXEL_WIDTH/HEIGHT 一致）",
+      "LCD_Init 中通过 HAL_LCDC 系列调用清 GRAM（非面板寄存器写，见 comment 步骤），随后直接发 DISPLAY_ON(0x29)",
+      "lcdc_int_cfg.cfg.dbi = {syn_mode:HAL_LCDC_SYNC_DISABLE, vsyn_polarity:0, vsyn_delay_us:0, hsyn_num:0}；DBI 类配置按 SPEC 不填 timing",
+      "LCD_Init 中 if (!te_enabled) 会把 hlcdc->Init.cfg.spi.syn_mode 设为 HAL_LCDC_SYNC_DISABLE，与 cfg.dbi.syn_mode 默认值相同（te_enabled 默认 true，lcd_sync_control() 为空实现）",
+      "LCD_ReadID 返回编译期常量 THE_LCD_ID = 0x9327，不读面板；LCD_WriteMultiplePixels 中读 REG_POWER_MODE(0x0A) 与 0x04（读操作不记录）",
+      "IC 名按文件注释记为 st7789_dbi，但寄存器集（写/读 RAM 为 0x3C/0x3E、CASET/RASET 为 0x2A/0x2B）与 THE_LCD_ID=0x9327 并非典型 ST7789 寄存器定义，未找到更明确的 IC 声明",
+      "文件头的时间注释（HSYNC=9+1, HBP=29, HFP=2, VSYNC=1+1, VBP=3, VFP=2，对应 320x480 active）仅作参考，未在 cfg 中配置",
+      "LCD_DisplayOn/Off 额外操作背光 GPIO（BSP_GPIO_Set_BL，LCD_BL_EN_PIN=99），已按 comment 步骤记录"
+    ]
+  }
+]

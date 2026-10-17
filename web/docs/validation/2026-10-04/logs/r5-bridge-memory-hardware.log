@@ -1,0 +1,1 @@
+PASS real OpenOCD/F103CB: 48 aligned/unaligned byte/word/head/tail reads match programmed ELF; read beyond 20KB RAM rejects instead of padding zero

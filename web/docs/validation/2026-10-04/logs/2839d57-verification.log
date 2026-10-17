@@ -1,0 +1,28 @@
+
+$ git cherry-pick -n 2839d57
+
+$ git diff --cached --name-only
+app/hid/probe.js
+tools/selftest/hid-channel.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/hid-channel.test.mjs
+hid-channel: shared response queue, handle reference ownership, independent devices and close cancellation PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/probe.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/hid-channel.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 2839d57
+refactor(hid): share command arbitration and handle ownership across clients
+
+$ git commit -C 2839d57
+[main c39331c] refactor(hid): share command arbitration and handle ownership across clients
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:19:35 2026 +0900
+ 2 files changed, 91 insertions(+), 13 deletions(-)
+ create mode 100644 tools/selftest/hid-channel.test.mjs
+
+$ git rev-parse HEAD
+c39331c5a1770a75b56299389228d51f4e202820

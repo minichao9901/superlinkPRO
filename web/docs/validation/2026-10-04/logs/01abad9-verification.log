@@ -1,0 +1,31 @@
+
+$ git cherry-pick -n 01abad9
+
+$ git diff --cached --name-only
+app/core/probe-users.js
+app/main.js
+tools/selftest/probe-users.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-users.test.mjs
+probe-users: busy flash rejects takeover; same-page target readers stop; failed STOP aborts handoff PASS
+probe-users: passive HID connections cannot stop an engine owned by another page PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe --check app/main.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-users.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 01abad9
+fix(probe): propagate release failures and leave passive HID handles idle
+
+$ git commit -C 01abad9
+[main f2baf87] fix(probe): propagate release failures and leave passive HID handles idle
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:47:15 2026 +0900
+ 3 files changed, 7 insertions(+), 33 deletions(-)
+
+$ git rev-parse HEAD
+f2baf87fe7a2069c68bf0edda914d4be1e2aa840

@@ -1,0 +1,48 @@
+
+$ git cherry-pick -n 750e043
+
+$ git diff --cached --name-only
+app/dbg/view.js
+app/rtt/view.js
+app/scope/view.js
+app/serial/session.js
+app/spi/session.js
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+probe-manager: preemption drains cancelled reconnect without waiting for its own queue PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-integration.test.mjs
+probe-integration: real entry points serialize setup, coexist on disjoint resources, cancel queued START and protect flash PASS
+probe-integration: unknown firmware stop cannot be bypassed by a later feature PASS
+probe-integration: manual release and managed takeover share one complete USB close PASS
+probe-integration: firmware START pending retains ownership until STOP completion is confirmed PASS
+probe-integration: cancelling during backend preparation cannot create a later debug session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/cdc-mode.test.mjs
+cdc-mode: shared receiver/source handoff, UART TX guard, optional pause ownership, unrelated ports, cancelled native open PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/dbg/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/serial/session.js
+
+$ C:\Program Files\nodejs\node.exe --check app/spi/session.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 750e043
+fix(core): allow failed feature owners to perform explicit reconnect recovery
+
+$ git commit -C 750e043
+[main 074f854] fix(core): allow failed feature owners to perform explicit reconnect recovery
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 17:21:13 2026 +0900
+ 5 files changed, 5 insertions(+), 4 deletions(-)
+
+$ git rev-parse HEAD
+074f854366016f64963a2bcf3d34198709555702

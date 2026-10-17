@@ -1,0 +1,2558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>串口 / RTT 工具箱 —— 网页版串口助手 · 终端 · SEGGER RTT Viewer</title>
+<meta name="description" content="零安装的网页工具：Web Serial 串口助手（SSCOM 风格）、ANSI 终端（Xshell 风格）、以及走 WebUSB/CMSIS-DAP 的 SEGGER RTT Viewer。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1117'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='%2358a6ff'%3E%3E_%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="app/vendor/xterm/xterm.css">
+<link rel="stylesheet" href="app/app.css">
+<script>
+(function(){
+  var mode = new URLSearchParams(location.search).get('modules');
+  var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
+  window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
+  window.__webBundleUrl = 'app/site/main.js?v=7593cc3b3afad96a';
+  var preload = document.createElement('link');
+  preload.rel = 'modulepreload';
+  preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
+  document.head.appendChild(preload);
+})();
+</script>
+<link rel="stylesheet" href="app/etm/style.css">
+</head>
+<body>
+
+<!-- 加载遮罩：线上使用合并脚本，本地直接加载源码模块。
+     没有它的话，这期间页面"看着像坏的"：下拉是空的、按钮点了没反应（事件还没绑上）。
+     main.js 初始化完会把它摘掉。 -->
+<div id="boot-mask">
+  <div class="boot-box">
+    <b>正在加载…</b>
+    <span>正在准备工具，加载完成后自动进入。</span>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="brand" title="串口 / RTT 工具箱"><span class="brand-title">串口 / RTT 工具箱</span></div>
+  <nav class="tabs" id="tabs" aria-label="工具切换">
+    <div class="primary-tabs">
+      <button class="tab active" data-tab="serial">串口助手</button>
+      <button class="tab" data-tab="terminal">终端</button>
+      <button class="tab" data-tab="rtt">RTT Viewer</button>
+      <button class="tab" data-tab="rttcdc">RTT 转发</button>
+      <button class="tab" data-tab="scope">J-Scope 波形</button>
+      <button class="tab" data-tab="flash">烧录器</button>
+      <button class="tab" data-tab="dbg">调试器</button>
+    </div>
+    <details class="tool-switch" id="tool-switch">
+      <summary>更多功能 <span aria-hidden="true">▾</span></summary>
+      <div class="tool-menu" aria-label="更多功能">
+        <button class="tab" data-tab="spi">USB→SPI/QSPI</button>
+        <button class="tab" data-tab="panel">SPI/QSPI屏</button>
+        <button class="tab" data-tab="spicdc">SPI转发</button>
+        <button class="tab" data-tab="swo">SWO 执行轨迹</button>
+        <button class="tab" data-tab="etm">ETM 执行轨迹</button>
+        <button class="tab" data-tab="i2c">USB→I2C</button>
+        <button class="tab" data-tab="analog">USB→ADC/DAC</button>
+        <button class="tab" data-tab="gen">工程生成</button>
+      </div>
+    </details>
+  </nav>
+  <div class="topright">
+    <span id="conn-flag" class="flag flag-off">串口：未连接</span>
+    <label class="chk" id="global-nrst-control" title="连接支持该功能的 akaLinkPro 固件后可用。">
+      <input type="checkbox" id="global-nrst-open-drain" checked disabled> NRST 开漏
+    </label>
+    <button id="btn-global-reset" class="mini" type="button" title="向目标 NRST 发送硬复位脉冲；EVKLite 使用 PA27/J3[23]，PA08 接 TRST 时仅复位 JTAG">全局复位</button>
+    <button id="btn-fullscreen" class="mini" type="button" aria-pressed="false" title="全屏显示工作台">全屏</button>
+    <span id="probe-flag" class="flag flag-off" role="status">探针：未使用</span>
+    <details class="app-more" id="app-more">
+      <summary>帮助</summary>
+      <div class="more-menu">
+        <button class="ghost" id="btn-help">帮助与快捷键</button>
+        <a class="ghost" id="lnk-github" href="https://github.com/minichao9901/web-serial-rtt-tools" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </details>
+  </div>
+</header>
+
+<main>
+
+<!-- ============================ ETM 执行轨迹 ============================ -->
+<section class="panel" id="tab-etm">
+  <div id="etm-notice">
+    <h2>ETM 执行轨迹</h2>
+    <p id="etm-status">ETM 采集与解码需要本地工作台及 KingstVIS。</p>
+    <p>请使用本地启动入口打开工具箱；载入 ELF、选择断点起点后，即可采集并对照源码分析。</p>
+    <div class="etm-actions"><button id="etm-retry">重新检测服务</button><a id="etm-open" href="http://127.0.0.1:8878/#etm" target="_blank" rel="noopener">打开本地 ETM 工作台</a><a href="docs/etm-integration.md" target="_blank" rel="noopener">启动与使用说明</a></div>
+  </div>
+  <iframe id="etm-frame" title="ETM 执行轨迹" allow="usb" hidden></iframe>
+</section>
+<section class="panel active" id="tab-serial">
+  <div class="ws">
+    <aside class="side">
+      <fieldset>
+        <legend>串口</legend>
+        <label class="row"><span>端口</span>
+          <select id="s-port"></select>
+        </label>
+        <div class="row btnrow">
+          <button id="s-pick" title="选择串口（浏览器会弹授权框，第一次必须手动选一次）">选择…</button>
+          <button id="s-scan" title="刷新已授权端口列表">刷新</button>
+        </div>
+        <label class="row"><span>波特率</span>
+          <input id="s-baud" list="baud-list" value="115200" inputmode="numeric">
+          <datalist id="baud-list">
+            <option>9600</option><option>19200</option><option>38400</option><option>57600</option>
+            <option>115200</option><option>230400</option><option>460800</option><option>921600</option>
+            <option>1000000</option><option>1500000</option><option>2000000</option>
+            <option>4000000</option><option>8000000</option><option>10000000</option><option>20000000</option><option>25000000</option><option>30000000</option>
+          </datalist>
+        </label>
+        <label class="row"><span>数据位</span>
+          <select id="s-databits"><option>8</option><option>7</option><option>6</option><option>5</option></select>
+        </label>
+        <label class="row"><span>停止位</span>
+          <select id="s-stopbits"><option value="1">1</option><option value="2">2</option></select>
+        </label>
+        <label class="row"><span>校验</span>
+          <select id="s-parity">
+            <option value="none">无</option><option value="even">偶</option><option value="odd">奇</option>
+          </select>
+        </label>
+        <label class="row"><span>流控</span>
+          <select id="s-flow">
+            <option value="none">无</option><option value="hardware">硬件 RTS/CTS</option>
+          </select>
+        </label>
+        <div class="row sigrow">
+          <label><input type="checkbox" id="s-dtr"> DTR</label>
+          <label><input type="checkbox" id="s-rts"> RTS</label>
+        </div>
+        <div class="row btnrow">
+          <button id="s-open" class="primary">连接</button>
+          <button id="s-close" disabled>断开</button>
+        </div>
+        <p class="hint" id="s-note">浏览器只支持校验 无/偶/奇（Web Serial 限制）。</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>快捷发送</legend>
+        <div id="s-quick"></div>
+        <button id="s-quick-add" class="mini" type="button">＋ 添加快捷发送</button>
+        <p class="hint">按 <b>Alt+1…5</b> 直接发对应的槽位（浏览器占用了 Ctrl+数字，改标签页）。<br>HEX 用空格分隔；内容按「发送」那边选的 ASCII/HEX 与行尾处理。</p>
+      </fieldset>
+    </aside>
+
+    <section class="main">
+      <div class="toolbar">
+        <div class="seg" data-group="rxmode">
+          <button data-v="ascii" class="on">ASCII</button><button data-v="ansi" title="按 ANSI 转义码彩色渲染（像 MobaXterm）：设备发的颜色/光标控制都生效">ANSI</button><button data-v="hex">HEX</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="s-ts"> 时间戳</label>
+        <label class="chk"><input type="checkbox" id="s-tsabs"> 绝对时间</label>
+        <label class="chk"><input type="checkbox" id="s-autoscroll" checked> 自动滚动</label>
+        <label class="chk"><input type="checkbox" id="s-echo"> 显示发送</label>
+        <span class="spacer"></span>
+        <button id="s-pause">暂停</button>
+        <button id="s-clear">清空</button>
+        <button id="s-save">保存数据</button>
+      </div>
+      <pre class="rx" id="s-rx" tabindex="0"></pre>
+      <div class="termbox" id="s-term" hidden></div>
+      <div class="stats">
+        <span>RX <b id="s-rxbytes">0</b> B / <b id="s-rxframes">0</b> 段 · <b id="s-rxrate">0 B/s</b></span>
+        <span>TX <b id="s-txbytes">0</b> B / <b id="s-txframes">0</b> 段 · <b id="s-txrate">0 B/s</b></span>
+        <span class="err" id="s-err"></span>
+        <span class="spacer"></span>
+        <button id="s-record" class="mini" title="把收到的字节直接写进本地文件（不走接收区的 2MB 内存上限），高速采集用">● 记录到文件</button>
+        <label class="chk" title="默认开：每段前加一行 [时:分:秒.毫秒]，存 .txt 给人看；关掉则原样写字节存 .bin（二进制安全，事后解析用）"><input type="checkbox" id="s-record-ts" checked> 记录带时间戳</label>
+        <label class="chk" title="连接成功后自动弹一次保存框开始记录到文件。配合高速自动关显示（>50KB/s 停渲染、收数/记录照常），MicroLink RTT→CDC 这种一上来就猛灌的场景全程无感"><input type="checkbox" id="s-record-auto"> 连接自动记录</label>
+        <button id="s-statclear" class="mini">计数清零</button>
+      </div>
+      <div class="sendbar">
+        <div class="seg" data-group="txmode">
+          <button data-v="ascii" class="on">ASCII</button><button data-v="hex">HEX</button>
+        </div>
+        <label class="chk">行尾
+          <select id="s-eol">
+            <option value="none">无</option>
+            <option value="crlf" selected>\r\n</option>
+            <option value="cr">\r</option>
+            <option value="lf">\n</option>
+          </select>
+        </label>
+        <label class="chk"><input type="checkbox" id="s-timer"> 定时</label>
+        <input id="s-timer-ms" class="num" value="1000" inputmode="numeric" title="周期，毫秒"> ms
+        <span class="spacer"></span>
+        <button id="s-send" class="primary" title="Ctrl+Enter">发送</button>
+      </div>
+      <textarea id="s-tx" class="tx" rows="3" placeholder="在这里输入要发送的内容（Ctrl+Enter 发送；HEX 模式如：01 03 00 00 00 0A C5 CD）"></textarea>
+    </section>
+  </div>
+</section>
+
+<!-- ============================== 终端 ============================== -->
+<section class="panel" id="tab-terminal">
+  <div class="ws">
+    <aside class="side">
+      <fieldset>
+        <legend>终端</legend>
+        <p class="hint" id="t-session">跟随「串口助手」的串口会话（端口与波特率在那边设置）。</p>
+        <label class="row"><span>回显</span>
+          <select id="t-echo">
+            <option value="off">设备回显（默认）</option>
+            <option value="on">本地回显</option>
+            <option value="both">双向</option>
+          </select>
+        </label>
+        <label class="row"><span>回车发送</span>
+          <select id="t-enter">
+            <option value="cr">\r (0x0D)</option>
+            <option value="crlf">\r\n</option>
+            <option value="lf">\n (0x0A)</option>
+          </select>
+        </label>
+        <label class="row"><span>退格发送</span>
+          <select id="t-bs">
+            <option value="del">0x7F (DEL)</option>
+            <option value="bs">0x08 (BS)</option>
+          </select>
+        </label>
+        <label class="row"><span>换行</span>
+          <select id="t-nl">
+            <option value="auto">自动补回车（\n → \r\n）</option>
+            <option value="raw">原样（\n 只换行）</option>
+          </select>
+        </label>
+        <label class="row"><span>字号</span>
+          <input id="t-font" class="num" value="14" inputmode="numeric"> px
+        </label>
+        <div class="row btnrow">
+          <button id="t-paste" title="从剪贴板粘贴并发送（终端里 Ctrl+V 是发给设备的 0x16）">粘贴并发送</button>
+        </div>
+        <div class="row btnrow">
+          <button id="t-clear">清屏</button>
+          <button id="t-save">保存输出</button>
+        </div>
+        <p class="hint">选中即复制（Ctrl+Shift+C）；Ctrl+Shift+V 粘贴；Ctrl+Shift+L 清屏。</p>
+        <p class="hint">RTT→CDC 转发（akaLinkPro）在「<b>RTT 转发</b>」那一页。</p>
+      </fieldset>
+    </aside>
+    <section class="main">
+      <div class="toolbar"><span id="t-status">未连接</span></div>
+      <div class="termbox" id="t-term"></div>
+    </section>
+  </div>
+</section>
+
+<!-- =========================== RTT Viewer =========================== -->
+<section class="panel" id="tab-rtt">
+  <div class="ws">
+    <aside class="side">
+      <fieldset>
+        <legend>调试后端</legend>
+        <label class="row"><span>类型</span>
+          <select id="r-backend">
+            <option value="webusb">WebUSB · CMSIS-DAP（零安装）</option>
+            <option value="bridge-openocd">本地桥 · OpenOCD</option>
+            <option value="bridge-jlink">本地桥 · J-Link（ch0）</option>
+            <option value="mock">内置模拟目标（演示/自测）</option>
+          </select>
+        </label>
+        <div id="r-webusb-box">
+          <div class="row btnrow">
+            <button id="r-usb-connect" class="primary">连接探针</button>
+            <button id="r-usb-pick" title="换一个探针（会弹浏览器设备选择框）">换设备…</button>
+            <button id="r-usb-disconnect" disabled>断开</button>
+          </div>
+          <label class="row"><span>目标类型</span>
+            <select id="r-target" title="零安装通路的两种目标：ARM/Cortex-M 走 SWD + AHB-AP（浏览器里做 ADIv5）；RISC-V（HPM 等）走 JTAG + DMI + SBA 系统总线读。两者都只用 WebUSB，不需要装驱动">
+              <option value="swd">SWD / ARM（Cortex-M，默认）</option>
+              <option value="riscv">RISC-V / JTAG（HPM、CH32V…）</option>
+            </select>
+          </label>
+          <label class="row"><span>SWD 时钟</span>
+            <select id="r-usb-clock" title="SWD 时钟：自动 = 从高到低试到通为止；RISC-V/JTAG 下它是 JTAG TCK 频率（DAP_SWJ_Clock），同样留「自动」即可">
+              <option value="0">自动</option>
+              <option value="1000">1 MHz</option>
+              <option value="5000">5 MHz</option>
+              <option value="10000">10 MHz</option>
+              <option value="20000">20 MHz</option>
+              <option value="30000">30 MHz</option>
+              <option value="40000">40 MHz</option>
+              <option value="45000">45 MHz</option>
+              <option value="50000">50 MHz</option>
+              <option value="60000">60 MHz</option>
+            </select>
+          </label>
+          <label class="chk"><input type="checkbox" id="r-usb-all"> 显示所有 USB 设备（非 DAPLink）</label>
+          <p class="hint">支持 CMSIS-DAP v2（bulk）探针：DAPLink、自制 cherrydap 等。<br>J-Link 探针不支持 WebUSB，请改用本地桥。</p>
+        </div>
+        <div id="r-bridge-box" hidden>
+          <label class="row"><span>桥地址</span><input id="r-bridge-url" value="ws://127.0.0.1:17321"></label>
+          <!-- J-Link（本地桥 · J-Link ch0）专用两格：原来这两个值只躺在 localStorage 里，页面上没入口。
+               device 是给 J-Link 的器件名；speed 是 SWD 时钟 kHz（50000 = 50MHz，J-Link PRO + F103 实测可用）。 -->
+          <div id="r-jlink-box" hidden>
+            <label class="row"><span>器件</span>
+              <input id="r-jlink-device" value="STM32F103C8" title="给 J-Link 的器件名（如 STM32F103C8 / STM32F103RB / STM32H7B0VB）">
+            </label>
+            <label class="row"><span>SWD kHz</span>
+              <select id="r-jlink-speed" title="SWD 时钟（J-Link）：50000 = 50MHz（J-Link PRO + STM32F103RB 实测可用）">
+                <option value="1000">1 MHz</option>
+                <option value="5000">5 MHz</option>
+                <option value="10000">10 MHz</option>
+                <option value="20000">20 MHz</option>
+                <option value="30000">30 MHz</option>
+                <option value="40000">40 MHz</option>
+                <option value="45000">45 MHz</option>
+                <option value="50000" selected>50 MHz</option>
+                <option value="60000">60 MHz</option>
+              </select>
+            </label>
+            <label class="chk"><input type="checkbox" id="r-jlink-fast"> 高速只读（JLinkRTTLogger）</label>
+            <p class="hint">勾上走 JLinkRTTLogger 直写日志（实测 ~1463 KB/s）；不勾走桥自启的 GDB server telnet（全双工，但它的 RTT 轮询节奏把上限压在 ~565 KB/s）。<br>代价：高速模式<b>只读</b>，下方发送框不能向下发数据。</p>
+          </div>
+          <div class="row cfgrow" id="r-ocd-custom-cfgs-row" hidden><span>cfg 文件</span>
+            <input id="r-ocd-cfgs" title="逗号/空格分隔，按顺序加载。相对 OpenOCD scripts 目录或绝对路径。第一个 cfg 是 cmsis-dap 时会自动加 backend usb_bulk">
+            <button id="r-ocd-cfgs-pick" type="button" title="列出桥所在机器的 OpenOCD cfg 让你挑（浏览器拿不到本地文件路径，所以列表由桥提供）">选择…</button>
+          </div>
+          <p class="hint" id="r-ocd-cfgs-hint" hidden>如 <code>interface/cmsis-dap.cfg, target/stm32f4x.cfg</code>（点「选择…」从列表挑，或直接手填）</p>
+          <label class="row" id="r-ocd-custom-speed-row" hidden><span>SWD kHz</span>
+            <select id="r-ocd-speed">
+              <option value="">不设（默认）</option>
+              <option value="1000">1 MHz</option>
+              <option value="5000">5 MHz</option>
+              <option value="10000">10 MHz</option>
+              <option value="20000">20 MHz</option>
+              <option value="30000">30 MHz</option>
+              <option value="40000">40 MHz</option>
+              <option value="45000">45 MHz</option>
+              <option value="50000">50 MHz</option>
+              <option value="60000">60 MHz</option>
+            </select>
+          </label>
+          <div class="row btnrow">
+            <button id="r-bridge-connect" class="primary">连接桥</button>
+            <button id="r-bridge-disconnect" disabled>断开</button>
+          </div>
+          <p class="hint">零安装模式不需要桥；要用 J-Link / OpenOCD 时再双击仓库里的 <code>bridge/start-bridge.bat</code>。<br>芯片在上方「RTT 控制块 → 芯片」里选；列表外选「自定义 cfg…」直接填 cfg。</p>
+        </div>
+        <div id="r-mock-box" hidden>
+          <p class="hint">模拟目标：内存里放一个假的 RTT 控制块，每 200ms 吐一行日志，用来演示与自测。</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>RTT 控制块</legend>
+        <!-- 芯片：**一个下拉、两个组**（原来按目标类型显示两个下拉，用户 2026-09-30 要求合并）。
+             组归属由 <optgroup data-arch> 决定（view.js 只读 DOM，不维护第二份名单）：
+               · ARM 组：WebUSB 通路固定走 SWD；桥（OpenOCD/J-Link）那条路用哪条传输由你的 cfg 决定
+                 —— **ARM 也能走 JTAG**，所以这里不写死"ARM=SWD"；
+               · RISC-V 组：**只能 JTAG**（选中它会把「目标类型」自动切到 RISC-V/JTAG）。
+             每一组各自记住上次选的那颗（rtt.ocdTarget / rtt.rvChip），来回切不会丢。 -->
+        <label class="row" id="r-chip-row"><span>芯片</span>
+          <select id="r-chip" title="ARM：WebUSB 走 SWD，桥侧走 SWD 还是 JTAG 由你的 OpenOCD cfg 决定；RISC-V：只能 JTAG。换芯片在这里选，RAM 扫描范围自动带出（可手改）。走「本地桥 · OpenOCD」时 ARM 组的名字同时是 OpenOCD 的目标 cfg；零安装 WebUSB 模式只用到 RAM 范围。列表外的芯片选 ARM 组的「自定义 cfg…」">
+            <optgroup label="ARM / Cortex-M（WebUSB 走 SWD · 桥侧 SWD 或 JTAG 由 cfg 定）" data-arch="arm">
+              <option value="stm32f103">STM32F1（F103 等）</option>
+              <option value="stm32f0">STM32F0</option>
+              <option value="stm32f2">STM32F2</option>
+              <option value="stm32f3">STM32F3</option>
+              <option value="stm32f4">STM32F4</option>
+              <option value="stm32f7">STM32F7</option>
+              <option value="stm32g0">STM32G0</option>
+              <option value="stm32g4">STM32G4</option>
+              <option value="stm32h7">STM32H7（H743 等）</option>
+              <option value="stm32h7b0">STM32H7B0 / H7A3 / H7B3（H7B0VBT6 KIT）</option>
+              <option value="stm32h7a3">STM32H7A3</option>
+              <option value="stm32h7b3">STM32H7B3</option>
+              <option value="stm32h5">STM32H5</option>
+              <option value="stm32l0">STM32L0</option>
+              <option value="stm32l1">STM32L1</option>
+              <option value="stm32l4">STM32L4 / L4+</option>
+              <option value="stm32l5">STM32L5</option>
+              <option value="stm32u5">STM32U5</option>
+              <option value="stm32c0">STM32C0</option>
+              <option value="stm32wb">STM32WB</option>
+              <option value="stm32wl">STM32WL</option>
+              <option value="esp32s31">ESP32-S31（板载 USB-JTAG）</option>
+              <option value="esp32">ESP32（Wrover Kit）</option>
+              <option value="custom">自定义 cfg…</option>
+            </optgroup>
+            <optgroup label="RISC-V（只能 JTAG · 控制块要在非缓存区）" data-arch="riscv">
+              <option value="riscv-other">其它 RISC-V（自己填 RAM 范围）</option>
+            </optgroup>
+          </select>
+        </label>
+        <p class="hint" id="r-chip-note">RISC-V 的控制块要放<b>非缓存</b>内存（探针的 SBA 读不旁路 D-cache，放可缓存区会读到陈旧值）—— 窗口按各系列链接脚本推导，<b>以你的链接脚本为准</b>；最稳的是点「载入 ELF…」用 <code>_SEGGER_RTT</code> 直接定地址。</p>
+        <label class="row"><span>RAM 范围</span><input id="r-range" value="0x20000000-0x20020000"></label>
+        <label class="row"><span>地址</span><input id="r-addr" placeholder="留空 = 自动扫描 / 读 ELF"></label>
+        <div class="row btnrow">
+          <button id="r-elf">载入 ELF…</button>
+          <button id="r-find">扫描控制块</button>
+        </div>
+        <label class="row"><span>轮询</span><input id="r-poll" class="num" value="5" inputmode="numeric"> ms</label>
+        <div class="row btnrow">
+          <button id="r-reset">复位目标</button>
+          <button id="r-restart">重连 RTT</button>
+        </div>
+      </fieldset>
+    </aside>
+
+    <section class="main">
+      <div class="toolbar">
+        <div class="seg" data-group="rttmode">
+          <button data-v="term" class="on">终端(ANSI)</button><button data-v="text">文本</button><button data-v="hex">HEX</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="r-ts"> 时间戳</label>
+        <label class="chk"><input type="checkbox" id="r-autoscroll" checked> 自动滚动</label>
+        <span class="spacer"></span>
+        <button id="r-pause">暂停</button>
+        <button id="r-clear">清空</button>
+        <button id="r-save">保存数据</button>
+      </div>
+      <div class="rttbox">
+        <div class="termbox" id="r-term" hidden></div>
+        <div class="rtt-empty" id="r-empty" hidden>等待 RTT 输出…<br>连接探针并选择 RTT 通道后，目标输出会显示在这里。</div>
+        <pre class="rx" data-empty="连接探针并选择 RTT 通道后，这里显示目标输出。" id="r-rx"></pre>
+      </div>
+      <div class="stats">
+        <span>控制块 <b id="r-cb">—</b> · up × <b id="r-up">0</b> / down × <b id="r-down">0</b></span>
+        <span class="stat-group"><span class="stat-caption">链路</span>读取 <b id="r-rate">0 B/s</b> · 轮询 <b id="r-hz">0</b> Hz</span>
+        <span class="stat-group"><span class="stat-caption">缓冲</span>高位 <b id="r-full">0 次 / 峰值 0%</b> · 溢出丢弃 <b id="r-lost">0</b> B · 错位读 <b id="r-corrupt" title="读回了控制块等错误地址的内容（已整段丢弃重读，不进显示/文件）。持续增长说明 SWD 时钟太高或不稳定">0</b></span>
+        <span class="spacer"></span>
+        <button id="r-record" class="mini" title="把读到的 RTT 上行字节直接写进本地文件（不走记录的 2MB 内存上限），高速采集用">● 记录到文件</button>
+        <label class="chk" title="默认开：每段前加一行 [时:分:秒.毫秒]，存 .txt 给人看；关掉则原样写字节存 .bin（二进制安全，事后解析用）"><input type="checkbox" id="r-record-ts" checked> 记录带时间戳</label>
+        <label class="chk" title="连接成功后自动弹一次保存框开始记录到文件。配合高速自动关显示（>50KB/s 停渲染、收数/记录照常）"><input type="checkbox" id="r-record-auto"> 连接自动记录</label>
+        <span class="err" id="r-err"></span>
+      </div>
+      <div class="sendbar">
+        <span class="lbl" id="r-chlabel">下行 ch0</span>
+        <label class="chk">行尾
+          <select id="r-eol">
+            <option value="cr" selected>\r</option><option value="crlf">\r\n</option>
+            <option value="lf">\n</option><option value="none">无</option>
+          </select>
+        </label>
+        <label class="chk"><input type="checkbox" id="r-hexsend"> HEX</label>
+        <input id="r-tx" class="rtt-in" placeholder="给固件发送输入（↑/↓ 翻历史；Enter 发送）">
+        <button id="r-send" class="primary">发送</button>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ================== RTT 转发（akaLinkPro 探针侧 RTT→CDC，纯输出） ================== -->
+<section class="panel" id="tab-rttcdc">
+  <div class="ws">
+    <aside class="side">
+      <fieldset>
+        <legend>探针 · RTT → CDC</legend>
+        <div class="row btnrow">
+          <button id="h-connect" class="primary" title="连接已授权探针；首次使用或有多个探针时弹出设备选择框">连接探针</button>
+          <button id="h-disconnect" title="先停止探针侧 RTT 转发，再关闭 HID 连接；CDC 串口由串口页单独管理" disabled>关闭探针</button>
+        </div>
+        <p class="hint" id="h-info">未连接</p>
+        <label class="row"><span>RTT 地址</span>
+          <input id="h-addr" value="0x20000000" title="控制块搜索起点。Cortex-M7（H743 / H7B3 等）的 DTCM 探针读不到，要给 AXI SRAM（如 0x24000000）">
+        </label>
+        <div class="row btnrow">
+          <button id="h-elf" title="从 ELF 里读 _SEGGER_RTT 符号，顺手把搜索长度收成 0x1000">载入 ELF…</button>
+        </div>
+        <label class="row"><span>搜索长度</span>
+          <input id="h-size" class="num" value="0" title="0 = 探针默认 64 KB（从上面的地址起搜）">
+        </label>
+        <label class="row"><span>通道</span>
+          <input id="h-chan" class="num" value="0" title="RTT 上行通道号，0 = channel 0">
+        </label>
+        <label class="row"><span>目标类型</span>
+          <select id="h-target" title="探针的全局目标类型（HID 0x31 action 10）。SWD/ARM 走 DAPLink 的 swd_host；RISC-V/JTAG 走探针里的 DMI+SBA 引擎（TAP 复位 + IR=0x11 + 唤醒 DM）。粘性：设一次就一直有效，采样器那个后端也跟着它走">
+            <option value="swd">SWD / ARM</option>
+            <option value="riscv">RISC-V / JTAG</option>
+          </select>
+        </label>
+        <label class="row"><span>SWD 时钟</span>
+          <select id="h-clock" title="运行时调参（HID 0x31 action 7），改完立刻生效"></select>
+        </label>
+        <div class="row btnrow">
+          <button id="h-start" class="primary">启动转发</button>
+          <button id="h-stop">停止</button>
+        </div>
+        <div class="row btnrow">
+          <button id="h-auto" title="让探针自己从 0x20000000 起扫 64 KB 找 &quot;SEGGER RTT&quot; 签名">自动搜控制块</button>
+          <button id="h-refresh">刷新状态</button>
+        </div>
+        <p class="hint" id="h-state">未启动</p>
+        <p class="hint">探针只在 DAP 空闲 ≥20 ms 时轮询目标，正常调试会话不受影响。</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>接收（探针的 CDC 口）</legend>
+        <label class="row"><span>端口</span>
+          <select id="c-port"></select>
+        </label>
+        <div class="row btnrow">
+          <button id="c-pick" title="选择串口（浏览器会弹授权框，第一次必须手动选一次）">选择…</button>
+          <button id="c-scan" title="刷新已授权端口列表">刷新</button>
+        </div>
+        <label class="row"><span>波特率</span>
+          <input id="c-baud" class="num" value="115200" inputmode="numeric" title="CDC 虚拟串口不按波特率跑，填什么都行">
+        </label>
+        <div class="row btnrow">
+          <button id="c-open" class="primary">连接</button>
+          <button id="c-close" disabled>断开</button>
+        </div>
+        <p class="hint" id="c-note">启动转发后点「连接」打开探针那个 CDC 口，数据就会出现在右边。</p>
+      </fieldset>
+    </aside>
+
+    <section class="main">
+      <div class="toolbar">
+        <div class="seg" data-group="crxmode">
+          <button data-v="ascii" class="on">ASCII</button><button data-v="ansi" title="按 ANSI 转义码彩色渲染（像 MobaXterm）">ANSI</button><button data-v="hex">HEX</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="c-ts"> 时间戳</label>
+        <label class="chk"><input type="checkbox" id="c-tsabs"> 绝对时间</label>
+        <label class="chk"><input type="checkbox" id="c-autoscroll" checked> 自动滚动</label>
+        <span class="flush hint">纯输出页：没有发送功能</span>
+        <span class="spacer"></span>
+        <button id="c-save" title="把接收区里的数据存成 txt（按当前 ASCII/HEX 与时间戳设置）">保存数据</button>
+        <button id="c-pause">暂停</button>
+        <button id="c-clear">清空</button>
+      </div>
+      <pre class="rx" id="c-rx" tabindex="0"></pre>
+      <div class="termbox" id="c-term" hidden></div>
+      <div class="stats">
+        <span>RX <b id="c-rxbytes">0</b> B / <b id="c-rxframes">0</b> 段 · <b id="c-rxrate">0 B/s</b> · 缓冲 <b id="c-buf">0 B</b></span>
+        <span class="err" id="c-err"></span>
+        <span class="spacer"></span>
+        <button id="c-record" class="mini" title="把收到的字节直接写进本地文件（不走接收区 2MB 上限），高速采集用">● 记录到文件</button>
+        <label class="chk" title="默认开：每段前加一行 [时:分:秒.毫秒]，存 .txt 给人看；关掉则原样写字节存 .bin（二进制安全）"><input type="checkbox" id="c-record-ts" checked> 记录带时间戳</label>
+        <label class="chk" title="连接成功后自动弹一次保存框开始记录。配合高速自动关显示（>100KB/s 停渲染、收数/记录照常），一上来就猛灌的场景全程无感"><input type="checkbox" id="c-record-auto"> 连接自动记录</label>
+        <button id="c-statclear" class="mini">计数清零</button>
+        <button id="c-quality" class="mini">质量</button>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ============================ J-Scope 波形 ============================ -->
+<section class="panel" id="tab-scope" data-workspace="scope">
+  <div class="ws">
+    <aside class="side tool-side" data-sidebar-tabs="scope">
+      <nav class="tool-side-tabs" role="tablist" aria-label="侧栏设置">
+        <button type="button" id="sc-side-capture-tab" role="tab" aria-controls="sc-side-capture-panel" aria-selected="true" tabindex="0" data-side-tab="capture">采集</button>
+        <button type="button" id="sc-side-variables-tab" role="tab" aria-controls="sc-side-variables-panel" aria-selected="false" tabindex="-1" data-side-tab="variables">变量</button>
+        <button type="button" id="sc-side-trigger-tab" role="tab" aria-controls="sc-side-trigger-panel" aria-selected="false" tabindex="-1" data-side-tab="trigger">触发</button>
+        <button type="button" id="sc-side-help-tab" role="tab" aria-controls="sc-side-help-panel" aria-selected="false" tabindex="-1" data-side-tab="help">帮助</button>
+      </nav>
+      <div id="sc-side-capture-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="sc-side-capture-tab" data-side-panel="capture">
+        <fieldset>
+        <legend>连接</legend>
+        <div class="row btnrow">
+          <button id="sc-connect" class="primary" title="连接已授权探针；首次使用或连接失败时弹出设备选择框">连接探针</button>
+          <button id="sc-disconnect" title="停止采样并关闭 HID 配置连接和 USB 数据端点；不关闭目标电源" disabled>关闭探针</button>
+        </div>
+        <p class="hint" id="sc-info">未连接</p>
+        <label class="chk" title="不需要硬件：波形由页面确定性生成（f32 正弦 / i32 计数 / i16 方波 / f64 斜坡…），用来看界面、试触发、试导出"><input type="checkbox" id="sc-mock"> 模拟探针</label>
+        <div class="row btnrow">
+          <button id="sc-usb" title="WebUSB 认领 interface 0，走那个空闲的 bulk IN 端点 0x83">连接数据端点…</button>
+        </div>
+        <p class="hint" id="sc-usbinfo">未连接数据端点（假探针模式不需要）</p>
+      </fieldset>
+
+        <fieldset>
+        <legend>采样</legend>
+        <label class="row"><span>周期</span><input id="sc-period" class="num" value="100" inputmode="decimal" title="µs，可填 2.25 / 2.5 / 2.75；小数周期需新版探针固件，按 24 MHz tick 量化"><em class="unit">µs</em></label>
+        <label class="row"><span>时长</span><input id="sc-seconds" class="num" value="20" inputmode="numeric" title="缓冲容量 = 实测速率 × 时长（页面会显示占多少内存）"><em class="unit">s</em></label>
+        <label class="row" id="sc-target-row"><span>目标类型</span>
+          <select id="sc-target" title="探针的全局目标类型（HID 0x31 action 10，与 RTT-over-JTAG 共用同一个开关）。粘性：设一次就一直有效。切到 RISC-V/JTAG 后本页后端也跟着换（探针侧采样器的传输后端 = 全局目标类型）">
+            <option value="swd">SWD / ARM</option>
+            <option value="riscv">RISC-V / JTAG</option>
+          </select></label>
+        <p class="hint" id="sc-backend">生效后端：未开始（采样后由探针回报）</p>
+        <label class="row" id="sc-clock-row"><span>SWD 时钟</span><select id="sc-clock" title="与 RTT Viewer 同款档位；固件自带失败自动降档"></select></label>
+        <label class="chk" title="采样期间自动暂停 CDC/串口桥（HID 0x32 flags bit5）。探针主循环每轮服务那个桥要花几百周期，关掉能多出约 8% 采样带宽；代价是采样时探针的 COM 口不通（停采样自动恢复，只恢复自己关过的那一次）"><input type="checkbox" id="sc-cdcoff" checked> 采样时暂停串口桥</label>
+        <label class="chk" title="SWD 单字 span：2µs 档每次最多64拍并可跨包；其他≤3µs 档最多16拍、包边界返回。取消可做 A/B 测试，旧固件按自身能力处理"><input type="checkbox" id="sc-batch" checked> 单字短批次</label>
+
+        <div class="row btnrow">
+          <button id="sc-bench" title="让探针用当前计划空跑一段，回报真实 µs/样本（M0 标定；假探针会假装一个结果）">标定真实速率</button>
+          <button id="sc-recc" title="按当前计划的有效标定：SWD 取读取耗时×1.15+1µs，JTAG 取×1.5，向上取整且不小于3µs；这是起始建议，稳定性以实采计数为准">用建议周期</button>
+        </div>
+        <p class="hint" id="sc-rate-advice" role="status" aria-live="polite">选好变量后会显示建议起始频率</p>
+        <details class="helpnote"><summary>读计划与速率估算</summary><p class="hint" id="sc-rate-detail"></p><p class="hint" id="sc-plan">选好变量后会显示读计划与预计上限</p></details>
+
+      </fieldset>
+      </div>
+      <div id="sc-side-variables-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="sc-side-variables-tab" data-side-panel="variables" hidden>
+        <fieldset>
+        <legend>变量 · 最多 8 路</legend>
+        <div class="row btnrow">
+          <button id="sc-elf" title="解析 .elf 的 DWARF：全局/静态变量、结构体成员，以及按下标添加数组元素">载入 ELF…</button>
+          <button id="sc-varclear">清空勾选</button>
+        </div>
+        <p class="hint" id="sc-elfinfo">未载入（也可以用假探针自带的 8 个通道）</p>
+        <details class="helpnote"><summary>添加数组元素</summary>
+        <label class="row"><span>数组元素</span><input id="sc-arraypath" list="sc-arrayexamples" placeholder="数组[0] 或 数组[0].成员" autocomplete="off"></label>
+        <datalist id="sc-arrayexamples"></datalist>
+        <div class="row btnrow"><button id="sc-arrayadd">添加元素</button></div>
+        <p class="hint" id="sc-arrayinfo">载入 ELF 后，可按下标添加数组元素；二维数组用 [0][0]。</p>
+        </details>
+        <label class="row"><span>搜索</span><input id="sc-search" placeholder="变量名…"></label>
+        <div class="varlist" id="sc-vars"></div>
+        <p class="hint" id="sc-count">已选 0 / 8</p>
+      </fieldset>
+      </div>
+      <div id="sc-side-trigger-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="sc-side-trigger-tab" data-side-panel="trigger" hidden>
+        <fieldset>
+        <legend>触发</legend>
+        <label class="row"><span>模式</span><select id="sc-trig-mode"></select></label>
+        <label class="row"><span>通道</span><select id="sc-trig-ch"></select></label>
+        <label class="row"><span>阈值</span><input id="sc-trig-level" class="num" value="0"></label>
+        <label class="row"><span>预触发</span><input id="sc-trig-pre" class="num" value="200" inputmode="numeric"><em class="unit">样本</em></label>
+        <label class="row"><span>后触发</span><input id="sc-trig-post" class="num" value="800" inputmode="numeric"><em class="unit">样本</em></label>
+        <label class="chk"><input type="checkbox" id="sc-trig-single" checked> 单次（命中后不再重复报）</label>
+        <div class="row btnrow">
+          <button id="sc-trig-find" title="在已经采到的数据里重新找下一个命中点 —— 改个阈值就能立刻重新定位，不用重采">查找下一个</button>
+          <button id="sc-trig-clear">清除触发</button>
+        </div>
+        <p class="hint" id="sc-trig-state">未命中</p>
+      </fieldset>
+      </div>
+      <div id="sc-side-help-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="sc-side-help-tab" data-side-panel="help" hidden>
+        <div class="hint sidebar-help-intro">参数、接线与排障说明</div>
+      </div>
+      <div class="tool-side-actions" aria-label="运行控制">
+<div class="row btnrow">
+          <button id="sc-start" class="primary">开始采样</button>
+          <button id="sc-stop" disabled>停止</button>
+        </div>
+<p class="hint" id="sc-state">未开始</p>
+      </div>
+    </aside>
+
+    <section class="main">
+      <div class="toolbar">
+        <div class="seg" role="group" aria-label="视图缩放">
+          <button id="sc-fit" title="全览（也支持双击画布）">全览</button>
+          <button id="sc-zin" title="放大（滚轮也行）">放大</button>
+          <button id="sc-zout">缩小</button>
+          <button id="sc-zoompts" title="把视窗缩到「每列约 1 个采样点」—— 这时画的是连起来的采样点折线（不是包络带）；看慢信号（比如 100 Hz 正弦）的波形形状用这个">细看</button>
+        </div>
+        <div class="seg" data-group="sclayout" title="叠加 = 所有通道画在同一片区域（量程差异大时会糊在一起）；分道 = 每个通道一条横带、各自独立的 Y 轴（多通道混合单位推荐）">
+          <button data-v="overlay" class="on">叠加</button><button data-v="lanes">分道</button>
+        </div>
+        <label class="chk" title="叠加模式下：所有通道共用一个 Y 轴量程；关掉则每个通道各自自适应。（分道模式下每路天生就是自己的量程）"><input type="checkbox" id="sc-shared"> 共用 Y 轴</label>
+        <label class="chk" title="把原始 512 B 包另存一份，可离线回放（也方便把现场数据留给排查）"><input type="checkbox" id="sc-raw"> 记录原始包</label>
+        <span class="spacer"></span>
+        <button id="sc-mark-clear" title="清除测量游标 A/B（Esc 也行）">清游标</button>
+        <button id="sc-csv" title="按当前缓冲导出 CSV（分块生成，长采集也不会卡死）">导出 CSV</button>
+        <button id="sc-save" title="把记录的原始包存成 .jsp（可以离线回放）">保存原始</button>
+        <button id="sc-open" title="打开 .jsp 回放 —— 不用连硬件也能看波形/调触发">打开回放</button>
+        <button id="sc-clear">清空</button>
+      </div>
+      <div class="plotwrap">
+        <canvas id="sc-canvas"></canvas>
+        <div class="legend" id="sc-legend"></div>
+      </div>
+      <div class="stats">
+        <span>样本 <b id="sc-samples">0</b> · <b id="sc-rate">0 Hz</b> · 包 <b id="sc-packets">0</b> · 丢：探针 <b id="sc-lost">0</b> / USB <b id="sc-lostusb">0</b> / 缺口 <b id="sc-gap">0</b> / 溢出 <b id="sc-over">0</b> · 读错 <b id="sc-readerr">0</b> / 让路 <b id="sc-yields">0</b> · 缓冲 <b id="sc-buf">0%</b> · 内存 <b id="sc-mem">0 B</b> · <b id="sc-mhz">—</b></span>
+        <span class="err" id="sc-err"></span>
+        <span class="spacer"></span>
+        <span class="flush hint" id="sc-window"></span>
+        <span class="flush hint" id="sc-markhint" title="点波形放游标 A，Shift+点放游标 B（两条线之间就是被测间隔）；抓住线可以拖动微调，Esc 或「清游标」清除">点波形放 A · Shift+点放 B · 拖线微调 · Esc 清除</span>
+        <button id="sc-quality" class="mini">质量</button>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ============================ 烧录器 ============================ -->
+<section class="panel" id="tab-flash">
+  <div class="ws">
+    <aside class="side tool-side">
+      <fieldset>
+        <legend>目标与连接</legend>
+        <label class="row"><span>后端</span>
+          <select id="f-backend" title="零安装（默认）：与 RTT 共用探针，直接在浏览器里烧，覆盖 STM32 F0/F1/F4/F7/H7/L0/L4 与 HPM 全系 RISC-V。个别探针固件在 PPB 访问上有兼容问题、或你只想给磁盘路径（不给文件）时，换「本地桥」即可。">
+            <option value="webusb">WebUSB · 零安装（默认）</option>
+            <option value="openocd">本地桥 · OpenOCD</option>
+            <option value="jlink">本地桥 · J-Link</option>
+          </select>
+        </label>
+        <label class="row"><span>芯片</span>
+          <select id="f-chip" title="走本地桥时它就是 OpenOCD 的目标 cfg；列表外的芯片选「自定义 cfg…」"></select>
+        </label>
+        <div class="row btnrow">
+          <button id="f-idcode" title="只读地认目标（不动 flash、不改运行状态）：ARM/SWD 读 DP IDCODE + CPUID + STM32 DBGMCU DEV_ID/REV_ID + flash 容量寄存器；RISC-V/JTAG 读 TAP IDCODE。选错芯片也能读 —— 这个按钮不吃「芯片」那一格（只按后端选 SWD 还是 JTAG）。">读 IDCODE</button>
+        </div>
+      </fieldset>
+      <div class="tool-side-panel">
+        <fieldset>
+          <legend>烧录时钟</legend>
+          <label class="row" id="f-custom-speed-row"><span>时钟</span>
+            <select id="f-speed" title="WebUSB Cortex-M：所选档用于 RAM 数据与 Flash 校验，执行控制保留 1 MHz；本地桥和 RISC-V 使用整体调试时钟。高频传输不稳定时请降低档位。">
+              <option value="">默认（WebUSB 1 MHz）</option>
+              <option value="1000">1 MHz</option>
+              <option value="4000">4 MHz</option>
+              <option value="5000">5 MHz</option>
+              <option value="10000">10 MHz</option>
+              <option value="20000">20 MHz</option>
+              <option value="30000">30 MHz</option>
+              <option value="36000">36 MHz</option>
+              <option value="40000">40 MHz</option>
+              <option value="45000">45 MHz</option>
+              <option value="50000">50 MHz</option>
+              <option value="60000">60 MHz</option>
+            </select>
+          </label>
+        </fieldset>
+        <fieldset id="f-bridge-settings">
+          <legend>本地桥设置</legend>
+          <label class="row"><span>桥地址</span><input id="f-bridge-url" value="ws://127.0.0.1:17321"></label>
+          <div class="row cfgrow" id="f-custom-cfgs-row" hidden><span>cfg 文件</span>
+            <input id="f-cfgs" title="逗号/空格分隔，按顺序加载。相对 OpenOCD scripts 目录或绝对路径">
+            <button id="f-cfgs-pick" type="button" title="列出桥所在电脑的 OpenOCD cfg 让你挑">选择…</button>
+          </div>
+
+          <p class="hint">烧录走仓库里的 <code>bridge/start-bridge.bat</code>（与 RTT 的桥同一个）。</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>固件</legend>
+          <label class="row"><span>路径</span>
+            <input id="f-path" placeholder="桥所在电脑上的 .elf / .hex / .bin 路径">
+          </label>
+          <div class="row btnrow">
+            <button id="f-pick">选择文件…</button>
+          </div>
+          <p class="hint" id="f-file-info">支持 .elf / .hex / .bin：填桥所在电脑上的路径，或点「选择文件…」/ 拖进右侧日志区</p>
+          <label class="row" id="f-base-row" hidden><span>基地址</span>
+            <input id="f-base" class="address" value="0x08000000" title=".bin 没有地址信息，按这里填的地址写入">
+          </label>
+          <label class="chk"><input type="checkbox" id="f-verify" checked> 校验</label>
+          <label class="chk"><input type="checkbox" id="f-reset" checked> 烧录后复位运行</label>
+          <div class="row btnrow">
+            <button id="f-flash" class="primary">烧录</button>
+          </div>
+          <p class="hint">烧录会暂停目标并在完成后复位；烧录前会断开占用探针的 RTT 会话。</p>
+        </fieldset>
+      </div>
+    </aside>
+    <section class="main">
+      <div class="toolbar">
+        <span id="f-status">空闲</span>
+        <progress id="f-bar" value="0" max="100" hidden></progress>
+        <span class="spacer"></span>
+        <button id="f-logclear">清空日志</button>
+      </div>
+      <pre class="rx eventlog" data-empty="烧录、身份读取和复位的进度与结果显示在这里。" id="f-log" tabindex="0"></pre>
+      <div class="stats">
+        <span id="f-result">—</span>
+        <span class="spacer"></span>
+        <span class="hint">.bin 记得核对基地址（默认 0x08000000）</span>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ============================ 调试器 ============================ -->
+<section class="panel" id="tab-dbg" data-workspace="dbg">
+  <div class="ws">
+    <aside class="side">
+      <nav class="d-side-tabs" role="tablist" aria-label="调试器侧栏">
+        <button id="d-side-session-tab" role="tab" aria-selected="true" aria-controls="d-side-session-panel">会话</button>
+        <button id="d-side-breaks-tab" role="tab" aria-selected="false" aria-controls="d-side-breaks-panel" tabindex="-1">断点 <span id="d-side-break-count" class="d-side-count" hidden></span></button>
+        <button id="d-side-frames-tab" role="tab" aria-selected="false" aria-controls="d-side-frames-panel" tabindex="-1">栈帧</button>
+      </nav>
+      <div id="d-side-session-panel" role="tabpanel" aria-labelledby="d-side-session-tab">
+      <fieldset>
+        <legend>连接</legend>
+        <label class="row"><span>后端</span>
+          <select id="d-backend" title="调试连接方式">
+            <option value="webusb">SWD / ARM</option>
+            <option value="riscv">JTAG / RISC-V</option>
+            <option value="mock">模拟目标</option>
+          </select>
+        </label>
+        <label class="row" id="d-hpm-target-row" hidden style="display:none"><span>目标板卡</span>
+          <select id="d-hpm-target" title="选择板卡以使用对应的内存与复位配置"></select>
+        </label>
+        <label class="row"><span>SWD 时钟</span>
+          <select id="d-clock" title="连接后校验通信，必要时降频">
+            <option value="10000">10 MHz（默认）</option>
+            <option value="20000">20 MHz</option>
+            <option value="5000">5 MHz</option>
+            <option value="2000">2 MHz</option>
+            <option value="1000">1 MHz</option>
+            <option value="500">500 kHz</option>
+            <option value="200">200 kHz</option>
+          </select>
+        </label>
+        <div class="row btnrow">
+          <button id="d-connect" class="primary">连接</button>
+          <button id="d-disconnect" disabled>断开</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>符号文件</legend>
+        <div class="row btnrow">
+          <button id="d-elf-pick">载入 ELF…</button>
+          <input type="file" id="d-elf-file" accept=".elf,.axf,.out,.bin" hidden>
+        </div>
+        <p class="hint" id="d-elf-info">未载入 ELF</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>镜像文件</legend>
+        <div class="row btnrow"><button id="d-image-pick" title="授权 load_image 和 dump_image 读写此目录下的镜像文件">选择镜像目录…</button></div>
+        <p class="hint" id="d-image-dir">未选择目录</p>
+        <p class="hint" id="d-image-progress" role="status" aria-live="polite">load_image / dump_image 使用此目录下的相对路径；输入 h 查看用法。</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>目标复位</legend>
+        <div class="row btnrow">
+          <button id="d-reset-halt">复位并停</button>
+          <button id="d-reset-run">复位并跑</button>
+        </div>
+      </fieldset>
+      </div>
+      <div id="d-side-breaks-panel" role="tabpanel" aria-labelledby="d-side-breaks-tab" hidden>
+      <fieldset>
+        <legend>硬件断点 <span id="d-bp-cap" class="hint">未连接</span></legend>
+        <div id="d-bp-list" class="bplist"></div>
+        <div class="row btnrow"><button id="d-bp-clear">清空断点</button></div>
+      </fieldset>
+      <fieldset>
+        <legend>数据观察点</legend>
+        <input id="d-wp-addr" placeholder="变量名 / 地址" aria-label="观察地址或变量">
+        <div class="row btnrow">
+          <select id="d-wp-mode" aria-label="观察访问类型"><option value="w">写入</option><option value="r">读取</option><option value="rw">读写</option></select>
+          <select id="d-wp-size" aria-label="观察字节范围" title="字节范围；地址需按范围对齐"><option>1</option><option>2</option><option selected>4</option><option>8</option><option>16</option><option>32</option><option>64</option></select>
+          <button id="d-wp-add">添加</button><button id="d-wp-clear">清空</button>
+        </div>
+        <div id="d-wp-list" class="bplist"></div>
+      </fieldset>
+      </div>
+      <div id="d-side-frames-panel" role="tabpanel" aria-labelledby="d-side-frames-tab" hidden>
+      <fieldset>
+        <legend>调用栈</legend>
+        <div class="row btnrow"><button id="d-bt">栈回溯</button><button id="d-bt-scan">扫描候选地址</button></div>
+        <div id="d-bt-list" class="bplist" aria-live="polite">未回溯</div>
+        <p class="hint" id="d-bt-status"></p>
+      </fieldset>
+      <fieldset>
+        <legend>局部变量 / 参数</legend>
+        <div id="d-locals" class="bplist" aria-live="polite">未选择栈帧</div>
+      </fieldset>
+      </div>
+    </aside>
+
+    <section class="main">
+      <div class="toolbar">
+        <span id="d-state" class="flag flag-off">未连接</span>
+        <span id="d-pc" class="mono">PC —</span>
+        <span id="d-src-pos" class="mono" title="当前源码位置（停下来 / 单步后更新）">—</span>
+        <span class="spacer"></span>
+        <button id="d-halt" disabled title="暂停目标（Halt）">暂停</button>
+        <button id="d-cont" disabled title="继续运行（F5）—— PC 停在断点上时会先跨过它">继续</button>
+        <button id="d-step" disabled title="单步一条指令（指令级；探针不执行 C_STEP 时自动改用断点单步）">单步</button>
+        <button id="d-step-over" disabled title="单步跳过这一行（源码级，F10）—— 函数调用整行跳过">跳过</button>
+        <button id="d-step-into" disabled title="单步进入（源码级，F11）—— 当前是调用就进被调函数的第一条语句">进入</button>
+        <button id="d-step-out" disabled title="单步跳出（源码级，Shift+F11 / Ctrl+F11）—— 跑到调用点的下一条指令">跳出</button>
+        <label class="chk"><input type="checkbox" id="d-follow-pc" checked> 内存跟随 PC</label>
+      </div>
+
+      <!-- 版式（照着 Ozone 的意思排）：左边「源码 + 命令行」上下分（两块都够大），
+           右边一条**局部 tab** 的面板放寄存器 / 内存 / 变量 / RTT —— 不再平铺成四个小格子。
+           两条分隔条可以拖：左右调面板宽度、上下调命令行高度（尺寸记在 localStorage）。 -->
+      <div class="dbgwork">
+        <div class="dbgleft">
+          <fieldset class="dbgbox dbgsrc" id="d-box-src">
+            <legend>源码
+              <button id="d-src-pick" class="foldbtn" title="用浏览器的目录选择器授权一次工程目录（Chromium；只需选一次，之后按需读文件）">选择源码目录…</button>
+              <input type="file" id="d-src-dir" webkitdirectory directory multiple hidden>
+              <span class="hint mono" id="d-src-file">—</span>
+            </legend>
+            <div id="d-src" class="srclist mono"><div class="hint">（停下来时这里显示 PC 所在的源码行；点行号下/删硬件断点，双击正文 = 运行到这一行）</div></div>
+          </fieldset>
+
+          <div class="grip grip-h" id="d-grip-term" title="拖动：调整命令行高度"></div>
+
+          <fieldset class="dbgbox dbgterm" id="d-box-term">
+            <legend>命令行 <span class="hint" title="Ctrl+C 中断 · Ctrl+L 清屏；更多命令和快捷键输入 h 查看">h 帮助 · Tab 补全 · ↑↓ 历史</span></legend>
+            <div id="d-out" class="log mono"></div>
+            <div class="sendbar terminal">
+              <span class="prompt mono" aria-hidden="true">&gt;</span>
+              <input id="d-cmd" class="mono" placeholder="h / r / md 0x20000000 / b main.c:192 / p g_pack / w g_var / n / si / fin / c" autocomplete="off" spellcheck="false">
+              <button id="d-run" class="primary mini">执行</button>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="grip grip-v" id="d-grip-dock" title="拖动：调整右侧面板宽度"></div>
+
+        <fieldset class="dbgbox dbgdock" id="d-box-dock">
+          <legend>
+            <span class="seg docktabs" id="d-dock-tabs">
+              <button data-dock="regs" class="on">寄存器</button>
+              <button data-dock="mem">内存</button>
+              <button data-dock="var">变量</button>
+              <button data-dock="svd">SVD</button>
+              <button data-dock="rtt">RTT</button>
+              <button data-dock="fault">异常</button>
+            </span>
+          </legend>
+
+          <div class="dockpage on" data-dock="regs">
+            <div class="toolrow nw">
+              <button id="d-reg-refresh" class="mini">刷新</button>
+              <span class="hint">回车即写入（只读位会黄字提醒）</span>
+            </div>
+            <div id="d-regs" class="reglist"></div>
+          </div>
+
+          <div class="dockpage" data-dock="fault">
+            <div class="toolrow">
+              <button id="d-fault-read" class="mini">读取现场</button>
+              <button id="d-fault-json" class="mini" disabled>JSON</button>
+              <button id="d-fault-md" class="mini" disabled>报告</button>
+              <label class="chk" title="ARM：设置 DEMCR.VC_HARDERR；关闭或断开时恢复原位。RISC-V 不支持这个开关。"><input id="d-fault-catch" type="checkbox" disabled> 捕获 HardFault</label>
+            </div>
+            <p class="hint">目标停止后只读诊断；不自动暂停、复位或清除异常。Cortex-M3/M4/M7 与 RV32。</p>
+            <div id="d-fault-result" class="diag-body"><p class="hint">尚未读取异常现场。载入匹配的 ELF 可解析源码和调用栈。</p></div>
+          </div>
+
+          <div class="dockpage" data-dock="mem">
+            <div class="toolrow nw">
+              <span>地址</span><input id="d-mem-addr" class="mono" value="0x20000000">
+              <span>长度</span><input id="d-mem-len" class="num" value="128" inputmode="numeric">
+              <button id="d-mem-read">读</button>
+              <label class="chk"><input type="checkbox" id="d-mem-write-on"> 可写</label>
+            </div>
+            <div id="d-mem" class="hexdump mono"></div>
+            <div class="toolrow nw memedit">
+              <span>改</span><input id="d-mem-ea" class="mono" placeholder="地址">
+              <input id="d-mem-ev" class="mono" placeholder="字节（如 01 或 0x01）">
+              <button id="d-mem-write">写入</button>
+            </div>
+          </div>
+
+          <div class="dockpage" data-dock="var">
+            <div class="toolrow nw">
+              <input id="d-sym-q" class="mono" placeholder="搜符号（变量优先，留空看全部）" autocomplete="off" spellcheck="false">
+            </div>
+            <div id="d-sym-list" class="symlist"><div class="hint">（载入 .elf 后这里列出全局变量/函数；点名字填进命令行，点 ＋ 加监视）</div></div>
+            <div class="toolrow nw">
+              <input id="d-watch-in" class="mono" placeholder="监视：变量名 / main+4 / 0x20000000" autocomplete="off" spellcheck="false">
+              <button id="d-watch-add">加</button>
+            </div>
+            <div id="d-watch-list" class="watchlist"><div class="hint">（还没有监视项：在符号列表点 ＋，或命令行 <code>w 变量</code>；<b>结构体/数组点 ▸ 展开成树</b>；停止时自动刷新）</div></div>
+            <div class="toolrow nw">
+              <button id="d-watch-refresh" class="mini">刷新值</button>
+              <button id="d-watch-clear" class="mini">清空</button>
+              <label class="chk"><input type="checkbox" id="d-watch-live"> 运行中也刷新</label>
+            </div>
+          </div>
+
+          <div class="dockpage" data-dock="svd">
+            <div class="toolrow nw svdtools">
+              <select id="d-svd-bundled" aria-label="内置 SVD 型号"><option value="STM32F103xx">STM32F103</option><option value="STM32H743">STM32H743</option><option value="STM32H750">STM32H750</option></select>
+              <button id="d-svd-default" class="mini">载入内置</button>
+              <button id="d-svd-pick" class="mini">选择 .svd…</button>
+              <input id="d-svd-file" type="file" accept=".svd,.xml,application/xml,text/xml" hidden>
+              <span id="d-svd-info" class="hint">尚未载入 SVD</span>
+            </div>
+            <div class="toolrow nw">
+              <span>外设</span><select id="d-svd-periph" class="mono"><option value="">—</option></select>
+              <span>寄存器</span><select id="d-svd-reg" class="mono"><option value="">—</option></select>
+              <button id="d-svd-read" class="mini">读取</button>
+            </div>
+            <div class="toolrow">
+              <label class="chk"><input id="d-svd-live" type="checkbox" title="仅刷新当前 SVD 寄存器，约每 500 ms；变化约 2 秒后恢复颜色">运行中也刷新</label>
+              <span id="d-svd-auto-note" class="hint" aria-live="polite"></span>
+            </div>
+            <div id="d-svd-reg-info" class="hint mono">载入 SVD 后选择外设和寄存器；读取会使用当前调试会话的 SWD 内存读。</div>
+            <div id="d-svd-value" class="svdvalue mono">—</div>
+            <div id="d-svd-fields" class="svdfields"><div class="hint">（寄存器位域会显示在这里）</div></div>
+          </div>
+
+          <div class="dockpage" data-dock="rtt">
+            <div class="toolrow nw">
+              <button id="d-rtt-locate">定位并开始</button>
+              <button id="d-rtt-stop">停止</button>
+              <button id="d-rtt-clear">清屏</button>
+              <label class="chk"><input type="checkbox" id="d-rtt-on"> 连接后自动开始</label>
+            </div>
+            <div class="toolrow nw"><span>地址</span><input id="d-rtt-addr" class="mono" placeholder="留空 = 用 _SEGGER_RTT 符号"></div>
+            <p class="hint mono" id="d-rtt-sym">（载入 .elf 后这里显示 <code>_SEGGER_RTT</code> 的地址）</p>
+            <pre id="d-rtt" class="rx mono"></pre>
+            <p class="hint" id="d-rtt-info">读的是同一个 RTT 环，目标在跑的时候也能看到 printf。</p>
+          </div>
+        </fieldset>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ============================ SPI / QSPI 屏（探针的 USB→SPI 桥） ============================ -->
+<section class="panel" id="tab-spi">
+  <div class="ws">
+    <aside class="side tool-side" data-sidebar-tabs="spi">
+      <nav class="tool-side-tabs" role="tablist" aria-label="侧栏设置">
+        <button type="button" id="sp-side-connect-tab" role="tab" aria-controls="sp-side-connect-panel" aria-selected="true" tabindex="0" data-side-tab="connect">连接</button>
+        <button type="button" id="sp-side-bus-tab" role="tab" aria-controls="sp-side-bus-panel" aria-selected="false" tabindex="-1" data-side-tab="bus">总线</button>
+        <button type="button" id="sp-side-status-tab" role="tab" aria-controls="sp-side-status-panel" aria-selected="false" tabindex="-1" data-side-tab="status">状态</button>
+        <button type="button" id="sp-side-help-tab" role="tab" aria-controls="sp-side-help-panel" aria-selected="false" tabindex="-1" data-side-tab="help">帮助</button>
+      </nav>
+      <div id="sp-side-connect-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="sp-side-connect-tab" data-side-panel="connect">
+        <fieldset>
+        <legend>连接</legend>
+        <div class="row btnrow">
+          <button id="sp-connect" class="primary" title="连接已授权的探针；首次使用或有多个探针时弹出设备选择框">连接探针</button>
+          <button id="sp-disconnect" title="关闭共享的 HID 配置连接和 USB 数据端点，不关闭目标电源" disabled>关闭探针</button>
+        </div>
+        <p class="hint" id="sp-info">未连接</p>
+        <label class="chk" title="不需要硬件：HID 与数据面共用同一个假探针，可跑通「配置 → 使能 → 发帧 → 应答 → 统计」整条链路"><input type="checkbox" id="sp-mock"> 模拟探针</label>
+        <label class="row" title="假探针的末级器件：SPI 总线上没有器件地址，所以同一时刻只挂一个 —— NOR（回环 + 一颗 W25Q128 模型）/ 寄存器器件（BMP280 风格，给寄存器面板与传感器采集用）/ 命令型 ADC（MCP3008 风格，10 位 8 通道，采样值是活的）"><span>假器件</span>
+          <select id="sp-mock-device">
+            <option value="flash">回环 + NOR（W25Q128）</option>
+            <option value="regs">寄存器器件（BMP280 风格）</option>
+            <option value="adc">命令型 ADC（MCP3008 风格）</option>
+          </select></label>
+        <div class="row btnrow">
+          <button id="sp-usb" title="授权 WebUSB 并认领 SPI 桥接口（class 0xFF + EP11 双向）：OUT 0x0B 发帧、IN 0x8B 收应答。⚠️ 第一次点会弹出浏览器的设备选择框（HID 与 WebUSB 要各授权一次）">连接数据端点…</button>
+        </div>
+        <label class="row"><span>在飞读</span><input id="sp-inflight" class="num" value="4" inputmode="numeric" title="同时在飞的 IN 读条数（连接数据端点时生效）"></label>
+        <p class="hint" id="sp-usbinfo">未连接数据端点（假探针模式不需要）</p>
+
+      </fieldset>
+      </div>
+      <div id="sp-side-bus-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="sp-side-bus-tab" data-side-panel="bus" hidden>
+        <fieldset>
+        <legend>总线配置</legend>
+        <label class="row"><span>SCLK</span><select id="sp-sclk" title="5301EVKLite 上限 75 MHz。固件按模块时钟整数分频，实际生效值可能不等于请求值 —— 下面「实际 SCLK」会回读"></select></label>
+        <p class="hint">实际 SCLK <b id="sp-sclk-actual">—</b></p>
+        <label class="row"><span>模式</span><select id="sp-mode" title="标准 SPI 模式号 = CPOL&lt;&lt;1 | CPHA。CPHA=0 在前导沿采样（SCLK 空闲低时=上升沿）；屏一般要 mode 0">
+          <option value="0">0 · 低空闲 · 前沿采样</option>
+          <option value="1">1 · 低空闲 · 后沿采样</option>
+          <option value="2">2 · 高空闲 · 前沿采样</option>
+          <option value="3">3 · 高空闲 · 后沿采样</option>
+        </select></label>
+        <label class="row"><span>CS 策略</span><select id="sp-cs" title="按固件实现：0/2 = PB10 作 GPIO CS（软件拉/放）、1 = 辅助脚作 GPIO CS、3 = 硬件 CS0。proto.h 的注释在这条上是反的"></select></label>
+        <label class="row"><span>DMA 阈值</span><input id="sp-thr" class="num" value="100" inputmode="numeric" title="数据相位 ≥ 阈值走 DMA。⚠️ 当前固件是 P1：全部走轮询（tx_dma 恒 0），这个值先存着"></label>
+        <label class="chk"><input type="checkbox" id="sp-clear" checked> 使能时先清环 / 复位状态机</label>
+        <div class="row btnrow">
+          <button id="sp-get">读取配置</button>
+          <button id="sp-set" class="">写入配置</button>
+        </div>
+        <p class="hint" id="sp-ring">OUT/IN 环大小：连接后回读</p>
+      </fieldset>
+
+        <fieldset>
+        <legend>引脚设置</legend>
+        <label class="row"><span>DC</span><select id="sp-pad-dc"></select></label>
+        <label class="row"><span>RST</span><select id="sp-pad-rst"></select></label>
+        <label class="row"><span>BL</span><select id="sp-pad-bl"></select></label>
+        <div class="row">
+          <label class="chk"><input type="checkbox" id="sp-al-dc"> DC 低有效</label>
+          <label class="chk"><input type="checkbox" id="sp-al-rst" checked> RST 低有效</label>
+        </div>
+        <div class="row">
+          <label class="chk"><input type="checkbox" id="sp-al-bl"> BL 低有效</label>
+        </div>
+        <div class="row btnrow"><button id="sp-pin-apply">应用引脚</button></div>
+        <div class="row btnrow"><button id="sp-pinmap-btn" title="弹出窗口显示 J3 40 针的引脚分配：桥的信号 / CDC 虚拟串口 / 能当辅助脚的 / 不能用的">引脚分配图</button></div>
+        <div id="sp-pinmap" class="pinmodal" hidden>
+          <div class="pinmodal-box">
+            <div class="pinmodal-head">
+              <b>J3 引脚分配（HPM5301EVKLite · 40 pin）</b>
+              <span class="hint" id="sp-pinmap-sub"></span>
+              <button id="sp-pinmap-close" class="mini">关闭 ✕</button>
+            </div>
+            <div class="pinmodal-body">
+              <table class="pintab"><tbody id="sp-pinmap-body"></tbody></table>
+              <p class="hint" id="sp-pinmap-legend"></p>
+              <p class="hint" id="sp-pinmap-foot"></p>
+              <p class="hint" id="sp-pinmap-miss"></p>
+            </div>
+          </div>
+        </div>
+        <details class="helpnote"><summary>辅助引脚限制</summary><p class="hint" id="sp-pad-note">TE 撕裂信号暂不暴露（TBD）。灰掉的脚固件会拒：PY00/PY01 在 v1 不支持；PB10~PB13 是 SPI2 的 CS/SCLK/MISO/MOSI；PA30 被板上 Q1 短到地拉不动。</p></details>
+      </fieldset>
+      </div>
+      <div id="sp-side-status-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="sp-side-status-tab" data-side-panel="status" hidden>
+        <fieldset>
+        <legend>状态</legend>
+
+        <div class="row btnrow">
+          <button id="sp-reset" title="清环、复位状态机、清计数器（不动配置）">复位桥</button>
+          <button id="sp-abort" title="丢弃未处理帧与 IN 队列">中止</button>
+          <button id="sp-status">读状态</button>
+        </div>
+        <p class="hint">状态字 <b id="sp-word">—</b> <span id="sp-word-text"></span></p>
+        <details class="helpnote sidebar-note"><summary>详细计数</summary>
+        <p class="hint">帧 ok <b id="sp-c-ok">0</b> · err <b id="sp-c-err">0</b> · tx <b id="sp-c-tx">0 B</b> · rx <b id="sp-c-rx">0 B</b> · 单笔 <b id="sp-last-us">—</b> µs<br>
+          轮询 <b id="sp-c-poll">0</b> · DMA <b id="sp-c-dma">0</b> · IN 丢弃 <b id="sp-c-in">0</b> · OUT 溢出 <b id="sp-c-ovf">0</b></p>
+        </details>
+      </fieldset>
+      </div>
+      <div id="sp-side-help-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="sp-side-help-tab" data-side-panel="help" hidden>
+        <div class="hint sidebar-help-intro">参数、接线与排障说明</div>
+        <details class="helpnote"><summary>选择其它探针</summary>
+          <p class="hint">连接时自动复用唯一已授权的探针；首次使用或有多个探针时弹出选择框。要更换设备，请先关闭探针，再手动选择。关闭连接不切断目标电源。</p>
+          <button id="sp-choose">选择探针…</button>
+        </details>
+      </div>
+      <div class="tool-side-actions" aria-label="运行控制">
+<div class="row btnrow">
+          <button id="sp-enable" class="primary">使能</button>
+          <button id="sp-disable">失能</button>
+        </div>
+<p class="hint" id="sp-state">未连接</p>
+      </div>
+    </aside>
+
+    <section class="main">
+      <!-- 右列 = 一个带 tab 的面板（照「调试器」页的 .docktabs / .dockpage 那套）+ 常驻日志。
+           为什么改成 tab：原来四张卡纵堆在一个滚动区里、每张都被迫限高（命令表只露约 7 行、
+           Flash 卡的输出/写数据框钉死 150px），而且"正在跑什么"与"命令表"永远没法同屏。
+           tab 化之后每块**吃满整块高度**；日志与运行状态仍然常驻 —— tab 化不该把过程视图藏起来。 -->
+      <fieldset class="spdock" id="sp-box-dock">
+        <div class="dockhead">
+          <span class="seg docktabs" id="sp-dock-tabs">
+            <button data-dock="cmd" class="on">命令表</button>
+            <button data-dock="reg">寄存器</button>
+            <button data-dock="dsl">脚本</button>
+            <button data-dock="live">实时值</button>
+            <button data-dock="flash">Flash 测试</button>
+            <button data-dock="loop">回环自检</button>
+          </span>
+          <span class="hint dockrun" id="sp-run-pill" title="桥当前在跑什么（切到哪个 tab 都看得见）——「忙」的时候大部分按钮会被灰掉，原因就在这">空闲</span>
+          <span class="hint dockrun" id="sp-acq-pill" title="定时采集的运行状态（在「脚本」tab 里点「开始定时」）—— 与 I2C 页一样放在 tab 栏，切到任何 tab 都看得见">未运行</span>
+          <span class="spacer"></span>
+          <button id="sp-run-abort" class="danger mini" disabled title="中止正在跑的回环自检（只有它可中止；擦/写不能中途停 —— 那会把 flash 留在半擦状态）">中止</button>
+        </div>
+
+        <div class="dockpage on" data-dock="cmd" id="sp-cmd-card">
+          <div class="toolrow">
+            <label class="chk" title="整段用同一个 CS 窗口（发给需要连续时序的器件）；不勾则每行自成一次 CS"><input type="checkbox" id="sp-cmd-cshold"> 整段保持 CS（末条释放）</label>
+            <span>速率路径</span>
+            <select id="sp-cmd-path" title="数据相位走轮询还是 DMA。自动 = 按 tx 长度与「DMA 阈值」比">
+              <option value="auto">自动（按长度）</option>
+              <option value="poll">强制轮询</option>
+              <option value="dma">强制 DMA</option>
+            </select>
+            <button id="sp-cmd-add" class="mini" type="button">＋ 添加行</button>
+            <span class="spacer"></span>
+            <button id="sp-cmd-clear" class="mini">清空结果</button>
+            <button id="sp-cmd-send" class="primary mini">发送全部</button>
+          </div>
+          <div class="scroll fill cmdscroll">
+            <table class="sp cmdtab">
+              <thead><tr><th>#</th><th>cmd</th><th>线数</th><th>addr_len</th><th>addr</th><th>dummy</th><th>rx_len</th><th>tx 数据（十六进制）</th><th>结果</th></tr></thead>
+              <tbody id="sp-cmd-body"></tbody>
+            </table>
+          </div>
+          <p class="hint">每行一条 <code>XFER</code>（一次 CS 窗口）：命令 → 地址 → dummy → 数据；留空的行不发，<b>每行都回应答</b>，成没成看「结果」列。</p>
+        </div>
+
+        <!-- 寄存器面板：SPI 没有统一约定，所以先把"怎么把寄存器号发出去"用几个字段说清（档位下拉填默认值），
+             再读一段回来逐位改、只写改动写回。表格与位开关板与 #i2c 的寄存器面板共用 app/ui/reg-grid.js。 -->
+        <div class="dockpage" data-dock="reg" id="sp-reg-card">
+          <div class="toolrow">
+            <label class="flush row"><span class="label-auto">器件档位</span><select id="sp-reg-profile" title="内置常见 SPI 器件的寄存器约定（读/写 opcode、dummy、地址宽度、是否自增）；选完下面每个字段仍可改"></select></label>
+            <label class="flush row"><span class="label-auto">读命令</span><input id="sp-reg-rdop" value="0x80" size="5" title="读寄存器的基础 opcode（例：0x80 = 0x80|reg）"></label>
+            <label class="flush row"><span class="label-auto">写命令</span><input id="sp-reg-wrop" value="0x00" size="5" title="写寄存器的基础 opcode（例：0x00 = reg&0x7F，或 nRF24 的 0x20|reg）"></label>
+            <label class="flush row"><span class="label-auto">地址</span><select id="sp-reg-addrmode" title="寄存器号怎么发：并入 opcode 低位（0x80|reg 这类）/ 独立的地址字节（MCP23S17 这类）/ 无地址（命令型器件）">
+              <option value="orOp">并入 opcode</option><option value="bytes">独立字节</option><option value="none">无地址</option></select></label>
+            <label class="flush row"><span class="label-auto">占位</span><input id="sp-reg-addrbits" value="7" size="3" inputmode="numeric" title="「并入 opcode」时 opcode 低几位留给地址（MPU/BMP 是 7、ADXL345 是 6、nRF24 是 5）"></label>
+            <label class="flush row"><span class="label-auto">地址字节</span><input id="sp-reg-addrbytes" value="1" size="3" inputmode="numeric" title="「独立字节」时地址占几个字节（MCP23S17 是 1）"></label>
+            <label class="flush row"><span class="label-auto">dummy</span><input id="sp-reg-dummy" value="0" size="3" inputmode="numeric" title="读之前插几个 dummy 字节。⚠️ 多数器件是 0（MPU-9250/LSM6DS3/BMP280/ADXL345 都不要）；只有 BMP380/BMP580 这类才要 1。给错 → 读回的数据整体错位"></label>
+            <label class="flush row"><span class="label-auto">B/寄存器</span><input id="sp-reg-databytes" value="1" size="3" inputmode="numeric" title="每个寄存器占几字节（16 位寄存器填 2、24 位填 3）"></label>
+            <label class="flush chk" title="多字节读时器件是否自动递增寄存器地址（多数会；不自增的器件连读会原地踏步）"><input type="checkbox" id="sp-reg-autoinc" checked> 地址自增</label>
+            <label class="flush row"><span class="label-auto">起始</span><input id="sp-reg-start" value="0x00" size="6" title="起始寄存器号（十六进制）"></label>
+            <label class="flush row"><span class="label-auto">个数</span><input id="sp-reg-count" value="128" size="5" inputmode="numeric" title="读多少个寄存器（默认 128；每帧读上限 480 B，超了自动多帧）"></label>
+            <span class="spacer"></span>
+            <button id="sp-reg-read" class="primary mini" title="按当前档位读一段回来（一条命令连读，或按档位一寄存器一帧）">读取</button>
+            <button id="sp-reg-write" class="mini" title="只把改过的字节写回（相邻的合并成一帧）">只写改动</button>
+            <button id="sp-reg-write-all" class="mini" title="整段写回（不管有没有改）—— 慎用">整块写回</button>
+            <button id="sp-reg-discard" class="mini">丢弃改动</button>
+          </div>
+          <div class="scroll fill" id="sp-reg-wrap">
+            <table class="sp regtab">
+              <thead><tr id="sp-reg-head"></tr></thead>
+              <tbody id="sp-reg-body"></tbody>
+            </table>
+          </div>
+          <p class="hint" id="sp-reg-sum">还没读</p>
+          <p class="hint">点表里任意字节 → 8 个 bit 的开关板（<b>点一下就翻转</b>，与原值不同的位套黄框；也能直接敲十六进制）。
+            读到的值 = <b>器件现值</b>，只有点「只写改动 / 整块写回」才真的发 SPI。<br>
+            ⚠️ SPI 没有统一约定，三个最常错的地方就在上面那排字段：<b>读命令怎么带寄存器号</b>、
+            <b>要不要 dummy</b>（MPU-9250/LSM6DS3/BMP280/ADXL345 都是 0 —— 网上"BMP280 要 dummy"是把它和 BMP380 搞混了）、<b>多字节读是否自增</b>。
+            假探针切到「寄存器器件」（BMP280 风格）时，档位选 BMP280 就对得上。</p>
+        </div>
+
+        <div class="dockpage" data-dock="dsl" id="sp-dsl-card">
+          <div class="toolrow">
+            <span>示例</span>
+            <select id="sp-dsl-preset"></select>
+            <button id="sp-dsl-load" class="mini">载入</button>
+            <button id="sp-dsl-file" class="mini" title="读 .c / .h / .txt / .json：C 表行能直接解析，JSON 若是本站导出的形状会自动转回可读文本">读文件…</button>
+            <input type="file" id="sp-dsl-file-input" accept=".c,.h,.txt,.json" hidden>
+            <span class="spacer"></span>
+            <button id="sp-dsl-parse" class="mini" title="只解析、不发：先把语法和字段核一遍">只看解析</button>
+            <button id="sp-dsl-send" class="primary mini" title="解析整段后一次性发出去（自动打包、按需等应答）">解析并发送</button>
+            <button id="sp-dsl-run" class="primary mini" title="一次性帧先各发一遍，然后 loop/every 的定时部分按各自周期一直跑（这就是 while(1) 采集）">开始定时</button>
+            <button id="sp-dsl-stop" class="mini" disabled title="停止定时采集">停止</button>
+          </div>
+          <textarea id="sp-dsl-text" class="code" spellcheck="false" placeholder="一行一条命令，`#` 注释。例：&#10;&#10;0x9F rx=3                                   读 RDID（裸字节 = 一条 cmd 帧）&#10;{0x5A, 1, 3, 0x000000, 1, 8, NULL},         C 表行：cmd, lines, addr_len, addr, dummy, rx_len, tx&#10;{0x02, 1, 3, 0x001000, 0, 0, (uint8_t[]){0xAA, 0xBB}},&#10;delay 120ms&#10;gpio DC 1"></textarea>
+          <div class="toolrow nw">
+            <span class="flush hint" id="sp-dsl-sum">一行一条命令 · 空行与 # 注释忽略</span>
+            <span class="spacer"></span>
+            <button id="sp-dsl-out-c" class="mini" title="导出成 C 表：列序与上面那张命令表一致，能直接贴回来">导出 C 表</button>
+            <button id="sp-dsl-out-json" class="mini">导出 JSON</button>
+            <button id="sp-dsl-out-text" class="mini">导出文本</button>
+            <button id="sp-dsl-clear" class="mini">清空</button>
+          </div>
+          <div class="scroll" id="sp-dsl-errwrap" style="display:none">
+            <table class="sp"><thead><tr><th>行</th><th>内容</th><th>问题</th></tr></thead><tbody id="sp-dsl-err"></tbody></table>
+          </div>
+          <details class="dslhelp">
+            <summary>语法速查</summary>
+            <div class="hint" id="sp-dsl-help"></div>
+          </details>
+        </div>
+
+        <!-- 实时值：定时采集里 `as` 解码出来的变量（SPI 接口的 ADC / 传感器就靠它看波形） -->
+        <div class="dockpage" data-dock="live" id="sp-live-card">
+          <div class="toolrow">
+            <span class="flush hint" id="sp-live-sum">还没有数据</span>
+            <span class="spacer"></span>
+            <label class="flush chk"><input type="checkbox" id="sp-live-spark" checked> 画曲线</label>
+            <button id="sp-live-reset" class="mini">清空</button>
+          </div>
+          <div class="scroll fill" id="sp-live-wrap">
+            <table class="sp"><thead><tr><th>变量</th><th>最新</th><th>最小</th><th>最大</th><th>次数</th><th>频率</th><th style="width:300px">曲线（最近 120 点）</th></tr></thead>
+            <tbody id="sp-live-body"></tbody></table>
+          </div>
+          <p class="hint">变量来自脚本里的行尾 <code>as 名字=表达式</code>。例：<br>
+            <code>loop 20ms</code> … <code>xfer cmd=0x80|0x3B rx=6 as ax=i16be(0)/16384, az=i16be(4)/16384</code> … <code>end</code><br>
+            偏移是这一帧自己的读数据上的偏移（SPI 一次 xfer 通常就是一个寄存器 / 一次转换）；
+            可用函数与 `#i2c` 页的 `as` 完全一样（u8/i8/u16be/i16be/u32be/f32be… + 常量四则与位运算）。</p>
+        </div>
+
+        <div class="dockpage" data-dock="flash" id="sp-flash-card">
+          <div class="toolrow">
+            <button id="sp-fl-readid" class="primary mini" title="读 JEDEC ID（0x9F）：厂商 / 类型 / 容量">读 ID</button>
+            <button id="sp-fl-sfdp" class="mini" title="读 SFDP（0x5A）：只出原始 256 B（JESD216 规定 SFDP 是 256 B 只读区），解读请查 JESD216 表；dummy 不对会读不出签名，会自动试 0~4">读 SFDP</button>
+            <button id="sp-fl-sr" class="mini" title="读状态寄存器 SR1(0x05) + SR2(0x35)：BUSY / WEL / QE">读状态</button>
+            <span class="spacer"></span>
+            <button id="sp-fl-wiring" class="mini" title="查看外接 SPI NOR 的 J3 接线与板载 NOR 的访问限制">接线</button>
+          </div>
+          <div class="framegrid">
+            <label class="row"><span>读模式</span><select id="sp-fl-mode"></select></label>
+            <label class="row"><span>dummy</span><input id="sp-fl-dummy" class="num" value="0" inputmode="numeric" title="dummy 档位（0~4），单位是 8 个时钟拍：dummy=1 即 8 拍。读一段 / 读测速 / 写校验 / 读 SFDP 都用它；切换读模式会自动带出该模式的默认值（0x03 → 0，0x0B/0x3B/0x6B → 1）；SFDP 读不出签名会自动试 0~4。⚠️ 随器件不同：JEDEC 的 0x3B 是 8 拍，有些兼容片要 16 拍（dummy=2）—— 读出来“前面对不上、像多/少一个字节”就是它不对"></label>
+            <label class="row"><span>地址</span><input id="sp-fl-addr" value="0x000000"></label>
+            <label class="row"><span>长度</span><input id="sp-fl-len" class="num" value="256" inputmode="numeric"></label>
+          </div>
+          <p class="flush hint">dummy 的单位是 8 个时钟拍（dummy=1 → 8 拍，不是 bit 也不是单拍）：0x03 无需 dummy；0x0B / 0x3B / 0x6B 一般 8 拍；0xEB 常见 8~10 拍。切换读模式会自动带出默认值，仍可手动改。</p>
+          <div class="row btnrow">
+            <button id="sp-fl-read">读一段</button>
+            <button id="sp-fl-bench" title="连续读 N KB 计速（首帧发命令+地址、后续帧 CS_HOLD 续读）"><b>读测速</b></button>
+            <label class="row" style="margin-left:auto"><span class="label-auto">测速量</span><input id="sp-fl-benchkb" class="num" value="64" inputmode="numeric"><span>KB</span></label>
+          </div>
+          <div class="log fill" id="sp-fl-out">（还没测过）</div>
+
+          <!-- 擦写行：「我确认要擦写」和那几个按钮**同一行** —— 原来它自己占一行（18px + 行距），
+               而这一卡的控件行本来就多，两个数据窗口会被压到接近 min-height。 -->
+          <div class="row btnrow">
+            <label class="chk arm" title="擦写是破坏性的：先解锁，再点后面的按钮。地址 / 数据都在上面或下面填"><input type="checkbox" id="sp-fl-armed"> 我确认要擦写这颗 flash</label>
+            <select id="sp-fl-erase-mode"></select>
+            <button id="sp-fl-erase" disabled>擦除</button>
+            <button id="sp-fl-write" disabled title="按页编程 + 页间自动等 tPP + 写完自动回读校验">写 + 校验</button>
+            <button id="sp-fl-writebench" disabled title="擦掉目标区 → 按页写满 → 计速 → 回读校验">写测速</button>
+          </div>
+          <div class="row datarow">
+            <span>写数据</span>
+            <textarea id="sp-fl-data" class="tx" spellcheck="false" placeholder="十六进制，如 00 01 02 …（一次最多 4 KB；留空 = 用递增图案）"></textarea>
+            <div class="fl-write-tools">
+              <button id="sp-fl-fill" class="mini">填递增图案</button>
+              <label class="row"><span class="label-auto">页间等 tPP</span><input id="sp-fl-tpp" class="num" value="3" inputmode="numeric"><span>ms</span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="dockpage" data-dock="loop" id="sp-loop-card">
+          <div class="framegrid">
+            <label class="row"><span>长度</span><input id="sp-lb-lens" value="1,2,32,99,100,101,256,492" title="逗号分隔；单帧发送上限 492 B"></label>
+            <label class="row"><span>线数</span><select id="sp-lb-lines"><option>1</option><option>2</option><option>4</option></select></label>
+          </div>
+          <div class="row">
+            <label class="chk"><input type="checkbox" id="sp-lb-dma"> 同时对照 FORCE_DMA 那一档</label>
+            <span class="spacer"></span>
+            <button id="sp-lb-run" class="primary mini">跑回环</button>
+            <button id="sp-lb-clear" class="mini" title="只清空下面这张结果表（不动探针上的计数器）">清空结果</button>
+            <span class="flush hint" id="sp-lb-sum">未跑</span>
+          </div>
+          <p class="hint">每个长度原样发出去、再原样读回来逐字节比对（真机要 J3[28]↔J3[27] 跳线；没接就会 FAIL —— 那正是它的用处）。中止按钮在 tab 栏右上角，切到别的 tab 也能停。</p>
+          <div class="scroll fill"><table class="sp"><thead><tr><th>长度</th><th>路径</th><th>结果</th><th>说明</th></tr></thead><tbody id="sp-lb-body"></tbody></table></div>
+        </div>
+      </fieldset>
+
+      <div class="grip grip-h" id="sp-grip-log" title="拖动：调整日志高度"></div>
+
+      <div class="logbox" id="sp-logbox">
+        <button id="sp-log-clear" class="mini logclear" title="只清屏上的日志（记录仍保留在会话里，展开/切页回来会重放）">清空</button>
+        <div id="sp-log" class="log" data-empty="SPI 事务与应答会显示在这里。"></div>
+      </div>
+
+      <div class="stats">
+        <span>协议：<code>HID 0x35</code> 控制面 + <code>bulk 0x0B/0x8B</code> 帧流</span>
+      </div>
+    </section>
+  </div>
+
+  <!-- 「寄存器」面板的位开关板（与 #i2c 页共用 .bitpop 皮肤与 app/ui/reg-grid.js；
+       DOM 是这一页自己的一份，id 前缀 sp-regpop —— 两页互不干扰） -->
+  <div class="bitpop" id="sp-regpop" hidden>
+    <div class="bp-head">
+      <span class="btitle" id="sp-regpop-title">—</span>
+      <span class="bval" id="sp-regpop-val"></span>
+      <span class="spacer"></span>
+      <label class="flush row"><span class="label-auto">十六进制</span>
+        <input id="sp-regpop-hex" class="bx" size="3" maxlength="4" spellcheck="false" title="直接敲十六进制（1~2 位），与点 bit 同步"></label>
+    </div>
+    <div class="bits" id="sp-regpop-bits"></div>
+    <div class="bp-acts">
+      <button class="mini" data-bit="zero" title="这一字节清零">00</button>
+      <button class="mini" data-bit="ones" title="这一字节全置 1">FF</button>
+      <button class="mini" data-bit="inv" title="逐位取反">取反</button>
+      <button class="mini" data-bit="orig" title="恢复到读回来的原值">恢复原值</button>
+      <button class="mini" data-bit="close">完成</button>
+    </div>
+    <p class="hint" id="sp-regpop-hint"></p>
+  </div>
+</section>
+
+<!-- ============================ SPI / QSPI 屏（面板档 · 初始化步 · 刷图） ============================ -->
+<section class="panel" id="tab-panel">
+  <div class="ws">
+    <aside class="side tool-side" data-sidebar-tabs="panel">
+      <nav class="tool-side-tabs" role="tablist" aria-label="侧栏设置">
+        <button type="button" id="pn-side-connect-tab" role="tab" aria-controls="pn-side-connect-panel" aria-selected="true" tabindex="0" data-side-tab="connect">连接</button>
+        <button type="button" id="pn-side-display-tab" role="tab" aria-controls="pn-side-display-panel" aria-selected="false" tabindex="-1" data-side-tab="display">屏配置</button>
+        <button type="button" id="pn-side-control-tab" role="tab" aria-controls="pn-side-control-panel" aria-selected="false" tabindex="-1" data-side-tab="control">控制</button>
+        <button type="button" id="pn-side-help-tab" role="tab" aria-controls="pn-side-help-panel" aria-selected="false" tabindex="-1" data-side-tab="help">帮助</button>
+      </nav>
+      <div id="pn-side-connect-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="pn-side-connect-tab" data-side-panel="connect">
+        <fieldset id="pn-conn-card">
+        <legend>连接</legend>
+        <div class="row btnrow">
+          <button id="pn-connect" class="primary" title="连接已授权的探针；与 USB→SPI/QSPI 共用连接">连接探针</button>
+          <button id="pn-disconnect" title="关闭与 USB→SPI/QSPI 共用的配置连接和数据端点，不关闭屏电源" disabled>关闭探针</button>
+        </div>
+        <p class="hint" id="pn-info">未连接</p>
+        <label class="chk" title="不需要硬件：与桥页共用同一个假探针实例"><input type="checkbox" id="pn-mock"> 模拟探针</label>
+        <div class="row btnrow">
+          <button id="pn-usb" title="授权 WebUSB 并认领 SPI 桥接口（刷图/发帧的数据走这条）。⚠️ 第一次点会弹出浏览器的设备选择框（HID 与 WebUSB 要各授权一次）">连接数据端点…</button>
+        </div>
+        <label class="row"><span>在飞读</span><input id="pn-inflight" class="num" value="4" inputmode="numeric" title="同时在飞的 IN 读条数（连接数据端点时生效）"></label>
+        <!-- 攒批：一次 transferOut 带多个 512 B 包。固件仍按 512 B 槽解析（设备看到的包序列不变），
+             只是主机少喊几次 —— 60 MHz 单线刷一帧只要 18.9 ms，而"每片一次调用"的固定开销
+             （~150 µs × 290 片 ≈ 44 ms）才是帧率的真正瓶颈。512 = 老行为。 -->
+        <label class="row"><span>攒批</span><select id="pn-batch" title="一次 USB 传输带多少字节。固件按 512 B 槽解析，所以攒批不改变设备看到的东西，只减少主机侧的调用次数；512 B = 老行为（每片一次 transferOut）。真机实测（AXS15352 · 档 1 · 60 MHz）：512 B → 25.7 fps / 3.6 MB/s，8 KB → 35.3 fps / 4.9 MB/s，再往上没差别">
+          <option value="512">512 B</option>
+          <option value="4096">4 KB</option>
+          <option value="8192" selected>8 KB（推荐）</option>
+          <option value="16384">16 KB</option>
+          <option value="32768">32 KB</option>
+        </select></label>
+        <p class="hint" id="pn-usbinfo">未连接数据端点</p>
+
+      </fieldset>
+      </div>
+      <div id="pn-side-display-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="pn-side-display-tab" data-side-panel="display" hidden>
+        <fieldset id="pn-model-card">
+        <legend>屏型号</legend>
+        <label class="row"><span>型号</span><select id="pn-preset"></select></label>
+        <details class="helpnote sidebar-note"><summary>型号说明</summary><p class="hint" id="pn-preset-note"></p></details>
+        <div class="row btnrow"><button id="pn-preset-apply">套用推荐值</button></div>
+        <label class="row"><span>SCLK</span><select id="pn-sclk" aria-label="屏幕 SCLK" title="请求频率；探针按模块时钟整数分频，实际频率由状态回读"></select><button id="pn-sclk-set" class="mini">应用</button></label>
+        <output id="pn-sclk-live" class="pn-clock-live" title="探针状态回读的实际 SCLK">实际 —</output>
+        <p class="hint">只改"屏相关"的字段（档位 / SCLK / DC / RST / BL），CS 策略等保持桥页里的设置；写入后照样回读对账。</p>
+      </fieldset>
+
+        <fieldset>
+        <legend>通信档位</legend>
+        <label class="row"><span>档位</span><select id="pn-profile"></select></label>
+        <label class="row"><span>默认线数</span><select id="pn-deflines"><option>1</option><option>2</option><option>4</option></select></label>
+        <label class="chk"><input type="checkbox" id="pn-dcactive" checked> DC 高 = 数据</label>
+        <label class="chk"><input type="checkbox" id="pn-cshold" checked> 翻 DC 时保持 CS</label>
+        <label class="row"><span>QSPI 写</span><input id="pn-qspiwr" class="num" value="0x02"></label>
+        <label class="row"><span>QSPI 像素</span><input id="pn-qspicolor" class="num" value="0x32"></label>
+        <label class="row"><span>地址字节</span><input id="pn-qspiaddr" class="num" value="3" inputmode="numeric"></label>
+        <div class="row btnrow">
+          <button id="pn-prof-get">读取档位</button>
+          <button id="pn-prof-set" class="">写入档位</button>
+        </div>
+      </fieldset>
+      </div>
+      <div id="pn-side-control-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="pn-side-control-tab" data-side-panel="control" hidden>
+        <fieldset>
+        <legend>当前配置</legend>
+        <p class="hint">SCLK <b id="pn-sum-sclk">—</b> · 实际 <b id="pn-sclk-actual">—</b></p>
+        <p class="hint">CS <b id="pn-sum-cs">—</b></p>
+        <p class="hint">辅助脚 <b id="pn-sum-pads">—</b></p>
+        <p class="hint">档位 <b id="pn-sum-profile">—</b></p>
+
+        <p class="hint">SCLK 可在左侧“屏配置”中直接调整；模式、CS 策略、通用辅助脚及回环自检在「USB→SPI/QSPI」页。</p>
+      </fieldset>
+
+        <fieldset id="pn-power-card">
+        <legend>电源与显示</legend>
+        <div class="row btnrow">
+          <button id="pn-bl-on" title="将 BL 设为有效电平；按配置的 BL 极性自动取反">背光开</button>
+          <button id="pn-bl-off" title="将 BL 设为无效电平">背光关</button>
+        </div>
+        <div class="row btnrow">
+          <button id="pn-pwr-on" title="发 STEP 0x11（sleep out）—— 退出睡眠，之后必须等约 120 ms 才能收下一条命令">上电 11h</button>
+          <button id="pn-disp-on" title="发 STEP 0x29（display on）—— 打开显示输出；面板要初始化过才会显示内容">开显示 29h</button>
+        </div>
+        <div class="row btnrow">
+          <button id="pn-disp-off" title="发 STEP 0x28（display off）—— 只关显示输出，显存内容还在">关显示 28h</button>
+          <button id="pn-pwr-off" title="发 STEP 0x10（sleep in）—— 进入睡眠（最省电），之后要 11h 才能唤醒">下电 10h</button>
+        </div>
+        <div class="row"><span>RST 脉冲</span><input id="pn-rst-low" class="num" value="10" inputmode="numeric" title="把面板 RST 脚拉低多久（毫秒）"><input id="pn-rst-post" class="num" value="120" inputmode="numeric" title="RST 释放之后再等多久（毫秒）"><button id="pn-rst-send" class="mini">发</button></div>
+        <div class="row btnrow">
+          <button id="pn-rst-bl" title="一键：发 RST 脉冲（上面那两个数字）→ 等复位走完 → 开背光。出图全黑时第一件事就是按这个">复位并开背光</button>
+        </div>
+        <label class="chk" title="勾上后：任何「重放 / 单发 / 从此重放」在真正发数据之前，都先按上面的数字补一个 RST 脉冲，再开背光 —— 面板每次重放都从确定的复位态起步（多数屏厂初始化时序的第一个要求）。没配 RST 脚时自动跳过并告警，不挡重放"><input type="checkbox" id="pn-replay-prereset" checked> 重放前先复位 + 开背光</label>
+        <p class="hint"><b>RST 脉冲</b>两个数字：<b>前一个</b> = 把面板 RST 脚拉低几毫秒，<b>后一个</b> = 释放之后再多等几毫秒（默认 10 / 120，多数屏厂规值）。走辅助 RST 脚（pad 与有效电平在桥页配），全程非阻塞。这段时间计在重放耗时之外。</p>
+      </fieldset>
+      </div>
+      <div id="pn-side-help-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="pn-side-help-tab" data-side-panel="help" hidden>
+        <div class="hint sidebar-help-intro">参数、接线与排障说明</div>
+        <details class="helpnote"><summary>选择其它探针</summary>
+          <p class="hint">与桥页共用探针。连接时自动复用唯一已授权的探针；需要更换设备时，先关闭探针再手动选择。关闭连接不切断屏电源。</p>
+          <button id="pn-choose">选择探针…</button>
+        </details>
+      </div>
+      <div class="tool-side-actions" aria-label="运行控制">
+<div class="row btnrow">
+          <button id="pn-enable" class="primary">使能</button>
+          <button id="pn-disable">失能</button>
+        </div>
+<p class="hint" id="pn-state">未连接</p>
+      </div>
+    </aside>
+
+    <section class="main">
+      <!-- 右列 = 一个带 tab 的面板（照「调试器」/「桥」两页的 .docktabs / .dockpage 那套）+ 常驻日志。
+           为什么改成 tab：原来四张卡纵堆在一个滚动区里，1600×900 下内容 1597px / 可视 836px ——
+           每次都要滚 761px，而且三处高度写死（解析表 360 / 日志 190 / 预览画布 170），矮窗口下
+           三块互相挤。tab 化之后**每块吃满整块高度**；日志与运行状态仍然常驻 ——
+           tab 化不该把"刷完一屏第一眼要看的东西"藏起来。
+           🚨 刷屏 tab 常驻第一（用户 2026-09-30：这是本页最高频的动作）。 -->
+      <fieldset class="paneldock" id="pn-box-dock">
+        <div class="dockhead">
+          <span class="seg docktabs" id="pn-dock-tabs">
+            <button data-dock="img" class="on">刷屏</button>
+            <button data-dock="code">面板初始化</button>
+            <button data-dock="read">读回</button>
+          </span>
+          <span class="hint dockrun" id="pn-run-pill" title="屏页当前在跑什么（切到哪个 tab 都看得见）：刷图 / 重放 / 读回 / 播放动画">空闲</span>
+          <span class="spacer"></span>
+          <button id="pn-run-abort" class="danger mini" disabled title="中止当前这一桩（刷图 / 重放 / 读回 / 播放）：当前这一片发完就停。切到别的 tab 也按得到">中止</button>
+        </div>
+
+      <div class="dockpage on" data-dock="img" id="pn-img-card">
+        <div class="chips" id="pn-patterns"></div>
+        <div class="pn-image-tools">
+          <button id="pn-drop" title="BMP / PNG / JPEG；也可拖到预览区">选择图片…</button>
+          <button id="pn-img-send" class="primary">刷这一张</button>
+          <span class="hint" id="pn-img-info">（还没选图 / 图案）</span>
+        </div>
+        <input type="file" id="pn-img-file" accept="image/*,.bmp" hidden>
+        <div class="imgrow canvasrow">
+          <div class="canvasbox" id="pn-image-drop" title="可拖入 BMP / PNG / JPEG"><canvas id="pn-canvas" width="240" height="296"></canvas><video id="pn-anim-video" muted playsinline></video></div>
+          <div class="imginfo pn-image-settings">
+            <label class="row wide"><span>屏幕</span><select id="pn-geom" title="屏几何：两款内置屏，或选「自定义…」自己填宽高（协议参数沿用当前档的）"></select></label>
+            <label class="row wide"><span>开窗 x/y</span><input id="pn-x" class="num" value="0" inputmode="numeric"><input id="pn-y" class="num" value="0" inputmode="numeric"></label>
+            <label class="row wide" id="pn-custom-size" hidden><span>分辨率</span>
+              <input id="pn-w" class="num" value="240" inputmode="numeric" title="自定义宽度（像素）。选「自定义…」时生效">
+              <span class="label-auto">×</span>
+              <input id="pn-h" class="num" value="240" inputmode="numeric" title="自定义高度（像素）。选「自定义…」时生效"></label>
+            <label class="row"><span>缩放</span>
+              <select id="pn-fit">
+                <option value="fill">铺满（裁剪）</option>
+                <option value="fit">适应（留边）</option>
+                <option value="stretch">拉伸</option>
+                <option value="none">原始尺寸</option>
+              </select></label>
+            <label class="row"><span>字节序</span>
+              <select id="pn-byteorder" title="RGB565 的字节序。默认「高字节在前」与 MADCTL=0x00(RGB) 是正确组合；颜色不对时只翻一个开关（先试 R/B 交换，再试低字节在前）">
+                <option value="be">高字节在前</option>
+                <option value="le">低字节在前</option>
+              </select></label>
+            <label class="chk" title="等价于 MADCTL 的 BGR 位"><input type="checkbox" id="pn-swap"> R/B 交换</label>
+            <label class="row"><span>电平</span><input id="pn-level" class="num" value="255" inputmode="numeric" title="255 = 不改；把满量程分量压到这个值，用来做灰阶测试"></label>
+            <label class="chk" title="只把与上一帧不同的那块包围盒发出去（静止区域完全不碰面板）。勾上后：连刷同一张图第二次会「整帧跳过」；播放动画时按变化面积提速。开窗坐标会按 4 像素对齐。与动画行那个开关是同一个状态。"><input type="checkbox" id="pn-partial" checked> 局部刷新</label>
+            <label class="row"><span>容差</span>
+              <select id="pn-partial-tol" title="比较两帧时每个颜色分量丢弃的低位数。视频/JPEG 每帧都有量化噪声，精确比较会导致「整屏都算变了」而失去意义 —— 丢掉最低 1~2 位即可判出真正的静止区；代价是颜色量化到 4~5 bit/分量（屏本身就是 RGB565，肉眼无差）">
+                <option value="0">0 位（逐位精确）</option>
+                <option value="1" selected>1 位（推荐）</option>
+                <option value="2">2 位（噪声大时）</option>
+              </select></label>
+          </div>
+        </div>
+
+        <div class="animbox">
+          <div class="row"><span>动画 / 视频</span>
+            <button id="pn-anim-file" class="mini" title="MP4 / WebM / GIF / APNG —— 浏览器原生解码，零依赖">选择文件…</button>
+            <input type="file" id="pn-anim-input" accept="video/*,.gif,.webp,.png,.apng" hidden>
+            <button id="pn-anim-play" class="mini" disabled title="按当前屏几何 / 面板档把每一帧发出去（与「刷这一张」同一条路；勾了局部刷新就只发变化区）">播放到屏</button>
+            <button id="pn-anim-stop" class="mini" disabled>停止</button>
+            <label class="chk"><input type="checkbox" id="pn-anim-loop" checked> 循环</label>
+            <label class="chk" title="与上方图片设置开关同步：勾上 = 只发与上一帧不同的包围盒"><input type="checkbox" id="pn-anim-partial" checked> 局部刷新</label>
+          </div>
+          <div class="animrow">
+            <p class="flush hint" id="pn-anim-info" title="逐帧刷屏：解码更快时丢帧，不堆积延迟；支持 MP4 / WebM / GIF / APNG。">选择动画或视频</p>
+          </div>
+        </div><!-- /animbox -->
+        <details class="pn-image-help"><summary>窗口与传输详情</summary>
+          <p class="flush hint" id="pn-img-sum"></p>
+          <p class="hint">预览里的<b>橙色虚线</b>是探针真正下发的对齐窗口（列地址按 4 像素对齐，多出来的列用边缘填充）。每片 492 B，一屏 ST77916 是 <b>527 片</b>；只有最后一片要应答。</p>
+          <p class="hint">局部刷新发送所有变化像素的一个包围矩形，矩形超过整屏 60% 就整帧发送。适合静止背景上的小范围运动；镜头移动、花草摇动等视频通常省不下数据。MP4/WebM 按视频时间播放，传输更快也不会自动超过原视频帧率；GIF 按发送速度播放。效果以“局部 / 整帧 / 像素省”统计为准。</p>
+        </details>
+      </div><!-- /dockpage 刷屏 -->
+
+      <div class="dockpage" data-dock="code" id="pn-code-card">
+          <div class="toolrow">
+            <span>内置示例</span>
+            <select id="pn-code-preset"></select>
+            <button id="pn-code-load" class="mini">载入</button>
+            <button id="pn-code-file" class="mini">载入文件…</button>
+            <input type="file" id="pn-code-file-input" accept=".h,.c,.txt,.json" hidden>
+            <span class="spacer"></span>
+            <button id="pn-code-parse" class="primary mini">解析并预览</button>
+          </div>
+          <textarea id="pn-code-text" class="code" spellcheck="false" placeholder="把面板初始化代码贴到这里（C 数组为主，也认纯文本行与 JSON）：&#10;&#10;{0xCE, (uint8_t[]){0x5A, 0xA5}, 2, 0},&#10;{0xA1, (uint8_t[]){0x00, 0xDD}, 2, 0},&#10;{0x11, NULL, 0, 100},&#10;{0x29, NULL, 0, 0},"></textarea>
+          <div class="grip grip-h" id="pn-grip-code" title="拖动：调整上面「源码文本框」的高度 —— 表格吃掉剩下的全部高度（文本框本来就自己滚）"></div>
+          <div class="toolrow nw">
+            <span class="flush hint" id="pn-code-sum">把代码贴进来 → 点「解析并预览」</span>
+            <span class="spacer"></span>
+            <button class="mini" title="参数格每格一个字节：可直接改十六进制，也可点格子逐位修改。重放和导出使用表格当前值；上方源码保持原文，重新解析会重建步骤表。">说明</button>
+            <button id="pn-code-c" class="mini" title="导出成能贴回 C 头文件的片段">导出 C</button>
+            <button id="pn-code-json" class="mini">导出 JSON</button>
+            <button id="pn-code-text-out" class="mini">导出文本</button>
+            <button id="pn-code-clear" class="mini">清空</button>
+          </div>
+          <div class="scroll" id="pn-code-wrap">
+            <table class="sp" id="pn-code-tab">
+              <thead><tr>
+                <th title="索引：从 0 开始，重放 / 导出都按这个顺序">#</th>
+                <th>源行</th>
+                <th title="命令字节（DCS 命令）—— 可以直接敲十六进制">命令</th>
+                <th title="每格一个参数字节：直接敲十六进制改值；点一下开「位开关板」逐位改">参数<div class="ruler" id="pn-code-ruler"></div></th>
+                <th>延时</th>
+                <th></th>
+              </tr></thead>
+              <tbody id="pn-code-body"></tbody>
+            </table>
+          </div>
+          <div class="row btnrow">
+            <button id="pn-code-play" class="primary mini" title="按当前面板档把整表编成 STEP 帧发出（档 1：同一 CS 窗口内「命令→翻 DC→参数」；档 2：0x02 + 24 bit 地址 + 参数）。行尾的「单发 / 从此重放」可以只跑其中一段">重放全部</button>
+            <button id="pn-code-stop" class="mini">中止</button>
+            <span class="flush hint" id="pn-code-prog"></span>
+          </div>
+      </div><!-- /dockpage 面板初始化 -->
+
+      <!-- ============================ 读回：寄存器 / GRAM ============================
+           用户 2026-10："spi/qspi 屏的回读功能（读一般都是 1 线读）：读寄存器；读 gram 值
+           （发 2A+2B 开窗，2E 读数据，3E 是续读），把读出的数据还原成一帧图片并显示在预览窗口，
+           并提供保存为 bmp 的功能。"
+           🚨 读回**有自己的画布**（#pn-read-canvas）：原来它和静图 / 动画共用 `#pn-canvas`，
+           而 tab 化之后那张画布在「刷屏」tab 里 —— 读回的结果会画进一个 display:none 的页，
+           用户什么也看不到。 -->
+      <div class="dockpage" data-dock="read" id="pn-read-card">
+        <div class="toolrow">
+          <span>寄存器</span>
+          <select id="pn-read-reg" title="MIPI DCS 的标准读命令；表外的直接改右边两个格子"></select>
+          <span class="flush hint">命令</span><input id="pn-read-reg-cmd" class="num" value="04" style="width:52px" title="十六进制">
+          <span class="flush hint">读</span><input id="pn-read-reg-len" class="num" value="3" style="width:44px" title="数据字节数（不含 dummy）">
+          <button id="pn-read-reg-go" class="mini">读寄存器</button>
+          <span class="spacer"></span>
+          <span class="flush hint" id="pn-read-reg-out">还没读</span>
+        </div>
+
+        <div class="toolrow nw">
+          <span>窗口</span>
+          <input id="pn-read-x0" class="num" value="0" style="width:52px" title="x0">
+          <input id="pn-read-y0" class="num" value="0" style="width:52px" title="y0">
+          <span class="flush hint">→</span>
+          <input id="pn-read-x1" class="num" value="239" style="width:52px" title="x1（含）">
+          <input id="pn-read-y1" class="num" value="295" style="width:52px" title="y1（含）">
+          <button id="pn-read-full" class="mini">整屏</button>
+          <span class="flush hint">每片</span><input id="pn-read-chunk" class="num" value="500" style="width:56px" title="一次 XFER 读多少字节。上限是 503 而不是 504：504 的应答正好 512 B（满包），主机 transferIn 等不到短包会一直挂着（真机实测）">
+          <span class="spacer"></span>
+          <button id="pn-read-go" class="primary mini">读一帧</button>
+          <button id="pn-read-stop" class="mini">停止</button>
+          <button id="pn-read-bmp" class="mini" title="把刚读回来的那一帧存成 24 位 BMP（浏览器不会导出 BMP，这里自己拼头）">保存 BMP</button>
+        </div>
+
+        <div class="toolrow nw">
+          <span class="flush hint">读时序</span>
+          <label class="chk" title="档 2（QSPI）的读 opcode。ST77916 数据手册 §8.8.5.2 给的是 0Bh（FASTREAD）；别的屏按手册改">读命令 <input id="pn-read-opcode" class="num" value="0B" style="width:48px"></label>
+          <label class="chk">地址字节 <input id="pn-read-addrlen" class="num" value="3" style="width:36px"></label>
+          <label class="chk" title="读的起始地址 = 命令字<<8（线上 00 2E 00）。ST77916 手册 §8.8.5.1/5.2：AD[23:0] = 00 / 命令字 / 00，与写侧 0x002C00 同一个编码">地址 <input id="pn-read-addr" value="0x2E00" style="width:84px"></label>
+          <label class="chk" title="数据相位前的 dummy 周期（1 = 1 字节）">dummy <input id="pn-read-dummy" class="num" value="1" style="width:34px"></label>
+          <label class="chk">读线数 <select id="pn-read-lines"><option>1</option><option>2</option><option>4</option></select></label>
+          <label class="chk" title="档 1（SPI+DC）的读命令">RAMRD <input id="pn-read-ramrd" class="num" value="2E" style="width:44px"></label>
+          <label class="chk" title="档 1 的续读命令（每片一条）">续读 <input id="pn-read-cont" class="num" value="3E" style="width:44px"></label>
+        </div>
+
+        <div class="imgrow readrow">
+          <div class="canvasbox"><canvas id="pn-read-canvas" width="240" height="296"></canvas></div>
+          <div class="imginfo">
+            <p class="hint" id="pn-read-sum" style="margin-top:0">还没读回一帧 —— 点上面的「读一帧」</p>
+            <label class="row"><span>字节序</span>
+              <select id="pn-read-byteorder" title="与「刷屏」tab 里那个是同一组开关（改哪边都一样）。默认「高字节在前」与 MADCTL=0x00(RGB) 是正确组合；颜色不对时只翻一个开关（先试 R/B 交换，再试低字节在前）">
+                <option value="be">高字节在前（默认）</option>
+                <option value="le">低字节在前</option>
+              </select></label>
+            <label class="chk"><input type="checkbox" id="pn-read-swap"> R/B 交换（等价 MADCTL 的 BGR 位）</label>
+            <p class="hint" style="margin:8px 0 0">
+              <b>档 1（SPI + DC）</b>走 MIPI DCS 读流程：<code>2Ah/2Bh</code> 开窗 → <code>2Eh</code>（RAMRD，<b>CS 保持</b>）→ 读数据（<b>首字节是 dummy</b>）→ 之后每片用 <code>3Eh</code> 续读。<br>
+              <b>档 2（QSPI）</b>跟 SPI Flash 一样：一条事务里「读命令 + 24 bit 地址 + dummy + 数据」，地址按片递增。<br>
+              一帧 240×296 = 142,080 B，要读 <b>285 片</b>（每片 ≤503 B：504 的应答正好 512 B 满包，主机会等不到短包）。
+            </p>
+          </div>
+        </div>
+        <div class="row btnrow">
+          <span class="flush hint" id="pn-read-prog">待读</span>
+        </div>
+      </div><!-- /dockpage 读回 -->
+      </fieldset>
+
+      <div class="grip grip-h" id="pn-grip-log" title="拖动：调整日志高度"></div>
+
+      <!-- 日志**常驻**（不占 tab、钉在底部、高度可拖）：刷屏 / 重放 / 读回完第一眼就看它有没有报错。
+           用户 2026-09-30 定过"默认展开"、2026-10 又要求排在初始化之前 —— 常驻是这两条的同时满足。 -->
+      <div class="logbox" id="pn-logbox">
+        <button id="pn-log-clear" class="mini logclear" title="只清屏上的日志（记录仍保留在会话里，切页回来会重放）">清空</button>
+        <div id="pn-log" class="log" data-empty="面板初始化、刷屏与读回结果会显示在这里。"></div>
+      </div>
+
+      <div class="stats">
+        <span>帧 ok <b id="pn-c-ok">0</b> · err <b id="pn-c-err">0</b> · tx <b id="pn-c-tx">0 B</b> · rx <b id="pn-c-rx">0 B</b></span>
+        <span class="spacer"></span>
+        <span class="flush hint">与桥页共享同一次连接 · 方案 <code>docs/spi-bridge-page.md</code></span>
+      </div>
+    </section>
+  </div>
+
+  <!-- 字节 → 位 的开关板：点表格里某个参数字节弹出（位改了 = 那个字节改了，立刻生效）。
+       做法照 tools/bmp_sender.html：8 个大方块横排（bit 号 / 0|1 / 权重）、和原值不同的位套黄框、
+       一排快捷键（清零 / 全置 1 / 取反 / 恢复原值 / 完成）。
+       position:fixed 挂在视口上，不会被主区滚动裁掉；切到别的标签页时随 #tab-panel 一起隐藏。 -->
+  <div class="bitpop" id="pn-bitpop" hidden>
+    <div class="bp-head">
+      <span class="btitle" id="pn-bitpop-title">—</span>
+      <span class="bval" id="pn-bitpop-val"></span>
+    </div>
+    <div class="bits" id="pn-bitpop-bits"></div>
+    <div class="bp-acts">
+      <button class="mini" data-bit="zero">清零 <code>00</code></button>
+      <button class="mini" data-bit="ones">全置 1 <code>FF</code></button>
+      <button class="mini" data-bit="inv">逐位取反</button>
+      <button class="mini" data-bit="orig">恢复原值</button>
+      <button class="mini primary" data-bit="close">完成</button>
+    </div>
+    <p class="hint" id="pn-bitpop-hint"></p>
+  </div>
+</section>
+
+<section class="panel" id="tab-spicdc">
+  <div class="ws">
+    <aside class="side">
+      <fieldset><legend>探针 · SPI转发</legend>
+        <div class="row btnrow"><button id="si-connect" class="primary" title="自动连接唯一已授权的探针；首次或多个设备时弹框选择">连接探针</button><button id="si-disconnect" title="停止探针 SPI 转发并关闭 HID 连接；接收串口可在下方单独关闭" disabled>关闭探针</button></div>
+        <p class="hint" id="si-info">未连接</p>
+        <div class="row btnrow"><button id="si-pinmap-btn" title="查看 SPI 从机的 CS、SCK、MOSI 与 GND 接线">引脚分配图</button></div>
+        <label class="row"><span>SPI 模式</span><select id="si-mode"><option value="0">Mode 0 · CPOL 0 / CPHA 0</option><option value="1">Mode 1 · CPOL 0 / CPHA 1</option><option value="2">Mode 2 · CPOL 1 / CPHA 0</option><option value="3">Mode 3 · CPOL 1 / CPHA 1</option></select></label>
+        <label class="row"><span>位顺序</span><select id="si-lsb"><option value="0">MSB first</option><option value="1">LSB first</option></select></label>
+        <div class="row btnrow"><button id="si-start" class="primary" disabled>启动转发</button><button id="si-stop" disabled>停止</button><button id="si-status" disabled>刷新状态</button></div>
+        <p id="si-state" role="status" aria-live="polite">等待连接探针</p>
+        <details class="helpnote"><summary>接线与资源</summary><p class="hint">复用 SPI2：PB10 CS、PB11 SCK、PB13 MOSI；PB12 MISO 可不接。主机与探针共地，CS 低有效，8 位。时钟由外部 SPI 主机提供。</p><p class="hint">SPI 从机与 USB→SPI/QSPI、SPI/QSPI 屏及 ADC 共用缓冲与引脚。CDC 与 UART、RTT 转发共用同一个串口，启动时切换数据源。先打开下方接收串口，再启动外部发送。</p><p class="hint">连接时自动复用唯一已授权的探针。要更换设备，请先关闭探针，再手动选择；接收串口独立管理。</p><button id="si-choose">选择其它探针…</button></details>
+      </fieldset>
+      <fieldset>
+        <legend>接收（探针的 CDC 口）</legend>
+        <label class="row"><span>端口</span>
+          <select id="si-rx-port"></select>
+        </label>
+        <div class="row btnrow">
+          <button id="si-rx-pick" title="选择串口（浏览器会弹授权框，第一次必须手动选一次）">选择…</button>
+          <button id="si-rx-scan" title="刷新已授权端口列表">刷新</button>
+        </div>
+        <label class="row"><span>波特率</span>
+          <input id="si-rx-baud" class="num" value="115200" inputmode="numeric" title="CDC 虚拟串口不按波特率跑，填什么都行">
+        </label>
+        <div class="row btnrow">
+          <button id="si-rx-open" class="primary">连接</button>
+          <button id="si-rx-close" disabled>断开</button>
+        </div>
+        <p class="hint">先启动转发，再启动外部 SPI 主机。重启转发前先停止主机发送，让 CS 回到高电平。</p>
+        <p class="hint" id="si-rx-note">启动转发后点「连接」打开探针那个 CDC 口，数据就会出现在右边。</p>
+      </fieldset>
+    </aside>
+    <section class="main">
+      <div class="toolbar">
+        <div class="seg" data-group="sirxmode">
+          <button data-v="ascii" class="on">ASCII</button><button data-v="ansi" title="按 ANSI 转义码彩色渲染（像 MobaXterm）">ANSI</button><button data-v="hex">HEX</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="si-rx-ts"> 时间戳</label>
+        <label class="chk"><input type="checkbox" id="si-rx-tsabs"> 绝对时间</label>
+        <label class="chk"><input type="checkbox" id="si-rx-autoscroll" checked> 自动滚动</label>
+        <span class="flush hint">纯输出页：没有发送功能</span>
+        <span class="spacer"></span>
+        <button id="si-rx-save" title="把接收区里的数据存成 txt（按当前 ASCII/HEX 与时间戳设置）">保存数据</button>
+        <button id="si-rx-pause">暂停</button>
+        <button id="si-rx-clear">清空</button>
+      </div>
+      <pre class="rx" id="si-rx-rx" tabindex="0"></pre>
+      <div class="termbox" id="si-rx-term" hidden></div>
+      <div class="stats">
+        <span>RX <b id="si-rx-rxbytes">0</b> B / <b id="si-rx-rxframes">0</b> 段 · <b id="si-rx-rxrate">0 B/s</b> · 缓冲 <b id="si-rx-buf">0 B</b></span>
+        <span class="err" id="si-rx-err"></span>
+        <span class="spacer"></span>
+        <button id="si-rx-record" class="mini" title="把收到的字节直接写进本地文件（不走接收区 2MB 上限），高速采集用">● 记录到文件</button>
+        <label class="chk" title="默认开：每段前加一行 [时:分:秒.毫秒]，存 .txt 给人看；关掉则原样写字节存 .bin（二进制安全）"><input type="checkbox" id="si-rx-record-ts" checked> 记录带时间戳</label>
+        <label class="chk" title="连接成功后自动弹一次保存框开始记录。配合高速自动关显示（>100KB/s 停渲染、收数/记录照常），一上来就猛灌的场景全程无感"><input type="checkbox" id="si-rx-record-auto"> 连接自动记录</label>
+        <button id="si-rx-statclear" class="mini">计数清零</button>
+      </div>
+    </section>
+  </div>
+</section>
+
+
+<!-- ============================ USB → I2C 转发桥（HID 0x36） ============================ -->
+<section class="panel" id="tab-i2c">
+  <div class="ws">
+    <aside class="side tool-side" data-sidebar-tabs="i2c">
+      <nav class="tool-side-tabs" role="tablist" aria-label="侧栏设置">
+        <button type="button" id="i2-side-connect-tab" role="tab" aria-controls="i2-side-connect-panel" aria-selected="true" tabindex="0" data-side-tab="connect">连接</button>
+        <button type="button" id="i2-side-bus-tab" role="tab" aria-controls="i2-side-bus-panel" aria-selected="false" tabindex="-1" data-side-tab="bus">总线</button>
+        <button type="button" id="i2-side-diagnostics-tab" role="tab" aria-controls="i2-side-diagnostics-panel" aria-selected="false" tabindex="-1" data-side-tab="diagnostics">诊断</button>
+        <button type="button" id="i2-side-help-tab" role="tab" aria-controls="i2-side-help-panel" aria-selected="false" tabindex="-1" data-side-tab="help">帮助</button>
+      </nav>
+      <div id="i2-side-connect-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="i2-side-connect-tab" data-side-panel="connect">
+        <fieldset>
+        <legend>连接</legend>
+        <div class="row btnrow">
+          <button id="i2-connect" class="primary" title="自动连接唯一已授权的探针；首次或多个设备时弹框选择">连接探针</button>
+          <button id="i2-disconnect" title="失能 I2C 桥并关闭探针连接，不关闭目标电源" disabled>关闭探针</button>
+        </div>
+        <p class="hint" id="i2-info">未连接</p>
+        <div class="row btnrow"><button id="i2-pinmap-btn" title="先确认板型，再查看 SDA/SCL、GND 与上拉要求">引脚分配图 / 接线</button></div>
+        <label class="chk" title="不需要硬件：内置 AT24C02@0x50 / MPU6050@0x68 / ADS1115@0x48 / Si5351@0x60 四个假器件，传感器数据是活的（会动的正弦），示例脚本能直接看出效果"><input type="checkbox" id="i2-mock"> 模拟探针</label>
+
+        <p class="hint">一个探针同时只能被一个页签占着 —— 本页连接前会请别的页签让出（RTT 转发 / J-Scope / SPI 桥 / 调试器）。</p>
+      </fieldset>
+      </div>
+      <div id="i2-side-bus-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="i2-side-bus-tab" data-side-panel="bus" hidden>
+        <fieldset>
+        <legend>总线配置</legend>
+        <label class="row"><span>SCL 档</span><select id="i2-scl" title="HPM 的 I2C 只有 100k / 400k / 1M 三个标准档，固件挑「不超过请求值」的最高档，实际值回在下面">
+          <option value="100000">100 kHz（标准，最稳）</option>
+          <option value="400000">400 kHz（快速）</option>
+          <option value="1000000">1 MHz（快速+，只有短线 + 带上拉的模块才稳）</option>
+        </select></label>
+        <label class="chk" title="PA28(SDA) 板上没有上拉（PA29/SCL 有 R6 10k）。常见 I2C 模块自带 4.7k~10k，接上就够；裸芯片要么外接电阻，要么开这个应急（电流弱，只适合低速短线）"><input type="checkbox" id="i2-pullup"> 打开内部上拉（应急用）</label>
+        <label class="row"><span>NACK 重试</span><input id="i2-retries" class="num" value="0" inputmode="numeric" title="固件侧整笔重试次数 0..8（NACK / 超时后重发整笔）"></label>
+        <div class="row btnrow">
+          <button id="i2-cfg-get">读取配置</button>
+          <button id="i2-cfg-set" class="primary">写入配置</button>
+        </div>
+        <p class="hint" id="i2-scl-actual">实际生效：—</p>
+      </fieldset>
+      </div>
+      <div id="i2-side-diagnostics-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="i2-side-diagnostics-tab" data-side-panel="diagnostics" hidden>
+        <fieldset>
+        <legend>状态</legend>
+        <div class="row btnrow"><button id="i2-reset" title="总线被拉死（SDA/SCL 常低）时的解药：9 个 SCL 脉冲 + STOP + 控制器复位。会清计数器、保配置">总线恢复</button></div>
+
+        <p class="hint">状态字 <b id="i2-word">—</b> <span id="i2-word-text"></span></p>
+        <details class="helpnote sidebar-note"><summary>详细计数</summary>
+        <p class="hint">ok <b id="i2-c-ok">0</b> · err <b id="i2-c-err">0</b> · tx <b id="i2-c-tx">0 B</b> · rx <b id="i2-c-rx">0 B</b> · nack地址 <b id="i2-c-na">0</b> · nack数据 <b id="i2-c-nd">0</b><br>
+          超时 <b id="i2-c-to">0</b> · 总线恢复 <b id="i2-c-rec">0</b> · 单笔耗时 <b id="i2-last-us">—</b> µs</p>
+        </details>
+      </fieldset>
+
+        <fieldset>
+        <legend>接线与排障</legend>
+        <p class="hint"><b>SDA = PA28 = J3[21]</b>（板丝印 SPI_MISO，板上没有上拉）<br>
+          <b>SCL = PA29 = J3[19]</b>（板丝印 SPI_MOSI，有 R6 10k；与 USB0_OC 网络共用）<br>
+          GND = J3[6]/[9]/[14]/[20]/[25]/[30]/[34]/[39] · 3.3V = J3[1]/[17]</p>
+        <div class="row btnrow">
+          <button id="i2-pintest" class="" title="接线出问题第一个跑它（只在总线空闲时可用：它会发一次真实探测事务，用 7 位地址里保留的 0x7E，不会写坏任何东西）">接线自检(PINTEST)</button>
+          <button id="i2-dbg" title="12 个寄存器的现场快照：I2C CTRL/STATUS/ADDR/CMD/SETUP/INTEN、PA28/PA29 的复用与焊盘、配置、状态字">现场快照(DBG)</button>
+        </div>
+        <details class="helpnote"><summary>接线自检结果判读</summary><p class="hint">判读口诀：<b>事务中曾拉低 SCL=1 且问题位图=0 ⇒ 桥这一侧没问题</b>，没 ACK 就往器件侧查（接线 / 供电 / 地址 / 上拉）。</p></details>
+        <p class="hint">⚠️ 探针复位或重烧固件后，桥回到未使能、配置回默认（100 kHz、上拉关）—— 每次连接后先「读取配置」核一眼。</p>
+      </fieldset>
+      </div>
+      <div id="i2-side-help-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="i2-side-help-tab" data-side-panel="help" hidden>
+        <div class="hint sidebar-help-intro">参数、接线与排障说明</div>
+        <details class="helpnote"><summary>选择其它探针</summary>
+          <p class="hint">自动复用唯一已授权的探针；首次使用或多个设备时弹框选择。更换设备前先关闭探针。关闭连接不切断目标电源。</p>
+          <button id="i2-choose">选择探针…</button>
+        </details>
+      </div>
+      <div class="tool-side-actions" aria-label="运行控制">
+<div class="row btnrow">
+          <button id="i2-enable" class="primary" title="配置 PA28=SDA / PA29=SCL 并初始化 I2C3。⚠️ 使能期间 SPI 桥的辅助脚 pad16/17（就是这两根）会被拒">使能</button>
+          <button id="i2-disable" title="把两根脚放成高阻输入（不还原成 SPI 复用）">失能</button>
+
+        </div>
+<p class="hint" id="i2-state">未连接</p>
+      </div>
+    </aside>
+
+    <section class="main">
+      <!-- 右列 = 一个带 tab 的面板（照「调试器」页的 .docktabs / .dockpage 那套）+ 常驻日志。
+           为什么改成 tab：原来五张卡片纵向堆在同一个滚动区里、每张都被迫限高
+           （命令表只能看见 7 行、脚本框一屏就满），而且"正在跑的结果"和"实时值"永远没法同屏。
+           tab 化之后每块**吃满整块高度**，日志与运行状态仍然常驻（tab 化不该把过程视图也藏起来）。 -->
+      <fieldset class="i2cdock" id="i2-box-dock">
+        <div class="dockhead">
+          <span class="seg docktabs" id="i2-dock-tabs">
+            <button data-dock="scan" class="on">扫描总线</button>
+            <button data-dock="cmd">命令表</button>
+            <button data-dock="reg">寄存器</button>
+            <button data-dock="dsl">脚本</button>
+            <button data-dock="live">实时值</button>
+          </span>
+          <span class="hint dockrun" id="i2-run-pill" title="定时任务的运行状态（切到哪个 tab 都看得见）">未运行</span>
+          <span class="spacer"></span>
+          <button id="i2-run-stop" class="danger mini" disabled title="停止正在跑的定时任务（一次性序列也会被打断）">停止</button>
+        </div>
+
+        <div class="dockpage on" data-dock="scan">
+          <div class="toolrow">
+            <button id="i2-scan" class="primary mini" title="固件一次性扫完 0x08..0x77（112 个地址，100 kHz 下约 15 ms）并回 14 B 位图。扫描期间 DAP/CDC 会顿一下">扫描总线</button>
+            <span class="flush hint" id="i2-scan-sum">还没扫过</span>
+            <span class="spacer"></span>
+            <label class="flush row"><span class="label-auto">选中器件</span><input id="i2-dev" value="0x50" size="6" title="点下面表格里的一行即可选中；也可以手打一个 7 位地址"></label>
+          </div>
+          <div class="i2-address-map" id="i2-address-map" aria-label="I2C 7 位地址扫描结果"></div>
+          <p class="hint scan-key">绿色 = ACK · 灰色 = 未扫描 / 无应答 · 虚线 = 保留地址（未扫描）；点击应答地址可选用。</p>
+          <div class="scroll fill" id="i2-scan-wrap">
+            <table class="sp"><thead><tr><th style="width:70px">地址</th><th>可能的器件（只是提示，按手册核）</th><th style="width:170px">操作</th></tr></thead>
+            <tbody id="i2-scan-body"></tbody></table>
+          </div>
+        </div>
+
+        <div class="dockpage" data-dock="cmd">
+          <div class="toolrow">
+            <button id="i2-cmd-add" class="mini">+ 加一行</button>
+            <button id="i2-cmd-del" class="mini">删末行</button>
+            <button id="i2-cmd-clearall" class="mini">清空表</button>
+            <span class="spacer"></span>
+            <button id="i2-cmd-clear" class="mini">清空结果</button>
+            <button id="i2-cmd-send" class="primary mini" title="按顺序跑一遍（带周期的行不会跑 —— 那些用「开始定时」）">发送全部</button>
+            <button id="i2-cmd-run" class="primary mini" title="一次性行先跑一遍，然后带周期的行按各自周期一直跑（这就是 while(1)）">开始定时</button>
+          </div>
+          <div class="scroll fill cmdscroll">
+            <table class="sp cmdtab">
+              <thead><tr>
+                <th>#</th><th>操作</th><th>器件</th><th>子地址</th><th>数据</th><th>读长</th><th>解码 as</th><th>周期</th><th>结果</th>
+              </tr></thead>
+              <tbody id="i2-cmd-body"></tbody>
+            </table>
+          </div>
+          <p class="hint">每行一次事务（START…STOP）。<b>器件格留空 = 跳过该行。</b>
+            操作：<b>读</b> = 子地址 + 读长（读长可以随便写，<b>超过 54 B 自动分片</b>，日志只出一行）；
+            <b>写</b> = 子地址 + 数据（数据留空 = 只把地址指针推过去；<b>写不自动分片</b>，一次 ≤51 B）；
+            <b>探测</b> = 只问 ACK；<b>延时</b> = 在「数据」格里填时长（如 <code>10ms</code>）。
+            周期格写 <code>100ms</code> 或 <code>100ms×50</code>（×50 = 跑 50 轮自己停；不写 = 一直跑）。</p>
+        </div>
+
+        <!-- 寄存器面板：读一段（默认 128 B = 16×8）→ 表里逐位改 → 只写改动 / 整块写回。
+             交互照 #panel 页的字节开关板（同一个 .bitpop 皮肤，但 DOM 是这一页自己的一份）。 -->
+        <div class="dockpage" data-dock="reg">
+          <div class="toolrow">
+            <label class="flush row"><span class="label-auto">器件</span><input id="i2-reg-dev" value="0x50" size="6" title="7 位地址（0x08..0x77）。在「扫描总线」里点「选用」也会带到这里"></label>
+            <label class="flush row"><span class="label-auto">起始</span><input id="i2-reg-start" value="0x00" size="8" title="起始寄存器地址（大端）。0x0100 配「地址宽度 2 B」= 发 01 00"></label>
+            <label class="flush row"><span class="label-auto">长度</span><input id="i2-reg-len" value="128" size="5" inputmode="numeric" title="一次读多少字节，1..4096，默认 128（16 列 × 8 行）。超过 54 B 自动分片读"></label>
+            <label class="flush row"><span class="label-auto">地址宽度</span><select id="i2-reg-alen" title="子地址字节数：多数传感器/寄存器器件是 1 B；EEPROM（AT24C32 起）多是 2 B；0 B = 不带子地址的纯读">
+              <option value="1">1 B</option><option value="2">2 B</option><option value="0">0 B（纯读）</option></select></label>
+            <label class="flush row"><span class="label-auto">读法</span><select id="i2-reg-chunk" title="reset = 每片重发子地址（最稳，默认）；ptr = 先推一次地址指针再续读（FIFO 型器件必须用这个）">
+              <option value="reset">每片重发地址</option><option value="ptr">地址指针自增</option></select></label>
+            <label class="flush row"><span class="label-auto">写分片</span><select id="i2-reg-wrchunk" title="写回时每片最多多少字节。51 = 协议上限（寄存器/传感器用这个）；EEPROM 有页写回卷（AT24C02 页 8 B / AT24C32 页 32 B），必须按页给"></select></label>
+            <label class="flush row"><span class="label-auto">片间等待</span><input id="i2-reg-gap" value="0" size="4" inputmode="numeric" title="每片之间等多少毫秒。EEPROM 每写完一页要等 tWR（约 5 ms），按页写时填 6；寄存器型器件填 0"></label>
+            <label class="flush row"><span class="label-auto">页大小</span><select id="i2-reg-page" title="器件的写页大小。给了就保证每一片都不跨页 —— 这是 EEPROM 页写回卷的真正防线：只设「写分片」挡不住「起始地址不是页倍数」的情况（AT24C02 从 0x05 起按 8 B 写，第一片就会跨过 0x08 那条页界，器件把后半段绕回页首把前面的盖掉）。寄存器型器件选「不限」"></select></label>
+            <label class="flush chk" title="写完自动回读同一段对账。器件回 ACK 不等于写对了 —— 页写回卷、器件把字段夹掉、片间 tWR 没等够，都会让它老实 ACK 却存了别的东西。关掉就只能靠肉眼比对（默认开）"><input type="checkbox" id="i2-reg-verify" checked> 写后回读</label>
+            <span class="spacer"></span>
+            <button id="i2-reg-read" class="primary mini" title="读一段回来（超过 54 B 自动分片）。读到的值成为「器件现值」，之后黄框标的都是与它的差异">读取</button>
+            <button id="i2-reg-write" class="mini" title="只把改过的字节写回器件（相邻的合并成一片，中间断开的会分开写）">只写改动</button>
+            <button id="i2-reg-write-all" class="mini" title="把整段都写回去（不管有没有改）—— 慎用：会重写没改的寄存器">整块写回</button>
+            <button id="i2-reg-discard" class="mini" title="丢弃表里的改动，回到读回来的那份">丢弃改动</button>
+          </div>
+          <div class="scroll fill" id="i2-reg-wrap">
+            <table class="sp regtab">
+              <thead><tr id="i2-reg-head"></tr></thead>
+              <tbody id="i2-reg-body"></tbody>
+            </table>
+          </div>
+          <p class="hint" id="i2-reg-sum">还没读</p>
+          <p class="hint">点表里任意一个字节 → 弹出 8 个 bit（<b>点一下就翻转</b>，和原值不同的位套黄框；也能直接敲十六进制）。
+            <b>读到的是"器件现值"</b>，只有点「只写改动 / 整块写回」才真的发 I2C。<br>
+            EEPROM 注意两条：写分片要按<b>页</b>给（AT24C02 页 8 B、AT24C32 页 32 B，给大了器件内部会回卷覆盖）；
+            每写完一页要等 <b>tWR</b>（约 5 ms）才认下一笔 —— 填在「片间等待」里（例如 6 ms）。</p>
+        </div>
+
+        <div class="dockpage" data-dock="dsl">
+          <div class="toolrow">
+            <span>示例</span>
+            <select id="i2-preset"></select>
+            <button id="i2-dsl-load" class="mini">载入</button>
+            <button id="i2-dsl-file" class="mini" title="读 .c / .h / .txt / .json：C 表行能直接解析，JSON 若是本站导出的形状会自动转回可读文本">读文件…</button>
+            <input type="file" id="i2-dsl-file-input" accept=".c,.h,.txt,.json" hidden>
+            <button id="i2-dsl-fromtable" class="mini" title="把「命令表」那个 tab 里的内容写成脚本 —— 表格与脚本走的是同一套解析，行为完全一致">命令表 → 脚本</button>
+            <span class="spacer"></span>
+            <button id="i2-dsl-parse" class="mini" title="只解析、不发：先把语法、字段范围、as 表达式核一遍（不需要连探针）">只看解析</button>
+            <button id="i2-dsl-send" class="primary mini" title="解析整段后一次发出去（只跑一次性部分）">解析并发送</button>
+            <button id="i2-dsl-run" class="primary mini" title="一次性部分先跑，然后 loop/every 的定时段一直跑（while(1)）">开始定时</button>
+          </div>
+          <textarea id="i2-dsl-text" class="code" spellcheck="false" placeholder="一行一条命令，'#' 注释。例：&#10;&#10;scan                                    扫总线&#10;ping 0x50                               地址探测&#10;rd 0x50 0x00 8                          读 0x50 的 0x00 起 8 B&#10;rd 0x50 0x00 256                        读 256 B —— 超过 54 B 自动分片&#10;{0x50, 1, 0x0000, 4, 0, (uint8_t[]){0xA5,0x5A,0xDE,0xAD}},   C 表行&#10;delay 10ms                              延时&#10;loop 50ms                               while(1)：整段按 50 ms 循环&#10;  rd 0x68 0x3B 14 as ax=i16be(0)/16384, az=i16be(4)/16384&#10;end"></textarea>
+          <div class="toolrow nw">
+            <span class="flush hint" id="i2-dsl-sum">一行一条命令 · 空行与 # 注释忽略</span>
+            <span class="spacer"></span>
+            <button id="i2-dsl-to-table" class="mini" title="把脚本里的 XFER 行装进「命令表」（24 行上限）">载入到命令表</button>
+            <button id="i2-dsl-out-c" class="mini" title="导出成 C 表：列序 = 线上 XFER 字段（dev, addr_len, addr, wr_len, rd_len, data），能直接贴回固件源码，也能贴回本页。⚠️ 长读会被展开成多行（rd_len 是线上字段，最大 54）">导出 C 表</button>
+            <button id="i2-dsl-out-json" class="mini" title="无损导出：带 chunk 与 as，能原样读回来">导出 JSON</button>
+            <button id="i2-dsl-out-text" class="mini">导出文本</button>
+            <button id="i2-dsl-clear" class="mini">清空</button>
+          </div>
+          <div class="scroll" id="i2-dsl-errwrap" style="display:none">
+            <table class="sp"><thead><tr><th style="width:44px">行</th><th>内容</th><th>问题</th></tr></thead><tbody id="i2-dsl-err"></tbody></table>
+          </div>
+          <details class="dslhelp">
+            <summary>语法速查 + as 解码表达式</summary>
+            <div class="hint" id="i2-dsl-help"></div>
+          </details>
+        </div>
+
+        <div class="dockpage" data-dock="live">
+          <div class="toolrow">
+            <span class="flush hint" id="i2-live-sum">还没有数据</span>
+            <span class="spacer"></span>
+            <label class="flush chk"><input type="checkbox" id="i2-live-spark" checked> 画曲线</label>
+            <button id="i2-live-reset" class="mini">清空</button>
+          </div>
+          <div class="scroll fill" id="i2-live-wrap">
+            <table class="sp"><thead><tr><th>变量</th><th>最新</th><th>最小</th><th>最大</th><th>次数</th><th>频率</th><th style="width:300px">曲线（最近 120 点）</th></tr></thead>
+            <tbody id="i2-live-body"></tbody></table>
+          </div>
+          <p class="hint">变量来自命令里的 <code>as 名字=表达式</code>。例：<code>rd 0x68 0x3B 14 as ax=i16be(0)/16384, az=i16be(4)/16384</code> —— 加速度直接出 g。
+            长读也照常解码（<code>rd 0x50 0x00 256 as b0=u8(0)</code> 里的偏移是在拼起来之后的整块上算的）。</p>
+        </div>
+      </fieldset>
+
+      <div class="grip grip-h" id="i2-grip-log" title="拖动：调整日志高度"></div>
+
+      <div class="logbox" id="i2-logbox">
+        <button id="i2-log-clear" class="mini logclear" title="只清屏上的日志（记录仍在会话里，切页回来会重放）">清空</button>
+        <div id="i2-log" class="log" data-empty="I2C 事务与应答会显示在这里。"></div>
+      </div>
+
+      <div class="stats">
+        <span>协议：<code>HID 0x36</code>（控制面 + 数据面同一条报文，事务在主循环执行，主机轮询 RESULT 取结果）· 长读自动分片</span>
+      </div>
+    </section>
+  </div>
+
+  <!-- 寄存器面板的位开关板（.bitpop 皮肤与 #panel 页共用；DOM 是这一页自己的一份，
+       id 前缀 i2-regpop —— 两页各自的弹窗互不干扰） -->
+  <div class="bitpop" id="i2-regpop" hidden>
+    <div class="bp-head">
+      <span class="btitle" id="i2-regpop-title">—</span>
+      <span class="bval" id="i2-regpop-val"></span>
+      <span class="spacer"></span>
+      <label class="flush row"><span class="label-auto">十六进制</span>
+        <input id="i2-regpop-hex" class="bx" size="3" maxlength="4" spellcheck="false" title="直接敲十六进制（1~2 位），与点 bit 同步"></label>
+    </div>
+    <div class="bits" id="i2-regpop-bits"></div>
+    <div class="bp-acts">
+      <button class="mini" data-bit="zero" title="这一字节清零">00</button>
+      <button class="mini" data-bit="ones" title="这一字节全置 1">FF</button>
+      <button class="mini" data-bit="inv" title="逐位取反">取反</button>
+      <button class="mini" data-bit="orig" title="恢复到读回来的原值">恢复原值</button>
+      <button class="mini" data-bit="close">完成</button>
+    </div>
+    <p class="hint" id="i2-regpop-hint"></p>
+  </div>
+</section>
+
+<!-- ============================ 工程生成 ============================ -->
+<section class="panel" id="tab-gen">
+  <div class="ws">
+    <aside class="side">
+      <!-- 左栏卡片按右列的 tab 分组：`data-dock` 决定它属于哪个 tab，切 tab 时只显示当组的卡片
+           （用户 2026-10：左栏太长 → 跟右列联动，"分类简洁"）。见 app/gen/view.js 的 _dockSelect()。 -->
+      <fieldset data-dock="files">
+        <legend>工程</legend>
+        <div class="row btnrow">
+          <button id="g-uvpick" class="primary" title="读取 .uvprojx 里的器件/Flash 信息，自动填下面的参数（也可以直接把文件拖到右边）">选择 .uvprojx…</button>
+        </div>
+        <input type="file" id="g-uvfile" accept=".uvprojx,.xml" hidden>
+        <label class="row"><span>项目名</span><input id="g-project" value="project" title="写进 Makefile 的工程名 / build 目录里的文件名；Python 工具取的是 .uvprojx 所在目录名"></label>
+        <label class="row"><span>器件</span><input id="g-device" list="g-device-list" value="STM32F103RB" title="J-Link 的 -Device 名字；表外的型号直接手输"></label>
+        <datalist id="g-device-list"></datalist>
+        <label class="row"><span>Flash 起址</span><input id="g-flash-start" value="0x08000000"></label>
+        <p class="hint" id="g-detect">把 .uvprojx 拖进来（或点上面的按钮）：项目名、器件、Flash 起址会自动填好，其余都能手改。</p>
+      </fieldset>
+
+      <fieldset data-dock="files">
+        <legend>生成哪些</legend>
+        <label class="chk"><input type="checkbox" id="g-c-jlink" checked> Makefile.jlink（J-Link 烧录/调试）</label>
+        <label class="chk"><input type="checkbox" id="g-c-gdb" checked> jlink_gdb.script（GDB 脚本）</label>
+        <label class="chk"><input type="checkbox" id="g-c-pyocd" checked> Makefile.pyocd（PyOCD）</label>
+        <label class="chk"><input type="checkbox" id="g-c-openocd" checked> Makefile.openocd（附带 rtt_logger.py）</label>
+        <label class="chk"><input type="checkbox" id="g-c-testbin" checked> test_sram.bin（SRAM 测试图案）</label>
+        <label class="row"><span>bin 大小</span><input id="g-testbin-size" class="num" value="20480" inputmode="numeric"></label>
+      </fieldset>
+
+      <fieldset data-dock="params">
+        <legend>参数</legend>
+        <label class="row"><span>接口</span>
+          <select id="g-if"><option>SWD</option><option>JTAG</option></select>
+        </label>
+        <label class="row"><span>时钟 kHz</span><input id="g-speed" class="num" value="25000" inputmode="numeric" title="J-Link 的 -Speed。J-Link PRO 上 50000 也能稳跑"></label>
+        <label class="row"><span>RTT 地址</span><input id="g-rtt-addr" value="0x20002000" title="_SEGGER_RTT 控制块地址，要与链接脚本里钉的位置一致"></label>
+        <label class="row"><span>RTT 范围</span><input id="g-rtt-size" value="0x2000" title="-RTTSearchRanges 的搜索长度。Python 模板原值是 0x5000，在 20KB RAM 的 F103 上会越过 RAM 顶，所以这里默认按修正后的 0x2000"></label>
+        <label class="row"><span>GDB 端口</span><input id="g-gdb-port" class="num" value="3333" inputmode="numeric"></label>
+        <label class="row"><span>build 目录</span><input id="g-build-dir" value="build"></label>
+        <label class="row"><span>CMake 生成器</span>
+          <select id="g-generator"><option>Ninja</option><option>Unix Makefiles</option><option>MinGW Makefiles</option></select>
+        </label>
+        <label class="row"><span>构建类型</span>
+          <select id="g-build-type"><option>Debug</option><option>Release</option><option>RelWithDebInfo</option><option>MinSizeRel</option></select>
+        </label>
+        <label class="row"><span>PyOCD 目标</span><input id="g-pyocd-target" value="stm32f103rb" title="pyocd -t 的 target 名（pyocd pack 里能查到）"></label>
+        <label class="row"><span>PyOCD Hz</span><input id="g-pyocd-freq" class="num" value="10000000" inputmode="numeric"></label>
+        <!-- 路径类输入框用 `row wide`：控件独占一行、撑满侧栏宽度（原来 179px 的框里塞 605px 的路径，
+             看到的永远是开头那截）。浏览器出于安全拿不到真实目录名（showDirectoryPicker 只给文件夹名），
+             所以这里没有"选择…"可挂；完整值看 title。 -->
+        <label class="row wide"><span>OpenOCD 根</span><input id="g-openocd-root" value="E:/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/OpenOCD/OpenOCD" title="OpenOCD 安装/解压目录（里面要有 bin 和 scripts）。留空 = 产物里也留空"></label>
+        <label class="row"><span>OpenOCD 接口</span><select id="g-openocd-if"></select></label>
+        <label class="row"><span>OpenOCD 目标</span><input id="g-openocd-target" list="g-openocd-targets" value="target/stm32f1x.cfg"></label>
+        <datalist id="g-openocd-targets"></datalist>
+        <label class="row"><span>OpenOCD kHz</span><input id="g-openocd-freq" class="num" value="10000" inputmode="numeric"></label>
+        <label class="row"><span>RTT 端口</span><input id="g-rtt-port" class="num" value="9090" inputmode="numeric" title="openocd-rtt 目标里 rtt server start 的端口"></label>
+      </fieldset>
+
+      <fieldset data-dock="files">
+        <legend>落地方式</legend>
+        <label class="row"><span>换行符</span>
+          <select id="g-newline" title="CRLF = 与 uvprojx2cmake.py 的产物逐字节一致；LF 更贴近 git 习惯">
+            <option value="crlf">CRLF（和 Python 工具一致）</option>
+            <option value="lf">LF</option>
+          </select>
+        </label>
+        <label class="chk"><input type="checkbox" id="g-force"> 已存在就直接覆盖（不再问）</label>
+        <div class="row btnrow">
+          <button id="g-save" class="primary" title="Edge/Chrome：选一个文件夹，多个文件直接写进去，不用解压">写入文件夹…</button>
+        </div>
+        <div class="row btnrow">
+          <button id="g-zip" title="不支持选文件夹的浏览器走这里：打包成一个 zip 落「下载」">打包 ZIP</button>
+        </div>
+        <p class="hint">网页不能自动写你的项目目录：得你亲手选一次文件夹（浏览器安全模型）。Edge/Chrome 支持直写，其它浏览器自动走 ZIP。</p>
+      </fieldset>
+
+      <!-- 本地桥：跟"工程配套文件"是两回事（那是本机跑的程序包）—— 单独一个 tab（用户 2026-10 要求） -->
+      <fieldset data-dock="etm">
+        <legend>ETM 本地桥</legend>
+        <label class="row"><span>端口</span><input id="g-etm-port" type="number" min="1024" max="65535" value="8878"></label>
+        <p class="hint">首次使用：下载完整 ETM 桥包 → 解压 → 双击 <code>start-etm-bridge.bat</code>。无需安装 Python 或配置工程目录。</p>
+        <p class="hint">已有完整包：仅下载启动文件，放到完整包目录覆盖同名文件。完整包默认端口 8878；可用左侧端口生成启动配置。</p>
+        <p class="hint">先打开 KingstVIS 的 Socket 并使能五路通道。记录保存在包内 <code>data/records</code>；更新前请保留 data。<code>check-tools.bat</code> 可预检。</p>
+      </fieldset>
+      <fieldset id="g-bridge-card" data-dock="bridge">
+        <legend>本地桥（J-Link / OpenOCD）</legend>
+        <label class="chk"><input type="checkbox" id="g-bk-on" checked title="J-Link / OpenOCD 都是本机程序，浏览器无权启动它们 —— 要用这两条后端就得有个本机桥。零安装的 WebUSB 通路不需要它">生成「本地桥」安装包（双击即用）</label>
+        <label class="row"><span>端口</span><input id="g-bk-port" class="num" value="17321" inputmode="numeric" title="桥监听的本地端口；页面与桥都走它"></label>
+        <label class="row"><span>目标</span>
+          <select id="g-bk-target">
+            <option value="stm32f103">STM32F103（cmsis-dap + stm32f1x）</option>
+            <option value="stm32h7b0">STM32H7B0（cmsis-dap + stm32h7x）</option>
+            <option value="custom">自定义 cfg…</option>
+          </select></label>
+        <label class="row wide"><span>自定义 cfg</span><input id="g-bk-cfgs" value="interface/cmsis-dap.cfg, target/stm32f1x.cfg" title="逗号分隔；相对 OpenOCD 的 scripts 目录（也可写绝对路径）。只有「目标 = 自定义」时才用"></label>
+        <label class="row"><span>OpenOCD kHz</span><input id="g-bk-speed" class="num" value="4000" inputmode="numeric"></label>
+        <label class="row wide"><span>openocd.exe</span><input id="g-bk-openocd" placeholder="留空 = 自动探测" title="找不到 OpenOCD 时填绝对路径（例：C:/Users/你/.espressif/tools/openocd-esp32/vX/openocd-esp32/bin/openocd.exe）"></label>
+        <label class="row"><span>scripts 目录</span><input id="g-bk-scripts" placeholder="留空 = 跟着 openocd.exe 推断"></label>
+        <label class="row"><span>J-Link 器件</span><input id="g-bk-jdev" value="STM32F103C8" title="给 J-Link 的 -Device（留空用默认 STM32F103C8）"></label>
+        <label class="row"><span>J-Link kHz</span><input id="g-bk-jspeed" class="num" value="50000" inputmode="numeric" title="本机 J-Link PRO + F103 实测 50 MHz 可用"></label>
+        <label class="row"><span>便携 Node</span><input id="g-bk-nodever" class="num" value="22.14.0" title="本机没装 Node 时自动下这个版本（绿色包，放到包里的 node/ 目录，不动系统）"></label>
+        <label class="row"><span>下载源</span>
+          <select id="g-bk-mirror">
+            <option value="1">国内镜像优先（npmmirror）</option>
+            <option value="0">官方优先（nodejs.org）</option>
+          </select></label>
+        <label class="chk"><input type="checkbox" id="g-bk-autonode" checked title="关掉 = 没 Node 时只提示、不下载（企业内网/杀软敏感时用）">没 Node 时自动下便携版</label>
+        <p class="hint">包里：启动器（bat/sh）+ 桥本体 + 配置 + 预检脚本 + 便携 Node 下载器 + 说明。
+          <b>路径留空 = 桥自己探测</b>（ESP-IDF 的 openocd-esp32 → Program Files → PATH；J-Link 找 SEGGER 目录里版本号最大的）；
+          起桥前会先跑一次环境预检，把"该改哪一行"打出来。退出用 <b>Ctrl+C</b>（会把 OpenOCD / J-Link 子进程一起收掉）。
+          <b>每个文件的预览与「下载桥包（ZIP）」在右边「本地桥」tab</b>。</p>
+      </fieldset>
+    </aside>
+
+    <section class="main">
+      <!-- 右列 = 一个带 tab 的面板（照 #spi / #i2c 的 `.seg.docktabs` + `.dockpage` 那套）。
+           为什么 tab 化：13 个产物原来挤在一条文件栏里（桥包那 7 个还另占一行），而
+           「工程配套文件」与「本地桥安装包」本来就是两件事；顺带让左栏能按 tab 分组（用户 2026-10 要求）。 -->
+      <fieldset class="gendock" id="g-box-dock">
+        <div class="dockhead">
+          <span class="seg docktabs" id="g-dock-tabs">
+            <button data-dock="files" class="on">工程文件</button>
+            <button data-dock="params">调试参数</button>
+            <button data-dock="bridge">本地桥</button>
+            <button data-dock="etm">ETM 桥</button>
+          </span>
+          <span class="hint dockrun" id="g-dock-pill" title="当前 tab 的一句话状态">待生成</span>
+          <span class="spacer"></span>
+        </div>
+
+        <div class="dockpage on" data-dock="files" id="g-files-card">
+          <div class="toolbar">
+            <span class="flush hint">产物</span>
+            <div class="seg" id="g-files"></div>
+            <span class="spacer"></span>
+            <button id="g-copy" class="mini">复制当前文件</button>
+            <button id="g-dl" class="mini">下载当前文件</button>
+          </div>
+          <pre class="rx fill" id="g-preview" tabindex="0"></pre>
+          <p class="flush hint">这几件是 <code>uvprojx2cmake.py</code> 的模板产物（默认套 4 项修正）——
+            落地用左栏「落地方式」里的「写入文件夹…」/「打包 ZIP」。</p>
+        </div>
+
+        <div class="dockpage" data-dock="params" id="g-params-card">
+          <div class="toolbar">
+            <span class="flush hint">左栏填的值在这里逐项列全（长路径不再被侧栏宽度截断；<b>点值即复制</b>）</span>
+            <span class="spacer"></span>
+            <button id="g-params-copy" class="mini">复制全部（键=值）</button>
+          </div>
+          <div class="scroll fill" id="g-params-wrap">
+            <table class="sp gparamtab"><tbody id="g-params-body"></tbody></table>
+          </div>
+        </div>
+
+        <div class="dockpage" data-dock="etm">
+          <div class="toolbar">
+            <button id="g-etm-full" class="primary mini">下载完整 ETM 桥包</button>
+            <button id="g-zip-etm" class="mini">仅下载启动文件</button>
+            <button id="g-etm-open" class="mini">打开 ETM 工作台</button>
+            <span class="spacer"></span>
+            <button id="g-etm-copy" class="mini">复制当前文件</button>
+            <button id="g-etm-dl" class="mini">下载当前文件</button>
+          </div>
+          <div class="toolbar"><div class="seg" id="g-etm-files"></div></div>
+          <pre class="rx fill" id="g-etm-preview" tabindex="0"></pre>
+          <p class="flush hint" id="g-etm-package-info">Windows 64 位 · 完整包包含运行环境、网页、采集分析服务和 OpenCSD 解码器。网页按钮打开已运行的工作台，启动服务请双击 BAT。</p>
+        </div>
+        <div class="dockpage" data-dock="bridge" id="g-kit-card">
+          <div class="toolbar">
+            <span class="flush hint">安装包里的文件</span>
+            <div class="seg" id="g-kit-files"></div>
+            <span class="spacer"></span>
+            <button id="g-kit-copy" class="mini">复制当前文件</button>
+            <button id="g-zip-bridge" class="primary mini" title="只打包桥的文件（zip 里是 rtt-bridge-kit/…）：解压后双击 start-bridge.bat 就能起桥">下载桥包（ZIP）</button>
+          </div>
+          <pre class="rx fill" id="g-kit-preview" tabindex="0"></pre>
+          <p class="flush hint">7 个文件：启动器（bat / sh）+ 桥本体 + 配置 + 预检脚本 + 便携 Node 下载器 + 说明 ——
+            参数在左栏「本地桥」那张卡里改，改完这里立刻跟着变。</p>
+        </div>
+      </fieldset>
+      <div class="stats">
+        <span id="g-status">待生成</span>
+        <span class="spacer"></span>
+        <span class="hint">模板逐字节移植自 <code>uvprojx2cmake.py</code>，默认再套 4 项修正（<code>make test-gen</code> 负责对账）</span>
+      </div>
+    </section>
+  </div>
+</section>
+
+
+<section class="panel" id="tab-analog">
+  <div class="an-shell">
+    <div class="an-toolbar">
+      <div class="row btnrow"><button id="an-connect" class="primary">连接探针</button><button id="an-disconnect" disabled>关闭探针</button><p id="an-state" role="status" aria-live="polite">未连接</p></div>
+      <nav class="seg docktabs an-tabs" id="an-dock-tabs" role="tablist" aria-label="ADC / DAC 工具">
+        <button id="an-tab-adc" type="button" role="tab" aria-controls="an-panel-adc" aria-selected="true" tabindex="0" data-an-tab="adc" class="on">ADC 示波器</button>
+        <button id="an-tab-dac" type="button" role="tab" aria-controls="an-panel-dac" aria-selected="false" tabindex="-1" data-an-tab="dac">DAC 信号发生器</button>
+      </nav>
+    </div>
+    <section id="an-panel-adc" class="an-page on" role="tabpanel" aria-labelledby="an-tab-adc" data-an-page="adc" tabindex="0">
+      <div class="ws">
+        <aside class="side">
+          <fieldset><legend>ADC · USB 示波器</legend>
+            <p id="an-channel">连接后查询可用输入；查看引脚图前请确认板型</p>
+            <div class="row btnrow"><button id="an-pinmap-btn" title="先确认板型，再查看 ADC 输入、GND 与 QSPI 共脚说明">引脚分配图 / 接线</button></div>
+            <details class="helpnote"><summary>连接与共用资源</summary><p class="hint">配置走 HID；数据与 SPI/QSPI 共用 Bulk 0x8B 和缓冲，互斥使用。首次采集请在 WebUSB 授权框中选择同一台探针（桌面 Chrome/Edge）。</p></details>
+            <label class="row"><span>分辨率</span><select id="an-bits"><option>8</option><option>10</option><option>12</option><option selected>16</option></select></label>
+            <p class="hint">PB14 / ADC0.6 · EVKLite J3[10] · 定时器触发 + DMA。记录点数 0 = 连续。</p>
+            <label class="row"><span>采样率 Sa/s</span><input id="an-rate" type="number" min="1" max="2000000" step="1" value="1000000"></label>
+            <label class="row"><span>记录点数</span><input id="an-count" title="0 = 连续采集；大于 0 = 有限记录点数" type="number" min="0" max="4294967295" value="0"></label>
+            <label class="row"><span>参考电压 V</span><input id="an-reference" type="number" min="0.01" max="10" step="0.001" value="3.3"></label>
+            <p class="hint">硬件时基来自 probe；最高请求 2 MSa/s，实际速率由定时器时钟量化。输入须在 0–VREFH 范围内，信号地接板卡 GND。高速档需低阻抗驱动；请断开 QSPI 外设对 PB14 的驱动。</p>
+            <div class="row btnrow"><button id="an-once">单次捕获</button><button id="an-start" class="primary">运行</button><button id="an-stop">停止</button></div>
+            <label class="row"><span>时基 / div</span><select id="an-time"><option value="0.0000005">500 ns</option><option value="0.000001">1 μs</option><option value="0.000002">2 μs</option><option value="0.000005">5 μs</option><option value="0.00001">10 μs</option><option value="0.00002">20 μs</option><option value="0.00005">50 μs</option><option value="0.0001" selected>100 μs</option><option value="0.0002">200 μs</option><option value="0.0005">500 μs</option><option value="0.001">1 ms</option><option value="0.002">2 ms</option><option value="0.005">5 ms</option><option value="0.01">10 ms</option><option value="0.02">20 ms</option><option value="0.05">50 ms</option><option value="0.1">100 ms</option></select></label>
+            <label class="row"><span>垂直 / div</span><select id="an-volts"><option value="0.01">10 mV</option><option value="0.1">100 mV</option><option value="0.5" selected>500 mV</option><option value="1">1 V</option></select></label>
+            <label class="row"><span>垂直中心 V</span><input id="an-offset" type="number" step="0.01" value="1.65"></label>
+            <label class="row"><span>触发模式</span><select id="an-trigger"><option value="auto">自动</option><option value="normal">正常（未触发保持）</option></select></label>
+            <label class="row"><span>触发边沿</span><select id="an-edge"><option value="rising">上升沿</option><option value="falling">下降沿</option></select></label>
+            <label class="row"><span>触发电平 V</span><input id="an-level" type="number" min="0" max="3.3" step="0.01" value="1.65"></label>
+            <label class="chk"><input id="an-freeze" type="checkbox">冻结显示（采集继续）</label>
+            <details class="helpnote"><summary>触发方式与记录限制</summary><p class="hint">触发为网页软件触发，25% 预触发显示；单次捕获为有限 DMA 记录，不是硬件触发捕获。显示与导出保留最近 65536 点。</p></details>
+            <details class="helpnote" id="an-measure-help"><summary>游标与测量说明</summary>
+              <p class="hint">拖线微调，或点波形移动所选游标；数值框可精确输入，方向键微调（Shift 加速）。Δt = T2 − T1，ΔV = V2 − V1；冻结后仍可测量。</p>
+              <p id="an-measure-note" class="hint">自动测量基于当前显示窗口的原始样本；周期/频率需至少两个完整、稳定的周期。</p>
+            </details>
+            <button id="an-adc-export">导出 ADC CSV</button>
+          </fieldset>
+        </aside>
+        <div class="work an-work">
+          <div class="toolbar an-cursor-toolbar">
+            <span class="an-reading"><span id="an-value">— V</span><span id="an-code" class="hint"></span></span>
+            <span class="spacer"></span>
+            <label class="chk"><input id="an-cursor-x" type="checkbox">时间游标</label>
+            <label class="chk"><input id="an-cursor-y" type="checkbox">电压游标</label>
+            <label>点图移动 <select id="an-cursor-target" aria-label="选择要移动的游标"><option value="x0">T1</option><option value="x1">T2</option><option value="y0">V1</option><option value="y1">V2</option></select></label>
+            <button id="an-cursor-reset" class="mini">复位游标</button><button id="an-cursor-clear" class="mini">清游标</button>
+          </div>
+          <div class="an-plot"><canvas id="an-adc-canvas" width="1000" height="260" tabindex="0" aria-label="ADC 波形、时基、触发电平和可拖动的时间/电压游标"></canvas></div>
+          <div class="an-cursor-values" id="an-cursor-values" hidden>
+            <span class="an-cursor-group" id="an-cursor-time-values" hidden>
+            <label class="an-t1">T1 <input id="an-cursor-t1" type="number" step="any" aria-label="时间游标 T1，微秒" disabled> µs</label>
+            <label class="an-t2">T2 <input id="an-cursor-t2" type="number" step="any" aria-label="时间游标 T2，微秒" disabled> µs</label>
+            <span>Δt <b id="an-cursor-dt">—</b></span><span>1/|Δt| <b id="an-cursor-frequency">—</b></span>
+            </span>
+            <span class="an-cursor-group" id="an-cursor-voltage-values" hidden>
+            <label class="an-v1">V1 <input id="an-cursor-v1" type="number" step="any" aria-label="电压游标 V1，伏" disabled> V</label>
+            <label class="an-v2">V2 <input id="an-cursor-v2" type="number" step="any" aria-label="电压游标 V2，伏" disabled> V</label>
+            <span>ΔV <b id="an-cursor-dv">—</b></span>
+            </span>
+          </div>
+          <div class="an-measurements" aria-label="当前显示窗口的自动测量">
+            <div><span>周期</span><strong id="an-measure-period">—</strong></div>
+            <div><span>频率</span><strong id="an-measure-frequency">—</strong></div>
+            <div><span title="最小值">Ymin</span><strong id="an-measure-min">—</strong></div>
+            <div><span title="最大值">Ymax</span><strong id="an-measure-max">—</strong></div>
+            <div><span title="平均值">Yavg</span><strong id="an-measure-average">—</strong></div>
+            <div><span title="峰峰值">Ypp</span><strong id="an-measure-vpp">—</strong></div>
+          </div>
+          <div class="stats" id="an-stats">等待采集</div>
+        </div>
+      </div>
+    </section>
+    <section id="an-panel-dac" class="an-page" role="tabpanel" aria-labelledby="an-tab-dac" data-an-page="dac" tabindex="0" hidden>
+      <div class="ws">
+        <aside class="side">
+          <fieldset><legend>DAC 信号发生器</legend>
+            <p class="hint">设置波形后可离线预览、导出。连接具备 DAC 能力的探针后可启动输出；当前固件尚未提供物理 DAC 输出。</p>
+            <label class="row"><span>DAC 通道</span><select id="an-dac-channel" disabled><option value="0">等待支持 DAC 的固件</option></select></label>
+            <label class="row"><span>波形</span><select id="an-wave"></select></label>
+            <label class="row"><span>信号频率 Hz</span><input id="an-frequency" type="number" min="0.001" step="any" value="100"></label>
+            <label class="row"><span>幅度 Vp</span><input id="an-amplitude" type="number" min="0" step="any" value="1"></label>
+            <label class="row"><span>峰峰值 Vpp</span><input id="an-vpp" type="number" min="0" step="any" value="2"></label>
+            <label class="row"><span>共模电压 V</span><input id="an-dac-offset" type="number" step="any" value="1.65"></label>
+            <label class="row"><span>最大电压 V</span><input id="an-max" type="number" step="any" value="2.65"></label>
+            <label class="row"><span>最小电压 V</span><input id="an-min" type="number" step="any" value="0.65"></label>
+            <details class="helpnote"><summary>电压参数联动说明</summary><p class="hint">最大/最小与幅度、共模双向联动：Vmax = Vcm + Vp，Vmin = Vcm − Vp，Vpp = 2Vp。直流电平由共模设置。</p></details>
+            <label class="row"><span>初相位 °</span><input id="an-phase" type="number" step="any" value="0"></label>
+            <label class="row"><span>满量程 V</span><input id="an-dac-reference" type="number" min="0.01" step="0.01" value="3.3"></label>
+            <label class="row"><span>脉冲占空比 %</span><input id="an-duty" type="number" min="0.01" max="99.99" step="any" value="50"></label>
+            <label class="row"><span>量化位宽</span><select id="an-dac-bits"><option>8</option><option selected>12</option><option>16</option></select></label>
+            <label class="row"><span>更新率 Sa/s</span><input id="an-update" type="number" min="1" max="10000000" step="1" value="10000"></label>
+            <label class="row"><span>噪声表点数</span><input id="an-points" type="number" min="8" max="65535" value="1024"></label>
+            <details class="helpnote"><summary>波形表与频率量化</summary><p class="hint">周期波形生成完整一周期表，每周期至少 8 点；实际频率取决于更新率和整数点数。噪声为可重复循环的伪随机表。修改设置仅更新预览；运行中请先停止再启动。</p></details>
+            <div class="row btnrow"><button id="an-preview">刷新预览</button><button id="an-wave-export">导出波形表 CSV</button></div>
+            <div class="row btnrow"><button id="an-dac-start" class="primary" disabled>输出 ON</button><button id="an-dac-stop" disabled>输出 OFF</button><button id="an-dac-status" disabled>查询输出</button></div>
+            <p id="an-dac-state" role="status">DAC 已预留，当前固件不支持</p>
+          </fieldset>
+        </aside>
+        <div class="work an-work">
+          <div class="toolbar"><span id="an-generator-summary" role="status"></span></div>
+          <div class="an-plot"><canvas id="an-dac-canvas" width="1000" height="260" aria-label="信号发生器电压与时间预览"></canvas></div>
+          <div class="stats" id="an-wave-state"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<section id="tab-swo" class="panel" aria-label="SWO 执行轨迹">
+  <div class="ws sw-workspace">
+    <aside class="side tool-side">
+      <div class="sw-side-nav" role="tablist" aria-label="SWO 工作区"><button id="sw-record-tab" role="tab" aria-selected="true" aria-controls="sw-record-panel">录制</button><button id="sw-analysis-tab" role="tab" aria-selected="false" aria-controls="sw-analysis-panel" tabindex="-1">分析</button></div>
+      <div class="row btnrow sw-side-tools"><button id="sw-calculator-open">时钟计算器</button><button id="sw-help-open">使用帮助</button></div>
+      <div id="sw-record-panel" class="sw-record-layout" role="tabpanel" aria-labelledby="sw-record-tab">
+      <div class="tool-side-panel" id="sw-record-steps">
+      <fieldset><legend>① 载入目标 ELF</legend>
+        <button id="sw-entry-elf-pick" class="sw-wide primary" title="载入与目标固件匹配的 ELF">浏览载入 ELF…</button>
+        <p id="sw-entry-elf-info" class="hint sw-elf-info" role="status">尚未载入 ELF</p>
+      </fieldset>
+      <fieldset><legend>② 连接与识别目标</legend>
+        <div class="row"><span>VCOM 串口</span><select id="sw-port" aria-label="SWO VCOM 串口"></select><button id="sw-pick">选择…</button></div>
+        <div class="row btnrow"><button id="sw-detect">识别目标与时钟</button><button id="sw-clock-grant" title="允许通过同一探针配置接收时钟">授权时钟</button></div>
+        <p id="sw-target" class="sw-target-info" role="status">尚未识别目标</p>
+        <details class="sw-fold"><summary>目标型号与板载时钟</summary>
+          <div class="row"><span>常见型号</span><select id="sw-model" aria-label="目标型号"><option value="auto">自动识别</option><option value="stm32f1">STM32F103</option><option value="stm32f4">STM32F407 / F405</option><option value="stm32h743">STM32H743 / H750</option><option value="stm32h7b0">STM32H7B0 / H7A3 / H7B3</option></select></div>
+          <div class="row"><span>外部 MHz</span><input id="sw-hse" type="number" min="1" max="50" step="any" value="8" aria-label="板载外部时钟 MHz" title="F103 默认 8 MHz；识别或选择 H7B0 时预填本例程板卡的 25 MHz。请按板载实际值核对"></div>
+          <label class="chk"><input id="sw-auto-clock" type="checkbox" checked>从目标配置计算 CPU / Trace 时钟</label>
+          <div class="row"><span>CPU MHz</span><input id="sw-core" type="number" min="0.001" max="1000" step="any" placeholder="待识别"></div>
+          <div class="row"><span>Trace MHz</span><input id="sw-trace" type="number" min="0.001" max="1000" step="any" placeholder="待识别" title="SWO 编码器的输入时钟，不是 SWO 波特率"></div>
+          <p id="sw-target-path" class="hint">识别后显示 CPU / Trace 时钟来源与分频。</p>
+          <p class="hint">外部晶振频率不能从 RCC 自动读出。H7B0 例程预填 25 MHz；其他板卡请按实际值修改。</p>
+        </details>
+      </fieldset>
+      <fieldset><legend>③ 添加断点</legend>
+        <input id="sw-symbol-search" class="sw-wide" placeholder="搜索 ELF 函数…" aria-label="搜索 SWO ELF 函数" disabled>
+        <div id="sw-entry-functions" class="sw-symbol-list" role="group" aria-label="SWO ELF 函数列表">先浏览载入 ELF</div>
+        <p class="hint sw-break-hint">＋ 添加断点，圆点选择采集起点。</p>
+        <div class="row sw-break-command"><input id="sw-entry-spec" placeholder="b main:199" aria-label="SWO 断点命令" disabled><button id="sw-entry-set" disabled>添加</button></div>
+        <details class="sw-fold"><summary>断点命令格式</summary><p class="hint">b 函数、b 文件:行、b 函数:行、b *0x地址；行号是文件绝对行号。</p></details>
+      </fieldset>
+      <fieldset><legend>④ 断点与采集起点</legend>
+        <div id="sw-breakpoint-list" class="sw-breakpoint-list" role="group" aria-label="SWO 采集断点列表">无断点；从函数前 ＋ 或命令添加。</div>
+        <p id="sw-entry-state" class="hint" role="status">请选择一个断点作为采集起点</p>
+        <button id="sw-reset-entry" class="sw-wide" title="软件复位目标，运行到所选断点后暂停" disabled>复位并停在起点</button>
+        <p id="sw-entry-control-status" class="hint sw-break-hint" role="status">识别目标并选择断点后，可复位并停在起点。</p>
+        <button id="sw-entry-clear" class="sw-wide" disabled>清空断点</button>
+        <p class="hint sw-break-hint">采集前运行至所选起点；采集时仅临时下发该硬件断点。</p>
+      </fieldset>
+      <fieldset><legend>⑤ 配置 SWO 采集</legend>
+        <div class="row"><span>PC 间隔</span><select id="sw-period"><option value="64">64 周期</option><option value="128">128 周期</option><option value="256">256 周期</option><option value="512">512 周期</option><option value="1024">1024 周期</option><option value="2048">2048 周期</option><option value="4096" selected>4096 周期</option><option value="8192">8192 周期</option><option value="16384">16384 周期</option></select></div>
+        <div class="row"><span>记录秒数</span><input id="sw-seconds" type="number" min="0.1" max="120" step="0.1" value="5"></div>
+        <label class="chk"><input id="sw-timestamps" type="checkbox" checked>带时间戳</label>
+        <label class="chk"><input id="sw-auto-baud" type="checkbox" checked>自动匹配收发波特率</label>
+        <div class="row"><span>SWO baud</span><input id="sw-baud" type="number" min="1" max="30000000" step="1" value="1000000" list="sw-baud-suggestions" aria-label="SWO 波特率"><datalist id="sw-baud-suggestions"><option value="500000"><option value="1000000"><option value="2000000"><option value="4000000"><option value="8000000"><option value="10000000"><option value="18000000"><option value="24000000"><option value="25000000"><option value="30000000"></datalist></div>
+        <p id="sw-match-summary" class="sw-match-summary" role="status">先识别目标与时钟</p>
+        <details id="sw-advanced" class="sw-fold"><summary>事件与带宽设置</summary>
+          <label class="chk"><input id="sw-exceptions" type="checkbox">异常进入 / 退出事件</label>
+          <div class="row sw-event-input" id="sw-exception-budget" hidden><span>预计事件/s</span><input id="sw-exception-rate" type="number" min="0" value="1000" aria-label="每秒异常进入退出事件总数"></div>
+          <label class="chk"><input id="sw-itm" type="checkbox">ITM 软件事件</label>
+          <div class="row sw-event-input" id="sw-itm-budget" hidden><span>ITM 字节/s</span><input id="sw-itm-rate" type="number" min="0" value="10000" aria-label="每秒 ITM 有效载荷字节数"></div>
+          <div class="row"><span>其他字节/s</span><input id="sw-extra" type="number" min="0" value="0"></div>
+          <div class="row"><span>带宽余量 %</span><input id="sw-margin" type="number" min="5" max="90" value="20"></div>
+          <label class="chk"><input id="sw-baud-round" type="checkbox">允许目标分频近似（≤ 5%）</label>
+          <p class="hint">这里只配置 Trace。目标主频由目标程序管理。</p>
+        </details>
+      </fieldset>
+      </div>
+      <div class="tool-side-actions sw-capture-actions">
+        <div class="row btnrow"><button id="sw-start" class="primary">运行至断点并录制</button><button id="sw-stop" disabled>停止并分析</button></div>
+        <p id="sw-status" role="status" class="hint">尚未录制</p>
+      </div>
+      </div>
+      <div id="sw-analysis-panel" class="tool-side-panel" role="tabpanel" aria-labelledby="sw-analysis-tab" hidden>
+      <fieldset><legend>文件与离线分析</legend>
+        <div class="row btnrow"><button id="sw-elf-pick">载入 ELF…</button><button id="sw-source-pick">源码目录…</button></div>
+        <input id="sw-elf-file" type="file" accept=".elf,.axf" hidden><input id="sw-source-files" type="file" webkitdirectory multiple hidden>
+        <p id="sw-files" class="hint">ELF 与源码均未载入</p>
+        <div class="row btnrow"><button id="sw-import">打开记录…</button><button id="sw-save" disabled>保存记录</button></div>
+        <input id="sw-file" type="file" accept=".swopc,.bin" hidden>
+        <div class="row btnrow"><button id="sw-analyze" disabled>重新分析</button><button id="sw-csv" disabled>导出区间 CSV</button></div>
+        <div class="row btnrow"><button id="sw-export-c" disabled>完整导出 .c</button><button id="sw-export-txt" disabled>导出简化.c</button></div>
+        <div class="row btnrow"><button id="sw-demo">载入配套实测示例</button></div>
+        <details class="sw-fold"><summary>原始 .bin 导入选项</summary><label class="chk"><input id="sw-aligned" type="checkbox">确认从数据包边界开始</label></details>
+        <p id="sw-export-status" class="hint" role="status"></p>
+      </fieldset>
+      <fieldset><legend>函数热点 · PC 样本占比</legend><div id="sw-hot" class="sw-hot"><span class="dim">载入记录后显示</span></div></fieldset>
+      </div>
+      <p id="sw-warning" class="hint" role="alert"></p>
+    </aside>
+    <div class="main sw-main">
+      <div class="toolbar sw-toolbar">
+        <strong>SWO 执行轨迹</strong><span id="sw-counts" class="dim">先记录，也可直接打开离线文件</span>
+        <div class="sw-display-controls">
+          <button id="sw-chart-toggle" aria-controls="sw-chart-box" aria-expanded="true">收起轨迹图</button>
+          <details id="sw-boundary-help" class="sw-toolbar-help"><summary>采样说明</summary><p class="sw-toolbar-popover sw-boundary">PC 采样是离散执行落点。相邻样本的跳转不代表直接调用，无法还原中间指令、完整分支或调用栈；缺口不会被补成执行路径。拖动轨迹可选区间，缩放以当前 PC 光标为中心。事件序号按解码记录递增，PC 样本序号只对 PC 落点递增。核心周期时间不是录制墙钟时间，睡眠可停止计数。</p></details>
+          <details id="sw-transition-help" class="sw-toolbar-help"><summary>跳转统计</summary><p id="sw-edges" class="sw-toolbar-popover hint">观察到的相邻函数跳转将显示在这里</p></details>
+        </div>
+      </div>
+      <div class="row wrap sw-range"><span>PC 样本区间</span><input id="sw-from" type="number" min="0" value="0" aria-label="区间开始 PC 样本"><span>至</span><input id="sw-to" type="number" min="0" value="0" aria-label="区间结束 PC 样本"><button id="sw-range-apply">应用</button><button id="sw-range-reset">全部</button><div id="sw-chart-zoom"></div><input id="sw-filter" placeholder="筛选函数 / 事件" aria-label="筛选轨迹"></div>
+      <div id="sw-chart-box" class="sw-chart-box"><canvas id="sw-chart" tabindex="0" aria-label="按 PC 样本序号排列的函数执行落点；点击定位，拖选区间，缩放以当前光标为中心"></canvas></div>
+      <div class="row sw-play"><button id="sw-prev" aria-label="上一个 PC 样本">←</button><button id="sw-play">逐样本回放</button><button id="sw-next" aria-label="下一个 PC 样本">→</button><input id="sw-cursor" type="range" min="0" max="0" value="0" aria-label="选择 PC 样本"><span id="sw-cursor-text">未选择</span></div>
+      <div class="sw-detail">
+        <div class="sw-events"><div class="row sw-pages"><button id="sw-page-prev">上一页</button><span id="sw-page-info">0 条事件</span><button id="sw-page-next">下一页</button></div><div class="sw-table-scroll"><table class="sw-table"><thead><tr><th>事件序号 / PC 样本</th><th>段内核心时间</th><th>执行落点</th><th>源码</th></tr></thead><tbody id="sw-rows"></tbody></table></div></div>
+        <div class="sw-source"><div id="sw-source-title">点击轨迹或热点查看源码</div><pre id="sw-source" tabindex="0">未选择采样位置</pre></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="toasts" id="toasts"></div>
+
+<dialog id="sw-calculator" class="sw-modal" aria-labelledby="sw-calculator-title">
+  <div class="sw-modal-head"><h2 id="sw-calculator-title">SWO 时钟与带宽计算器</h2><button id="sw-calculator-close" aria-label="关闭计算器">关闭</button></div>
+  <p class="hint">模拟目标频率，不修改硬件。可从当前目标带入，再尝试不同采样密度和事件预算。</p>
+  <div class="sw-calc-grid">
+    <fieldset><legend>目标与采样</legend>
+      <div class="row"><span>常见型号</span><select id="sw-calc-model"><option value="custom">自定义 Cortex-M</option><option value="stm32f1" selected>STM32F103</option><option value="stm32f4">STM32F407</option><option value="stm32h743">STM32H743</option><option value="stm32h7b0">STM32H7B0</option></select></div>
+      <div class="row"><span>CPU MHz</span><input id="sw-calc-core" type="number" min="0.001" max="1000" step="any" value="72"></div>
+      <div class="row"><span>Trace 关系</span><select id="sw-calc-relation"><option value="1">与 CPU 相同</option><option value="2">CPU ÷2</option><option value="4">CPU ÷4</option><option value="manual">独立输入</option></select></div>
+      <div class="row"><span>Trace MHz</span><input id="sw-calc-trace" type="number" min="0.001" max="1000" step="any" value="72"></div>
+      <div class="row"><span>采样方式</span><select id="sw-calc-rate-mode"><option value="period">PC 周期间隔</option><option value="rate">期望 PC/s</option></select></div>
+      <div class="row" id="sw-calc-period-row"><span>PC 间隔</span><select id="sw-calc-period"><option value="64">64 周期</option><option value="128">128 周期</option><option value="256">256 周期</option><option value="512">512 周期</option><option value="1024">1024 周期</option><option value="2048">2048 周期</option><option value="4096" selected>4096 周期</option><option value="8192">8192 周期</option><option value="16384">16384 周期</option></select></div>
+      <div class="row" id="sw-calc-rate-row" hidden><span>期望 PC/s</span><input id="sw-calc-rate" type="number" min="1" value="100000"></div>
+      <button id="sw-calc-current">带入当前目标</button>
+    </fieldset>
+    <fieldset><legend>事件与带宽预算</legend>
+      <label class="chk"><input id="sw-calc-timestamps" type="checkbox" checked>带时间戳（约 9 B/PC；不带为 5 B）</label>
+      <label class="chk"><input id="sw-calc-exceptions" type="checkbox">异常进入 / 退出事件</label>
+      <div class="row"><span>事件总数/s</span><input id="sw-calc-exception-rate" type="number" min="0" value="1000"></div>
+      <label class="chk"><input id="sw-calc-itm" type="checkbox">ITM 软件数据</label>
+      <div class="row"><span>载荷字节/s</span><input id="sw-calc-itm-rate" type="number" min="0" value="10000"></div>
+      <div class="row"><span>其他字节/s</span><input id="sw-calc-extra" type="number" min="0" value="0"></div>
+      <div class="row"><span>带宽余量 %</span><input id="sw-calc-margin" type="number" min="5" max="90" value="20"></div>
+      <p class="hint">事件数据由目标实际行为决定。时间戳按每个 PC 额外 4 B 估算；ITM 按每个载荷字节另有 1 B 包头估算。</p>
+    </fieldset>
+  </div>
+  <div id="sw-calc-result" class="sw-calc-result" role="status"></div>
+  <div class="row btnrow"><button id="sw-calc-copy" class="primary" disabled>采用采样与事件设置</button><button id="sw-calc-help">查看计算说明</button></div>
+  <p class="hint">采用设置不会复制模拟主频或修改目标 PLL；开始录制仍以目标当前频率重新计算。估算匹配不等于保证不丢包。</p>
+</dialog>
+<dialog id="sw-help" class="sw-modal" aria-labelledby="sw-help-title">
+  <div class="sw-modal-head"><h2 id="sw-help-title">SWO 使用帮助</h2><button id="sw-help-close" aria-label="关闭帮助">关闭</button></div>
+  <nav class="sw-help-nav"><a href="#sw-help-wiring">接线与上手</a><a href="#sw-help-breakpoints">断点与重复采集</a><a href="#sw-help-clocks">目标时钟</a><a href="#sw-help-math">带宽计算</a><a href="#sw-help-probe">探针匹配</a><a href="#sw-help-files">文件与示例</a></nav>
+  <h3 id="sw-help-wiring">1. 接线与上手</h3><p>连接目标 PB3 / SWO → 探针 PB07 / VCOM RX，并连接 SWD 和 GND。使用 NRZ / 8N1。按录制侧栏从上到下操作：载入目标 ELF、选择 VCOM 并识别目标、添加并选择断点、设置 SWO 参数，最后运行至断点并录制。初次使用还需授权探针时钟；停止后页面自动分析并恢复 Trace / 探针接收配置。</p>
+  <h3 id="sw-help-breakpoints">2. 断点起点与重复采集</h3><p>在“① 载入目标 ELF”选择与板上程序完全匹配的 ELF，确认文件名和指纹。载入后，“③ 添加断点”会列出函数：点击函数前的“＋”添加；也可以输入 <code>b main</code>、<code>b main.c:81</code>、<code>b 函数名:行号</code> 或地址，再点击“添加”。源码行按 DWARF 行号解析，空行或没有机器指令的行不能作为断点。可添加多个候选，在“④ 断点与采集起点”用圆点选择本次起点。</p><p>“复位并停在起点”会先做 AIRCR 软件复位，再运行到所选断点并暂停；它只复位并暂停，不会开始采集。目标停住后点击“运行至断点并录制”，页面会从当前起点准备并启动 SWO。若不先复位，开始采集会让正在运行的目标继续执行，等它下一次到达所选断点；默认等待 15 秒，选到已经执行过且不会再调用的启动函数会超时。采集正常停止后目标继续运行；想从程序开头再采一轮，先点“复位并停在起点”，再开始采集。</p><p>断点列表是本页的采集候选。采集时页面临时设置所选起点的硬件断点，命中后清除；原有 FPB 状态会保留。</p>
+  <h3 id="sw-help-clocks">3. CPU、Trace 与外部晶振</h3><p>CPU 频率决定 PC 采样率和周期时间；Trace 输入频率决定 SWO 编码器的分频。读取 RCC 可以得到时钟源和 PLL / 总线分频，板上外部晶振或有源时钟的频率仍需提供。标注“自动推算”表示根据配置计算，不是测量晶振。</p><p>F103 / F407 的 SWO 输入来自 HCLK，与 CPU 频率相同。H743 / H7B0 在 PLL 模式下使用 PLL1 R 输出作为 SWO 输入，CPU 使用 PLL1 P 输出并另经核心分频；不能直接拿 CPU 或 HCLK 替代。页面读取 PLL1 的 M、N、FRACN、P、R 和核心分频，分别计算两者。调试组件的总线时钟和 SWO 引脚编码时钟也需区分。常见型号的 DEV_ID 可能由多个芯片共用，页面显示型号组，不能保证识别到封装和完整料号。未知型号只识别内核并提示未适配，不套用 F103 配置。</p><p><strong>配置分工：</strong>目标固件决定 CPU 与 Trace 输入时钟，包括 H7 的 PLL1 P/R 分频；网页读取 RCC，并配置 SWO 输出波特率、PC 采样间隔及 ITM/DWT 等采集参数；时钟计算器只模拟频率、采样密度和带宽。计算器中的“与 CPU 相同”“CPU ÷2”等选项不会改动目标 PLL。目标程序需在录制期间保持时钟稳定；改变时钟后应停止并重新识别。</p>
+  <h3 id="sw-help-math">4. 从采样密度计算带宽</h3><pre>PC/s = CPU Hz ÷ PC 周期间隔
+PC 字节/s ≈ PC/s × (无时间戳 5 B；带时间戳约 9 B)
+异常字节/s = 进入 / 退出事件总数/s × 3 B
+ITM 字节/s ≈ 有效载荷字节/s × 2（按单字节包估算）
+所需 baud = (PC + 异常 + ITM + 其他 字节/s) × 10 ÷ (1 − 余量)
+目标实际 SWO baud = Trace 输入 Hz ÷ (ACPR / CODR + 1)</pre><p>72 MHz ÷64 = 1,125,000 PC/s。仅 5 B 的 PC 包就需 56.25 Mbaud，超过探针 30 Mbaud。间隔越小，采样越密，但需更多带宽，依然不能还原 ETM 的逐指令分支流。DWT 合法间隔是 64 或 1024 周期的 1–16 倍；输入期望 PC/s 时选择不超过期望值的合法采样率。</p><p>时间戳长度和频率可变，实际带宽还包含同步、睡眠等包；这里给出规划估算，溢出和接收错误仍以实测为准。</p>
+  <h3 id="sw-help-probe">5. 探针接收波特率与时钟</h3><pre>UART Hz = 选定 PLL 输出 Hz ÷ SYSCTL 分频
+probe baud = UART Hz ÷ OSR ÷ UART DIV
+误差 % = |probe baud − 目标 SWO baud| ÷ 目标 SWO baud × 100%</pre><p>自动匹配先选择当前时钟源与分频；必要时调整 PLL1。默认 UART 240 MHz，最高 30 Mbaud。软件不会调整承载 CPU 的 PLL0；PLL1 调整须经过共享消费者检查，最终以探针回读为准。下方显示实际使用 PLL0 或 PLL1 的完整路径。“授权时钟”是浏览器对探针 HID 接口的访问授权。</p>
+  <div id="sw-match" class="sw-calc-result">尚无匹配配置</div><p id="sw-plan" class="hint"></p>
+  <h3 id="sw-help-files">6. 记录、ELF、源码与实测示例</h3><p>“打开记录”打开自己的 .swopc 或原始 .bin；“载入配套实测示例”同时载入仓库内的实测记录、匹配 ELF 和源码，不连接硬件。.swopc 保存采样配置、ELF 指纹和错误信息；原始 .bin 只有数据，只有确定数据包边界时才勾选导入选项。</p><p>完整 .c 保留源码行和采样注释；“导出简化.c”只保留 C/C++ 源码，去掉注释，合并连续重复的行及代码片段，缺口以空行分开。两种导出均重新解码全部原始记录，不受区间和 250000 条事件上限影响。简化导出需匹配的 ELF 与源码；未采样代码不会补齐，文件用于阅读而非编译。</p>
+</dialog>
+
+
+<dialog id="help">
+  <h2>帮助 / 已知限制</h2>
+  <h3>浏览器要求</h3>
+  <ul>
+    <li>需要 <b>Chrome / Edge 89+</b>（桌面版）。Firefox / Safari 不支持 Web Serial。</li>
+    <li>页面必须是 <b>HTTPS</b> 或 <b>http://127.0.0.1</b>（安全上下文），GitHub Pages 满足。</li>
+  </ul>
+  <h3>第一次用串口</h3>
+  <ol>
+    <li>点「选择…」→ 在弹出的浏览器授权框里选你的 COM 口（<b>必须手动选一次</b>，网页不允许自动开串口）。</li>
+    <li>选好后端口会记在浏览器里，下次「刷新」就能直接看到并连接。</li>
+    <li>⚠️ <b>独占</b>：SSCOM / 串口监视器 / idf.py monitor 开着同一个口时，这里打不开。</li>
+  </ol>
+  <h3>SWO 执行轨迹</h3>
+  <p>更多功能 → SWO 执行轨迹。接好 SWO → VCOM RX、SWD 与共地，识别目标主频（HSE 需填写板上频率），选择波特率，载入匹配 ELF 和源码后记录。停止后可离线回放，也可直接载入 F103CB 实测示例。PC 采样展示收到的离散落点，无法恢复 ETM 的逐指令分支流。</p>
+  <h3>RTT 为什么分三种后端</h3>
+  <ul>
+    <li><b>WebUSB · CMSIS-DAP</b>：零安装，页面上直接读目标 RAM 拿 RTT。只认 CMSIS-DAP 类探针（DAPLink、cherrydap…），<b>不认 J-Link</b>。</li>
+    <li><b>本地桥 · OpenOCD / J-Link</b>：J-Link 与 OpenOCD 都是本机程序，网页无权启动它们，需要一个本机小程序当桥（仓库 <code>bridge/</code>，双击启动，零 npm 依赖）。</li>
+    <li><b>内置模拟目标</b>：无硬件也能看效果。</li>
+  </ul>
+  <h3>RTT 使用要点</h3>
+  <ul>
+    <li>固件里必须编进了 SEGGER RTT（<code>SEGGER_RTT_Init()</code> 会被自动调用）。</li>
+    <li>控制块地址优先用 <b>ELF 符号</b>（载入 .elf 最稳），否则用「扫描控制块」在 RAM 里找 <code>"SEGGER RTT"</code>。</li>
+    <li>同一个探针不能被两个程序同时占用：OpenOCD / pyOCD / J-Link 开着时，先关掉它们。</li>
+    <li><b>RTT 不重传</b>：目标写太快会覆盖/丢弃还没读走的数据。<b>「缓冲高位」的次数和峰值水位</b>是最实用的
+      过载信号（≥75% 就算高位）；「溢出丢弃」只在主机侧读指针落后时才算得出来 —— 两个数字都当下限看。
+      主机读速受调试器限制（OpenOCD RPC 实测 ~17 KB/s），大流量场景优先用 WebUSB 探针。</li>
+  </ul>
+  <h3>工程生成（最后一个标签）</h3>
+  <ul>
+    <li>把 Keil <code>.uvprojx</code> 拖进页面：器件、Flash 起址、PyOCD / OpenOCD 目标会自动填好，其余参数都能手改。</li>
+    <li>勾选要哪些文件，右侧是<b>实时预览</b>；「写入文件夹…」选一次目录就能把多个文件直接写进去（Edge / Chrome），
+        其它浏览器自动改走「打包 ZIP」。</li>
+    <li>生成时在 <code>uvprojx2cmake.py</code> 的模板上<b>固定套 4 项修正</b>（RTT 范围收进 RAM、clean 不再删
+        <code>*.log</code>、OpenOCD 的 <code>-c</code> 改双引号、去掉 SWO 目标）；对账测试验证的是"不带修正时逐字节相同"。</li>
+    <li>网页不能静默写你的项目目录 —— 必须你亲手选一次文件夹；<code>test_sram.bin</code> 是 RAM 测试图案，不是固件。</li>
+  </ul>
+  <h3>RTT → CDC 转发（「RTT 转发」那一页，akaLinkPro 探针）</h3>
+  <ul>
+    <li>让<b>探针自己</b>通过 SWD 轮询目标的 RTT 控制块、把数据塞进它的 CDC 串口 —— 主机只要读一个 COM 口，
+        比主机侧轮询快得多（本机实测 <b>2.4 MB/s</b>）。</li>
+    <li>这一页是<b>纯输出</b>：只有接收（ASCII / ANSI / HEX、时间戳、暂停、保存数据、记录到文件），<b>没有发送</b>。</li>
+    <li>「连接探针」走探针的自定义 HID（usage page 0xFF00）；授权一次后页面会自动重连。</li>
+    <li>RTT 地址可以手填，也可以「载入 ELF…」从 <code>_SEGGER_RTT</code> 符号自动解析（和 RTT Viewer 一样）。</li>
+    <li>启动转发后，在<b>同一页</b>「选择…」授权探针的 CDC 口并「连接」，数据就出来了；「停止」把该口交回 UART。</li>
+    <li>⚠️ Cortex-M7（H743 / H7B3…）要给 AXI SRAM 地址（如 <code>0x24000000</code>）：DTCM 探针读不到。</li>
+  </ul>
+  <form method="dialog"><button class="primary">知道了</button></form>
+</dialog>
+
+<script src="app/vendor/xterm/xterm.js"></script>
+<script src="app/vendor/xterm/addon-fit.js"></script>
+<!--
+  🚨 「卡在正在加载…」自救提示（2026-10 用户现场）。
+
+  遮罩只有等 `app/main.js` 及其整个模块图跑完才摘。如果某个模块**加载失败**（最常见的原因：
+  浏览器里还留着上一次的旧 JS —— 老服务器不发缓存头时会留下"启发式缓存"，于是新旧模块混在
+  一起。典型签名：新的 `view.js` 从缓存的旧 `source.js` 里 import 一个新加的具名导出 →
+  浏览器直接抛 "does not provide an export named …"，**整个页面起不来、遮罩永远不消失**，
+  看着就像"网页坏了"）。
+
+  所以这里放一段**不依赖任何模块**的内联脚本：8 秒还没引导完，就把遮罩换成能照做的提示
+  （第一条红色报错 + 强制刷新 / 换端口），别让用户对着转圈猜。日常加载正常时它什么都不做。
+-->
+<script>
+(function(){
+  window.__bootGuardArmed = true;      // 自测断言用：证明这段兜底脚本真的装上了
+  var said = false;
+  function firstError(){
+    try { return window.__bootError || ''; } catch (e){ return ''; }
+  }
+  window.addEventListener('error', function(e){
+    if (window.__bootError) return;
+    var t = e && e.target;
+    if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) window.__bootError = '（' + t.tagName.toLowerCase() + ' 加载失败：' + (t.src || t.href) + '）';
+    else if (e && e.message) window.__bootError = '（' + e.message + '）';
+  }, true);
+  setTimeout(function(){
+    var m = document.getElementById('boot-mask');
+    if (!m || said) return;                       // 已经摘掉 = 引导成功，什么都不用说
+    said = true;
+    m.innerHTML = '<div class="boot-box"><b>加载时间较长</b>'
+      + '<span>正在等待网页资源。请检查网络连接；若持续没有进展，可按 Ctrl+Shift+R 重新加载。</span>'
+      + '<span style="opacity:.75">加载错误可在 F12 → Console 查看。</span></div>';
+    if (firstError()) {
+      var error = document.createElement('span');
+      error.style.color = '#f85149';
+      error.textContent = '第一条报错：' + firstError();
+      m.firstElementChild.appendChild(error);
+    }
+  }, 8000);
+})();
+</script>
+<script type="module">
+document.documentElement.dataset.bootEntry = window.__useWebBundle ? 'bundle' : 'source';
+import(window.__useWebBundle ? './' + window.__webBundleUrl : './app/main.js').catch(function(error){
+  window.__bootError = error.message || String(error);
+  console.error('[boot]', error);
+  throw error;
+});
+</script>
+</body>
+</html>

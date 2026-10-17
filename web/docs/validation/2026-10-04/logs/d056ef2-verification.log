@@ -1,0 +1,28 @@
+
+$ git cherry-pick -n d056ef2
+
+$ git diff --cached --name-only
+app/core/usb-device.js
+tools/selftest/usb-device.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-device.test.mjs
+usb-device: shared lifecycle, endpoint exclusion, interface refs, guarded reset, alias identity PASS
+usb-device: native timeout retains ownership and prevents late lifecycle races PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/usb-device.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/usb-device.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s d056ef2
+fix(core): quarantine unresolved USB lifecycle operations after timeout
+
+$ git commit -C d056ef2
+[main 694a375] fix(core): quarantine unresolved USB lifecycle operations after timeout
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 16:21:56 2026 +0900
+ 2 files changed, 27 insertions(+), 6 deletions(-)
+
+$ git rev-parse HEAD
+694a3755101ab6e1a9461fcd3ba4b49d0e191a4f

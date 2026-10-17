@@ -1,0 +1,171 @@
+
+$ git cherry-pick -n 1710538
+
+$ git diff --cached --name-only
+Makefile
+app/spi/runner.js
+tools/selftest/spi-runner-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/spi-runner-lifecycle.test.mjs
+spi-runner-lifecycle: old success/error/one-shot cannot publish, stop or revive a new acquisition PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/spi-frames-dsl.test.mjs
+== 1. 小工具：去注释 / 分词 / 数字 / 时长 / 十六进制 ==
+  PASS  stripComment：# 到行尾
+  PASS  stripComment：// 到行尾
+  PASS  stripComment：引号里的 # 不算注释
+  PASS  tokenize：引号里的空格不断词
+  PASS  tokenize：多余空白吃掉
+  PASS  tokenize：引号没配对 → 抛错
+  PASS  parseNum：cmd 那颗默认十六进制
+  PASS  parseNum：默认十进制（rx=492 是 492 不是 0x492）
+  PASS  parseNum：0x 前缀一律十六进制
+  PASS  parseNum：非 0x 的十六进制字母在十进制模式下被拒
+  PASS  parseNum：空值被拒
+  PASS  时长 120ms
+  PASS  时长 500us / 500µs
+  PASS  时长 1.5s
+  PASS  时长裸数字 = µs
+  PASS  时长非法被拒
+  PASS  tx：逗号分隔
+  PASS  tx：0x 前缀 + 空格
+  PASS  tx：连写
+  PASS  tx：空 = 零字节
+  PASS  tx：奇数位十六进制被拒
+== 2. 裸字节行 = 一条 cmd 帧 ==
+  PASS  裸字节 → XFER
+  PASS  cmd=0x11 且自动开 cmd 相位
+  PASS  没有数据/地址相位
+  PASS  整段只有一条 → 自动带 RSP（发完要知道成没成）
+  PASS  裸字节按十六进制（29 → 0x29 而不是十进制 29）
+  PASS  裸字节后面可以跟 key=value（0x9F rx=3）
+  PASS  裸字节后面跟不认识的东西 → 报错
+  PASS  行首字节与 cmd= 重复 → 报错
+== 3. XFER 的 key：字段落位与自动开相位 ==
+  PASS  cmd= + rx= → cmd 相位 + 读长度
+  PASS  给 addr+addrl → 自动开地址相位
+  PASS  只给 addr → 地址字节数缺省 3（NOR 的常识）
+  PASS  lines=4 落进 tcfg 低两位
+  PASS  dummy 落位
+  PASS  tx 数据 + 长度一致
+  PASS  flags：cs_hold / dma
+  PASS  tcfg：addrquad / token
+  PASS  dc1 = DC_EN|DC_LEVEL（数据）
+  PASS  dc = 只开 DC_EN（命令）
+  PASS  不发 cmd 的续读帧（cmd_en=0）
+  PASS  rx=1 的短读
+== 4. 其余关键字帧 ==
+  PASS  delay 120ms → DELAY 帧（µs）
+  PASS  gpio DC 1
+  PASS  gpio 线名大小写不敏感
+  PASS  gpio 也吃协议里的数字线号
+  PASS  cs low = 占用（payload 1）
+  PASS  cs high = 释放（payload 0）
+  PASS  reset 10 120
+  PASS  reset 只给一个数 → post 缺省 120ms
+  PASS  ping / auxin
+  PASS  step = cmd/nparams/delay_ms
+  PASS  step 的 tx 就是参数
+== 5. 三条自动规则（RSP 归谁）==
+  PASS  两条读帧都各自带 RSP（rx>0 必带）
+  PASS  没人要应答时不乱加 RSP
+  PASS  整段零 RSP → 末帧补一个（哪怕是 DELAY）
+  PASS  自己写了 rsp → 不再自动补末帧
+  PASS  autoRsp 标记只落在被自动补的那条上
+== 6. 错误必须在解析期带行号拦住 ==
+  PASS  全双工不等长 → 报错
+  PASS  lines 只吃 1/2/4 → 报错
+  PASS  addrl 超范围 → 报错
+  PASS  给了 addr 却 addrl=0 → 报错
+  PASS  dummy 超范围 → 报错
+  PASS  未知 key → 报错
+  PASS  同名 key 重复 → 报错
+  PASS  负数/非法数字 → 报错
+  PASS  奇数位十六进制 → 报错
+  PASS  空帧 → 报错
+  PASS  引号没配对 → 报错
+  PASS  TE 是输入不能写 → 报错
+  PASS  线名不认识 → 报错
+  PASS  gpio 少参数 → 报错
+  PASS  gpio 电平非法 → 报错
+  PASS  cs 值非法 → 报错
+  PASS  delay 少参数 → 报错
+  PASS  delay 多参数 → 报错
+  PASS  reset 少参数 → 报错
+  PASS  reset 多参数 → 报错
+  PASS  gpio 多参数 → 报错
+  PASS  ping 多参数 → 报错
+  PASS  整行认不出 → 报错
+  PASS  step 缺 cmd → 报错
+  PASS  STEP 没有 dc 开关 → 报错
+  PASS  引号里的 tx 也参与等长校验 → 报错
+  PASS  报错行号对准源文件（第 4 行，前面有注释和空行）
+  PASS  错误里带上原行文本
+  PASS  tx 超过 492 B → 报错（不静默截断）
+  PASS  一行错不影响其它行（错误与有效帧分开返回）
+== 7. 整段解析：注释、空行、统计、描述 ==
+  PASS  4 条帧全部解析成功
+  PASS  统计：2 条 XFER / payload 共 62 B
+  PASS  摘要：4 条帧（XFER/DELAY/GPIO）· payload 合计 62 B
+  PASS  全注释/空行 → 零帧零错
+  PASS  空段的摘要
+  PASS  解析结果能干净打包（4 帧 → 1 包）
+== 8. 面板上的示例片段必须是好的（回归）==
+  PASS  内置 5 条示例
+  PASS  示例「NOR：读 ID + SFDP + 状态」解析干净（3 条帧）
+  PASS  示例「NOR：4 线连续读测速（首帧带命令地址，后续帧只读数据）」解析干净（3 条帧）
+  PASS  示例「面板：几条命令 + 延时」解析干净（5 条帧）
+  PASS  示例「传感器：WHO_AM_I + 每 20ms 采三轴（loop + as）」解析干净（2 条帧）
+  PASS  示例「ADC：MCP3008 每 50ms 读 0 通道（命令型）」解析干净（1 条帧）
+  PASS  示例里的 RDID：cmd=0x9F / rx=3
+  PASS  示例里的 SFDP：0x5A + 3 B 地址 + 1 dummy + 8 B
+  PASS  四线连读示例 = 3 条帧
+  PASS  首帧：4 线 + CS_HOLD
+  PASS  续读帧：不发 cmd + CS_HOLD
+  PASS  末帧：CS_OFF 释放
+== 9. C 表行（列序 = 页面命令表）与导出/回灌 ==
+  PASS  C 行：cmd/rx 落位，tx=NULL
+  PASS  C 行：cmd 相位开、地址相位关
+  PASS  C 行：地址 + (uint8_t[]){…} 数据
+  PASS  C 行：4 线
+  PASS  C 行：tx 也能写成字符串（这里是读帧，tx 忽略）
+  PASS  列数不够 → 报错
+  PASS  lines 非法 → 报错
+  PASS  addr_len 超范围 → 报错
+  PASS  rx_len 超范围 → 报错
+  PASS  tx 里有非法十六进制 → 报错
+  PASS  导出的 C 表列序正确：{0x9f, 1, 0, 0x000000, 0, 3, NULL},
+  PASS  导出的 tx 是 (uint8_t[]){…}
+  PASS  导出的 C 表能再解析（3 条）
+  PASS  C 表往返后每帧字节完全一致
+  PASS  DSL 导出能再解析（7 条）
+  PASS  DSL 往返后每帧的 type/payload/flags 完全一致（含 cs_hold / cs_off）
+  PASS  JSON 导出含全部帧（7 条）
+  PASS  JSON 里 delay/gpio 都在
+  PASS  JSON 回灌成 DSL 后条数一致
+  PASS  不是我们的 JSON 形状 → 返回 null（调用方原样载入）
+  PASS  C 表里用注释标出放不下的帧：// delay 10000us    ← 不是 XFER，C 表里放不下
+
+✅ spi-frames-dsl.test: 126 通过 / 0 失败
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/spi-teardown.test.mjs
+spi-teardown: EP11 drain preserves peer, cancels delivery/rearm, guards old firmware and timed-out OUT PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/spi/runner.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/spi-runner-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 1710538
+fix(spi): isolate acquisition generations across stop and restart
+
+$ git commit -C 1710538
+[main 6df85c8] fix(spi): isolate acquisition generations across stop and restart
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 19:27:39 2026 +0900
+ 3 files changed, 50 insertions(+), 10 deletions(-)
+ create mode 100644 tools/selftest/spi-runner-lifecycle.test.mjs
+
+$ git rev-parse HEAD
+6df85c82d6e37ec877dd13fc42b6b7ac257039f8

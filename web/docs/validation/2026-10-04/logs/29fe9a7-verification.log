@@ -1,0 +1,37 @@
+
+$ git cherry-pick -n 29fe9a7
+
+$ git diff --cached --name-only
+app/dbg/view.js
+app/flash/view.js
+tools/selftest/probe-handoff.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-handoff.test.mjs
+probe-handoff: debugger cancels queue, drains action before close; flash releases debugger before USB cleanup PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/flash-lifecycle.test.mjs
+flash-lifecycle: preparation, duplicate click, disconnect ownership, cancellation and errors PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-view-lock.test.mjs
+dbg-view-lock: memory/watch entry points queue behind actions, internal refresh avoids nested lock PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/dbg/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/flash/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-handoff.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 29fe9a7
+fix(flash): drain debugger operations before handing off the probe
+
+$ git commit -C 29fe9a7
+[main 1294843] fix(flash): drain debugger operations before handing off the probe
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:22:40 2026 +0900
+ 3 files changed, 45 insertions(+), 6 deletions(-)
+ create mode 100644 tools/selftest/probe-handoff.test.mjs
+
+$ git rev-parse HEAD
+12948434ab2f9eb211492adfd729b911e671b1fd

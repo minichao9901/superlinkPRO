@@ -1,0 +1,3 @@
+[dap] 同步清队列：吃掉 8 条陈旧响应
+PASS real production SPI session: pending reads drained, firmware disable confirmed, pins released, DAP preserved
+PASS real production I2C: automatic enable, malformed disable retains ownership/handle, explicit retry confirms firmware disabled and releases

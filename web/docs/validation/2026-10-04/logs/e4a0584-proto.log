@@ -1,0 +1,154 @@
+== 1. 采样计划（读计划 = 速率的最大杠杆）==
+  PASS  同一结构体的 8 个成员合并成 1 个 span
+  PASS  帧字节数 = 22（4+4+4+2+2+1+1+4）
+  PASS  span 覆盖 0x20001014..0x2000102c（24 B，含 2 B 空洞）
+  PASS  跨 4 KB 的两组 → 2 个 span
+  PASS  多一个 span 就更慢（模型上）
+  PASS  合并省掉 61% 的时间（相对逐变量读）
+  PASS  朴素写法（每个变量一次块读）一定更慢
+  PASS  空计划不炸
+  PASS  间隙 8 B 合并 / 30 B 不合并
+  PASS  合并阈值 = 12 B（固件 SCOPE_MERGE_GAP 同值；gap 12 并、13 不并）
+  PASS  超长跨度被 64 B 上限切开（3 个 span，各 8/8/8 B）
+  PASS  计划指纹与变量顺序无关
+  PASS  不同计划指纹不同
+  PASS  action 7 flags bit6 = 强制 RISC-V/JTAG
+  PASS  DISCARD/CDC_OFF 位与固件一致
+  PASS  DEF flags bit6 → **生效**后端 = RISC-V（不是你下发的那个）
+  PASS  DEF flags bit6 = 0 → SWD/ARM
+  PASS  目标类型切换走 HID **0x31** action 10（不是 0x32），Byte[3]=10 / Byte[4]=0|1
+  PASS  后端分档：SWD 1.55/11.19 µs vs RISC-V 3.17/36.6 µs
+  PASS  后端显示名
+  PASS  单字 f32 走快路径：模型 4.47 µs / 取用 1.55 µs（≈645 kHz）
+  PASS  模型贴住真机锚点：1/2/4/6/8 字 = 4.47 / 5.58 / 7.81 / 10.05 / 12.28 µs（实测 4.50 / 5.82 / 7.96 / 10.30 / 12.65）
+  PASS  快路径成本可覆盖（不同 SWD 时钟档）
+  PASS  单个 u16（半字）不走快路径 —— 固件要求整段正好 4 字节直读
+  PASS  地址没 4 字节对齐也不走快路径
+  PASS  两个单字（合并成 8 B span）不走快路径 —— 固件守卫是"只有一个 4 字节 span"
+  PASS  两个连续 u16（合成一个 4 B 字）仍可以走快路径
+== 2. 512 B 包编解码（四种包）==
+  PASS  DEF 包 = 512 B
+  PASS  HEAD 解析：kind/seq
+  PASS  DEF 字段逐个正确
+  PASS  DEF 里回报的 span 数（主机拿它和本地计划对账）
+  PASS  DEF 变量表（含类型码 → 名字）
+  PASS  打包写出 26 B
+  PASS  8 种类型打包→解码逐位相等
+  PASS  半包（不足一帧）解不出东西，也不抛异常
+  PASS  一帧的载荷解出 8 个值（余量被忽略）
+  PASS  两帧解出 16 个值（扁平数组：out[i*nv+k]）
+  PASS  第 2 帧的值与第 1 帧相同（同一份载荷）
+  PASS  DATA 包的 t_us / n / aux（载荷字节数）
+  PASS  STAT 包字段（含 dropped / SWD 档位 / 丢弃模式）
+  PASS  EVT 包字段
+  PASS  magic 错 → null
+  PASS  版本不匹配 → null
+  PASS  未知 kind → null
+  PASS  每包样本数 = floor(496/frameBytes)（32 B 时 15 个）
+== 3. 字节流 → 包（分片、垃圾、重同步）==
+  PASS  整块喂 → 5 个包
+  PASS  切成 100 B 碎片喂 → 还是 5 个包
+  PASS  碎片喂完缓冲区正好清空
+  PASS  开头 7 B 垃圾 → 重同步 1 次并找回 5 个包
+  PASS  重同步后第一个包还是 seq 0
+  PASS  半包不产出
+  PASS  补齐后立刻产出 1 个包
+== 4. 丢包 / 时间戳回绕 ==
+  PASS  连续序号不报警
+  PASS  跳号 → gap 且缺 2 个
+  PASS  重复序号 → dup
+  PASS  回退序号 → reorder（不算丢）
+  PASS  三类计数各自独立
+  PASS  正常前进
+  PASS  32 位回绕后被展开成单调递增
+  PASS  绕回后继续单调前进
+== 5. HID 0x32 控制面 ==
+  PASS  一条报文装下 8 个变量（55 ≤ 61 B）
+  PASS  action=7 / period_us 在 [1..4]
+  PASS  nvars 在 [6]
+  PASS  第 2 个变量的 addr/size/type 编码正确
+  PASS  9 个变量 → 明确报错（前端就该拦住）
+  PASS  状态字解析出对象
+  PASS  action 3 设 SWD 时钟报文（Hz 小端）
+  PASS  w0 的位域：nspans 与 nvars（与固件 scope_sampler_status 一致）
+  PASS  w0 bit1 = 0 → SWD/ARM 后端
+  PASS  w0 bit1 = 1 → 生效后端是 RISC-V/JTAG（web-handoff-riscv-scope.md 第 1 条）
+  PASS  -100 = "启动中"而不是错误
+  PASS  -3 的文案指向"变量表为空"
+  PASS  rc=0 正常
+  PASS  哨兵值 = -100（与固件一致）
+  PASS  触发配置报文 15 B（action+ch+mode+level+pre+post）
+== 6. 类型化缓冲 + LOD 金字塔 ==
+  PASS  f32 → Float32Array
+  PASS  i32 → Int32Array（不是 Float32：>2^24 的整数才不会被四舍五入）
+  PASS  大整数 0x1000000+12345 精确保存
+  PASS  浮点精确保存
+  PASS  每列 64 个样本 → 走 LOD（快路径）
+  PASS  包络抓到了 +100 的尖峰（max=99.56；sin 相位使实际值 ≈99.6）
+  PASS  包络抓到了谷底（min=-1.00）
+  PASS  LOD 包络是精确包络的超集（不会漏掉任何极值）
+  PASS  其中 64/64 列与精确值完全一致
+  PASS  每列 8 个样本 → 逐样本精确扫描（放大后取值必须精确）
+  PASS  精确模式下第 0 列与 exact() 完全一致
+  PASS  存满 10 个 → full
+  PASS  满了之后再来的帧计入 overrun（不静默丢）
+  PASS  实测速率 ≈ 10 kHz（实际 10000.0 Hz）
+  PASS  timeAt(5) ≈ 500 µs（实际 500.0）
+  PASS  显存占用统计含 LOD（56 B）
+  PASS  第一段内按本段实测间隔插值：timeAt(32)=320.0 µs（全局平均会算成 1748.7）
+  PASS  第二段内同样按本段间隔：timeAt(96)=3840.0 µs
+  PASS  跨段 Δt 用各自段的真实间隔（3520.0 µs，全局平均会算成 3497.3）
+  PASS  显示变换 v*scale+offset
+== 7. 触发（实时 + 离线重触发）==
+  PASS  "大于"阈值
+  PASS  "小于"阈值
+  PASS  上升沿要跨过阈值
+  PASS  下降沿要跨过阈值
+  PASS  "变化"判定
+  PASS  第一个样本不能算沿（没有前一个值）
+  PASS  离线重触发找到第一个上升沿（样本 10）
+  PASS  从上一个命中点继续找 → 下一个上升沿在 30
+  PASS  不触发模式返回 -1
+  PASS  条件永不满足返回 -1
+  PASS  预/后触发窗口 [5,14)
+  PASS  预触发不够时截断到 0 并标记 short
+  PASS  单次模式：命中一次后不再报
+  PASS  连续模式：每次都报（100 个样本里 5 个上升沿）
+== 8. 假探针端到端：配置 → 采样 → 包 → 解码 → 缓冲（逐点对账）==
+  PASS  CONFIG 回包 rc=0
+  PASS  假探针收到了周期与 8 个变量
+  PASS  首次启动回 -100（排队中）—— 与真固件同一个哨兵值
+  PASS  状态字里的 startRc 也是 -100
+  PASS  排队结束后返回 0
+  PASS  从 DEF 包里恢复了变量表（含类型）
+  PASS  包数对得上：1 DEF + 527 DATA + 8 STAT = 536
+  PASS  缓冲里正好 10000 个样本（实际 10000）
+  PASS  产出 10000 = 送达 10000（flush 后被丢的尾巴也补上了）
+  PASS  8 通道 × 10000 样本**逐点相等**（含 f64/u32/i32 精度）
+  PASS  实测速率 ≈ 10 kHz（10000.0 Hz）
+  PASS  timeAt(5000) ≈ 0.5 s（500.0 ms）
+  PASS  f32 正弦幅度在 ±1 内
+  PASS  dropEvery=1000 时假探针确实丢了 4 个样本
+  PASS  产出 = 送达 + 丢弃（账对得上）
+  PASS  解出来的样本数 = 送达数（4896）
+  PASS  stallAfter 复现"探针在跑但停在 50 个样本"（发出 2 个满包 = floor(50/19)）
+  PASS  启动失败 rc=-2 → 文案指向接线/供电
+== 7. tick 周期与 v1/v2 时间轴兼容 ==
+  PASS  2.25 µs 配置为 54 tick，使用新动作
+  PASS  假探针配置回报真实小数周期
+  PASS  v2 DEF 周期单位转换
+  PASS  满包边界时间间隔 = 124 × 小数周期
+  PASS  2.5 µs 配置为 60 tick，使用新动作
+  PASS  假探针配置回报真实小数周期
+  PASS  v2 DEF 周期单位转换
+  PASS  满包边界时间间隔 = 124 × 小数周期
+  PASS  2.75 µs 配置为 66 tick，使用新动作
+  PASS  假探针配置回报真实小数周期
+  PASS  v2 DEF 周期单位转换
+  PASS  满包边界时间间隔 = 124 × 小数周期
+  PASS  整数周期继续使用 action 7
+  PASS  v2 u32 tick 回绕约 179 秒处连续，先 unwrap 后换算
+  PASS  v2 STAT 不把 60 tick 当 60 µs
+  PASS  DATA aux 校验使用完整 u16，拒绝超长载荷
+
+✅ scope-proto.test: 143 通过 / 0 失败

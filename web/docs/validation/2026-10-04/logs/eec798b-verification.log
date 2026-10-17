@@ -1,0 +1,190 @@
+
+$ git cherry-pick -n eec798b
+
+$ git diff --cached --name-only
+app/spi/session.js
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/spi-proto.test.mjs
+== 1. 帧编解码（8 B 头 + payload）==
+  PASS  帧长 = 8 + payload
+  PASS  magic 小端是 'S','B'（0x4253）
+  PASS  线上字节序 = 53 42
+  PASS  type/flags/seq/len 落位正确
+  PASS  payload 超过 504 B 直接抛错（不静默截断）
+  PASS  XFER 传输头前 4 字节
+  PASS  tx_len/rx_len/addr 小端
+  PASS  STEP = cmd/nparams/delay_ms/params
+  PASS  STEP 参数 > 255 抛错（nparams 是 1 字节）
+== 2. 打包器：一帧不跨包、绝不填充 ==
+  PASS  小帧被攒批：6 帧 → 1 包
+  PASS  每个包都过固件纪律（无跨包帧、无 ≥8 B 残渣）
+  PASS  解析出的帧数一致（6/6）
+  PASS  帧内容与顺序逐字节一致
+  PASS  一帧占满 512 B 时独占一包（13/512/13）
+  PASS  边界包同样干净
+  PASS  单帧 > 512 B 直接抛错（固件无法解析这种帧）
+  PASS  打包后 12 个包（3 条命令被攒成 1 包 + 10 个整包 + 末片）
+  PASS  整包正好 512 B（一片一个 USB 包，不需要补填充）
+  PASS  batchBytes=512 时退化成"一包一批"（12 批 = 12 包，零行为变化）
+  PASS  短包（命令 3 帧 = 65 B）自成一个尾批 —— 短包绝不能夹在中间
+  PASS  中间批次都是 8 包 / 4096 B（3 批）
+  PASS  末批 = 剩下 2 个整包 + 末片（1428 B / 3 包，末片 404 B 收尾）
+  PASS  批里的包数守恒（没有丢包）
+  PASS  攒批后按 512 B 槽解出来的帧序列，与逐包发一字不差
+  PASS  每个槽都干净（没有跨槽帧、没有 ≥8 B 残渣）
+  PASS  单包 > 512 B 在攒批入口也直接抛错
+  PASS  一次传输被夹在 60 KB 以内（最大 5524 B）
+  PASS  包尾 4 B 残渣：解析出 1 帧、残渣 4 B、无错
+  PASS  包尾 8 B 垃圾：判 bad_magic（真固件这里会 frames_err++）
+  PASS  帧长超出包尾 → bad_len
+== 3. HID 0x35：偏移与解析（照固件实现，不是 proto.h 字段序）==
+  PASS  WebHID 比固件少 1 字节 Report ID：cmd@1、action@2、data@3
+  PASS  ENABLE 请求 = [action, on]
+  PASS  PIN_CFG 请求带 action
+  PASS  计数器 1..7 落位正确
+  PASS  第 9 个字 = 实际 SCLK（固件 res[36]）
+  PASS  第 10 个字 = frames_err（固件 res[40]，**不是** proto.h 的字段序）
+  PASS  状态字位域 + 最近错误码
+  PASS  配置块 32 B
+  PASS  encode → decode 往返一致
+  PASS  max_frame_bytes 默认写成 504（小端 f8 01）
+  PASS  面板档 16 B 往返一致
+  PASS  pad_active_low 位图：bit1 RST / bit2 CS（固件默认 0x06）
+  PASS  SCLK 档位 = 板级默认 + 10/20/40/60/75 MHz（用户拍板）
+== 4. 应答切包（RspStream）与 seq 配对（RspMatcher）==
+  PASS  一个包一次推送 → 切出 1 个
+  PASS  一次 transferIn 带回两个应答 → 切出 2 个
+  PASS  半包先缓存（pending=5）
+  PASS  补齐后一次切出 2 个
+  PASS  垃圾字节记 errors（不静默吞）
+  PASS  seq 从 1 开始分配
+  PASS  wait 后计入在飞
+  PASS  seq 对不上的应答**不**兑现（不是先来先服务）
+  PASS  按 seq 兑现
+  PASS  兑现回来的数据正确
+  PASS  兑现后从在飞里移除
+  PASS  EVT 走事件通道，不去结算任何请求
+  PASS  没人应答 → 超时 reject（不悬挂）
+  PASS  超时后清账
+  PASS  abortAll 立刻拒掉在飞请求（收尾不留残雷）
+== 5. 假探针：HID 0x35 语义 ==
+  PASS  默认配置照固件（sclk=0 / 阈值 100 / cs_policy 0）
+  PASS  默认辅助脚 = PA26/PA02/不用/PA31（14/5/0/13），RST+CS 低有效
+  PASS  非法 mode → 状态字带 RANGE（不静默接受）
+  PASS  非法配置**没有**写进去（回读还是默认）
+  PASS  合法配置真的写进去了（回读对账）
+  PASS  成功写入之后，状态字里仍留着上一次的 RANGE（"err≠0 = 这次失败"是错判据）
+  PASS  未使能时「实际 SCLK」= 0
+  PASS  ENABLE 1 → 状态字 enabled 置位
+  PASS  使能后回读实际 SCLK = 40000000（假探针按整除模型算）
+  PASS  默认面板档 = raw，QSPI 像素 opcode 0x32
+  PASS  未使能时写包被 NAK（真固件这里不 arm OUT 端点）
+== 6. 假探针：帧执行（回环 / 档位展开 / 非阻塞延时）==
+  PASS  XFER 全双工回环：读回 == 发出的 4 B
+  PASS  收发不等长 → RANGE（固件 spi_bridge.c:527）
+  PASS  读数据不带 RSP → 错误经 EVT 上报
+  PASS  没接跳线 → 读回 0x00（回环自检会 FAIL，符合预期）
+  PASS  档 0 raw：cmd + params → ce 5a a5
+  PASS  档 1 spi_dcx：同一 CS 窗口里 DC 0→1 → ce 5a a5
+  PASS  档 2 qspi：命令字在地址中间字节（00 XX 00，与手册一致） → 02 00 f0 00 28
+  PASS  DELAY 帧立刻应答，后面的 PING 被挡住（非阻塞：主循环没停）
+  PASS  时间没到 → 后面的帧还不执行
+  PASS  到点后继续执行（PING 应答出现）
+  PASS  DELAY 的时长被记下来（5000 µs → 5 ms，统一毫秒口径）
+  PASS  dropRsp：应答真的不回（页面侧会走超时分支）
+  PASS  IN 环满 → 应答带 IN_FULL 且 in_drop++
+  PASS  forceStatus 能造出任意错误码（测页面的错误文案）
+== 7. 端到端（无浏览器）：整表下发 + 统计对账 ==
+  PASS  192 条 STEP 打包干净（192 帧 → 6 包）
+  PASS  攒批把 USB 往返压到 6 次（不攒批要 192 次）
+  PASS  所有帧都被执行完（非阻塞延时逐个到点）
+  PASS  只有最后一条的应答回来（其余不带 RSP，不产生 IN 流量）
+  PASS  frames_ok=192（应为 192）· frames_err=0
+  PASS  bytes_tx=1152（每步 6 B：0x02 + 命令字 + 00 00 + 2 B 参数）
+  PASS  CS 窗口数 192（每步一次事务）
+
+✅ spi-proto.test: 90 通过 / 0 失败
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/spi-read.test.mjs
+== 1. 读寄存器：三种档位的帧形状 ==
+  PASS  档 1：命令帧 + 数据帧（2 条）
+  PASS  命令帧：DC=0、tx=1、字节 = 0x04
+  PASS  命令帧：CS 保持、不要应答
+  PASS  数据帧：DC=1、rx=3、dummy=1、带 RSP
+  PASS  数据帧读完释放 CS
+  PASS  档 2：一条 XFER 搞定（命令 + 地址 + dummy + 读）
+  PASS  档 2：opcode=0x0B(FASTREAD) + 3 字节地址 0x000b00（= 命令字<<8 = 线上 00 0B 00）
+  PASS  地址三字节 = 00 / 命令字 / 00（命令在中间字节）
+  PASS  raw 档(0) 也按 DCS 形状发（命令 DC=0 → 数据 DC=1）—— 页面对 raw 档会先提醒"档位可能不对"
+== 2. 读 GRAM 的计划：切片 / 续读 / CS_HOLD / 地址递增 ==
+  PASS  整帧 142080 B（240×296 RGB565）
+  PASS  切成 285 片（默认每片 500 B）
+  PASS  每片都不超过 503（504 的应答正好 512 B 满包，主机会挂住）
+  PASS  读片上限 = 503（不是固件允许的 504 —— 真机实测踩过）
+  PASS  chunk=504 会被夹到 503（实测最大片 503）
+  PASS  片长加起来正好一帧（不多不少）
+  PASS  首片 = 开窗 2 条 + RAMRD + 读（4 条）
+  PASS  首片先开窗（CASET/RASET）
+  PASS  后续片 = 0x3E 续读命令 + 读
+  PASS  读帧：rx=500（默认片长）、dummy=1
+  PASS  除末片外都保持 CS（读指针靠它连着）
+  PASS  每片只有一个带应答的帧（不浪费往返）
+  PASS  子窗口 100×100 → 20000 B / 40 片
+  PASS  CASET 参数 = 10..109（大端两字节：0,10 …）
+  PASS  QSPI 整屏：519 片
+  PASS  档 2 读回的开窗 = 两条 XFER（02 + 00 2A 00 / 00 2B 00），不走 STEP
+  PASS  开窗 opcode 跟着 qspi.wrOpcode（这里 0x05）走
+  PASS  首片地址 = 0x002e00（RAMRD 2Eh → 线上 00 2E 00）
+  PASS  后续片：纯数据相位（无 cmd/addr），只读 N 字节
+  PASS  QSPI 读也靠 CS 保持串成一整帧（首片起、末片放）
+  PASS  QSPI 后续片只有一条 XFER（纯数据相位续读，不需要重发命令）
+  PASS  合法计划：静态检查通过
+  PASS  空窗口会被拦下来
+== 3. 解码 + BMP 导出 ==
+  PASS  高字节在前：红 = (255,0,0)
+  PASS  绿 = (0,255,0)
+  PASS  蓝 = (0,0,255)
+  PASS  低字节在前：同一份数据解出红
+  PASS  R/B 交换：0x001F 解成红而不是蓝
+  PASS  BMP 头是 'BM'
+  PASS  文件大小 78、像素从 54 开始
+  PASS  DIB：宽高 / 24bpp / BI_RGB
+  PASS  像素区 = stride×h = 24
+  PASS  bottom-up + BGR（首行首像素 = 33,23,13）
+  PASS  行对齐到 4 字节（3 宽 → 9 字节补到 12）
+== 4. 假探针 GRAM 往返：写进去的 = 读回来的 ==
+  PASS  写进 GRAM 142080 B（= 一帧 142080 B）
+  PASS  读回 142080 B（计划 142080 B）
+  PASS  读回来的字节与写进去的**逐字节相同**（假探针 GRAM 往返）
+  PASS  子窗口 40×20 读回来 = 整帧对应区域（窗口语义正确）
+  PASS  没写过也能读：拿到 4 B（图案）
+  PASS  图案解码成 RGBA 正常（16 B / 快照 142080 B）
+== 5. QSPI（档 2）：写进去的 = 读回来的（地址按手册 00 XX 00 编码）==
+  PASS  QSPI 开窗是两条 **XFER**（不再走 STEP）
+  PASS  CASET 地址 = 0x002a00（线上 02 | 00 2A 00 | 坐标）
+  PASS  写进 GRAM 6144 B（= 这张图 6144 B）
+  PASS  QSPI 往返：读回来 6144 B 与写进去的逐字节相同
+  PASS  假探针零错误（frames_err=0）
+
+✅ spi-read.test: 54 通过 / 0 失败
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+probe-manager: preemption drains cancelled reconnect without waiting for its own queue PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/spi/session.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s eec798b
+refactor(spi): manage shared bridge ownership and drain connection teardown
+
+$ git commit -C eec798b
+[main d69cdac] refactor(spi): manage shared bridge ownership and drain connection teardown
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:27:38 2026 +0900
+ 1 file changed, 33 insertions(+), 2 deletions(-)
+
+$ git rev-parse HEAD
+d69cdac3baaa3db6cc0233acf9a3c8d8f5f7e041

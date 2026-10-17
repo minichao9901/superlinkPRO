@@ -1,0 +1,65 @@
+
+$ git cherry-pick -n dd699f2
+
+$ git diff --cached --name-only
+app/core/probe-manager.js
+app/core/probe-users.js
+app/main.js
+app/scope/view.js
+app/serial/session.js
+tools/selftest/probe-feature-registry.test.mjs
+tools/selftest/probe-manager.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-feature-registry.test.mjs
+probe-feature-registry: one descriptor wires new clients, USB ownership, coexistence and guarded handoff PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+probe-manager: preemption drains cancelled reconnect without waiting for its own queue PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-device.test.mjs
+usb-device: shared lifecycle, endpoint exclusion, interface refs, guarded reset, alias identity PASS
+usb-device: native timeout retains ownership and prevents late lifecycle races PASS
+usb-device: failed setup retains requests, later exclusive reconnect recovers abandoned handles PASS
+usb-device: physical unplug invalidates canonical handle before same-serial reconnect PASS
+usb-device: duplicate and unacquired close are harmless to remaining peers PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/cdc-mode.test.mjs
+cdc-mode: shared receiver/source handoff, UART TX guard, optional pause ownership, unrelated ports, cancelled native open PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-integration.test.mjs
+probe-integration: real entry points serialize setup, coexist on disjoint resources, cancel queued START and protect flash PASS
+probe-integration: unknown firmware stop cannot be bypassed by a later feature PASS
+probe-integration: manual release and managed takeover share one complete USB close PASS
+probe-integration: firmware START pending retains ownership until STOP completion is confirmed PASS
+probe-integration: cancelling during backend preparation cannot create a later debug session PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-manager.js
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe --check app/main.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/serial/session.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-feature-registry.test.mjs
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-manager.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s dd699f2
+refactor(probe): declare feature wiring and reset ownership in one registry
+
+$ git commit -C dd699f2
+[main 896860d] refactor(probe): declare feature wiring and reset ownership in one registry
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 18:46:47 2026 +0900
+ 7 files changed, 145 insertions(+), 53 deletions(-)
+ create mode 100644 tools/selftest/probe-feature-registry.test.mjs
+
+$ git rev-parse HEAD
+896860d6b7dfefe40163f575b042937f2394de84

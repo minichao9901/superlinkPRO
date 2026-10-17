@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "sf32_panel_init_archive",
+  "title": "SF32 Panel Init Archive",
+  "description": "SF32 LCD panel driver initialization archive. Each array element = one driver file.",
+  "type": "array",
+  "items": { "$ref": "#/definitions/driver" },
+  "definitions": {
+    "step": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["cmd", "delay", "delay_us", "reset", "comment"] },
+        "cmd": { "type": "string", "pattern": "^0x[0-9a-f]{2,4}$", "description": "命令寄存器值，hex 字符串（如 0x11；16 位命令如 0x2900）" },
+        "data": { "type": "array", "items": { "type": "string", "pattern": "^0x[0-9a-f]{2}$" }, "description": "参数字节，hex 字符串（如 0xd0）" },
+        "expr": { "type": ["string", "null"] },
+        "ms": { "type": "integer", "minimum": 0 },
+        "us": { "type": "integer", "minimum": 0 },
+        "state": { "enum": [0, 1] },
+        "text": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "init_sequence": {
+      "type": "object",
+      "required": ["label", "source", "steps"],
+      "properties": {
+        "label": { "type": "string" },
+        "guard": { "type": ["string", "null"] },
+        "source": { "type": "string" },
+        "table_name": { "type": ["string", "null"] },
+        "steps": { "type": "array", "items": { "$ref": "#/definitions/step" } }
+      },
+      "additionalProperties": true
+    },
+    "interface_option": {
+      "type": "object",
+      "required": ["label", "selected", "interface"],
+      "properties": {
+        "label": { "type": "string" },
+        "guard": { "type": ["string", "null"] },
+        "selected": { "type": "boolean" },
+        "interface": { "type": "string" },
+        "freq_hz": { "type": ["integer", "null"] },
+        "color_mode": { "type": ["string", "null"] },
+        "timing": { "type": ["object", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "driver": {
+      "type": "object",
+      "required": ["id", "registered_name", "ic", "file", "pixel_align", "interface_options", "init_sequences", "display_on_sequence", "display_off_sequence", "notes"],
+      "properties": {
+        "id": { "type": "string" },
+        "registered_name": { "type": "string" },
+        "ic": { "type": "string" },
+        "panel": { "type": ["string", "null"] },
+        "variant": { "type": ["string", "null"] },
+        "file": { "type": "string" },
+        "hor_res": { "type": ["integer", "null"] },
+        "ver_res": { "type": ["integer", "null"] },
+        "pixel_align": { "type": "integer" },
+        "interface_options": { "type": "array", "items": { "$ref": "#/definitions/interface_option" } },
+        "init_sequences": { "type": "array", "items": { "$ref": "#/definitions/init_sequence" } },
+        "display_on_sequence": { "type": "array", "items": { "$ref": "#/definitions/step" } },
+        "display_off_sequence": { "type": "array", "items": { "$ref": "#/definitions/step" } },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,1 @@
+PASS production FileRecorder through native filesystem adapter: 12 MiB content/order exact; duplicate starts/stops share one file and close; restart blocked until commit

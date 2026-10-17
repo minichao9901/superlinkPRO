@@ -1,0 +1,2 @@
+PASS real production ScopeView + HID + USB transport + manager: 30 start/stop cycles, monotonic values, no seq gaps/decoder errors/stalled reads/device resets
+PASS real production tick/batch/u32 pipeline: 106268 samples, 399.2kHz, packet gaps=0, firmware dropped=217, USB dropped=57

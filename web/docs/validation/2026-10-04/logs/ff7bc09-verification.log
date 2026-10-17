@@ -1,0 +1,29 @@
+
+$ git cherry-pick -n ff7bc09
+
+$ git diff --cached --name-only
+app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-users.test.mjs
+probe-users: busy flash rejects takeover; same-page target readers stop; failed STOP aborts handoff PASS
+probe-users: passive HID connections cannot stop an engine owned by another page PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s ff7bc09
+refactor(probe): centralize feature resources and teardown adapters
+
+$ git commit -C ff7bc09
+[main f3e5d76] refactor(probe): centralize feature resources and teardown adapters
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:21:18 2026 +0900
+ 1 file changed, 46 insertions(+), 16 deletions(-)
+
+$ git rev-parse HEAD
+f3e5d7653366b1b28eeeb1d50dcb7fe95a70246e

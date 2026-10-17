@@ -1,0 +1,59 @@
+
+$ git cherry-pick -n 6e051a9
+
+$ git diff --cached --name-only
+app/core/probe-users.js
+app/dbg/view.js
+app/flash/view.js
+app/hid/view.js
+app/rtt/view.js
+app/scope/view.js
+tools/selftest/probe-handoff.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-handoff.test.mjs
+probe-handoff: debugger cancels queue, drains action before close; flash releases debugger before USB cleanup PASS
+probe-handoff: shared standalone path drains local users once; failed STOP blocks acquisition; managed path is a no-op PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-integration.test.mjs
+probe-integration: real entry points serialize setup, coexist on disjoint resources, cancel queued START and protect flash PASS
+probe-integration: unknown firmware stop cannot be bypassed by a later feature PASS
+probe-integration: manual release and managed takeover share one complete USB close PASS
+probe-integration: firmware START pending retains ownership until STOP completion is confirmed PASS
+probe-integration: cancelling during backend preparation cannot create a later debug session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-lifecycle.test.mjs
+rtt-lifecycle: stale successful/failed polls cannot publish, stop replacement or schedule old workers PASS
+rtt-lifecycle: target reset drains reader and cannot rescan a replacement session PASS
+rtt-lifecycle: failed connect retains its original error without duplicate cleanup PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/flash-lifecycle.test.mjs
+flash-lifecycle: preparation, duplicate click, disconnect ownership, cancellation and errors PASS
+flash-lifecycle: flash/IDCODE retain failed close ownership, recover before reopening, preserve both errors PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe --check app/dbg/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/flash/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-handoff.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 6e051a9
+refactor(probe): consolidate standalone handoffs and remove duplicate bridge stops
+
+$ git commit -C 6e051a9
+[main 082707c] refactor(probe): consolidate standalone handoffs and remove duplicate bridge stops
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 18:48:54 2026 +0900
+ 7 files changed, 35 insertions(+), 50 deletions(-)
+
+$ git rev-parse HEAD
+082707c26bf985f9817a6a79b7bb476f7fd80031

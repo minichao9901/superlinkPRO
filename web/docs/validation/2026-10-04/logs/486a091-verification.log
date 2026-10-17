@@ -1,0 +1,29 @@
+
+$ git cherry-pick -n 486a091
+
+$ git diff --cached --name-only
+app/scope/transport.js
+tools/selftest/scope-transport.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-transport.test.mjs
+scope-transport: rearm, ordering, bounded reads, stop/restart, decoder error, stall, disconnect PASS
+scope-transport: stalled restart resets/retire reads; failed reset blocks capture PASS
+scope-transport: replacing transport cannot orphan native reads on the same device PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/transport.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/scope-transport.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 486a091
+fix(scope): track pending USB workers across transport replacement
+
+$ git commit -C 486a091
+[main 5f149c6] fix(scope): track pending USB workers across transport replacement
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:41:25 2026 +0900
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+$ git rev-parse HEAD
+5f149c6d715851b80c31b979088b50c35f6d78ef

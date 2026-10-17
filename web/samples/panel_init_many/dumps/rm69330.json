@@ -1,0 +1,50 @@
+{
+  "id": "rm69330",
+  "file": "customer/peripherals/rm69330/rm69330.c",
+  "registered_name": "rm69330",
+  "pixel_align": 2,
+  "res_w": 454,
+  "res_h": 454,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_dsi",
+      "itf": "LCDC_INTF_DSI",
+      "freq": null,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888"
+    },
+    {
+      "name": "lcdc_int_cfg_qspi",
+      "itf": "QAD_SPI_ITF",
+      "freq": 48000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    },
+    {
+      "name": "lcdc_int_cfg_3spi_1data",
+      "itf": "LCDC_INTF_SPI_NODCX_1DATA",
+      "freq": 48000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    },
+    {
+      "name": "lcdc_int_cfg_3spi_2data",
+      "itf": "LCDC_INTF_SPI_NODCX_2DATA",
+      "freq": 48000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    },
+    {
+      "name": "lcdc_int_cfg_4spi_1data",
+      "itf": "LCDC_INTF_SPI_DCX_1DATA",
+      "freq": 48000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    },
+    {
+      "name": "lcdc_int_cfg_dbi",
+      "itf": "LCDC_INTF_DBI_8BIT_B",
+      "freq": 36000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 26,
+  "hal_delay_count": 7,
+  "hal_delayus_count": 0
+}

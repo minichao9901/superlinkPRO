@@ -1,0 +1,49 @@
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe0002000（4B）回读不一致，重写一次
+USB pre-acquisition orphan cleanup closes 1
+PASS F103CB identity=0x20036410; SWD=1 MHz; real DebugSession acquired through central registry
+PASS AT24C02 address=0x50; 11 complete 256-byte reads; SHA256=3846a8f6abafedc77d4c947a5301a0a4b68307157ba4af77970474ceb939fbcc; concurrent DAP identity unchanged
+PASS W25Q64 JEDEC=ef4017; 11 reads of 4096 bytes at 0 with fresh address per 128-byte frame; existing first 256 bytes verified against 00..ff pattern; SHA256=d117918d512d344ebdf4328521c5422e497b627cfc37a05e6de1f0440f2aa392; concurrent DAP identity unchanged
+PASS protected busy SPI refuses I2C takeover; original real SPI session remains usable
+USB handoff stats {"closes":1,"resets":0,"releases":[4],"claims":[0,4,4]}
+PASS handoff 1/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4],"claims":[0,4,4,4]}
+PASS handoff 2/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4],"claims":[0,4,4,4,4]}
+PASS handoff 3/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4],"claims":[0,4,4,4,4,4]}
+PASS handoff 4/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4],"claims":[0,4,4,4,4,4,4]}
+PASS handoff 5/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4]}
+PASS handoff 6/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4]}
+PASS handoff 7/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4]}
+PASS handoff 8/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 9/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 10/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 11/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 12/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 13/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 14/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 15/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 16/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 17/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 18/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 19/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+USB handoff stats {"closes":1,"resets":0,"releases":[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],"claims":[0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4]}
+PASS handoff 20/20 SPI->I2C->SPI; confirmed firmware disable; EEPROM/NOR bytes unchanged; DAP peer kept alive
+PASS fault injection on real I2C disable reply: conflicting SPI setup blocked, DAP preserved; explicit recovery restores reads
+PASS final cleanup: no leases/failures; DAP identity reads=103; USB closes exactly once after final owner; resets=0; no external memory erase/program

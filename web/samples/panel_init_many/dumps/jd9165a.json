@@ -1,0 +1,35 @@
+{
+  "id": "jd9165a",
+  "file": "customer/peripherals/jd9165a/jd9165a.c",
+  "registered_name": "jd9165a",
+  "pixel_align": 1,
+  "res_w": null,
+  "res_h": null,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg",
+      "itf": "AUTO_SELECTED_DPI_INTFACE",
+      "freq": 48.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888",
+      "timing": {
+        "PCLK_polarity": 0,
+        "DE_polarity": 0,
+        "VS_polarity": 1,
+        "HS_polarity": 1,
+        "VS_width": 2,
+        "HS_width": 24,
+        "VBP": 23,
+        "VAH": 600,
+        "VFP": 12,
+        "HBP": 160,
+        "HAW": 1024,
+        "HFP": 160,
+        "interrupt_line_num": 1
+      }
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 0,
+  "hal_delay_count": 0,
+  "hal_delayus_count": 1
+}

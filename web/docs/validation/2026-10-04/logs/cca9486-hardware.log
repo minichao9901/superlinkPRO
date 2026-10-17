@@ -1,0 +1,9 @@
+PASS real M3 DWT: w / CPU write / 4 bytes / hit=true
+PASS real M3 DWT: r / CPU write / 4 bytes / hit=false
+PASS real M3 DWT: r / CPU read / 4 bytes / hit=true
+PASS real M3 DWT: rw / CPU write / 4 bytes / hit=true
+PASS real M3 DWT: rw / CPU read / 4 bytes / hit=true
+PASS real M3 DWT: w / CPU write / 1 bytes / hit=true
+PASS real M3 DWT: w / CPU write / 2 bytes / hit=true
+PASS real M3 DWT: w / CPU write / 16 bytes / hit=true
+PASS real M3: 4 comparators, reset/rearm, existing owner preserved, owned comparators cleared

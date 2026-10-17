@@ -1,0 +1,31 @@
+
+$ git cherry-pick -n 28cd1ac
+
+$ git diff --cached --name-only
+app/dbg/view.js
+tools/selftest/dbg-view-lock.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-view-lock.test.mjs
+dbg-view-lock: memory/watch entry points queue behind actions, internal refresh avoids nested lock PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-watch-bt-ui.test.mjs
+dbg-watch-bt-ui: stable watch IDs, frame source navigation, safe text, stale state, button states, completions, HTML IDs PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/dbg/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/dbg-view-lock.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 28cd1ac
+fix(debug): serialize UI reads and command completion refreshes
+
+$ git commit -C 28cd1ac
+[main 8baeee1] fix(debug): serialize UI reads and command completion refreshes
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:21:52 2026 +0900
+ 2 files changed, 42 insertions(+), 18 deletions(-)
+ create mode 100644 tools/selftest/dbg-view-lock.test.mjs
+
+$ git rev-parse HEAD
+8baeee1b55ca4509bccc3a13a21e955fc36efbf9

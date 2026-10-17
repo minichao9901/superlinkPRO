@@ -1,0 +1,28 @@
+
+$ git cherry-pick -n fbcf583
+
+$ git diff --cached --name-only
+app/scope/view.js
+tools/selftest/scope-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-lifecycle.test.mjs
+scope-lifecycle: double start, cancellation during CONFIG/STATUS, STOP before USB drain PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/scope-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s fbcf583
+fix(scope): cancel pending starts and serialize capture shutdown
+
+$ git commit -C fbcf583
+[main 327d5f0] fix(scope): cancel pending starts and serialize capture shutdown
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:28:22 2026 +0900
+ 2 files changed, 75 insertions(+), 13 deletions(-)
+ create mode 100644 tools/selftest/scope-lifecycle.test.mjs
+
+$ git rev-parse HEAD
+327d5f0aef63b86cd7f528ec5efaae8a75357903

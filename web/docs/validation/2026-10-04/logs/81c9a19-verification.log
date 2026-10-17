@@ -1,0 +1,22 @@
+
+$ git cherry-pick -n 81c9a19
+
+$ git diff --cached --name-only
+app/core/build.js
+docs/probe-resource-architecture.md
+
+$ C:\Program Files\nodejs\node.exe --check app/core/build.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 81c9a19
+docs(core): document independent endpoint coexistence and teardown recovery
+
+$ git commit -C 81c9a19
+[main bd579be] docs(core): document independent endpoint coexistence and teardown recovery
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 17:23:09 2026 +0900
+ 2 files changed, 9 insertions(+), 7 deletions(-)
+
+$ git rev-parse HEAD
+bd579be855423cc60ab17c73ba6349398f7b8091

@@ -1,0 +1,20 @@
+{
+  "id": "sh8601a",
+  "file": "customer/peripherals/sh8601a/sh8601a.c",
+  "registered_name": "sh8601a",
+  "pixel_align": 1,
+  "res_w": null,
+  "res_h": null,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_dsi",
+      "itf": "LCDC_INTF_DSI",
+      "freq": null,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888"
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 40,
+  "hal_delay_count": 13,
+  "hal_delayus_count": 0
+}

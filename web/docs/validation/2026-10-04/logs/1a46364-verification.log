@@ -1,0 +1,74 @@
+
+$ git cherry-pick -n 1a46364
+
+$ git diff --cached --name-only
+app/core/probe-bus.js
+app/main.js
+tools/selftest/probe-bus-failure.test.mjs
+tools/selftest/probe-bus.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-bus-failure.test.mjs
+probe-bus-failure: busy flash denial, successful retry, late reply identity PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-bus.test.mjs
+目标: web-serial-rtt-tools/probe-bus（Node 的 BroadcastChannel，进程内等价"同源页签"）
+
+── 1. 请求让出 → 对方执行并回执 ──
+  PASS  对方执行了让出动作（1 次）
+  PASS  理由原样传过去：「烧录 demo.elf」
+  PASS  报告"协调可用"
+  PASS  认识 1 个同伴（asked=1）
+  PASS  收到 1 个回执（acked=1）
+  PASS  没等到上限就返回（263 ms）
+
+── 2. 没有同伴：不干等 ──
+  PASS  没人应答（asked=0 acked=0）
+  PASS  只在很短的窗口里等（80 ms，不占满 settle/waitMs）
+
+── 3. 同伴磨蹭：请求方有上限，不会被拖住 ──
+  PASS  请求方 625 ms 就回来了（waitMs=600，不被对方的 3 s 拖住）
+  PASS  活着的同伴没释放时，禁止继续认领
+
+── 4. 让出动作抛异常：不能谎报已释放 ──
+  PASS  失败原因返回请求方
+  PASS  失败不能算成已释放
+
+── 6. 同伴关页签（会喊 bye）：立刻从名单里去掉 ──
+  PASS  先认识 1 个同伴（peers=1）
+  PASS  bye 立刻把它去掉（peers=0）
+  PASS  之后不再为它白等（asked=0，80 ms）
+
+── 7. "冻结页签"（没喊 bye 也没应答）：两轮之后除名，不再白等 ──
+  PASS  第一轮照旧喊它并等满上限（asked=1 acked=0）
+  PASS  第一轮不除名（它可能只是刚好在忙）
+  PASS  第二轮确认它不在，除名（ghosts=1）
+  PASS  除名后不再为它白等（asked=0，80 ms）
+
+── 8. 环境里没有 BroadcastChannel：静默降级 ──
+  PASS  认得出环境不支持
+  PASS  返回"不支持"，不抛错、不等待
+
+✅ probe-bus：21 通过 / 0 失败
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-bus.js
+
+$ C:\Program Files\nodejs\node.exe --check app/main.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-bus-failure.test.mjs
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-bus.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 1a46364
+fix(probe): refuse handoffs during flashing and correlate release replies
+
+$ git commit -C 1a46364
+[main a4956f8] fix(probe): refuse handoffs during flashing and correlate release replies
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:24:52 2026 +0900
+ 4 files changed, 49 insertions(+), 16 deletions(-)
+ create mode 100644 tools/selftest/probe-bus-failure.test.mjs
+
+$ git rev-parse HEAD
+a4956f82cc4bc8d7f83d951da2e1c9b0551edefb

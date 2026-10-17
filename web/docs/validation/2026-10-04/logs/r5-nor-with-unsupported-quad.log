@@ -1,0 +1,19 @@
+[dap] 同步清队列：吃掉 8 条陈旧响应
+JEDEC ef4017 SR1/SR2 0002
+REFERENCE fresh64 d117918d512d344ebdf4328521c5422e497b627cfc37a05e6de1f0440f2aa392 nonFF 255
+RESULT fresh128 withoutDAP bad=0/20
+RESULT fresh128 withDAP bad=0/20
+RESULT continuous128 withoutDAP bad=0/20
+RESULT continuous128 withDAP bad=0/20
+RESULT continuous492 withoutDAP bad=0/20
+RESULT continuous492 withDAP bad=0/20
+RESULT continuous512 withoutDAP bad=0/20
+RESULT continuous512 withDAP bad=0/20
+STATUS {"action":0,"status":1,"framesOk":36041,"bytesTx":0,"bytesRx":7441719,"txPoll":36041,"txDma":0,"outOverrun":0,"inDrop":0,"actualSclkHz":1000000,"framesErr":0,"lastTicks":24851,"lastUs":1035.4583333333333} USB {"closes":0,"resets":0,"releases":[],"claims":[0,4]}
+EXTENDED {"sclkHz":1000000,"label":"READ128","bad":0,"iterations":100,"first":null}
+EXTENDED {"sclkHz":1000000,"label":"READ492","bad":0,"iterations":100,"first":null}
+EXTENDED {"sclkHz":1000000,"label":"QUAD492","bad":100,"iterations":100,"first":{"k":0,"count":3856,"start":0,"last":4095,"sha":"2c24eba31fe43353040a6e4371f13a36d9962c42062312ac246e5c2d8d96c06c"}}
+EXTENDED {"sclkHz":10000000,"label":"READ128","bad":1,"iterations":100,"first":{"k":0,"count":4095,"start":0,"last":4095,"sha":"00670410cfa1bf53e123176649d1af87faf1008d3ab354a4b92c2e372de9d12a"}}
+EXTENDED {"sclkHz":10000000,"label":"READ492","bad":0,"iterations":100,"first":null}
+EXTENDED {"sclkHz":10000000,"label":"QUAD492","bad":100,"iterations":100,"first":{"k":0,"count":3856,"start":0,"last":4095,"sha":"3b587bb654b61477b4879e0289b6abc4c10687f3dfdd18235b09a71d19fc7608"}}
+END STATUS {"action":0,"status":1,"framesOk":46041,"bytesTx":0,"bytesRx":9899319,"txPoll":46041,"txDma":0,"outOverrun":0,"inDrop":0,"actualSclkHz":10000000,"framesErr":0,"lastTicks":826,"lastUs":34.416666666666664}

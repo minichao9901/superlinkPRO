@@ -1,0 +1,17 @@
+[dap] 同步清队列：吃掉 8 条陈旧响应
+JEDEC ef4017 SR1/SR2 0002
+REFERENCE fresh64 d117918d512d344ebdf4328521c5422e497b627cfc37a05e6de1f0440f2aa392 nonFF 255
+RESULT fresh128 withoutDAP bad=0/20
+RESULT fresh128 withDAP bad=0/20
+RESULT continuous128 withoutDAP bad=0/20
+RESULT continuous128 withDAP bad=0/20
+RESULT continuous492 withoutDAP bad=0/20
+RESULT continuous492 withDAP bad=0/20
+RESULT continuous512 withoutDAP bad=0/20
+RESULT continuous512 withDAP bad=0/20
+STATUS {"action":0,"status":1,"framesOk":49188,"bytesTx":0,"bytesRx":10415420,"txPoll":49188,"txDma":0,"outOverrun":0,"inDrop":0,"actualSclkHz":1000000,"framesErr":0,"lastTicks":24850,"lastUs":1035.4166666666667} USB {"closes":0,"resets":0,"releases":[],"claims":[0,4]}
+EXTENDED {"sclkHz":1000000,"label":"READ128","bad":0,"iterations":100,"first":null}
+EXTENDED {"sclkHz":1000000,"label":"READ492","bad":0,"iterations":100,"first":null}
+EXTENDED {"sclkHz":10000000,"label":"READ128","bad":0,"iterations":100,"first":null}
+EXTENDED {"sclkHz":10000000,"label":"READ492","bad":0,"iterations":100,"first":null}
+END STATUS {"action":0,"status":1,"framesOk":57388,"bytesTx":0,"bytesRx":12053820,"txPoll":57388,"txDma":0,"outOverrun":0,"inDrop":0,"actualSclkHz":10000000,"framesErr":0,"lastTicks":3129,"lastUs":130.375}

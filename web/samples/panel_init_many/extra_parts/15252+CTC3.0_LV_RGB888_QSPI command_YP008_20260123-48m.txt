@@ -1,0 +1,954 @@
+
+/*
+VGH VGL Setting:
+TP Page_ao 8'H35=0xCC
+*/
+
+
+
+
+//En18V(1);
+EnVCI(1);
+Delay(100);
+EnVSP(1);
+EnVSN(1);
+EnBLT(1);
+
+
+RESET(1);
+Delay(5);
+RESET(0);
+Delay(5);
+RESET(1);
+Delay(5);
+
+
+loadWidthSet(240);
+loadHeightSet(320);
+loadHBPSet(20);
+loadVBPSet(20);
+loadHFPSet(20);
+loadVFPSet(54);
+loadHSWSet(10);
+loadVSWSet(10);
+loadDCLKSet(13);
+loadInvVsync(0);
+loadInvHsync(0);
+loadInvDCLK(0);
+loadInvDE(0);
+loadLanes(0);
+loadRefreshMode(1);
+loadOutFormat(0);
+loadSwapRGB(0);
+loadHSCLK(243);
+loadScreenType(7);
+loadCompressionType(0);
+
+Delay(200);
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xCE);
+WriteData(0x00);    
+WriteData(0x5A);//00
+WriteData(0xA5);//01
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xA0);
+WriteData(0x00);  
+WriteData(0x01);//00 默认值，sRGB接口时配0x11 
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xA1);
+WriteData(0x00); 
+WriteData(0x00);//00 cr_qspis_vidmode在点QSPI video时配1   
+WriteData(0x03);//   不要变动  
+WriteData(0x00);//02 默认值  
+WriteData(0x12);//   默认值  
+WriteData(0x32);//04 默认值  
+WriteData(0x42);//   默认值  
+WriteData(0xa2);//06 默认值  
+WriteData(0x52);//   默认值  
+WriteData(0x61);//08 默认值  
+WriteData(0x60);//   默认值  
+WriteData(0x05);//10 默认值  
+WriteData(0x40);//   默认值  
+WriteData(0x00);//12 默认值  
+WriteData(0x00);//   默认值  
+WriteData(0x00);//14 默认值  
+WriteData(0x00);//   默认值  
+WriteData(0x00);//16 默认值  
+WriteData(0x00);//   默认值  
+WriteData(0x00);//18 默认值  
+WriteData(0x00);//   默认值  
+WriteData(0xeb);//20 默认值  
+WriteData(0x6b);//   默认值  
+WriteData(0xbb);//22 默认值  
+WriteData(0x3b);//   默认值  
+WriteData(0xa5);//24 默认值
+WriteData(0x5a);//25 默认值  
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xA2);
+WriteData(0x00); 
+WriteData(0x00);//00 默认值 ，需要SPI回读时配0x10 
+WriteData(0x02);//01 SPI回读时主机发的dummy clk
+WriteData(0x00);//02 SPI dual lane根据实际情况可改，其他接口默认值 
+Delay(20);          
+                    
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xA4);
+WriteData(0x00);
+WriteData(0x00);//00 默认值  
+WriteData(0x00);//01 默认值
+WriteData(0x22);//02 默认值 
+WriteData(0xD3);//03 默认值 
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xA5);
+WriteData(0x00); 
+WriteData(0x00);//00 默认值  
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xB1);
+WriteData(0x00);
+WriteData(0x02);//00 默认值  
+WriteData(0x00);//   根据实际情况可改
+WriteData(0x70);//02 根据实际情况可改cr_pix_format 
+WriteData(0x7f);//03 默认值
+WriteData(0xff);//04 默认值
+WriteData(0x00);//05 默认值
+WriteData(0x00);//06 默认值
+WriteData(0x00);//07 默认值
+WriteData(0x00);//08 默认值
+WriteData(0x00);//09 默认值
+WriteData(0x00);//10 默认值
+WriteData(0x00);//11 默认值
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xB2);
+WriteData(0x00);  
+WriteData(0x10);//00 根据不同玻璃而变(cr_dual_type1,cr_dual_type,cr_dual_pattern)                                             
+WriteData(0x30);//   默认值                                                                                                   
+WriteData(0x3F);//02 根据实际情况可改cr_line_f_half                                                                           
+WriteData(0x05);//   根据实际情况可改cr_line_f_half，其他默认值                                                               
+WriteData(0x03);//04 默认值                                                                                                   
+WriteData(0x05);//   默认值                                                                                                   
+WriteData(0x08);//06 默认值                                                                                                   
+WriteData(0x42);//   根据实际情况可改cr_dsh_shr,其他默认值                                                                    
+WriteData(0x7F);//08 根据玻璃实际情况而变(cr_sd_shift_even,cr_sd_shift_left,cr_sw_rg_en,cr_sw_br_en,cr_sw_gb_en) ,其他默认值  
+WriteData(0xff);//09 默认值
+WriteData(0x00);//10 默认值
+WriteData(0xff);//11 默认值
+WriteData(0x00);//12 默认值
+WriteData(0x80);//13 默认值
+WriteData(0x02);//14 默认值
+WriteData(0x08);//15 默认值
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xB3);
+WriteData(0x00); 
+WriteData(0x11);//00 根据实际情况可改（cr_n_ln,cr_inv_sel),其他默认值      
+WriteData(0x0A);//   根据实际情况可改cr_hbp_dsp                           
+WriteData(0x9C);//02 根据实际情况可改cr_hend_dsp                           
+WriteData(0x30);//   根据实际情况可改cr_hend_dsp                          
+WriteData(0x0d);//04 根据实际情况可改cr_sd_bp
+WriteData(0x10);//05 默认值
+WriteData(0x03);//06 默认值
+WriteData(0x22);//07 默认值
+WriteData(0x00);//08 默认值
+WriteData(0x00);//09 默认值
+WriteData(0x02);//10 默认值
+WriteData(0x22);//11 默认值
+WriteData(0x4a);//12 默认值
+WriteData(0x02);//13 默认值
+WriteData(0x12);//14 默认值
+WriteData(0x01);//15 根据实际情况可改cr_inv_fst_lines，其他默认值
+WriteData(0x42);//16 默认值
+WriteData(0x25);//17 默认值
+WriteData(0x01);//18 cr_sd_ib_adj不建议变动，其他默认值
+WriteData(0x5c);//19 默认值
+WriteData(0x65);//20 默认值
+WriteData(0x17);//21 默认值  
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xB4);
+WriteData(0x00); 
+WriteData(0x02);//00 默认值                      
+WriteData(0x50);//   默认值                      
+WriteData(0x06);//02 根据实际情况可改            
+WriteData(0x01);//   根据实际情况可改            
+WriteData(0x30);//04 根据实际情况可改            
+WriteData(0x10);//   根据实际情况可改            
+WriteData(0x80);//06 根据实际情况可改            
+WriteData(0x6b);//   根据实际情况可改            
+WriteData(0x03);//08 根据实际情况可改            
+WriteData(0x01);//   根据实际情况可改            
+WriteData(0x10);//10 根据实际情况可改            
+WriteData(0x10);//   根据实际情况可改            
+WriteData(0x00);//12 根据实际情况可改            
+WriteData(0x00);//   默认值                      
+WriteData(0x08);//14 默认值   
+Delay(20); 
+                  
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xB5);
+WriteData(0x00);
+WriteData(0x00);//00 根据实际情况可改cr_rcm，其他默认值                                           
+WriteData(0x0A);//   cr_vsa--video模式用默认值，command模式可改                                   
+WriteData(0x0A);//02 cr_hsa--video模式用默认值，command模式可改                                   
+WriteData(0x14);//   cr_vbp[7:0]--video模式用默认值，command模式可改                              
+WriteData(0x50);//04 cr_vfp[7:0]--video模式用默认值，command模式可改                              
+WriteData(0x80);//   cr_hbp[7:0]--video模式用默认值，command模式可改                              
+WriteData(0x30);//06 cr_hfp[7:0]--video模式用默认值，command模式可改                              
+WriteData(0x03);//07 cr_vbp[8] cr_vfp[8] cr_hbp[8] cr_hfp[8]--video模式用默认值，command模式可改 
+WriteData(0x00);//08 默认值
+WriteData(0x00);//09 默认值
+WriteData(0xff);//10 默认值
+WriteData(0x43);//11 默认值
+WriteData(0x80);//12 默认值
+WriteData(0x88);//13 默认值
+WriteData(0x88);//14 默认值
+WriteData(0x00);//15 默认值
+WriteData(0x00);//16 默认值
+WriteData(0x20);//17 默认值
+WriteData(0x90);//18 默认值
+WriteData(0x00);//19 默认值
+WriteData(0x20);//20 默认值
+WriteData(0x90);//21 默认值
+WriteData(0x00);//22 默认值
+WriteData(0xff);//23 默认值
+WriteData(0xff);//24 默认值
+WriteData(0x0f);//25 默认值
+Delay(20); 
+
+  
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xB6);
+WriteData(0x00); 
+WriteData(0x40);//   玻璃行数cr_nl                       
+WriteData(0x01);//01 玻璃行数cr_nl[D3:D0]                
+WriteData(0xF0);//   玻璃列数[7:0]                       
+WriteData(0x10);//03 玻璃列数[D2:D0],玻璃行数[D7:D4]     
+WriteData(0x40);//   玻璃行数[7:0]                       
+WriteData(0x40);//05 玻璃行数[7:0]                       
+WriteData(0x01);//   玻璃行数[D3:D0]                     
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xB8);
+WriteData(0x00);  
+WriteData(0x00);//00 根据实际情况可改 
+WriteData(0x26);//   根据实际情况可改 
+WriteData(0xC4);//02 根据实际情况可改 
+WriteData(0x3C);//   根据实际情况可改 
+WriteData(0x00);//04 根据实际情况可改 
+WriteData(0x08);//   根据实际情况可改 
+WriteData(0x00);//06 根据实际情况可改 
+WriteData(0x03);//   根据实际情况可改 
+WriteData(0x50);//08 根据实际情况可改 
+WriteData(0x03);//   根据实际情况可改 
+WriteData(0x50);//10 根据实际情况可改 
+WriteData(0x03);//   根据实际情况可改 
+WriteData(0x01);//12 根据实际情况可改 
+WriteData(0x00);//   根据实际情况可改 
+WriteData(0x02);//14 根据实际情况可改 
+WriteData(0x00);//   根据实际情况可改 
+WriteData(0x03);//16 根据实际情况可改 
+WriteData(0x03);//   根据实际情况可改 
+WriteData(0x8D);//18 根据实际情况可改 
+WriteData(0x60);//   根据实际情况可改 
+WriteData(0x01);//20 根据实际情况可改 
+WriteData(0x83);//   根据实际情况可改 
+WriteData(0x06);//22 根据实际情况可改 
+WriteData(0x15);//   根据实际情况可改 
+WriteData(0x09);//24 根据实际情况可改
+WriteData(0x21);//25 根据实际情况可改 
+WriteData(0x01);//26 根据实际情况可改 
+WriteData(0x03);//27 根据实际情况可改 
+WriteData(0x00);//28 根据实际情况可改  
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xB9);
+WriteData(0x00); 
+WriteData(0x10);//00 默认值           
+WriteData(0x32);//   默认值           
+WriteData(0x54);//02 默认值           
+WriteData(0x76);//   默认值           
+WriteData(0x98);//04 默认值           
+WriteData(0xBA);//   默认值           
+WriteData(0xDC);//06 默认值           
+WriteData(0xFE);//   默认值           
+WriteData(0xC4);//08 根据实际情况可改 
+WriteData(0x2D);//   根据实际情况可改 
+WriteData(0x02);//10 根据实际情况可改 
+WriteData(0xC4);//   根据实际情况可改 
+WriteData(0x2D);//12 根据实际情况可改 
+WriteData(0x02);//   根据实际情况可改 
+WriteData(0xC3);//14 根据实际情况可改 
+WriteData(0x2E);//   根据实际情况可改 
+WriteData(0x02);//16 根据实际情况可改 
+WriteData(0x07);//   根据实际情况可改 
+WriteData(0x07);//18 根据实际情况可改 
+WriteData(0x80);//   根据实际情况可改 
+WriteData(0x20);//20 根据实际情况可改 
+WriteData(0x19);//   根据实际情况可改 
+WriteData(0x20);//22 根据实际情况可改 
+WriteData(0x19);//   根据实际情况可改 
+WriteData(0x22);//24 根据实际情况可改 
+WriteData(0x15);//   根据实际情况可改 
+WriteData(0x20);//26 根据实际情况可改 
+WriteData(0x50);//   根据实际情况可改
+WriteData(0x00);//28 根据实际情况可改 
+WriteData(0x00);//29 根据实际情况可改 
+WriteData(0x00);//30 根据实际情况可改 
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xBA);
+WriteData(0x00);
+WriteData(0x28);//00 根据实际情况可改cr_hs_dsp_half_sel,其他默认值  
+WriteData(0x2D);//   根据实际情况可改                               
+WriteData(0x60);//02 根据实际情况可改                              
+WriteData(0x00);//03 根据实际情况可改
+WriteData(0x1f);//04 默认值
+WriteData(0x41);//05 默认值
+WriteData(0x04);//06 根据实际情况可改
+WriteData(0x05);//07 根据实际情况可改
+WriteData(0x05);//08 根据实际情况可改
+WriteData(0x05);//09 根据实际情况可改
+WriteData(0x05);//10 根据实际情况可改
+WriteData(0x1e);//11 默认值
+WriteData(0x1e);//12 默认值 
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xBB);
+WriteData(0x00);  
+WriteData(0x19);//00 根据实际情况可改 
+WriteData(0x01);//   根据实际情况可改 
+WriteData(0x03);//02 根据实际情况可改 
+WriteData(0x0F);//   根据实际情况可改 
+WriteData(0x0D);//04 根据实际情况可改 
+WriteData(0x0B);//   根据实际情况可改 
+WriteData(0x09);//06 根据实际情况可改 
+WriteData(0x1A);//   根据实际情况可改 
+WriteData(0x18);//08 根据实际情况可改 
+WriteData(0x1F);//   根据实际情况可改 
+WriteData(0x1F);//10 根据实际情况可改 
+WriteData(0x1F);//   根据实际情况可改 
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xBC);
+WriteData(0x00);  
+WriteData(0x19);//00 根据实际情况可改 
+WriteData(0x00);//   根据实际情况可改 
+WriteData(0x02);//02 根据实际情况可改 
+WriteData(0x0E);//   根据实际情况可改 
+WriteData(0x0C);//04 根据实际情况可改 
+WriteData(0x0A);//   根据实际情况可改 
+WriteData(0x08);//06 根据实际情况可改 
+WriteData(0x1A);//   根据实际情况可改 
+WriteData(0x18);//08 根据实际情况可改 
+WriteData(0x1F);//   根据实际情况可改 
+WriteData(0x1F);//10 根据实际情况可改 
+WriteData(0x1F);//   根据实际情况可改 
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xBD);
+WriteData(0x00); 
+WriteData(0x19);//00 根据实际情况可改 
+WriteData(0x01);//   根据实际情况可改 
+WriteData(0x03);//02 根据实际情况可改 
+WriteData(0x0F);//   根据实际情况可改 
+WriteData(0x0D);//04 根据实际情况可改 
+WriteData(0x0B);//   根据实际情况可改 
+WriteData(0x09);//06 根据实际情况可改 
+WriteData(0x1A);//   根据实际情况可改 
+WriteData(0x18);//08 根据实际情况可改 
+WriteData(0x1F);//   根据实际情况可改 
+WriteData(0x1F);//10 根据实际情况可改 
+WriteData(0x1F);//   根据实际情况可改 
+Delay(20); 
+
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xBE);
+WriteData(0x00);  
+WriteData(0x19);//00 根据实际情况可改 
+WriteData(0x00);//   根据实际情况可改 
+WriteData(0x02);//02 根据实际情况可改 
+WriteData(0x0E);//   根据实际情况可改 
+WriteData(0x0C);//04 根据实际情况可改 
+WriteData(0x0A);//   根据实际情况可改 
+WriteData(0x08);//06 根据实际情况可改 
+WriteData(0x1A);//   根据实际情况可改 
+WriteData(0x18);//08 根据实际情况可改 
+WriteData(0x1F);//   根据实际情况可改 
+WriteData(0x1F);//10 根据实际情况可改 
+WriteData(0x1F);//   根据实际情况可改 
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xC0);
+WriteData(0x00);  
+WriteData(0xE0);//00 cr_cmddsp_en--video模式用默认值，command模式可改                      
+WriteData(0x03);//   默认值                                                                 
+WriteData(0x00);//02 默认值                                                                 
+WriteData(0x00);//   默认值                                                                 
+WriteData(0x00);//04 默认值                                                                 
+WriteData(0x00);//   默认值                                                                 
+WriteData(0x50);//06 默认值                                                                 
+WriteData(0x04);//   根据实际情况可改cr_gram_pix_format                                     
+WriteData(0x01);//08 默认值                                                                 
+WriteData(0x80);//   默认值                                                                 
+WriteData(0x0C);//10 不要变动                                                               
+WriteData(0x0C);//   不要变动                                                               
+WriteData(0x28);//12  cr_win_en置1开窗，配0x28                                              
+WriteData(0x40);//   根据不同玻璃而变cr_v_reso_rx                                           
+WriteData(0x01);//14 根据不同玻璃而变(cr_v_reso_rx[D3:D0],cr_h_reso_rx[D6:D4]),其他默认值   
+WriteData(0xf0);//   根据不同玻璃而变cr_h_reso_rx                                           
+WriteData(0x0C);//16 不要变动                                                               
+WriteData(0x0C);//   不要变动                                                               
+WriteData(0x0C);//18 不要变动                                                               
+WriteData(0x0C);//   不要变动                                                               
+WriteData(0x00);//20 默认值                                                                
+Delay(20); 
+   
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xC1);
+WriteData(0x00);  
+WriteData(0x00);//00 默认值
+WriteData(0x00);//   默认值
+WriteData(0x00);//02 默认值
+Delay(20);         
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xC3);
+WriteData(0x00);
+WriteData(0x00);//00 根据实际情况可改cr_vcom_trim[7:0]                                            
+WriteData(0x00);//   根据实际情况而设定(cr_lvd_vci_adj[D3:D2],cr_lvd_vddi_adj[D1:D0]),其他默认值  
+WriteData(0x00);//02 根据实际情况可改cr_vcom_trim[8]                                              
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xC4);
+WriteData(0x00);
+WriteData(0x05);//00 根据实际情况可改                          
+WriteData(0x4a);//   根据实际情况可改cr_dspon_opt,其他默认值   
+WriteData(0x05);//02 根据实际情况可改                          
+WriteData(0x0a);//   根据实际情况可改                          
+WriteData(0xe0);//04 根据实际情况可改                          
+WriteData(0x2e);//   根据实际情况可改                          
+WriteData(0x00);//06 根据实际情况可改                          
+WriteData(0x12);//   cr_otp_flh_dly不要变动                    
+WriteData(0x12);//08 根据实际情况可改                          
+WriteData(0x22);//   根据实际情况可改                          
+WriteData(0x00);//10                                           
+WriteData(0x52);//   根据实际情况可改                          
+WriteData(0x11);//12 根据实际情况可改                          
+WriteData(0x00);//   默认值                                    
+WriteData(0x00);//14 默认值                                    
+WriteData(0x00);//   默认值                                    
+WriteData(0x00);//16 默认值                                    
+WriteData(0x00);//   默认值                                    
+WriteData(0x00);//18 默认值                                    
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xC5);
+WriteData(0x00);
+WriteData(0x10);//00 默认值
+WriteData(0xff);//01 默认值
+WriteData(0xc8);//02 默认值
+WriteData(0x04);//03 默认值
+WriteData(0x02);//04 默认值
+WriteData(0x6a);//05 默认值
+WriteData(0x18);//06 默认值
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xCA);
+WriteData(0x00);                    
+WriteData(0x40);//00 ID1
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xCB);
+WriteData(0x00);          
+WriteData(0x00);//00 ID2
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xCC);
+WriteData(0x00);          
+WriteData(0x03);//00 ID3
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xD1);
+WriteData(0x00);  
+WriteData(0x80);//00 默认值 
+WriteData(0x14);//   根据实际情况可改cr_tx_sel，其他默认值 
+WriteData(0x06);//02 根据实际情况可改cr_pclkosc_div，其他默认值
+WriteData(0x01);//03 默认值 
+WriteData(0xA0);//04 默认值
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xD4);
+WriteData(0x00);     
+WriteData(0x00);//00 默认值
+WriteData(0x0B);//01 默认值
+WriteData(0x3B);//02 默认值
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xD9);
+WriteData(0x00);  
+WriteData(0x00);//00 根据实际情况可改(cr_line_en[D6], cr_dither_format[1:0]) 
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xE0);
+WriteData(0x00);                  
+WriteData(0x00);//00 根据实际情况可改 
+WriteData(0x20);//   根据实际情况可改 
+WriteData(0x42);//02 根据实际情况可改 
+WriteData(0x5C);//   根据实际情况可改 
+WriteData(0x00);//04 根据实际情况可改 
+WriteData(0x70);//   根据实际情况可改 
+WriteData(0x82);//06 根据实际情况可改 
+WriteData(0x90);//   根据实际情况可改 
+WriteData(0xA8);//08 根据实际情况可改 
+WriteData(0x00);//   根据实际情况可改 
+WriteData(0xB0);//10 根据实际情况可改 
+WriteData(0xDD);//   根据实际情况可改 
+WriteData(0x04);//12 根据实际情况可改 
+WriteData(0x38);//   根据实际情况可改 
+WriteData(0x05);//14 根据实际情况可改 
+WriteData(0x64);//   根据实际情况可改 
+WriteData(0x8D);//16 根据实际情况可改 
+WriteData(0xAB);//   根据实际情况可改 
+WriteData(0xCB);//18 根据实际情况可改 
+WriteData(0x55);//   根据实际情况可改 
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xE1);
+WriteData(0x00);  
+WriteData(0xE6);//00 根据实际情况可改 
+WriteData(0xE9);//   根据实际情况可改 
+WriteData(0x07);//02 根据实际情况可改 
+WriteData(0x2C);//   根据实际情况可改 
+WriteData(0x5A);//04 根据实际情况可改 
+WriteData(0x4E);//   根据实际情况可改 
+WriteData(0x78);//06 根据实际情况可改 
+WriteData(0xAC);//   根据实际情况可改 
+WriteData(0xF1);//08 根据实际情况可改 
+WriteData(0xAA);//   根据实际情况可改 
+WriteData(0x1B);//10 根据实际情况可改 
+WriteData(0x4D);//   根据实际情况可改 
+WriteData(0x69);//12 根据实际情况可改 
+WriteData(0x78);//   根据实际情况可改 
+WriteData(0xFF);//14 根据实际情况可改 
+WriteData(0x82);//   根据实际情况可改 
+WriteData(0xAC);//16 根据实际情况可改 
+WriteData(0x33);//   根据实际情况可改 
+WriteData(0xAD);//18 根据实际情况可改 
+WriteData(0xD8);//   根据实际情况可改 
+WriteData(0xEE);//20 根据实际情况可改 
+WriteData(0xFF);//   根据实际情况可改 
+WriteData(0xFF);//22 根据实际情况可改 
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xE2);
+WriteData(0x00);                 
+WriteData(0x00);//00 根据实际情况可改 
+WriteData(0x20);//   根据实际情况可改 
+WriteData(0x42);//02 根据实际情况可改 
+WriteData(0x5C);//   根据实际情况可改 
+WriteData(0x00);//04 根据实际情况可改 
+WriteData(0x70);//   根据实际情况可改 
+WriteData(0x82);//06 根据实际情况可改 
+WriteData(0x90);//   根据实际情况可改 
+WriteData(0xA8);//08 根据实际情况可改 
+WriteData(0x00);//   根据实际情况可改 
+WriteData(0xB0);//10 根据实际情况可改 
+WriteData(0xDD);//   根据实际情况可改 
+WriteData(0x04);//12 根据实际情况可改 
+WriteData(0x38);//   根据实际情况可改 
+WriteData(0x05);//14 根据实际情况可改 
+WriteData(0x64);//   根据实际情况可改 
+WriteData(0x8D);//16 根据实际情况可改 
+WriteData(0xAB);//   根据实际情况可改 
+WriteData(0xCB);//18 根据实际情况可改 
+WriteData(0x55);//   根据实际情况可改 
+Delay(20); 
+
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xE3);
+WriteData(0x00);  
+WriteData(0xE6);//00 根据实际情况可改 
+WriteData(0xE9);//   根据实际情况可改 
+WriteData(0x07);//02 根据实际情况可改 
+WriteData(0x2C);//   根据实际情况可改 
+WriteData(0x5A);//04 根据实际情况可改 
+WriteData(0x4E);//   根据实际情况可改 
+WriteData(0x78);//06 根据实际情况可改 
+WriteData(0xAC);//   根据实际情况可改 
+WriteData(0xF1);//08 根据实际情况可改 
+WriteData(0xAA);//   根据实际情况可改 
+WriteData(0x1B);//10 根据实际情况可改 
+WriteData(0x4D);//   根据实际情况可改 
+WriteData(0x69);//12 根据实际情况可改 
+WriteData(0x78);//   根据实际情况可改 
+WriteData(0xFF);//14 根据实际情况可改 
+WriteData(0x82);//   根据实际情况可改 
+WriteData(0xAC);//16 根据实际情况可改 
+WriteData(0x33);//   根据实际情况可改 
+WriteData(0xAD);//18 根据实际情况可改 
+WriteData(0xD8);//   根据实际情况可改 
+WriteData(0xEE);//20 根据实际情况可改 
+WriteData(0xFF);//   根据实际情况可改 
+WriteData(0xFF);//22 根据实际情况可改 
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xE4);
+WriteData(0x00);                 
+WriteData(0x00);//00 根据实际情况可改 
+WriteData(0x20);//   根据实际情况可改 
+WriteData(0x42);//02 根据实际情况可改 
+WriteData(0x5C);//   根据实际情况可改 
+WriteData(0x00);//04 根据实际情况可改 
+WriteData(0x70);//   根据实际情况可改 
+WriteData(0x82);//06 根据实际情况可改 
+WriteData(0x90);//   根据实际情况可改 
+WriteData(0xA8);//08 根据实际情况可改 
+WriteData(0x00);//   根据实际情况可改 
+WriteData(0xB0);//10 根据实际情况可改 
+WriteData(0xDD);//   根据实际情况可改 
+WriteData(0x04);//12 根据实际情况可改 
+WriteData(0x38);//   根据实际情况可改 
+WriteData(0x05);//14 根据实际情况可改 
+WriteData(0x64);//   根据实际情况可改 
+WriteData(0x8D);//16 根据实际情况可改 
+WriteData(0xAB);//   根据实际情况可改 
+WriteData(0xCB);//18 根据实际情况可改 
+WriteData(0x55);//   根据实际情况可改 
+Delay(20); 
+
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xE5);
+WriteData(0x00); 
+WriteData(0xE6);//00 根据实际情况可改 
+WriteData(0xE9);//   根据实际情况可改 
+WriteData(0x07);//02 根据实际情况可改 
+WriteData(0x2C);//   根据实际情况可改 
+WriteData(0x5A);//04 根据实际情况可改 
+WriteData(0x4E);//   根据实际情况可改 
+WriteData(0x78);//06 根据实际情况可改 
+WriteData(0xAC);//   根据实际情况可改 
+WriteData(0xF1);//08 根据实际情况可改 
+WriteData(0xAA);//   根据实际情况可改 
+WriteData(0x1B);//10 根据实际情况可改 
+WriteData(0x4D);//   根据实际情况可改 
+WriteData(0x69);//12 根据实际情况可改 
+WriteData(0x78);//   根据实际情况可改 
+WriteData(0xFF);//14 根据实际情况可改 
+WriteData(0x82);//   根据实际情况可改 
+WriteData(0xAC);//16 根据实际情况可改 
+WriteData(0x33);//   根据实际情况可改 
+WriteData(0xAD);//18 根据实际情况可改 
+WriteData(0xD8);//   根据实际情况可改 
+WriteData(0xEE);//20 根据实际情况可改 
+WriteData(0xFF);//   根据实际情况可改 
+WriteData(0xFF);//22 根据实际情况可改 
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xE6);
+WriteData(0x00);   
+WriteData(0xF0);//0  根据实际情况可改(cr_ga_vgsn1_dta, cr_ga_vgmn1_dta,cr_ga_vgsp1_dta,cr_ga_vgmp1_dta)，其他默认值  
+WriteData(0x12);//   默认值                                                                                          
+WriteData(0x22);//2  默认值                                                                                          
+WriteData(0x00);//   默认值                                                                                          
+WriteData(0xCD);//4  根据实际情况可改                                                                                
+WriteData(0x69);//   根据实际情况可改                                                                                
+WriteData(0xB9);//6  根据实际情况可改                                                                                
+WriteData(0x37);//   根据实际情况可改                                                                                
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xE9);
+WriteData(0x00);
+WriteData(0x05);//0 默认值  
+WriteData(0x00);//  根据实际情况可改  
+WriteData(0x00);//2 根据实际情况可改  
+WriteData(0x11);//3 默认值  
+WriteData(0x88);//4 默认值
+WriteData(0x00);//5 默认值  
+WriteData(0x00);//6 默认值
+WriteData(0x00);//7 默认值 
+WriteData(0x01);//8 默认值
+Delay(20);   
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xEB);
+WriteData(0x00);
+WriteData(0x05);//0 默认值  
+WriteData(0x00);//1 默认值  
+WriteData(0x00);//2 默认值  
+WriteData(0x00);//3 默认值  
+WriteData(0x00);//4 默认值
+WriteData(0x00);//5 默认值  
+WriteData(0x0F);//6 根据实际情况可改
+WriteData(0xFF);//7 根据实际情况可改 
+WriteData(0x07);//8 根据实际情况可改
+WriteData(0x00);//8 默认值
+Delay(20);   
+
+ 
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xEC);
+WriteData(0x00);
+WriteData(0x10);//00 根据实际情况可改
+WriteData(0xff);//01 根据实际情况可改
+WriteData(0x72);//02 根据实际情况可改
+WriteData(0x0c);//03 根据实际情况可改
+WriteData(0x0d);//04 根据实际情况可改
+WriteData(0x0e);//05 根据实际情况可改
+WriteData(0x0f);//06 根据实际情况可改
+WriteData(0x01);//07 根据实际情况可改
+WriteData(0x01);//08 根据实际情况可改
+WriteData(0x01);//09 根据实际情况可改
+WriteData(0x01);//10 根据实际情况可改
+WriteData(0x85);//11 根据实际情况可改
+WriteData(0x00);//12 根据实际情况可改
+WriteData(0x00);//13 根据实际情况可改
+WriteData(0x00);//14 根据实际情况可改
+WriteData(0x00);//15 根据实际情况可改
+WriteData(0x00);//16 根据实际情况可改
+Delay(20); 
+ 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xED);
+WriteData(0x00);
+WriteData(0x00);//00 根据实际情况可改
+WriteData(0x02);//01 根据实际情况可改
+WriteData(0x22);//02 根据实际情况可改
+WriteData(0x22);//03 根据实际情况可改
+WriteData(0x22);//04 根据实际情况可改
+WriteData(0x22);//05 根据实际情况可改
+WriteData(0x04);//06 
+WriteData(0x22);//07 根据实际情况可改
+WriteData(0x20);//08 根据实际情况可改
+WriteData(0x00);//09 根据实际情况可改
+WriteData(0x22);//10 根据实际情况可改
+WriteData(0x22);//11 根据实际情况可改
+WriteData(0x27);//12 根据实际情况可改
+WriteData(0x80);//13 根据实际情况可改
+WriteData(0x10);//14 根据实际情况可改
+WriteData(0x30);//15 根据实际情况可改
+WriteData(0x40);//16 根据实际情况可改
+WriteData(0x40);//17 根据实际情况可改
+WriteData(0x20);//18 根据实际情况可改
+WriteData(0x50);//19 根据实际情况可改
+WriteData(0x60);//20 根据实际情况可改
+WriteData(0x53);//21 根据实际情况可改
+WriteData(0x02);//22 根据实际情况可改
+WriteData(0x48);//23 根据实际情况可改
+WriteData(0x00);//24 根据实际情况可改
+WriteData(0x00);//25 根据实际情况可改
+WriteData(0x22);//26 根据实际情况可改
+WriteData(0x00);//27 根据实际情况可改
+WriteData(0x05);//28 根据实际情况可改
+WriteData(0x00);//29 根据实际情况可改
+WriteData(0x22);//30 根据实际情况可改
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xF0);
+WriteData(0x00);
+WriteData(0x00);//00 默认值
+WriteData(0x00);//01 默认值
+WriteData(0x04);//02 默认值
+WriteData(0x0f);//03 默认值
+WriteData(0x0f);//04 默认值
+WriteData(0x00);//05 默认值
+WriteData(0x00);//06 默认值
+WriteData(0x00);//07 默认值
+WriteData(0x00);//08 默认值
+WriteData(0x00);//09 默认值
+WriteData(0x00);//10 默认值
+WriteData(0x00);//11 默认值
+WriteData(0x00);//12 默认值
+WriteData(0x00);//13 默认值
+WriteData(0xf0);//14 默认值
+WriteData(0x00);//15 默认值
+WriteData(0x40);//16 默认值 
+WriteData(0x01);//17 默认值 
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xF2);
+WriteData(0x00);
+WriteData(0x5C);//00 cr_bgr_base不要变动  
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xf3);
+WriteData(0x00);
+WriteData(0x12);//00 cr_osc_base不要变动 
+WriteData(0x0B);//00 cr_32k_base不要变动
+Delay(20); 
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xf4);
+WriteData(0x00);
+WriteData(0x00);//00给出去代码，不要配测试信号
+WriteData(0x00);//  给出去代码，不要配测试信号  
+Delay(20); 
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xf5);
+WriteData(0x00);
+WriteData(0xA8);//00 默认值
+WriteData(0x00);//01 默认值
+WriteData(0x00);//02 默认值
+WriteData(0x00);//03 默认值
+WriteData(0x00);//04 默认值
+WriteData(0x00);//05 默认值
+WriteData(0x00);//06 默认值
+WriteData(0x23);//07 默认值
+Delay(20);
+
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0xCE);
+WriteData(0x00);    
+WriteData(0x00);//00
+WriteData(0x00);//01
+Delay(20); 
+
+
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0x11);
+WriteData(0x00);
+Delay(200);
+
+WriteAddr(0x02);
+WriteData(0x00);
+WriteData(0x29);
+WriteData(0x00);
+Delay(100);
+
+WriteAddr(0x02);
+WriteData(0xff);
+WriteData(0xff);
+WriteData(0xff);
+Delay(100);
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,30 @@
+
+$ git cherry-pick -n c4c9a53
+
+$ git diff --cached --name-only
+app/core/probe-manager.js
+tools/selftest/probe-manager.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-manager.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-manager.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s c4c9a53
+refactor(probe): add serialized resource ownership and control arbitration
+
+$ git commit -C c4c9a53
+[main d5b9613] refactor(probe): add serialized resource ownership and control arbitration
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:17:30 2026 +0900
+ 2 files changed, 159 insertions(+)
+ create mode 100644 app/core/probe-manager.js
+ create mode 100644 tools/selftest/probe-manager.test.mjs
+
+$ git rev-parse HEAD
+d5b9613b2ed4e370a6dc9c9953fa4cc0ac1222af

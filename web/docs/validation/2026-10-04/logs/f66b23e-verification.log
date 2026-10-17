@@ -1,0 +1,35 @@
+
+$ git cherry-pick -n f66b23e
+
+$ git diff --cached --name-only
+app/rtt/view.js
+tools/selftest/rtt-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-lifecycle.test.mjs
+rtt-lifecycle: stale successful/failed polls cannot publish, stop replacement or schedule old workers PASS
+rtt-lifecycle: target reset drains reader and cannot rescan a replacement session PASS
+rtt-lifecycle: failed connect retains its original error without duplicate cleanup PASS
+rtt-lifecycle: disconnect reports recording failure instead of saved success PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/recorder-lifecycle.test.mjs
+recorder-lifecycle: single picker/stop, close barrier, clean restart and stop during opening PASS
+recorder-lifecycle: write error survives stop, remains visible, stops later batches and recovers after close PASS
+recorder-lifecycle: unload stays protected through zero backlog and pending close PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/rtt-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s f66b23e
+fix(rtt): report recording failures during disconnect
+
+$ git commit -C f66b23e
+[main 8107029] fix(rtt): report recording failures during disconnect
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 19:34:09 2026 +0900
+ 2 files changed, 12 insertions(+), 1 deletion(-)
+
+$ git rev-parse HEAD
+810702934f23dd3cb55eb1121bc4421375f9635e

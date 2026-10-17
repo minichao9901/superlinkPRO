@@ -1,0 +1,20 @@
+{
+  "id": "jdi387a",
+  "file": "customer/peripherals/jdi387a/jdi387a.c",
+  "registered_name": "jdi387a",
+  "pixel_align": 1,
+  "res_w": 240,
+  "res_h": 240,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg",
+      "itf": "LCDC_INTF_JDI_PARALLEL",
+      "freq": 60.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 2,
+  "hal_delay_count": 0,
+  "hal_delayus_count": 1
+}

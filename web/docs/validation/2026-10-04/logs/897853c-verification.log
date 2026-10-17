@@ -1,0 +1,20 @@
+
+$ git cherry-pick -n 897853c
+
+$ git diff --cached --name-only
+app/dbg/view.js
+app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/close-failure.mjs
+PASS production dbg: close failure reserves resource and handle, successful explicit retry releases
+file:///E:/web-serial-rtt-tools/app/ui/dom.js:45
+  el.textContent = text;
+                 ^
+
+TypeError: Cannot set properties of null (setting 'textContent')
+    at setFlag (file:///E:/web-serial-rtt-tools/app/ui/dom.js:45:18)
+    at RttView._disconnectNow (file:///E:/web-serial-rtt-tools/app/rtt/view.js:563:5)
+    at async RttView.disconnect (file:///E:/web-serial-rtt-tools/app/rtt/view.js:532:22)
+    at async file:///E:/web-serial-rtt-tools/tmp/patch-verification/close-failure.mjs:19:12
+
+Node.js v24.13.1

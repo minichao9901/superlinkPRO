@@ -1,0 +1,32 @@
+{
+  "id": "jd9851",
+  "file": "customer/peripherals/jd9851/jd9851.c",
+  "registered_name": "jd9851",
+  "pixel_align": 2,
+  "res_w": 240,
+  "res_h": 286,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_dsi",
+      "itf": "LCDC_INTF_DSI",
+      "freq": null,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888"
+    },
+    {
+      "name": "lcdc_int_cfg_qadspi",
+      "itf": "QAD_SPI_ITF",
+      "freq": 48000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    },
+    {
+      "name": "lcdc_int_cfg_3spi_1data",
+      "itf": "LCDC_INTF_SPI_DCX_1DATA",
+      "freq": 24000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 36,
+  "hal_delay_count": 3,
+  "hal_delayus_count": 2
+}

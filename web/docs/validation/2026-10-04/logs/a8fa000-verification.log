@@ -1,0 +1,28 @@
+
+$ git cherry-pick -n a8fa000
+
+$ git diff --cached --name-only
+app/scope/view.js
+tools/selftest/scope-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-lifecycle.test.mjs
+scope-lifecycle: double start, cancellation during CONFIG/STATUS, STOP before USB drain PASS
+scope-lifecycle: STOP errors propagate while USB drains; rejected input does not send STOP PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/scope-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s a8fa000
+fix(scope): propagate stop failures and avoid cleanup before acquisition
+
+$ git commit -C a8fa000
+[main 078c99d] fix(scope): propagate stop failures and avoid cleanup before acquisition
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:41:22 2026 +0900
+ 2 files changed, 27 insertions(+), 5 deletions(-)
+
+$ git rev-parse HEAD
+078c99d13e6f01b8ccc350410c62b1fe1245bbf4

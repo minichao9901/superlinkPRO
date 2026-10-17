@@ -1,0 +1,29 @@
+
+$ git cherry-pick -n 9e5cdc9
+
+$ git diff --cached --name-only
+app/hid/probe.js
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/hid-channel-full.mjs
+hid-channel: shared response queue, handle reference ownership, independent devices and close cancellation PASS
+hid-channel: timeout and close settle a response even while sendReport is stalled PASS
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/cross-tab.mjs
+probe-cross-tab: simultaneous acquisition has one winner, later handoff drains the previous owner PASS
+probe-cross-tab: passive HID command responses serialize across tab handles and closing cancels a lock waiter PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/probe.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 9e5cdc9
+fix(hid): let response timeout and close retire stalled report writes
+
+$ git commit -C 9e5cdc9
+[main c68e44e] fix(hid): let response timeout and close retire stalled report writes
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:35:23 2026 +0900
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+$ git rev-parse HEAD
+c68e44ea1bce00d59e9622ccf42db928444da490

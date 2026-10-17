@@ -1,0 +1,36 @@
+{
+  "id": "ek79001",
+  "file": "customer/peripherals/ek79001/ek79001.c",
+  "registered_name": "ek79001",
+  "pixel_align": 1,
+  "res_w": null,
+  "res_h": null,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg",
+      "itf": "AUTO_SELECTED_DPI_INTFACE",
+      "freq": 48.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888",
+      "timing": {
+        "PCLK_polarity": 0,
+        "DE_polarity": 0,
+        "VS_polarity": 1,
+        "HS_polarity": 1,
+        "PCLK_force_on": 0,
+        "VS_width": 3,
+        "HS_width": 20,
+        "VBP": 23,
+        "VAH": 600,
+        "VFP": 12,
+        "HBP": 160,
+        "HAW": 1024,
+        "HFP": 160,
+        "interrupt_line_num": 1
+      }
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 0,
+  "hal_delay_count": 0,
+  "hal_delayus_count": 1
+}

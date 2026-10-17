@@ -1,0 +1,20 @@
+{
+  "id": "ft2308",
+  "file": "customer/peripherals/ft2308/ft2308.c",
+  "registered_name": "ft2308",
+  "pixel_align": 2,
+  "res_w": null,
+  "res_h": null,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_spi",
+      "itf": "QAD_SPI_ITF",
+      "freq": null,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 46,
+  "hal_delay_count": 3,
+  "hal_delayus_count": 0
+}

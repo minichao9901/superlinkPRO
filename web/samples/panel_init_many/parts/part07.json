@@ -1,0 +1,346 @@
+[
+  {
+    "id": "ili9327",
+    "registered_name": "ili9327",
+    "ic": "ILI9327",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/ili9327/ili9327.c",
+    "hor_res": 240,
+    "ver_res": 400,
+    "pixel_align": 1,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg",
+        "guard": null,
+        "selected": true,
+        "interface": "dbi_8bit_b",
+        "freq_hz": 12000000,
+        "color_mode": "rgb565",
+        "timing": null
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          { "type": "comment", "text": "Initialize ILI9327 low level bus layer: memcpy(&hlcdc->Init, &lcdc_int_cfg, sizeof(LCDC_InitTypeDef)); if (!te_enabled) hlcdc->Init.cfg.spi.syn_mode = HAL_LCDC_SYNC_DISABLE; HAL_LCDC_Init(hlcdc);" },
+          { "type": "reset", "state": 1 },
+          { "type": "delay", "ms": 1, "expr": "LCD_DRIVER_DELAY_MS(1)" },
+          { "type": "reset", "state": 0, "expr": "BSP_LCD_Reset(0) // Reset LCD" },
+          { "type": "delay_us", "us": 20 },
+          { "type": "reset", "state": 1 },
+          { "type": "delay", "ms": 50, "expr": "LCD_DRIVER_DELAY_MS(50)" },
+          { "type": "cmd", "cmd": 233, "data": [32], "expr": "parameter[0]=0x20; LCD_WriteReg(hlcdc, 0xE9, parameter, 1) // remark" },
+          { "type": "cmd", "cmd": 17, "data": [], "expr": "LCD_WriteReg(hlcdc, 0x11, NULL, 0) /* Sleep Out */" },
+          { "type": "delay", "ms": 120 },
+          { "type": "cmd", "cmd": 198, "data": [130], "expr": "parameter[0]=0x82; LCD_WriteReg(hlcdc, 0xC6, parameter, 1) // Interface Control" },
+          { "type": "cmd", "cmd": 209, "data": [0, 98, 31], "expr": "parameter[0]=0x00; [1]=0x62; [2]=0x1F; LCD_WriteReg(hlcdc, 0xD1, parameter, 3) // VCOM" },
+          { "type": "cmd", "cmd": 208, "data": [7, 7, 128], "expr": "parameter[0]=0x07; [1]=0x07; [2]=0x80; LCD_WriteReg(hlcdc, 0xD0, parameter, 3) // power setting" },
+          { "type": "cmd", "cmd": 54, "data": [72], "expr": "parameter[0]=0x48; LCD_WriteReg(hlcdc, 0x36, parameter, 1) // address mode" },
+          { "type": "cmd", "cmd": 58, "data": [85], "expr": "parameter[0]=0x55; LCD_WriteReg(hlcdc, 0x3A, parameter, 1) /* Color mode 16bits/pixel */" },
+          { "type": "cmd", "cmd": 192, "data": [0, 49, 0, 0, 1, 2], "expr": "parameter[0..5]=0x00,0x31,0x00,0x00,0x01,0x02; LCD_WriteReg(hlcdc, 0xC0, parameter, 6) // panel driving settings" },
+          { "type": "cmd", "cmd": 42, "data": [0, 0, 0, 239], "expr": "parameter[0..3]=0x00,0x00,0x00,0xEF; LCD_WriteReg(hlcdc, 0x2A, parameter, 4) // column address" },
+          { "type": "cmd", "cmd": 43, "data": [0, 0, 1, 143], "expr": "parameter[0..3]=0x00,0x00,0x01,0x8F; LCD_WriteReg(hlcdc, 0x2B, parameter, 4) // page address" },
+          { "type": "cmd", "cmd": 193, "data": [16, 16, 2, 2], "expr": "parameter[0..3]=0x10,0x10,0x02,0x02; LCD_WriteReg(hlcdc, 0xC1, parameter, 4) // display tim settings" },
+          { "type": "cmd", "cmd": 197, "data": [5], "expr": "parameter[0]=0x05; LCD_WriteReg(hlcdc, 0xC5, parameter, 1) // frame rate settings" },
+          { "type": "cmd", "cmd": 210, "data": [1, 34], "expr": "parameter[0]=0x01; [1]=0x22; LCD_WriteReg(hlcdc, 0xD2, parameter, 2) // power settings for normal mode" },
+          { "type": "cmd", "cmd": 200, "data": [0, 48, 51, 0, 15, 2, 68, 116, 119, 0, 2, 15, 8, 128, 0], "expr": "parameter[0..14]; LCD_WriteReg(hlcdc, 0xC8, parameter, 15) /* Gamma setting */" },
+          { "type": "cmd", "cmd": 53, "data": [0], "expr": "if (te_enabled) { parameter[0]=0x00; LCD_WriteReg(hlcdc, 0x35, parameter, 1); } /* Tearing Effect Line On */" },
+          { "type": "comment", "text": "HAL_LCDC_SetROIArea(hlcdc, 0, 0, THE_LCD_PIXEL_WIDTH-1=239, THE_LCD_PIXEL_HEIGHT-1=399); HAL_LCDC_LayerSetFormat(hlcdc, HAL_LCDC_LAYER_DEFAULT, LCDC_PIXEL_FORMAT_RGB565); /* clear gram */ (HAL_LCDC_Next_Frame_TE 被注释)" },
+          { "type": "cmd", "cmd": 41, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_DISPLAY_ON, NULL, 0)" }
+        ]
+      }
+    ],
+    "display_on_sequence": [
+      { "type": "cmd", "cmd": 41, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_DISPLAY_ON, NULL, 0)" }
+    ],
+    "display_off_sequence": [
+      { "type": "cmd", "cmd": 40, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_DISPLAY_OFF, NULL, 0)" },
+      { "type": "cmd", "cmd": 16, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_SLEEP_IN, NULL, 0)" },
+      { "type": "delay", "ms": 50, "expr": "LCD_DRIVER_DELAY_MS(50)" }
+    ],
+    "notes": [
+      "文件无独立初始化表：所有命令均为 LCD_Init 内联写入；LCD_Init 末尾直接写 0x29 (Display On)，其后被注释的 LCD_DRIVER_DELAY_MS(5) 未记录",
+      "0xC1 (display tim settings) 前有三组被注释的旧参数 {0x10,0x10,0x02,0x02}、{0x10,0x15,0x03,0x03}、{0x10,0x10,0x02,0x02}，生效的是最后一组 {0x10,0x10,0x02,0x02}",
+      "0x35 写入受运行时变量 te_enabled 控制（static bool te_enabled = true，默认启用；lcd_sync_control() 内 te_enabled 赋值被注释），按默认值记录",
+      "ILI9327_HSYNC/HBP/HFP/VSYNC/VBP/VFP 定时宏存在但未进入 lcdc_int_cfg（DBI 接口无 timing 字段），故 timing=null；注释中的 ActiveH=320 与 THE_LCD_PIXEL_HEIGHT=400 不一致",
+      "LCD_Init 内 HAL_LCDC_SetROIArea/HAL_LCDC_LayerSetFormat 为 LCDC 主机侧调用，以 comment 步骤记录；/* clear gram */ 下的 HAL_LCDC_Next_Frame_TE(hlcdc,0) 被注释",
+      "LCD_WriteReg 经 HAL_LCDC_WriteU8Reg 发送（DBI 8080 8bit）；LCD_ReadID 返回常量，LCD_ReadData 读操作未记录"
+    ]
+  },
+  {
+    "id": "ili8688e",
+    "registered_name": "ili8688e",
+    "ic": "ILI8688E",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/ili8688e/ili8688e.c",
+    "hor_res": null,
+    "ver_res": null,
+    "pixel_align": 2,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg_dsi",
+        "guard": "#ifdef BSP_LCDC_USING_DSI",
+        "selected": false,
+        "interface": "dsi",
+        "freq_hz": 480000000,
+        "color_mode": "rgb888",
+        "timing": null
+      },
+      {
+        "label": "lcdc_int_cfg_qadspi",
+        "guard": null,
+        "selected": false,
+        "interface": "spi_dcx_4data",
+        "freq_hz": 48000000,
+        "color_mode": "rgb565",
+        "timing": null
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "dsi",
+        "guard": "#ifdef BSP_LCDC_USING_DSI",
+        "source": "table lcd_init_cmds + extra writes",
+        "table_name": "lcd_init_cmds",
+        "steps": [
+          { "type": "comment", "text": "Initialize ILI8688E low level bus layer: memcpy(&lcdc_int_cfg, &lcdc_int_cfg_dsi, sizeof(LCDC_InitTypeDef)); memcpy(&hlcdc->Init, &lcdc_int_cfg, sizeof(LCDC_InitTypeDef)); HAL_LCDC_Init(hlcdc);" },
+          { "type": "reset", "state": 0, "expr": "BSP_LCD_Reset(0) // Reset LCD" },
+          { "type": "delay", "ms": 3, "expr": "LCD_DRIVER_DELAY_MS(3)" },
+          { "type": "reset", "state": 1 },
+          { "type": "delay", "ms": 120, "expr": "LCD_DRIVER_DELAY_MS(120) /* Wait for 120ms */" },
+          { "type": "cmd", "cmd": 255, "data": [134, 136, 0], "expr": "lcd_init_cmds[0] = {0xFF,3,0x86,0x88,0x00} //Set page 0" },
+          { "type": "cmd", "cmd": 42, "data": [0, 0, 1, 111], "expr": "lcd_init_cmds[1] = {0x2A,4,0x00,0x00,0x01,0x6F}" },
+          { "type": "cmd", "cmd": 43, "data": [0, 0, 1, 191], "expr": "lcd_init_cmds[2] = {0x2B,4,0x00,0x00,0x01,0xBF}" },
+          { "type": "cmd", "cmd": 53, "data": [0], "expr": "lcd_init_cmds[3] = {0x35,1,0x00} //TE on" },
+          { "type": "cmd", "cmd": 54, "data": [64], "expr": "lcd_init_cmds[4] = {0x36,1,0x40} //Memory access control" },
+          { "type": "cmd", "cmd": 81, "data": [255], "expr": "lcd_init_cmds[5] = {0x51,1,0xFF} //Brightness set 0xff" },
+          { "type": "cmd", "cmd": 83, "data": [36], "expr": "lcd_init_cmds[6] = {0x53,1,0x24} //Backlight config" },
+          { "type": "cmd", "cmd": 196, "data": [0], "expr": "lcd_init_cmds[7] = {0xC4,1,0x00} //DSI 888 setting (BSP_LCDC_USING_DSI 分支)" },
+          { "type": "cmd", "cmd": 58, "data": [119], "expr": "lcd_init_cmds[8] = {0x3A,1,0x77} //77 RGB888 (BSP_LCDC_USING_DSI 分支)" },
+          { "type": "cmd", "cmd": 17, "data": [], "expr": "LCD_WriteReg(hlcdc, 0x11, NULL, 0) // Sleep Out" },
+          { "type": "delay", "ms": 50, "expr": "LCD_DRIVER_DELAY_MS(50)" },
+          { "type": "cmd", "cmd": 41, "data": [], "expr": "LCD_WriteReg(hlcdc, 0x29, NULL, 0) // Display On" },
+          { "type": "delay", "ms": 20, "expr": "LCD_DRIVER_DELAY_MS(20)" }
+        ]
+      },
+      {
+        "label": "qspi",
+        "guard": "#ifndef BSP_LCDC_USING_DSI",
+        "source": "table lcd_init_cmds + extra writes",
+        "table_name": "lcd_init_cmds",
+        "steps": [
+          { "type": "comment", "text": "Initialize ILI8688E low level bus layer: memcpy(&lcdc_int_cfg, &lcdc_int_cfg_qadspi, sizeof(LCDC_InitTypeDef)); memcpy(&hlcdc->Init, &lcdc_int_cfg, sizeof(LCDC_InitTypeDef)); HAL_LCDC_Init(hlcdc);" },
+          { "type": "reset", "state": 0, "expr": "BSP_LCD_Reset(0) // Reset LCD" },
+          { "type": "delay", "ms": 3, "expr": "LCD_DRIVER_DELAY_MS(3)" },
+          { "type": "reset", "state": 1 },
+          { "type": "delay", "ms": 120, "expr": "LCD_DRIVER_DELAY_MS(120) /* Wait for 120ms */" },
+          { "type": "cmd", "cmd": 255, "data": [134, 136, 0], "expr": "lcd_init_cmds[0] = {0xFF,3,0x86,0x88,0x00} //Set page 0" },
+          { "type": "cmd", "cmd": 42, "data": [0, 0, 1, 111], "expr": "lcd_init_cmds[1] = {0x2A,4,0x00,0x00,0x01,0x6F}" },
+          { "type": "cmd", "cmd": 43, "data": [0, 0, 1, 191], "expr": "lcd_init_cmds[2] = {0x2B,4,0x00,0x00,0x01,0xBF}" },
+          { "type": "cmd", "cmd": 53, "data": [0], "expr": "lcd_init_cmds[3] = {0x35,1,0x00} //TE on" },
+          { "type": "cmd", "cmd": 54, "data": [64], "expr": "lcd_init_cmds[4] = {0x36,1,0x40} //Memory access control" },
+          { "type": "cmd", "cmd": 81, "data": [255], "expr": "lcd_init_cmds[5] = {0x51,1,0xFF} //Brightness set 0xff" },
+          { "type": "cmd", "cmd": 83, "data": [36], "expr": "lcd_init_cmds[6] = {0x53,1,0x24} //Backlight config" },
+          { "type": "cmd", "cmd": 196, "data": [128], "expr": "lcd_init_cmds[7] = {0xC4,1,0x80} //bit7 - SPI write RAM enable (#else 分支)" },
+          { "type": "cmd", "cmd": 58, "data": [85], "expr": "lcd_init_cmds[8] = {0x3A,1,0x55} //RGB565 (#else 分支)" },
+          { "type": "cmd", "cmd": 17, "data": [], "expr": "LCD_WriteReg(hlcdc, 0x11, NULL, 0) // Sleep Out" },
+          { "type": "delay", "ms": 50, "expr": "LCD_DRIVER_DELAY_MS(50)" },
+          { "type": "cmd", "cmd": 41, "data": [], "expr": "LCD_WriteReg(hlcdc, 0x29, NULL, 0) // Display On" },
+          { "type": "delay", "ms": 20, "expr": "LCD_DRIVER_DELAY_MS(20)" }
+        ]
+      }
+    ],
+    "display_on_sequence": [
+      { "type": "cmd", "cmd": 41, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_DISPLAY_ON, NULL, 0)" }
+    ],
+    "display_off_sequence": [
+      { "type": "cmd", "cmd": 40, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_DISPLAY_OFF, NULL, 0)" }
+    ],
+    "notes": [
+      "接口实际由 LCD_Init 内编译期宏选择：#ifdef BSP_LCDC_USING_DSI → lcdc_int_cfg_dsi，#else → lcdc_int_cfg_qadspi；文件内 static LCDC_InitTypeDef lcdc_int_cfg 为可写运行时副本。#if 0 死代码块中的 msh 命令（spi_cfg/lcd_wreg/lcd_rreg）引用了未定义的 lcdc_int_cfg_spi（原意运行时动态改接口，实际不生效），按指示全部 interface_options 的 selected 均为 false",
+      "lcd_init_cmds 表内含 #ifdef BSP_LCDC_USING_DSI 条件行（{0xC4,1,0x00},{0x3A,1,0x77} 对 {0xC4,1,0x80},{0x3A,1,0x55}），故拆为 dsi/qspi 两条 init_sequences，其余行共用；表行格式 {cmd,len,p0..p2}，MAX_CMD_LEN=6，消费循环 LCD_WriteReg(hlcdc, 表[i][0], &表[i][2], 表[i][1])",
+      "分辨率：文件无 THE_LCD_PIXEL_WIDTH/HEIGHT 宏，hor_res/ver_res=null；表内 0x2A/0x2B 界定窗口 0x0000-0x016F / 0x0000-0x01BF（隐含 368x448），仅供参考",
+      "lcdc_int_cfg_dsi.freq = ILI8688E_DSI_FREQ = DSI_FREQ_480Mbps = 480000000（bf0_hal_dsi.h）；#if 0//def APP_BSP_TEST 死代码分支为 240Mbps/2 数据 lane",
+      "DSI 为命令模式（LCDC_INTF_DSI），非 DPI/DSI_VIDEO/JDI，故 timing=null；lcdc_int_cfg_qadspi 的 cfg.spi.syn_mode 由 LCD_ILI8688E_VSYNC_ENABLE 决定（HAL_LCDC_SYNC_VER / DISABLE），dummy_clock=0",
+      "QAD SPI 路径下 LCD_WriteReg 封装为 (0x02<<24)|(LCD_Reg<<8) 的 32 位写，未在 steps 中体现；LCD_DisplayOff 仅写 0x28；LCD_ReadID 中 LCD_ReadData 读操作未记录"
+    ]
+  },
+  {
+    "id": "ft2308",
+    "registered_name": "ft2308",
+    "ic": "FT2308",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/ft2308/ft2308.c",
+    "hor_res": null,
+    "ver_res": null,
+    "pixel_align": 2,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg_spi",
+        "guard": null,
+        "selected": true,
+        "interface": "spi_dcx_4data",
+        "freq_hz": 50000000,
+        "color_mode": "rgb565",
+        "timing": null
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline LCD_Init",
+        "table_name": null,
+        "steps": [
+          { "type": "comment", "text": "Initialize ft2308 low level bus layer: memcpy(&lcdc_int_cfg, &lcdc_int_cfg_spi, sizeof(LCDC_InitTypeDef)); memcpy(&hlcdc->Init, &lcdc_int_cfg, sizeof(LCDC_InitTypeDef)); HAL_LCDC_Init(hlcdc);" },
+          { "type": "reset", "state": 1 },
+          { "type": "delay", "ms": 10, "expr": "rt_thread_mdelay(10)" },
+          { "type": "reset", "state": 0, "expr": "BSP_LCD_Reset(0) // Reset LCD" },
+          { "type": "delay", "ms": 10, "expr": "rt_thread_mdelay(10)" },
+          { "type": "reset", "state": 1 },
+          { "type": "delay", "ms": 10, "expr": "rt_thread_mdelay(10)" },
+          { "type": "cmd", "cmd": 65280, "data": [35, 8, 1], "expr": "data[0]=0x23; data[1]=0x08; data[2]=0x01; LCD_WriteReg(hlcdc, 0xFF00, data, 3)" },
+          { "type": "cmd", "cmd": 65408, "data": [35, 8], "expr": "data[0]=0x23; data[1]=0x08; LCD_WriteReg(hlcdc, 0xFF80, data, 2)" },
+          { "type": "cmd", "cmd": 62337, "data": [57], "expr": "data[0]=0x39; LCD_WriteReg(hlcdc, 0xF381, data, 1)" },
+          { "type": "cmd", "cmd": 51592, "data": [0], "expr": "data[0]=0x00; LCD_WriteReg(hlcdc, 0xC990, data, 1)" },
+          { "type": "comment", "text": "编译期帧率块：#ifdef BSP_LCDC_USING_DDR_QADSPI → 无写入（60fps 默认）；#else 且 #if BSP_USING_PSRAM → LCD_WriteReg(0xC083,{0x6E},1) + LCD_WriteReg(0xC099,{0x6E},1)（50fps）；#else → LCD_WriteReg(0xC082,{0x01,0x04},2) + LCD_WriteReg(0xC098,{0x01,0x04},2)（40fps）" },
+          { "type": "cmd", "cmd": 38400, "data": [129], "expr": "data[0]=0x81; LCD_WriteReg(hlcdc, 0x9600, data, 1)" },
+          { "type": "cmd", "cmd": 45441, "data": [129], "expr": "if (LCDC_INTF_SPI_DCX_DDR_4DATA == lcdc_int_cfg.lcd_itf) { data[0]=0x81; LCD_WriteReg(hlcdc, 0xb181, data, 1); } // 仅 DDR 分支执行" },
+          { "type": "cmd", "cmd": 65408, "data": [0, 0], "expr": "data[0]=0x00; data[1]=0x00; LCD_WriteReg(hlcdc, 0xFF80, data, 2)" },
+          { "type": "cmd", "cmd": 65280, "data": [0, 0], "expr": "data[0]=0x00; data[1]=0x00; LCD_WriteReg(hlcdc, 0xFF00, data, 2)" },
+          { "type": "cmd", "cmd": 14848, "data": [85], "expr": "lcdc_int_cfg.color_mode==LCDC_PIXEL_FORMAT_RGB565 → data[0]=0x55 (16bit rgb; 若 RGB888 则 0x77); LCD_WriteReg(hlcdc, 0x3A00, data, 1)" },
+          { "type": "cmd", "cmd": 13568, "data": [0], "expr": "data[0]=0x00; LCD_WriteReg(hlcdc, 0x3500, data, 1)" },
+          { "type": "cmd", "cmd": 4352, "data": [], "expr": "LCD_WriteReg(hlcdc, 0x1100, NULL, 0) // Sleep Out" },
+          { "type": "delay", "ms": 60, "expr": "rt_thread_delay(60) // OS tick，RT_TICK_PER_SECOND=1000 → 60ms" },
+          { "type": "cmd", "cmd": 10496, "data": [], "expr": "LCD_WriteReg(hlcdc, 0x2900, NULL, 0) // Display On" },
+          { "type": "delay", "ms": 10, "expr": "rt_thread_delay(10) // OS tick，RT_TICK_PER_SECOND=1000 → 10ms" }
+        ]
+      }
+    ],
+    "display_on_sequence": [
+      { "type": "cmd", "cmd": 10496, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_DISPLAY_ON, NULL, 0)" }
+    ],
+    "display_off_sequence": [
+      { "type": "cmd", "cmd": 10240, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_DISPLAY_OFF, NULL, 0)" },
+      { "type": "cmd", "cmd": 4096, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_SLEEP_IN, NULL, 0)" }
+    ],
+    "notes": [
+      "LCD_Init 由 #if 1//def LCD_USING_ED_LB5XSPI19701_QADSPI_LB56X_HDK 恒选第一个实现；#else 分支（旧版序列）为死代码未记录：Reset(0)/20ms/Reset(1)/30ms、0xFF00={0x23,0x08,0x01}、0xFF80={0x23,0x08}、0xB282={0x63}、0x3A00={0x55}、0x5100={0xFF,0x00}、0x3500={0x00}、0xC990={0x00}、0x1100、120ms、0x2900、0xFF00={0x23,0x08,0x01,0x01}",
+      "分辨率：文件无 THE_LCD_PIXEL_WIDTH/HEIGHT 宏（仅用 LCD_VER_RES_MAX 等板级宏），hor_res/ver_res=null",
+      "接口 QAD_SPI_ITF 由 #ifdef BSP_LCDC_USING_DDR_QADSPI 决定：定义时 → LCDC_INTF_SPI_DCX_DDR_4DATA（归一化表外，保留原名）+ freq 40000000 +（LCDC_SUPPORT_DDR_QSPI 时）.flags=SPI_LCD_FLAG_DDR_DUMMY_CLOCK；未定义时 → spi_dcx_4data + freq 50000000。本条目按未定义（#else 默认路径）填写 interface/freq_hz",
+      "cfg.spi.syn_mode 由 LCD_FT2308_VSYNC_ENABLE 决定（HAL_LCDC_SYNC_VER / HAL_LCDC_SYNC_DISABLE）；dummy_clock=1，readback_from_Dx=3",
+      "帧率条件块（BSP_LCDC_USING_DDR_QADSPI / BSP_USING_PSRAM，编译期）与 0xB181（运行时判断）未拆多条 init_sequences，分别以 comment 步骤与 expr 如实记录",
+      "被注释的命令（未见执行）：0xC3B9={0xEF,0x00,0x58}、0xC3C9={0xBC,0xD0,0x54}、0xC3D9={0xEF,0x00,0x58}、0xC3E9={0xBC,0xD0,0x54}、0xC49A={0x01}、0xD804={0x92}、0x5100={0xFF}、0xC470={0xC0}、0xFF00={0x23,0x08,0x01,0x01}",
+      "rt_thread_delay(60)/rt_thread_delay(10) 为 OS tick 延时；本工程全部 rtconfig.h 均为 RT_TICK_PER_SECOND=1000，故按 1 tick=1ms 换算为 ms",
+      "LCD_DisplayOff 写 0x2800 后写 0x1000 (Sleep In)，无延时；LCD_ReadID 的读操作（0xDA00/0x0400/0xA800）及 LCD_SetColorMode 中的读 0x0C00 未记录；LCD_WriteReg 在 QAD SPI 下封装为 (0x02<<24)|LCD_Reg 的 32 位写"
+    ]
+  },
+  {
+    "id": "jd9851",
+    "registered_name": "jd9851",
+    "ic": "JD9851",
+    "panel": null,
+    "variant": null,
+    "file": "customer/peripherals/jd9851/jd9851.c",
+    "hor_res": 240,
+    "ver_res": 286,
+    "pixel_align": 2,
+    "interface_options": [
+      {
+        "label": "lcdc_int_cfg_dsi",
+        "guard": "#ifdef BSP_LCDC_USING_DSI",
+        "selected": false,
+        "interface": "dsi",
+        "freq_hz": null,
+        "color_mode": "rgb888",
+        "timing": null
+      },
+      {
+        "label": "lcdc_int_cfg_qadspi",
+        "guard": null,
+        "selected": false,
+        "interface": "spi_dcx_4data",
+        "freq_hz": 48000000,
+        "color_mode": "rgb565",
+        "timing": null
+      },
+      {
+        "label": "lcdc_int_cfg_3spi_1data",
+        "guard": null,
+        "selected": true,
+        "interface": "spi_dcx_1data",
+        "freq_hz": 24000000,
+        "color_mode": "rgb565",
+        "timing": null
+      }
+    ],
+    "init_sequences": [
+      {
+        "label": "default",
+        "guard": null,
+        "source": "inline JD9851_Drv_Init",
+        "table_name": null,
+        "steps": [
+          { "type": "comment", "text": "Initialize JD9851 low level bus layer: memcpy(&hlcdc->Init, &lcdc_int_cfg, sizeof(LCDC_InitTypeDef)); HAL_LCDC_Init(hlcdc);" },
+          { "type": "comment", "text": "rt_pin_mode(LCD_3V3_POWER_PIN=55, PIN_MODE_OUTPUT); rt_pin_write(55, 1) /* LCD_3V3 ON */；LCD_1V8 初始化在 #if 0 死代码中，背光引脚初始化被注释" },
+          { "type": "reset", "state": 0, "expr": "rt_pin_mode(LCD_RESET_PIN=44, PIN_MODE_OUTPUT); rt_pin_write(44, 0) // 代替被注释的 BSP_LCD_Reset(0)" },
+          { "type": "delay_us", "us": 20, "expr": "HAL_Delay_us(20)" },
+          { "type": "reset", "state": 1, "expr": "rt_pin_write(LCD_RESET_PIN=44, 1) // 代替被注释的 BSP_LCD_Reset(1)" },
+          { "type": "delay", "ms": 100, "expr": "LCD_DRIVER_DELAY_MS(100) /* 代码注释写 Wait for 200ms，实际 100ms */" },
+          { "type": "cmd", "cmd": 223, "data": [152, 81, 233], "expr": "parameter[0]=0x98; [1]=0x51; [2]=0xE9; LCD_WriteReg(hlcdc, 0xDF, parameter, 3)" },
+          { "type": "cmd", "cmd": 222, "data": [152], "expr": "parameter[1]=0x00 但 len=1，仅发送 parameter[0]=0x98（0xDF 残留），疑似应为 0x00；LCD_WriteReg(hlcdc, 0xDE, parameter, 1)" },
+          { "type": "cmd", "cmd": 183, "data": [30, 125, 30, 43], "expr": "parameter[0..3]=0x1E,0x7D,0x1E,0x2B; LCD_WriteReg(hlcdc, 0xB7, parameter, 4)" },
+          { "type": "cmd", "cmd": 200, "data": [63, 55, 56, 56, 59, 63, 60, 59, 58, 56, 52, 38, 30, 19, 22, 14, 63, 55, 56, 56, 59, 63, 60, 59, 58, 56, 52, 38, 30, 19, 22, 14], "expr": "parameter[0..31]; LCD_WriteReg(hlcdc, 0xC8, parameter, 32) // Gamma" },
+          { "type": "cmd", "cmd": 185, "data": [35, 40, 204], "expr": "parameter[0]=0x23; [1]=0x28; [2]=0xCC; LCD_WriteReg(hlcdc, 0xB9, parameter, 3)" },
+          { "type": "cmd", "cmd": 187, "data": [71, 127, 48, 192, 92, 96, 64, 112], "expr": "parameter[0..7]; LCD_WriteReg(hlcdc, 0xBB, parameter, 8)" },
+          { "type": "cmd", "cmd": 188, "data": [56, 60], "expr": "parameter[0]=0x38; [1]=0x3C; LCD_WriteReg(hlcdc, 0xBC, parameter, 2)" },
+          { "type": "cmd", "cmd": 192, "data": [17, 32], "expr": "parameter[0]=0x11; [1]=0x20; LCD_WriteReg(hlcdc, 0xC0, parameter, 2)" },
+          { "type": "cmd", "cmd": 193, "data": [18], "expr": "parameter[0]=0x12; LCD_WriteReg(hlcdc, 0xC1, parameter, 1)" },
+          { "type": "cmd", "cmd": 195, "data": [8, 0, 10, 16, 8, 84, 69, 113, 44], "expr": "parameter[0..8]=0x08,0x00,0x0A,0x10,0x08,0x54,0x45,0x71,0x2C; LCD_WriteReg(hlcdc, 0xC3, parameter, 9)" },
+          { "type": "cmd", "cmd": 196, "data": [0, 160, 121, 14, 10, 22, 121, 14, 10, 22, 121, 14, 10, 22, 130, 0, 3], "expr": "parameter[0..16]; LCD_WriteReg(hlcdc, 0xC4, parameter, 17)" },
+          { "type": "cmd", "cmd": 208, "data": [4, 12, 107, 15, 1, 3], "expr": "parameter[0..5]=0x04,0x0C,0x6B,0x0F,0x01,0x03; LCD_WriteReg(hlcdc, 0xD0, parameter, 6)" },
+          { "type": "cmd", "cmd": 215, "data": [0, 0], "expr": "parameter[0]=0x00; [1]=0x00; LCD_WriteReg(hlcdc, 0xD7, parameter, 2)" },
+          { "type": "cmd", "cmd": 222, "data": [2], "expr": "parameter[0]=0x02; LCD_WriteReg(hlcdc, 0xDE, parameter, 1)" },
+          { "type": "cmd", "cmd": 184, "data": [29, 160, 47, 4, 36], "expr": "parameter[0..4]=0x1D,0xA0,0x2F,0x04,0x24; LCD_WriteReg(hlcdc, 0xB8, parameter, 5)" },
+          { "type": "cmd", "cmd": 178, "data": [48, 248, 147, 4, 110], "expr": "parameter[0]=0x30; [1]=0xF8; [2]=0x93; [4]=0x6E; parameter[3] 未显式赋值，为上次 0xB8 残留的 0x04；LCD_WriteReg(hlcdc, 0xB2, parameter, 5)" },
+          { "type": "cmd", "cmd": 193, "data": [16, 102, 102, 1], "expr": "parameter[0..3]=0x10,0x66,0x66,0x01; LCD_WriteReg(hlcdc, 0xC1, parameter, 4)" },
+          { "type": "cmd", "cmd": 222, "data": [0], "expr": "parameter[0]=0x00; LCD_WriteReg(hlcdc, 0xDE, parameter, 1)" },
+          { "type": "cmd", "cmd": 17, "data": [], "expr": "LCD_WriteReg(hlcdc, 0x11, NULL, 0) // Sleep Out" },
+          { "type": "delay", "ms": 120, "expr": "LCD_DRIVER_DELAY_MS(120)" },
+          { "type": "cmd", "cmd": 222, "data": [2], "expr": "parameter[0]=0x02; LCD_WriteReg(hlcdc, 0xDE, parameter, 1)" },
+          { "type": "cmd", "cmd": 197, "data": [1, 0, 0], "expr": "parameter[0]=0x01; [1]=0x00; [2]=0x00; LCD_WriteReg(hlcdc, 0xC5, parameter, 3) //10MHz" },
+          { "type": "cmd", "cmd": 202, "data": [16, 32, 244], "expr": "parameter[0]=0x10; [1]=0x20; [2]=0xF4; LCD_WriteReg(hlcdc, 0xCA, parameter, 3)" },
+          { "type": "cmd", "cmd": 222, "data": [0], "expr": "parameter[0]=0x00; LCD_WriteReg(hlcdc, 0xDE, parameter, 1)" },
+          { "type": "cmd", "cmd": 53, "data": [0], "expr": "parameter[0]=0x00; LCD_WriteReg(hlcdc, 0x35, parameter, 1)" },
+          { "type": "cmd", "cmd": 58, "data": [5], "expr": "parameter[0]=0x05; LCD_WriteReg(hlcdc, 0x3A, parameter, 1) //rgb 666 bit" },
+          { "type": "cmd", "cmd": 41, "data": [], "expr": "LCD_WriteReg(hlcdc, 0x29, NULL, 0) // Display On" },
+          { "type": "delay", "ms": 20, "expr": "LCD_DRIVER_DELAY_MS(20) /* Wait for 100ms 注释，实际 20ms */" }
+        ]
+      }
+    ],
+    "display_on_sequence": [
+      { "type": "cmd", "cmd": 41, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_DISPLAY_ON, NULL, 0)" }
+    ],
+    "display_off_sequence": [
+      { "type": "cmd", "cmd": 40, "data": [], "expr": "LCD_WriteReg(hlcdc, REG_DISPLAY_OFF, NULL, 0)" }
+    ],
+    "notes": [
+      "接口选择链（LCD_Init）：#ifdef BSP_LCDC_USING_QADSPI → lcdc_int_cfg_qadspi；#elif defined(BSP_LCDC_USING_DSI) → lcdc_int_cfg_dsi；#else → lcdc_int_cfg_3spi_1data（默认选中，selected=true）；另两个 selected=false",
+      "lcdc_int_cfg_dsi.freq = JD9851_DSI_FREQ = DSI_FREQ_480MHZ：该宏在整个工作区未定义（bf0_hal_dsi.h 只有 DSI_FREQ_480Mbps=480000000），无法确定数值，freq_hz 记 null；#if 0//def APP_BSP_TEST 死代码分支为 240MHZ/2 数据 lane",
+      "上电/复位走 GPIO：LCD_3V3_POWER_PIN=55 上电、LCD_RESET_PIN=44 复位（BSP_LCD_Reset 两行被注释）；LCD_1V8_POWER_PIN=47 初始化在 #if 0 死代码中，背光引脚初始化被注释",
+      "0xDE 写 {0x98}：代码只改 parameter[1]=0x00 但 len=1，实际发送 parameter[0]=0x98（0xDF 残留），疑似应为 0x00，按实际发送值记录",
+      "0xB2 写 5 字节：parameter[3] 未显式赋值，实际发送上次 0xB8 残留的 0x04，按实际发送值记录",
+      "初始化末尾 0x3A 写 {0x05}（注释 'rgb 666 bit'），与各接口配置的 RGB565/RGB888 不一致，照实记录",
+      "/* Wait for 100ms */ /* Wait for 200ms */ 注释与实际延时（20ms/100ms）不一致，按实际值记录",
+      "DSI 为命令模式（LCDC_INTF_DSI），非 DPI/DSI_VIDEO/JDI，故 timing=null；lcdc_int_cfg_3spi_1data 的 syn_mode=HAL_LCDC_SYNC_VER、vsyn_delay_us=1000；qadspi/3spi 的 syn_mode 由 LCD_JD9851_VSYNC_ENABLE 决定",
+      "LCD_DisplayOff 仅写 0x28；LCD_ReadID 的 LCD_ReadData 读操作未记录；QAD_SPI_USE_GPIO_CS 定义时 LCD_WriteReg 会调用 gpio_cs_enable/gpio_cs_disable，未在 steps 记录"
+    ]
+  }
+]

@@ -1,0 +1,47 @@
+
+$ git cherry-pick -n 977755b
+
+$ git diff --cached --name-only
+app/core/probe-users.js
+app/dbg/view.js
+app/flash/view.js
+app/hid/view.js
+app/main.js
+app/rtt/view.js
+app/scope/view.js
+tools/selftest/probe-users.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-users.test.mjs
+probe-users: busy flash rejects takeover; same-page target readers stop; failed STOP aborts handoff PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe --check app/dbg/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/flash/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/main.js
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-users.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 977755b
+fix(probe): coordinate same-page debugger scope and RTT engine ownership
+
+$ git commit -C 977755b
+[main 8dbbab0] fix(probe): coordinate same-page debugger scope and RTT engine ownership
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:38:14 2026 +0900
+ 8 files changed, 61 insertions(+), 19 deletions(-)
+ create mode 100644 app/core/probe-users.js
+ create mode 100644 tools/selftest/probe-users.test.mjs
+
+$ git rev-parse HEAD
+8dbbab057be7e5386a762547c517ce4b700975a1

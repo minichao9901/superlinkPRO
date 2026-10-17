@@ -1,0 +1,27 @@
+{
+  "openocd": "",
+  "scripts": "",
+  "jlink": {
+    "exe": "",
+    "gdbserver": "",
+    "device": "STM32F103C8",
+    "speed": 50000,
+    "rttPort": 19021,
+    "note": "J-Link 这条路的默认值。exe/gdbserver 留空则自动找（PATH → C:/Program Files/SEGGER/JLink_*/ 里版本号最大的那份）。device 是给 J-Link 的器件名（STM32F103C8 覆盖 128KB 中容量 F103）。speed 单位 kHz：50000 = 50MHz SWD，是本机 SEGGER J-Link PRO + STM32F103RB 实测可用的值（官方 JLinkRTTLogger 同速率跑出 1465.7 KB/s，桥这条同样设 50MHz 才拉得动吞吐；调低不会更稳、只会更慢）。RTT 走 JLinkGDBServerCL 自开的 telnet 口（桥自己拉起，用户不用先开 JLinkRTTViewer），烧录走 JLink.exe Commander；两者互斥，烧前桥会先停掉 RTT 会话释放探针。"
+  },
+  "targets": {
+    "stm32h7b0": {
+      "cfgs": ["interface/cmsis-dap.cfg", "target/stm32h7x.cfg"],
+      "pre": ["cmsis-dap backend usb_bulk"],
+      "speed": 4000,
+      "jlinkDevice": "STM32H7B0VB",
+      "note": "CMSIS-DAP + STM32H7B0（SWD，H7A3/7B3/7B0 用同一个 target cfg）；jlinkDevice 给 J-Link 那条路用"
+    },
+    "stm32f103": {
+      "cfgs": ["interface/cmsis-dap.cfg", "target/stm32f1x.cfg"],
+      "speed": 4000,
+      "jlinkDevice": "STM32F103C8",
+      "note": "STM32F103 中容量（128KB flash / 20KB RAM）——注意它的 flash 页是 1KB 而不是 2KB（OpenOCD 与 J-Link 都自己知道，网页那套 WebUSB 算法表不知道，所以那边要按 DEV_ID 判）"
+    }
+  }
+}

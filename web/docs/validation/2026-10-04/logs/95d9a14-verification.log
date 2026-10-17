@@ -1,0 +1,70 @@
+
+$ git cherry-pick -n 95d9a14
+
+$ git diff --cached --name-only
+Makefile
+docs/stability-fixes-2026-10-04.md
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/flash-lifecycle.test.mjs
+flash-lifecycle: preparation, duplicate click, disconnect ownership, cancellation and errors PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-lock.test.mjs
+dbg-lock: queued foreground work excludes background polling and releases after failure PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-view-lock.test.mjs
+dbg-view-lock: memory/watch entry points queue behind actions, internal refresh avoids nested lock PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-handoff.test.mjs
+probe-handoff: debugger cancels queue, drains action before close; flash releases debugger before USB cleanup PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dap-register-ready.test.mjs
+dap-register-ready: timeout rejected before stale data read, ready handshake returns value PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/flash-runner-abi.test.mjs
+flash-runner-abi: every bundled algorithm gets R9/static base, stack, arguments before PC PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-bus-failure.test.mjs
+probe-bus-failure: busy flash denial, successful retry, late reply identity PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-lifecycle.test.mjs
+rtt-lifecycle: stale successful/failed polls cannot publish, stop replacement or schedule old workers PASS
+rtt-lifecycle: target reset drains reader and cannot rescan a replacement session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-lifecycle.test.mjs
+scope-lifecycle: double start, cancellation during CONFIG/STATUS, STOP before USB drain PASS
+scope-lifecycle: STOP errors propagate while USB drains; rejected input does not send STOP PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-transport.test.mjs
+scope-transport: rearm, ordering, bounded reads, stop/restart, decoder error, stall, disconnect PASS
+scope-transport: stalled restart resets/retire reads; failed reset blocks capture PASS
+scope-transport: replacing transport cannot orphan native reads on the same device PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-watchdog.test.mjs
+scope-watchdog: slow packet cadence, fast failure, stale generation, discard mode PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/target-switch.test.mjs
+target-switch: active/pending scope and RTT forwarding cannot mutate global backend PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-backend-lifecycle.test.mjs
+dbg-backend-lifecycle: ARM/RISC-V switch waits for old actions and disconnect before replacing session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-cdc-lifecycle.test.mjs
+rtt-cdc-lifecycle: stop cancels pending start, waits for firmware STOP completion, propagates failure PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-users.test.mjs
+probe-users: busy flash rejects takeover; same-page target readers stop; failed STOP aborts handoff PASS
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 95d9a14
+test(stability): wire lifecycle regressions and hardware acceptance checklist
+
+$ git commit -C 95d9a14
+[main cb93f9f] test(stability): wire lifecycle regressions and hardware acceptance checklist
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:42:38 2026 +0900
+ 2 files changed, 69 insertions(+), 1 deletion(-)
+ create mode 100644 docs/stability-fixes-2026-10-04.md
+
+$ git rev-parse HEAD
+cb93f9fda626506163047e56d8aea924091970e4

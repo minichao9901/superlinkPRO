@@ -1,0 +1,4 @@
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 同步清队列：吃掉 8 条陈旧响应
+[dap] 写 0xe000ed0c（4B）回读不一致，重写一次
+PASS real F103CB DebugSession: DWT cleanup failure keeps backend/watchpoint and blocks takeover; retry clears real comparator and releases USB

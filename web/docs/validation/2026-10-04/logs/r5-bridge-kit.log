@@ -1,0 +1,59 @@
+== 1. 文件清单与换行 ==
+  PASS  7 个文件齐了：rtt-bridge.mjs · bridge.config.json · README-bridge.txt · start-bridge.bat · check-tools.bat · get-node.ps1 · start-bridge.sh
+  PASS  .bat 是纯 CRLF（cmd 对 LF 的 label/goto 不友好）
+  PASS  .sh 是纯 LF（CRLF 会让 bash 报 bad interpreter）
+  PASS  rtt-bridge.mjs 是纯 LF（跨平台一致）
+  PASS  关掉开关（on:false）= 一个文件都不生成
+== 2. 不漂移：包里的桥 == 仓库里的桥（逐字节） ==
+  PASS  嵌入副本与仓库那份逐字节一致（55881 字节）
+  PASS  sha256 对得上（6b8ce717791077af…）
+  PASS  包里写出的 rtt-bridge.mjs 也是同一份字节
+  PASS  README 里印了 sha256（人工核对用）
+  PASS  README 说明了"改了桥要重跑 embed-bridge.mjs"
+== 3. start-bridge.bat：找 Node → 预检 → 起桥 ==
+  PASS  先 cd 到自己所在目录（双击也能找到 rtt-bridge.mjs）
+  PASS  先从 PATH 找 node.exe
+  PASS  便携版优先：先看 .\node\node.exe
+  PASS  没有 Node + 允许自动装 → 调 get-node.ps1（版本/镜像/目标目录都传进去）
+  PASS  三个开关写成了可改的字面量（AUTO_NODE / MIRROR / NODE_VER）
+  PASS  起桥**之前**先跑 --doctor 预检
+  PASS  预检有 ❌ 会明确提示（但仍继续起桥）
+  PASS  命令行参数原样透传（给了参数就用给的）
+  PASS  横幅里讲清了 Ctrl+C 会收掉子进程（不留孤儿占探针）
+  PASS  失败会停住窗口（双击场景看不到一闪而过的报错）
+== 4. check-tools.bat / get-node.ps1 ==
+  PASS  check-tools.bat 就是跑 --doctor（带默认端口/目标）
+  PASS  没 Node 时给出可操作的提示
+  PASS  两个下载源都写上了（国内镜像 + 官方）
+  PASS  镜像优先级由 -Mirror 控制（生成时写死默认值）
+  PASS  下载后按 SHASUMS256.txt 校验 sha256
+  PASS  校验不过就换下一个源（不是硬失败）
+  PASS  解压并铺到 -Dest（找到 node.exe 才认）
+  PASS  注释里讲明是绿色安装（不动系统）
+== 5. bridge.config.json：页面参数 → 桥的配置 ==
+  PASS  工具路径默认留空 = 桥自己去常见位置探测（换机器不用改）
+  PASS  J-Link 默认值是真机标定过的（STM32F103C8 @ 50000 kHz）
+  PASS  内置两个常用目标：stm32f103 / stm32h7b0
+  PASS  f103 预设：cmsis-dap + stm32f1x.cfg @ 4000 kHz
+  PASS  生成信息里带桥的 sha256（可核对是不是最新那份）
+  PASS  自定义目标写进 targets.custom（interface/cmsis-dap.cfg + target/stm32h7x.cfg @ 8000 kHz）
+  PASS  第一个 cfg 是 cmsis-dap 时自动补 backend usb_bulk（用户不用记）
+  PASS  页面上填的工具路径原样写进配置
+  PASS  J-Link 的 device/speed 也跟着页面走
+  PASS  check-tools.bat 里的目标跟着选了 custom
+== 6. README 与确定性 ==
+  PASS  README 明说"换机器改这三处"（openocd / scripts / jlink）
+  PASS  README 写了自动探测顺序（找不到时照着填）
+  PASS  README 讲了退出要 Ctrl+C、别留孤儿
+  PASS  README 提了口令与来源白名单（自建站要用）
+  PASS  README 教了怎么只跑预检
+  PASS  同参数同时间戳 → 两次生成的字节完全一致（确定性）
+  PASS  换了时间戳，配置里的生成时间会变（能看出是哪次生成的）
+== 7. 端口/口令/镜像这些参数真的落到文件里 ==
+  PASS  端口改到 17999：bat 与 check-tools 都跟着
+  PASS  镜像优先关掉时，ps1 的默认值也跟着变（官方优先）
+  PASS  关掉自动下载时 bat 里写明（会改用提示 + 退出）
+  PASS  Node 版本跟着改（bat 的字面量与 ps1 的 -Version 默认值一致）
+  PASS  README 里的网页地址用的是你选的端口
+
+✅ bridge-kit.test: 50 通过 / 0 失败

@@ -1,0 +1,28 @@
+
+$ git cherry-pick -n 1ad5894
+
+$ git diff --cached --name-only
+app/scope/view.js
+tools/selftest/scope-watchdog.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-watchdog.test.mjs
+scope-watchdog: slow packet cadence, fast failure, stale generation, discard mode PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/scope-watchdog.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 1ad5894
+fix(scope): scale stream watchdog to packet cadence
+
+$ git commit -C 1ad5894
+[main 6285660] fix(scope): scale stream watchdog to packet cadence
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:30:27 2026 +0900
+ 2 files changed, 26 insertions(+), 3 deletions(-)
+ create mode 100644 tools/selftest/scope-watchdog.test.mjs
+
+$ git rev-parse HEAD
+6285660b621c81a071023022157b7f08819b9d74

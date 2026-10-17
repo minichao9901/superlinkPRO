@@ -1,0 +1,33 @@
+
+$ git cherry-pick -n d2414a6
+
+$ git diff --cached --name-only
+app/flash/runner.js
+tools/dev/verify-algo.py
+tools/selftest/flash-runner-abi.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/flash-runner-abi.test.mjs
+flash-runner-abi: every bundled algorithm gets R9/static base, stack, arguments before PC PASS
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/flash-runner-real.mjs
+PASS real F103CB: production FlashRunner init/R9, 1KB sector erase, CPU algorithm programming, complete readback and original page restored
+[dap] 让目标运行的回读一直显示 C_HALT=1（可能是读滞后）——继续，不中断流程
+
+$ C:\Program Files\nodejs\node.exe --check app/flash/runner.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/flash-runner-abi.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s d2414a6
+fix(flash): initialize algorithm static data base in R9
+
+$ git commit -C d2414a6
+[main ba23d0d] fix(flash): initialize algorithm static data base in R9
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:24:50 2026 +0900
+ 3 files changed, 11 insertions(+), 3 deletions(-)
+ create mode 100644 tools/selftest/flash-runner-abi.test.mjs
+
+$ git rev-parse HEAD
+ba23d0de88d71938ffb5927d9696411297e75e51

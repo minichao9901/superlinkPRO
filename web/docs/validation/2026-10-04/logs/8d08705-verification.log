@@ -1,0 +1,48 @@
+
+$ git cherry-pick -n 8d08705
+
+$ git diff --cached --name-only
+app/core/probe-manager.js
+app/core/probe-users.js
+app/hid/view.js
+app/scope/view.js
+tools/selftest/probe-manager.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+probe-manager: preemption drains cancelled reconnect without waiting for its own queue PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/scope-lifecycle.test.mjs
+scope-lifecycle: double start, cancellation during CONFIG/STATUS, STOP before USB drain PASS
+scope-lifecycle: STOP errors propagate while USB drains; rejected input does not send STOP PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-cdc-lifecycle.test.mjs
+rtt-cdc-lifecycle: stop cancels pending start, waits for firmware STOP completion, propagates failure PASS
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/managed-stage2.mjs
+PASS managed handoff, queued START cancellation, flash protection and independent I2C
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-manager.js
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/scope/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-manager.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 8d08705
+fix(probe): retain failed stop ownership until explicit recovery
+
+$ git commit -C 8d08705
+[main baf0f2a] fix(probe): retain failed stop ownership until explicit recovery
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:35:22 2026 +0900
+ 5 files changed, 49 insertions(+), 19 deletions(-)
+
+$ git rev-parse HEAD
+baf0f2a14f01095628d8a5a679d335dab9145951

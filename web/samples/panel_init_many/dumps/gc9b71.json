@@ -1,0 +1,20 @@
+{
+  "id": "gc9b71",
+  "file": "customer/peripherals/gc9b71/gc9b71.c",
+  "registered_name": "gc9b71",
+  "pixel_align": 2,
+  "res_w": 320,
+  "res_h": 390,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_qadspi",
+      "itf": "QAD_SPI_ITF",
+      "freq": 48000000.0,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB565"
+    }
+  ],
+  "tables": [],
+  "lcd_writereg_count": 115,
+  "hal_delay_count": 8,
+  "hal_delayus_count": 2
+}

@@ -1,0 +1,35 @@
+{
+  "id": "jd9365da",
+  "file": "customer/peripherals/jd9365da/jd9365da.c",
+  "registered_name": "jd9365da",
+  "pixel_align": 2,
+  "res_w": 800,
+  "res_h": 2048,
+  "configs": [
+    {
+      "name": "lcdc_int_cfg_dsi",
+      "itf": "LCDC_INTF_DSI_VIDEO",
+      "freq": null,
+      "color_mode": "LCDC_PIXEL_FORMAT_RGB888",
+      "timing": {
+        "VS_width": 4,
+        "HS_width": 4,
+        "VBP": 18,
+        "VFP": 20,
+        "HBP": 26,
+        "HFP": 26,
+        "interrupt_line_num": 1
+      }
+    }
+  ],
+  "tables": [
+    {
+      "name": "H080A11HDIFT4C30_V0_1__800x1280_init_cmds",
+      "row_count": 0,
+      "rows": []
+    }
+  ],
+  "lcd_writereg_count": 15,
+  "hal_delay_count": 7,
+  "hal_delayus_count": 0
+}

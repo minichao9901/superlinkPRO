@@ -1,0 +1,2 @@
+PASS real F103CB: period=3us version=1 samples=88660 sequence/pipeline/timestamps/CDC OK
+PASS real F103CB: period=2.5us version=2 samples=106392 sequence/pipeline/timestamps/CDC OK

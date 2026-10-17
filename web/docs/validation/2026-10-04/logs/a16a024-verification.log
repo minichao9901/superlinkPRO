@@ -1,0 +1,38 @@
+
+$ git cherry-pick -n a16a024
+
+$ git diff --cached --name-only
+app/rtt/dap-webusb.js
+app/rtt/view.js
+tools/selftest/dap-disconnect.test.mjs
+tools/selftest/rtt-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dap-disconnect.test.mjs
+dap-disconnect: drains memory lock, rejects late traffic, late timeout cannot recover closed session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-lifecycle.test.mjs
+rtt-lifecycle: stale successful/failed polls cannot publish, stop replacement or schedule old workers PASS
+rtt-lifecycle: target reset drains reader and cannot rescan a replacement session PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/dap-webusb.js
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/dap-disconnect.test.mjs
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/rtt-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s a16a024
+fix(rtt): drain reads before reset and prevent recovery after disconnect
+
+$ git commit -C a16a024
+[main 675389f] fix(rtt): drain reads before reset and prevent recovery after disconnect
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:40:14 2026 +0900
+ 4 files changed, 34 insertions(+), 4 deletions(-)
+ create mode 100644 tools/selftest/dap-disconnect.test.mjs
+
+$ git rev-parse HEAD
+675389f36f7798915dd3bb34686e8776f0acea9b

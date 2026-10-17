@@ -1,0 +1,51 @@
+
+$ git cherry-pick -n 704808a
+
+$ git diff --cached --name-only
+app/core/probe-users.js
+app/main.js
+tools/selftest/probe-integration.test.mjs
+tools/selftest/probe-users.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-integration.test.mjs
+probe-integration: real entry points serialize setup, coexist on disjoint resources, cancel queued START and protect flash PASS
+probe-integration: unknown firmware stop cannot be bypassed by a later feature PASS
+probe-integration: manual release and managed takeover share one complete USB close PASS
+probe-integration: firmware START pending retains ownership until STOP completion is confirmed PASS
+probe-integration: cancelling during backend preparation cannot create a later debug session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-users.test.mjs
+probe-users: busy flash rejects takeover; same-page target readers stop; failed STOP aborts handoff PASS
+probe-users: passive HID connections cannot stop an engine owned by another page PASS
+probe-users: independent SPI coexists with target users; engine remains exclusive; reset guards cover CDC PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-device.test.mjs
+usb-device: shared lifecycle, endpoint exclusion, interface refs, guarded reset, alias identity PASS
+usb-device: native timeout retains ownership and prevents late lifecycle races PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-transports.test.mjs
+usb-transports: DAP disconnect/legacy cleanup preserve independent SPI interface PASS
+usb-transports: Scope clean close preserves SPI; dirty close retains lease until exclusive recovery PASS
+usb-transports: SPI clean close preserves Scope; timed-out native OUT is tracked and cannot reset Scope PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe --check app/main.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-integration.test.mjs
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/probe-users.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 704808a
+refactor(core): arbitrate real endpoints and target engines independently
+
+$ git commit -C 704808a
+[main 5d3f83c] refactor(core): arbitrate real endpoints and target engines independently
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 16:30:26 2026 +0900
+ 4 files changed, 38 insertions(+), 10 deletions(-)
+
+$ git rev-parse HEAD
+5d3f83c3f4513372ca062e1097d1beec5b6bf1d7

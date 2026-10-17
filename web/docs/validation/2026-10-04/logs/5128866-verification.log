@@ -1,0 +1,23 @@
+
+$ git cherry-pick -n 5128866
+
+$ git diff --cached --name-only
+app/core/build.js
+docs/probe-resource-architecture.md
+
+$ C:\Program Files\nodejs\node.exe --check app/core/build.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 5128866
+docs(probe): explain resource arbitration and hardware performance acceptance
+
+$ git commit -C 5128866
+[main d467fb3] docs(probe): explain resource arbitration and hardware performance acceptance
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:52:12 2026 +0900
+ 2 files changed, 90 insertions(+), 1 deletion(-)
+ create mode 100644 docs/probe-resource-architecture.md
+
+$ git rev-parse HEAD
+d467fb3f65597a2a08c79c0e5509305bf034cb72

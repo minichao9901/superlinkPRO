@@ -1,0 +1,28 @@
+
+$ git cherry-pick -n ecb5560
+
+$ git diff --cached --name-only
+app/hid/view.js
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-cdc-lifecycle.test.mjs
+rtt-cdc-lifecycle: stop cancels pending start, waits for firmware STOP completion, propagates failure PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/view.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s ecb5560
+refactor(rtt-cdc): arbitrate bridge startup and release after confirmed stop
+
+$ git commit -C ecb5560
+[main c74af2a] refactor(rtt-cdc): arbitrate bridge startup and release after confirmed stop
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:23:43 2026 +0900
+ 1 file changed, 12 insertions(+), 3 deletions(-)
+
+$ git rev-parse HEAD
+c74af2a3b3f278c7b7cc7631ee1d989704860391

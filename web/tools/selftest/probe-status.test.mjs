@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import { probeStatus } from '../../app/ui/probe-status.js';
+
+const tools = { probeManager:{ summary:() => ({ pending:[], failures:[] }) } };
+assert.equal(probeStatus(tools).text,'探针：未使用');
+tools.session = { isOpen:true, port:{ getInfo:() => ({ usbVendorId:0x1234 }) } };
+assert.equal(probeStatus(tools).kind,'off','普通串口不能冒充探针连接');
+tools.scope = { usingMock:true, running:true, transport:{} };
+assert.equal(probeStatus(tools).kind,'off','模拟目标不能冒充实体探针');
+tools.scope.usingMock=false;
+assert.equal(probeStatus(tools).text,'探针：J-Scope');
+tools.i2c={ session:{ usingMock:false, connected:true } };
+assert.equal(probeStatus(tools).text,'探针：2 项连接');
+assert.match(probeStatus(tools).title,/J-Scope、I2C/);
+tools.probeManager.summary=() => ({ pending:[{owner:'flash'}], failures:[] });
+assert.equal(probeStatus(tools).kind,'warn','切换中不能显示已就绪');
+tools.probeManager.summary=() => ({ pending:[], failures:[{owner:'scope',error:'释放失败'}] });
+assert.equal(probeStatus(tools).kind,'err','释放失败不能伪装成已断开');
+assert.match(probeStatus(tools).title,/释放失败/);
+console.log('PASS probe status: idle / serial / mock / single / shared / switching / failure');

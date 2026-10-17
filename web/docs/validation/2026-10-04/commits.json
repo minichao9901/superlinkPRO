@@ -1,0 +1,1105 @@
+[
+  {
+    "index": 1,
+    "source": "e4a0584dc27f4d67b9f50b5804787a1bae16bdb9",
+    "merged": "186c4b7d768894bed0526ecf6b9760d98a824ada",
+    "title": "feat(scope): configure fractional periods and decode tick timestamps",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/scope-proto.test.mjs"
+    ],
+    "evidence": [
+      "e4a0584-real.log"
+    ]
+  },
+  {
+    "index": 2,
+    "source": "bd4c89bc6e96021febe02ae58e8767fdc54735bd",
+    "merged": "a38f8581e02336f0b819d106cc7875ab4bee6847",
+    "title": "feat(scope): expose capability-gated sampling batch switch",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/scope-proto.test.mjs"
+    ],
+    "evidence": [
+      "e4a0584-real.log"
+    ]
+  },
+  {
+    "index": 3,
+    "source": "c7c774e51574a6e455b2f6fb6115cbef9bd4913a",
+    "merged": "4bb183889ebb05561369feb7d0cd468e7b18ba02",
+    "title": "perf(scope): rearm bulk reads before synchronous packet decoding",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/scope-transport.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 4,
+    "source": "dbe5483cea5eba64c73587bfddab4ae75320e314",
+    "merged": "229fc9ee95ac75cc7f4bd6b9279587438e4aa008",
+    "title": "perf(scope): append u32 packets without per-sample frame allocations",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/scope-store-batch.test.mjs"
+    ],
+    "evidence": [
+      "dbe5483-real-store.log"
+    ]
+  },
+  {
+    "index": 5,
+    "source": "6d87c6e3d0d97bcf85f506b323a7ceb01f270fa5",
+    "merged": "02409167cb4c89e6e8403115066b0874e6ca5b19",
+    "title": "docs(scope): wire offline tests and describe hardware validation",
+    "verification": "文档核对",
+    "tests": [],
+    "evidence": []
+  },
+  {
+    "index": 6,
+    "source": "cca94868358567d0809876af94d51474ffd67b16",
+    "merged": "b1e503d4d4f625868e5a3e1a3391abd8e707f69d",
+    "title": "feat(debug): add Cortex-M DWT data watchpoints and page controls",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/dbg-dwt.test.mjs"
+    ],
+    "evidence": [
+      "cca9486-hardware.log"
+    ]
+  },
+  {
+    "index": 7,
+    "source": "0e153ff0e393a3760c6d24bb050ed062554b9dd7",
+    "merged": "912029ad3c477e1f9aaec7a9ef664ab57a2cb043",
+    "title": "feat(debug): add bounded EHABI backtraces, scan command, and stack view",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/dbg-backtrace.test.mjs"
+    ],
+    "evidence": [
+      "0e153ff-hardware.log"
+    ]
+  },
+  {
+    "index": 8,
+    "source": "1b1d916349a53abc1f5b58a514092aedc9ed8f56",
+    "merged": "bcc0e484e51f345a92acfa27d289d6203685142b",
+    "title": "feat(debug): complete watchpoint arguments and validate stack UI interactions",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/dbg-watch-bt-ui.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 9,
+    "source": "cb4aea92c9e9ce914865a9bada44f774902b8996",
+    "merged": "44e4a3e4c597b1b6298df5d9617c1ac521f8279d",
+    "title": "docs(debug): document watchpoints, unwinding limits, and hardware acceptance",
+    "verification": "文档核对",
+    "tests": [],
+    "evidence": []
+  },
+  {
+    "index": 10,
+    "source": "21b6919c83a8f541c96c43b0c3e77c2ba96fbee5",
+    "merged": "640866f64859e8b529882fcb70a41148883320b7",
+    "title": "fix(debug): preserve stack scan candidates at RAM read boundaries",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/dbg-backtrace.test.mjs"
+    ],
+    "evidence": [
+      "21b6919-hardware.log"
+    ]
+  },
+  {
+    "index": 11,
+    "source": "1a6a2279e0bbe37978726e16c9eedc7ce23510b5",
+    "merged": "b681878a9ffcd2bd9bbf1ce92a1e0c1dd6d2dd8f",
+    "title": "fix(flash): reserve operation through preparation and disconnect",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/flash-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 12,
+    "source": "e0265ed73f96c776bf242d8b951fa768e2ba9754",
+    "merged": "10322fd72d606af1c195363e17fcca55cb3e28c1",
+    "title": "fix(debug): keep background polling out of queued operations",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/dbg-lock.test.mjs",
+      "tools/selftest/dbg-core.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 13,
+    "source": "28cd1ace0c3855cc92df176da919fdaf2b034b35",
+    "merged": "8baeee1b55ca4509bccc3a13a21e955fc36efbf9",
+    "title": "fix(debug): serialize UI reads and command completion refreshes",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/dbg-view-lock.test.mjs",
+      "tools/selftest/dbg-watch-bt-ui.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 14,
+    "source": "29fe9a7a6ce24b323ef547808b75a981f6d5eeeb",
+    "merged": "12948434ab2f9eb211492adfd729b911e671b1fd",
+    "title": "fix(flash): drain debugger operations before handing off the probe",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-handoff.test.mjs",
+      "tools/selftest/flash-lifecycle.test.mjs",
+      "tools/selftest/dbg-view-lock.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 15,
+    "source": "70912b7f6813f33c616612df70f9a8fc849a90da",
+    "merged": "70d438d036537b187188322744250745823c9eb6",
+    "title": "fix(debug): reject register reads when REGRDY never arrives",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/dap-register-ready.test.mjs"
+    ],
+    "evidence": [
+      "70912b7-verification.log"
+    ]
+  },
+  {
+    "index": 16,
+    "source": "d2414a6f26ef872cf0c882650801827d629848d7",
+    "merged": "ba23d0de88d71938ffb5927d9696411297e75e51",
+    "title": "fix(flash): initialize algorithm static data base in R9",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/flash-runner-abi.test.mjs",
+      "tmp/patch-verification/flash-runner-real.mjs"
+    ],
+    "evidence": [
+      "d2414a6-verification.log"
+    ]
+  },
+  {
+    "index": 17,
+    "source": "1a463640f77978990a0757bb4c0608245445de17",
+    "merged": "a4956f82cc4bc8d7f83d951da2e1c9b0551edefb",
+    "title": "fix(probe): refuse handoffs during flashing and correlate release replies",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-bus-failure.test.mjs",
+      "tools/selftest/probe-bus.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 18,
+    "source": "43e94f10c58c89aea5963f47a3a8a12e39278a6d",
+    "merged": "9aa259e7d51b78df2f21f281689b9c603e18e76f",
+    "title": "fix(rtt): isolate scans and polling by session generation",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/rtt-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 19,
+    "source": "fbcf583802f76110158855eb3e2aeb5e97a88362",
+    "merged": "327d5f0aef63b86cd7f528ec5efaae8a75357903",
+    "title": "fix(scope): cancel pending starts and serialize capture shutdown",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/scope-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 20,
+    "source": "0ff1f43dd00fcd6a94329d1029b5cb8abf34ef9d",
+    "merged": "6c4696676b75d50a8b75984c38521546652d50a0",
+    "title": "fix(scope): retire timed-out USB reads before restarting capture",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/scope-transport.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 21,
+    "source": "1ad589457e07ce368befcb50bbed9906eb9a40a4",
+    "merged": "6285660b621c81a071023022157b7f08819b9d74",
+    "title": "fix(scope): scale stream watchdog to packet cadence",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/scope-watchdog.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 22,
+    "source": "57a72f478888d293d73a474d49b10c93114ca099",
+    "merged": "de2723dab9b3066f3b2876c9849a0f9ca6732ca7",
+    "title": "fix(probe): block target switches and benchmarks during live capture",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/target-switch.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 23,
+    "source": "64b4739280d222c9c61f74735b0be363c133d661",
+    "merged": "0c07221d59bb014d852dced64f6a79907b63df4e",
+    "title": "fix(debug): bind controls to the current backend and drain backend switches",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/dbg-backend-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 24,
+    "source": "8da9f25464190f3488d4ff9d47241e4ea90119df",
+    "merged": "078ce858cb6f848b078ac6d59042d09664626521",
+    "title": "fix(rtt-cdc): drain pending starts and confirm queued firmware stops",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/rtt-cdc-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 25,
+    "source": "977755b6806f58c23ddddbc8d5a6c40366151815",
+    "merged": "8dbbab057be7e5386a762547c517ce4b700975a1",
+    "title": "fix(probe): coordinate same-page debugger scope and RTT engine ownership",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-users.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 26,
+    "source": "a16a024eaab29cca96a339a9f8f0d7509f06d65d",
+    "merged": "675389f36f7798915dd3bb34686e8776f0acea9b",
+    "title": "fix(rtt): drain reads before reset and prevent recovery after disconnect",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/dap-disconnect.test.mjs",
+      "tools/selftest/rtt-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 27,
+    "source": "a8fa0004cf2f4ba61e6722c072bb23ed4a1ab724",
+    "merged": "078c99d13e6f01b8ccc350410c62b1fe1245bbf4",
+    "title": "fix(scope): propagate stop failures and avoid cleanup before acquisition",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/scope-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 28,
+    "source": "486a091fa3e952fcb03da5e90f7018037b8840c3",
+    "merged": "5f149c6d715851b80c31b979088b50c35f6d78ef",
+    "title": "fix(scope): track pending USB workers across transport replacement",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/scope-transport.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 29,
+    "source": "95d9a140a58c4f1c8f00ccffa1cce7a7fbc8aad4",
+    "merged": "cb93f9fda626506163047e56d8aea924091970e4",
+    "title": "test(stability): wire lifecycle regressions and hardware acceptance checklist",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/flash-lifecycle.test.mjs",
+      "tools/selftest/dbg-lock.test.mjs",
+      "tools/selftest/dbg-view-lock.test.mjs",
+      "tools/selftest/probe-handoff.test.mjs",
+      "tools/selftest/dap-register-ready.test.mjs",
+      "tools/selftest/flash-runner-abi.test.mjs",
+      "tools/selftest/probe-bus-failure.test.mjs",
+      "tools/selftest/rtt-lifecycle.test.mjs",
+      "tools/selftest/scope-lifecycle.test.mjs",
+      "tools/selftest/scope-transport.test.mjs",
+      "tools/selftest/scope-watchdog.test.mjs",
+      "tools/selftest/target-switch.test.mjs",
+      "tools/selftest/dbg-backend-lifecycle.test.mjs",
+      "tools/selftest/rtt-cdc-lifecycle.test.mjs",
+      "tools/selftest/probe-users.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 30,
+    "source": "c6f87692320465bfd8cec2b3c2b5d6fd6990e8fc",
+    "merged": "0d2cabd43633c541113160a593e4adac02f9284e",
+    "title": "fix(lifecycle): preserve connect errors and bound late recovery cleanup",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/rtt-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 31,
+    "source": "87a725682d64dc335225824bc9ef011082ffb089",
+    "merged": "371c8feca5582ce541ab4fae4dff7f74762dbf51",
+    "title": "perf(scope): drain submitted reads before disabling the producer",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/scope-transport.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 32,
+    "source": "01abad9b4fbd091e81045d96f95b616c39a05add",
+    "merged": "f2baf87fe7a2069c68bf0edda914d4be1e2aa840",
+    "title": "fix(probe): propagate release failures and leave passive HID handles idle",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-users.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 33,
+    "source": "cee031d230a053f8016286499190b5bf247d0d17",
+    "merged": "303924f5c1b084b2cb4d873afad53db6e1ec7215",
+    "title": "docs(stability): record validation and identify the fixed web build",
+    "verification": "文档核对",
+    "tests": [],
+    "evidence": []
+  },
+  {
+    "index": 34,
+    "source": "c4c9a5325135f8699f2454630d1799915ee63923",
+    "merged": "d5b9613b2ed4e370a6dc9c9953fa4cc0ac1222af",
+    "title": "refactor(probe): add serialized resource ownership and control arbitration",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 35,
+    "source": "2839d57ed4c2f7424e99c4f99d67894e778924df",
+    "merged": "c39331c5a1770a75b56299389228d51f4e202820",
+    "title": "refactor(hid): share command arbitration and handle ownership across clients",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/hid-channel.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 36,
+    "source": "ff7bc09cd21d0e417b573f200b9afbfbfc2fec4c",
+    "merged": "f3e5d7653366b1b28eeeb1d50dcb7fe95a70246e",
+    "title": "refactor(probe): centralize feature resources and teardown adapters",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-users.test.mjs",
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 37,
+    "source": "47afffde577a9d5bfb7d7038d6156fe83d732faf",
+    "merged": "ea9b3760c3934234738fd541c0f47afc91c6b7e3",
+    "title": "refactor(debug): acquire probe resources through the manager",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/dbg-backend-lifecycle.test.mjs",
+      "tools/selftest/probe-handoff.test.mjs",
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 38,
+    "source": "c646ee2638469c6db62e49520b51ffe82743ed49",
+    "merged": "e89498867a51c3bdec02ac332c6b00b55a5a665b",
+    "title": "refactor(flash): reserve managed resources through final cleanup",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/flash-lifecycle.test.mjs",
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 39,
+    "source": "928748b3dbdc967515198abe5107516f4be48295",
+    "merged": "56a94ef6fec5ee4a4c065822843f8f7447642232",
+    "title": "refactor(rtt): route viewer acquisition through resource ownership",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/rtt-lifecycle.test.mjs",
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 40,
+    "source": "ecb55606d53c1d615052e5903b8e18929f7a0abe",
+    "merged": "c74af2a3b3f278c7b7cc7631ee1d989704860391",
+    "title": "refactor(rtt-cdc): arbitrate bridge startup and release after confirmed stop",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/rtt-cdc-lifecycle.test.mjs",
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 41,
+    "source": "37f196b79cecd2c199e6ca8dddb5c7547ac46268",
+    "merged": "c860b57b6fc478439e59bada2e1b06859a002761",
+    "title": "fix(probe): settle cancelled queued reconnects before teardown waits",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 42,
+    "source": "88d1e966f48b51d5377f93cc382d0c9ff62cac45",
+    "merged": "78e9fd62181dacdde7f808e29409ce73eda1a536",
+    "title": "refactor(scope): arbitrate capture lifecycle without changing bulk readers",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/scope-lifecycle.test.mjs",
+      "tools/selftest/scope-transport.test.mjs",
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 43,
+    "source": "eec798b8806a9266d3ecab2445ce5b3d565e113d",
+    "merged": "d69cdac3baaa3db6cc0233acf9a3c8d8f5f7e041",
+    "title": "refactor(spi): manage shared bridge ownership and drain connection teardown",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/spi-proto.test.mjs",
+      "tools/selftest/spi-read.test.mjs",
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 44,
+    "source": "0dce2fba89318cee4b25cab2b319366a4aa10b0b",
+    "merged": "d1cf006761ddfc9acced08f0ec122d12952e717a",
+    "title": "refactor(i2c): manage independent pin ownership and drain transactions on disconnect",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/i2c-proto.test.mjs",
+      "tools/selftest/i2c-registers.test.mjs",
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 45,
+    "source": "81f6796b717bb27c788cd2cde317c55b5c80809f",
+    "merged": "0e77bf1061537a9e06dd783a4971cd5cda0384ff",
+    "title": "refactor(app): install one resource manager before feature initialization",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tmp/patch-verification/managed-stage.mjs",
+      "tools/selftest/probe-manager.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 46,
+    "source": "799d6a273462610c60524c9f43008c460cc17314",
+    "merged": "594ad6c2a866fa17ccf513b94a57da9f2192d9ea",
+    "title": "fix(probe): arbitrate engine reconfiguration and avoid stopping unacquired starts",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tmp/patch-verification/managed-stage2.mjs",
+      "tools/selftest/target-switch.test.mjs",
+      "tools/selftest/scope-watchdog.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 47,
+    "source": "40a494168a3f47adc6b191fd462e03d9b22660c1",
+    "merged": "3ee08b9bb50753441991c8efe7d6c7721448b103",
+    "title": "fix(hid): coordinate command responses across same-origin tabs",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/hid-channel.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 48,
+    "source": "8d087054479c0a07b8dd124b0fc5578e5b70f7d9",
+    "merged": "baf0f2a14f01095628d8a5a679d335dab9145951",
+    "title": "fix(probe): retain failed stop ownership until explicit recovery",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-manager.test.mjs",
+      "tools/selftest/scope-lifecycle.test.mjs",
+      "tools/selftest/rtt-cdc-lifecycle.test.mjs",
+      "tmp/patch-verification/managed-stage2.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 49,
+    "source": "9e5cdc975b78f6a5c55ba7841a72b8f09313f509",
+    "merged": "c68e44ea1bce00d59e9622ccf42db928444da490",
+    "title": "fix(hid): let response timeout and close retire stalled report writes",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tmp/patch-verification/hid-channel-full.mjs",
+      "tmp/patch-verification/cross-tab.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 50,
+    "source": "79f67277bbf87ed2c19308651b0510fb8a428436",
+    "merged": "0b936f68eb31a43b38734105c11678e7e0a8369d",
+    "title": "fix(probe): drain duplicate releases and avoid acquiring for invalid flash input",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tmp/patch-verification/integration-before-pending.mjs",
+      "tools/selftest/flash-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 51,
+    "source": "94ceeb4129531307dd1f410aa86fd3d407ce3a62",
+    "merged": "de212598e1b6b964788ecc242c8ce3495d7faa83",
+    "title": "fix(i2c): include automatic enable in managed connection setup",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/i2c-proto.test.mjs",
+      "tools/selftest/i2c-registers.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 52,
+    "source": "7c9889065fc37deb6e3885639ebd2f030583b48d",
+    "merged": "7772d29584f48af117babba011b720f14e718392",
+    "title": "fix(rtt-cdc): retain pending firmware start ownership until confirmed stop",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tmp/patch-verification/integration-before-debug.mjs",
+      "tools/selftest/rtt-cdc-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 53,
+    "source": "6562727ee14c36aa27e412981961dfb8ef6d4a9f",
+    "merged": "5d5be33653a2f42fcbfbf2c151b895005791fec2",
+    "title": "fix(debug): preserve cancellation across backend preparation",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tmp/patch-verification/integration-full.mjs",
+      "tools/selftest/dbg-backend-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 54,
+    "source": "842dfc32bb6bb76b350ac500d6572309029a25eb",
+    "merged": "6bc5e571d493826ff4f241d157992ad524070418",
+    "title": "test(probe): cover managed feature handoffs and shared HID channels",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/hid-channel.test.mjs",
+      "tools/selftest/probe-cross-tab.test.mjs",
+      "tools/selftest/probe-integration.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 55,
+    "source": "512886632ae674bda584c88bd062338556804036",
+    "merged": "d467fb3f65597a2a08c79c0e5509305bf034cb72",
+    "title": "docs(probe): explain resource arbitration and hardware performance acceptance",
+    "verification": "文档核对",
+    "tests": [],
+    "evidence": []
+  },
+  {
+    "index": 56,
+    "source": "bf7c0cb0292e815b59f13c5eced13d44f61da1d0",
+    "merged": "b71f7b5be6cbe10ce496415066c417fe4e1bdd09",
+    "title": "fix(test): use the committed H743 ELF for DWARF sequence regression",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/dbg-core.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 57,
+    "source": "9bb25cb33c3e7edf497d5265f07401f136e8f00d",
+    "merged": "e379335191057251a552511d96d398a06f4884b1",
+    "title": "feat(core): share USB device and interface lifecycle with guarded reset",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/usb-device.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 58,
+    "source": "d056ef2fa4bc826b62df6eeb2f48fe6bd8e71c97",
+    "merged": "694a3755101ab6e1a9461fcd3ba4b49d0e191a4f",
+    "title": "fix(core): quarantine unresolved USB lifecycle operations after timeout",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/usb-device.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 59,
+    "source": "6d77b1951f012db5a0711fe628245f4fa98159da",
+    "merged": "c9074e7dda8fbf5893bd9a78f9c6f695f5c8161e",
+    "title": "refactor(dap): use shared USB leases and preserve independent interfaces",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/usb-transports.test.mjs",
+      "tools/selftest/dap-disconnect.test.mjs",
+      "tools/selftest/dap-register-ready.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 60,
+    "source": "331d545fa0d40074b78a3a2d0d86f41f16b77f90",
+    "merged": "b39383e99f7ae5cb8a3d41b3ba7a8b3c651c28fa",
+    "title": "refactor(scope): release only owned USB endpoints and guard dirty recovery",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/usb-transports.test.mjs",
+      "tools/selftest/scope-transport.test.mjs",
+      "tools/selftest/scope-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 61,
+    "source": "0ba8e1022ebe6b62dc03fb21911cd38b90adc555",
+    "merged": "19734b58fe74de62de85ab45108355b3b5b5fc8e",
+    "title": "refactor(spi): share USB lifecycle and retain native transfers through teardown",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/usb-transports.test.mjs",
+      "tools/selftest/spi-proto.test.mjs",
+      "tools/selftest/spi-read.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 62,
+    "source": "704808a0262823cc5f12ec6c465414f6ef1e33cc",
+    "merged": "5d3f83c3f4513372ca062e1097d1beec5b6bf1d7",
+    "title": "refactor(core): arbitrate real endpoints and target engines independently",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-integration.test.mjs",
+      "tools/selftest/probe-users.test.mjs",
+      "tools/selftest/usb-device.test.mjs",
+      "tools/selftest/usb-transports.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 63,
+    "source": "980ae7e9a6004fdff5935590961bca7e21edaea3",
+    "merged": "899efbcba74150a3574d2453fc303cc6c323a2da",
+    "title": "feat(cdc): arbitrate UART RTT and Scope pause modes without reopening streams",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/cdc-mode.test.mjs",
+      "tools/selftest/probe-manager.test.mjs",
+      "tools/selftest/probe-integration.test.mjs",
+      "tools/selftest/scope-lifecycle.test.mjs",
+      "tools/selftest/rtt-cdc-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 64,
+    "source": "30927831376d921201127dafa72f627d827d7644",
+    "merged": "5b517c203632edaca231bd7f28c4bdf73cc4e9d0",
+    "title": "fix(usb): recover abandoned setup leases only after live peers release",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/usb-device.test.mjs",
+      "tools/selftest/usb-transports.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 65,
+    "source": "98b917e8e37980c70fb25a67765d21ea4a455bcf",
+    "merged": "0ab4e78eced257d5378c71da67eba7215af4bbb3",
+    "title": "fix(usb): invalidate canonical device handles on physical disconnect",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/usb-device.test.mjs",
+      "tools/selftest/usb-transports.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 66,
+    "source": "c755d726068c9c6bca69cde7a0815930ed6ab339",
+    "merged": "dce564b3194291d87f5c258aceec244326724048",
+    "title": "fix(usb): make repeated release and DAP disconnect idempotent",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/dap-disconnect.test.mjs",
+      "tools/selftest/usb-device.test.mjs",
+      "tools/selftest/usb-transports.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 67,
+    "source": "80761c5f30f7d7bed9bb1516ece69a128b654a90",
+    "merged": "c6ddb3307e353492dcdae43f6fcc3083fda690a9",
+    "title": "fix(spi): drain pending EP11 reads without resetting compatible USB peers",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/spi-teardown.test.mjs"
+    ],
+    "evidence": [
+      "80761c5-hardware.log"
+    ]
+  },
+  {
+    "index": 68,
+    "source": "2b4f49ffd4e23ba04ca585a2197c356329ece843",
+    "merged": "57a652b25b896e9be2c2f696ccf5d95b54279362",
+    "title": "fix(lifecycle): confirm SPI and I2C bridge teardown before releasing pins",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [],
+    "evidence": [
+      "2b4f49f-hardware.log"
+    ]
+  },
+  {
+    "index": 69,
+    "source": "750e043951c795d91e853fa0c23e6be361b9873c",
+    "merged": "074f854366016f64963a2bcf3d34198709555702",
+    "title": "fix(core): allow failed feature owners to perform explicit reconnect recovery",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-manager.test.mjs",
+      "tools/selftest/probe-integration.test.mjs",
+      "tools/selftest/cdc-mode.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 70,
+    "source": "897853c6ce4933b37028aa4468259b2ccf77e50d",
+    "merged": "4f7ccbe44f959fd6224df22695ffcc729e43d026",
+    "title": "fix(core): retain probe ownership when debug or RTT close fails",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [],
+    "evidence": []
+  },
+  {
+    "index": 71,
+    "source": "81c9a19b5937973a27d63c620a95b55f0a541f73",
+    "merged": "bd579be855423cc60ab17c73ba6349398f7b8091",
+    "title": "docs(core): document independent endpoint coexistence and teardown recovery",
+    "verification": "文档核对",
+    "tests": [],
+    "evidence": []
+  },
+  {
+    "index": 72,
+    "source": "b14ef99dfa302f4dd51959889c997f7ef0a14cf2",
+    "merged": "b335a2382f944081a5f8db07101291da06383401",
+    "title": "fix(bridge): handle missing taskkill without unhandled process errors",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tmp/patch-verification/bridge-kill.mjs",
+      "tools/selftest/bridge-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 73,
+    "source": "847317a6016e4270dd27eff3edccd4e7ba92f2a1",
+    "merged": "8744b6661825c153b6de93bae3cad93e70a3cc55",
+    "title": "fix(flash): retain failed close ownership and recover before reopening",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/flash-lifecycle.test.mjs"
+    ],
+    "evidence": [
+      "r5-flash-close-hardware.log"
+    ]
+  },
+  {
+    "index": 74,
+    "source": "8328f1d901cadfc226efbfa95f398ebe879fbf90",
+    "merged": "896860d6b7dfefe40163f575b042937f2394de84",
+    "title": "refactor(probe): declare feature wiring and reset ownership in one registry",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-feature-registry.test.mjs",
+      "tools/selftest/probe-manager.test.mjs",
+      "tools/selftest/usb-device.test.mjs",
+      "tools/selftest/cdc-mode.test.mjs",
+      "tools/selftest/probe-integration.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 75,
+    "source": "9bf7b15fe877ccf2d5ba37cbfe42a9b7c54eeeef",
+    "merged": "082707c26bf985f9817a6a79b7bb476f7fd80031",
+    "title": "refactor(probe): consolidate standalone handoffs and remove duplicate bridge stops",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-handoff.test.mjs",
+      "tools/selftest/probe-integration.test.mjs",
+      "tools/selftest/rtt-lifecycle.test.mjs",
+      "tools/selftest/flash-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 76,
+    "source": "47467f39ff222cd0f8c43386ed28b437e0732ff5",
+    "merged": "27261cd62ea0b61836021c3f4341d3688acfba12",
+    "title": "fix(probe): inject ownership into separate feature views",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-feature-registry.test.mjs",
+      "tools/selftest/probe-integration.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 77,
+    "source": "bb99ff8f077b64d4030df17946904b253da15394",
+    "merged": "d5ab6b28d12e27412f2281b2fea872a8dbd5f227",
+    "title": "test(probe): wire lifecycle regressions and document architecture extension",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/probe-feature-registry.test.mjs",
+      "tools/selftest/probe-manager.test.mjs",
+      "tools/selftest/hid-channel.test.mjs",
+      "tools/selftest/probe-bus.test.mjs",
+      "tools/selftest/probe-cross-tab.test.mjs",
+      "tools/selftest/probe-integration.test.mjs",
+      "tools/selftest/usb-device.test.mjs",
+      "tools/selftest/usb-transports.test.mjs",
+      "tools/selftest/cdc-mode.test.mjs",
+      "tools/selftest/spi-teardown.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 78,
+    "source": "7c8f3f0ea7381aa6160a705a85d79d828cc04ff9",
+    "merged": "b1493b93ed042c3c6b2d329f358bebec3979c4cc",
+    "title": "fix(flash): reject truncated ELF tables and load data before programming",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/flash-image.test.mjs"
+    ],
+    "evidence": [
+      "r5-cb-elf.log",
+      "r5-elf-flash-hardware.log",
+      "r5-elf-backtrace-hardware.log"
+    ]
+  },
+  {
+    "index": 79,
+    "source": "8de5220c3063d42fa954aa212e12f16b6a950012",
+    "merged": "5db488885d82fbeb8e914336ddcec6c206e57122",
+    "title": "fix(debug): retain backend ownership when teardown fails",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/dbg-backend-lifecycle.test.mjs"
+    ],
+    "evidence": [
+      "r5-debug-close-hardware.log"
+    ]
+  },
+  {
+    "index": 80,
+    "source": "d87c99ff2d50b444a0af360ab69fdc01b59475ed",
+    "merged": "0494e1e20056b39be4d400271d3aa3cdc6373fc6",
+    "title": "fix(recorder): serialize file opening and closing across repeated clicks",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/recorder-lifecycle.test.mjs"
+    ],
+    "evidence": [
+      "r5-recorder-disk.log"
+    ]
+  },
+  {
+    "index": 81,
+    "source": "26fb545d93ec68bf5bbf777fc29f6f1b6ba91d7b",
+    "merged": "de4a117cbae84407138d37f2db8c82c40b402e3d",
+    "title": "fix(recorder): expose write failures and preserve errors through finalization",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/recorder-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 82,
+    "source": "bfe7e8dcd0af8d300d7429b0b63afee04b5e61ef",
+    "merged": "9eb06682632eddda39efdd972ef17f79b5d13242",
+    "title": "fix(recorder): keep unload protection until the file is committed",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/recorder-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 83,
+    "source": "53b85d3b4a2361118c386cf34c4c9b47b3107d7e",
+    "merged": "b05dce7844b5232bf7eb84c392e384ffda4cd12b",
+    "title": "fix(hid): quarantine unanswered commands and route each reply once",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/hid-channel.test.mjs",
+      "tools/selftest/hid-proto.test.mjs"
+    ],
+    "evidence": [
+      "r5-hid-late-hardware.log"
+    ]
+  },
+  {
+    "index": 84,
+    "source": "65cb69ea0f6fdd64819e3eee22e76f6fd9353608",
+    "merged": "afdee26a54193124ae4e261ca091b33ad9bdb055",
+    "title": "fix(i2c): confirm real bridge teardown before switching to mock",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/i2c-lifecycle.test.mjs"
+    ],
+    "evidence": [
+      "r5-i2c-mock-hardware.log"
+    ]
+  },
+  {
+    "index": 85,
+    "source": "5492dd4182f4b7a8795f7fd02a8817f149e25c37",
+    "merged": "6df85c82d6e37ec877dd13fc42b6b7ac257039f8",
+    "title": "fix(spi): isolate acquisition generations across stop and restart",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/spi-runner-lifecycle.test.mjs",
+      "tools/selftest/spi-frames-dsl.test.mjs",
+      "tools/selftest/spi-teardown.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 86,
+    "source": "f5ed91d6157c3e6d2b226e3767ca26b40f13cbab",
+    "merged": "581449ea5a42d8fdc2a25f848b3a72d3ffd3b622",
+    "title": "fix(bridge): retire timed-out OpenOCD sockets before later RPCs",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/bridge-rpc.test.mjs"
+    ],
+    "evidence": [
+      "r5-bridge-rpc-hardware.log"
+    ]
+  },
+  {
+    "index": 87,
+    "source": "69fca20ec9c56c8fac30b3b9fe764c52fe95439f",
+    "merged": "6aa0192a80d91cbdddbfb0a19109ab65f3fe5215",
+    "title": "fix(bridge): reject short memory reads instead of padding zeros",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/bridge-memory.test.mjs"
+    ],
+    "evidence": [
+      "r5-bridge-memory-hardware.log"
+    ]
+  },
+  {
+    "index": 88,
+    "source": "09d22b235b6d08781ef9a3a4843255b3d5413eeb",
+    "merged": "810702934f23dd3cb55eb1121bc4421375f9635e",
+    "title": "fix(rtt): report recording failures during disconnect",
+    "verification": "离线生产模块/故障注入；最终完整回归",
+    "tests": [
+      "tools/selftest/rtt-lifecycle.test.mjs",
+      "tools/selftest/recorder-lifecycle.test.mjs"
+    ],
+    "evidence": []
+  },
+  {
+    "index": 89,
+    "source": "9a1fe86deb84d70ec476ad60de1f8fe90c864bad",
+    "merged": "37aa3d7a438d3dde1aeb3e721082f807f5e5c207",
+    "title": "fix(hid): retain failed native close handles and feature ownership",
+    "verification": "离线生产模块/故障注入；最终完整回归；实机/文件证据见日志",
+    "tests": [
+      "tools/selftest/hid-channel.test.mjs",
+      "tools/selftest/scope-lifecycle.test.mjs",
+      "tools/selftest/spi-teardown.test.mjs"
+    ],
+    "evidence": [
+      "r5-hid-close-hardware.log"
+    ]
+  },
+  {
+    "index": 90,
+    "source": "2ea6728f385f55e692370dd2cf0d1feff0a6140f",
+    "merged": "a7a7641e893a191911c7211dcc4af679628e5bdd",
+    "title": "docs(release): mark r5 and record regression scope and hardware checks",
+    "verification": "文档核对",
+    "tests": [],
+    "evidence": []
+  }
+]

@@ -1,0 +1,37 @@
+
+$ git cherry-pick -n 088b495
+
+$ git diff --cached --name-only
+app/core/recorder.js
+app/hid/stream.js
+app/rtt/view.js
+app/serial/assistant.js
+tools/selftest/recorder-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/recorder-lifecycle.test.mjs
+recorder-lifecycle: single picker/stop, close barrier, clean restart and stop during opening PASS
+recorder-lifecycle: write error survives stop, remains visible, stops later batches and recovers after close PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/recorder.js
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/stream.js
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe --check app/serial/assistant.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/recorder-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 088b495
+fix(recorder): expose write failures and preserve errors through finalization
+
+$ git commit -C 088b495
+[main de4a117] fix(recorder): expose write failures and preserve errors through finalization
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 19:21:19 2026 +0900
+ 5 files changed, 51 insertions(+), 12 deletions(-)
+
+$ git rev-parse HEAD
+de4a117cbae84407138d37f2db8c82c40b402e3d

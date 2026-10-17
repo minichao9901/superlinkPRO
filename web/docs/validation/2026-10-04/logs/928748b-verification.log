@@ -1,0 +1,30 @@
+
+$ git cherry-pick -n 928748b
+
+$ git diff --cached --name-only
+app/rtt/view.js
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-lifecycle.test.mjs
+rtt-lifecycle: stale successful/failed polls cannot publish, stop replacement or schedule old workers PASS
+rtt-lifecycle: target reset drains reader and cannot rescan a replacement session PASS
+rtt-lifecycle: failed connect retains its original error without duplicate cleanup PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/probe-manager.test.mjs
+probe-manager: serialized setup, coexistence, cancellation, busy flash, failed release PASS
+probe-manager: cross-tab release cancels queued Web Lock acquisition PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/view.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 928748b
+refactor(rtt): route viewer acquisition through resource ownership
+
+$ git commit -C 928748b
+[main 56a94ef] refactor(rtt): route viewer acquisition through resource ownership
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:23:43 2026 +0900
+ 1 file changed, 13 insertions(+), 7 deletions(-)
+
+$ git rev-parse HEAD
+56a94ef6fec5ee4a4c065822843f8f7447642232

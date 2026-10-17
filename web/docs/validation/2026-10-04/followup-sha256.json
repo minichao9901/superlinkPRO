@@ -1,0 +1,14 @@
+{
+  "logs/r5-peripheral-handoff-hardware.log": "d0d1f9b0178022a49cede647ee4325dbaa0e7832b713bb389058c01839652d7e",
+  "logs/r5-engine-handoff-hardware.log": "5e5469a7dabbc5ed0b5d8cc0733f49e639ebf4988eee6bee0a6035d244768bb5",
+  "logs/r5-nor-read-diagnostic.log": "02720cbad2f66de204072927567a830e570600b8a1c4c7d0cc441997986736f2",
+  "logs/r5-nor-unordered-adapter.log": "dbbfb488d99d1d26a20706c9ddcb746ccbbd9303c093ab070da1e02398f88138",
+  "logs/r5-nor-modes-hardware.log": "f46f3040755dbea93b95959dc3dbfa08063059ae7705ca9a7a1421e00491bf07",
+  "logs/r5-nor-with-unsupported-quad.log": "1ba5f5340acc43463c837fd483f8708c7d884632d75ea3cef2dbeb5b148fd584",
+  "fixtures/native-adapter.mjs": "8be383039103ff526ab1fbf04ddaceb4e04f117bb549d78ad1b2d625c7526471",
+  "fixtures/native-rpc.py": "1eaedbeab8a07d7085085bbee2c7125834ff5bc004699052e6ac4cb8ccb9636b",
+  "fixtures/peripheral-handoff-real.mjs": "b552916ab6738b4e03afffcc59716b523425408e65779e8e4c8203b8b1a8e5e4",
+  "fixtures/engine-handoff-real.mjs": "8ca8a21e05581950be794f8292695c85f06ab7a2eb786916665fe96271d245a9",
+  "fixtures/nor-read-diag.mjs": "1bacee8d593779a03a6a89c5580d277788dde3de848bcd4c4c3ff1fdb291fd4a",
+  "fixtures/nor-modes-read-real.mjs": "8328c8729a71fcc17e44011769cbc28f0edb80712e5da555aea97ce11c8bd220"
+}

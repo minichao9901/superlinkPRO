@@ -1,0 +1,37 @@
+
+$ git cherry-pick -n 6d77b19
+
+$ git diff --cached --name-only
+app/core/probe-bus.js
+app/rtt/dap-webusb.js
+tools/selftest/usb-transports.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/usb-transports.test.mjs
+usb-transports: DAP disconnect/legacy cleanup preserve independent SPI interface PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dap-disconnect.test.mjs
+dap-disconnect: drains memory lock, rejects late traffic, late timeout cannot recover closed session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dap-register-ready.test.mjs
+dap-register-ready: timeout rejected before stale data read, ready handshake returns value PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-bus.js
+
+$ C:\Program Files\nodejs\node.exe --check app/rtt/dap-webusb.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/usb-transports.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 6d77b19
+refactor(dap): use shared USB leases and preserve independent interfaces
+
+$ git commit -C 6d77b19
+[main c9074e7] refactor(dap): use shared USB leases and preserve independent interfaces
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 16:23:27 2026 +0900
+ 3 files changed, 66 insertions(+), 24 deletions(-)
+ create mode 100644 tools/selftest/usb-transports.test.mjs
+
+$ git rev-parse HEAD
+c9074e7dda8fbf5893bd9a78f9c6f695f5c8161e

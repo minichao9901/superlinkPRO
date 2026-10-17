@@ -1,0 +1,1 @@
+scope-store-batch: random u32 accuracy, unaligned payload, LOD, gaps, timestamps, full/overrun, short payload, reset PASS

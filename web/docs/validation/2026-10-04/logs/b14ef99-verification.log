@@ -1,0 +1,54 @@
+
+$ git cherry-pick -n b14ef99
+
+$ git diff --cached --name-only
+bridge/rtt-bridge.mjs
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/bridge-kill.mjs
+PASS actual terminateChildTree: async taskkill ENOENT handled, portable fallback kill, null child
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/bridge-lifecycle.test.mjs
+== 1. cleanupAndExit：收到终止信号时干什么 ==
+  PASS  第一次调用：开始清理
+  PASS  收掉了当前后端（stop 调用 1 次）
+  PASS  日志里说明是哪个信号触发的：「[退出] 收到 SIGINT：先把调试器子进程收掉（不然会留下孤儿占着探针）……」
+  PASS  落地之后以 0 退出（exit(0)）
+  PASS  再来一个信号：只清一次（第二次直接忽略）
+== 2. 后端 stop()：真的把子进程收掉（用真子进程验）==
+  PASS  OpenOCD 后端：先起了个"赖着不走"的子进程（pid=8288）
+  PASS  OpenOCD 后端 stop() → 子进程真的退出了（taskkill /T /F，非 Windows 退回 child.kill()）
+  PASS  stop() 之后内部引用清空（不会残留半死状态）
+== 3. J-Link 后端 stop()：收子进程 + 删 logger 临时文件 ==
+  PASS  先造出"logger 在写临时文件"的现场
+  PASS  J-Link 后端 stop() → 子进程退出
+  PASS  logger 的 %TEMP% 日志被删掉（1.4MB/s 不删一小时就是 5GB）：rtt-bridge-selftest-1791123574756.log
+== 4. 主程序路径：直接跑桥时确实挂了退出钩子 ==
+  PASS  源码里三个终止信号 + exit 兜底都挂着
+  PASS  installExitHooks() 在"被当脚本跑"的那条路上被调用（import 时不起服务、不挂钩子）；--doctor 只跑预检
+  PASS  桥在 127.0.0.1:17404 起来了
+  PASS  横幅讲清了退出行为：「Ctrl+C 退出（会把 OpenOCD / J-Link 子进程一起收掉，不留孤儿占探针）」
+== 5. --doctor 环境预检（只读：不占端口、不起服务）==
+  PASS  预检把 Node / 端口 / OpenOCD / J-Link 逐项列出来
+  PASS  预检**不启服务**（没有那几行启动横幅）
+  PASS  预检不占端口（跑完那口还是空的）
+  PASS  退出码与结论一致（code=0）
+  PASS  目标不存在 → 指出来并以 1 退出（code=1）
+  PASS  报错里带上"该改哪个文件"（不是光说失败）
+
+✅ bridge-lifecycle.test: 21 通过 / 0 失败
+
+$ C:\Program Files\nodejs\node.exe --check bridge/rtt-bridge.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s b14ef99
+fix(bridge): handle missing taskkill without unhandled process errors
+
+$ git commit -C b14ef99
+[main b335a23] fix(bridge): handle missing taskkill without unhandled process errors
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 17:24:15 2026 +0900
+ 1 file changed, 17 insertions(+), 7 deletions(-)
+
+$ git rev-parse HEAD
+b335a2382f944081a5f8db07101291da06383401

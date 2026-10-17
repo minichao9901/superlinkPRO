@@ -1,0 +1,31 @@
+
+$ git cherry-pick -n 6562727
+
+$ git diff --cached --name-only
+app/dbg/view.js
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/integration-full.mjs
+probe-integration: real entry points serialize setup, coexist on disjoint resources, cancel queued START and protect flash PASS
+probe-integration: unknown firmware stop cannot be bypassed by a later feature PASS
+probe-integration: manual release and managed takeover share one complete USB close PASS
+probe-integration: firmware START pending retains ownership until STOP completion is confirmed PASS
+probe-integration: cancelling during backend preparation cannot create a later debug session PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-backend-lifecycle.test.mjs
+dbg-backend-lifecycle: ARM/RISC-V switch waits for old actions and disconnect before replacing session PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/dbg/view.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 6562727
+fix(debug): preserve cancellation across backend preparation
+
+$ git commit -C 6562727
+[main 5d5be33] fix(debug): preserve cancellation across backend preparation
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:50:21 2026 +0900
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+$ git rev-parse HEAD
+5d5be33653a2f42fcbfbf2c151b895005791fec2

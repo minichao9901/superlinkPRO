@@ -1,0 +1,374 @@
+
+$ git cherry-pick -n bf7c0cb
+
+$ git diff --cached --name-only
+docs/probe-resource-architecture.md
+docs/stability-fixes-2026-10-04.md
+tools/selftest/dbg-core.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-core.test.mjs
+== 1. 数字与字节串的解析（命令行的地基）==
+  PASS  parseNum 认 0x 前缀
+  PASS  parseNum 认尾缀 h
+  PASS  parseNum 认二进制
+  PASS  parseNum 十进制（不是十六进制！）
+  PASS  parseNum 忽略下划线分隔
+  PASS  parseNum 认不出就回 null（不静默当 0）
+  PASS  parseBytes 空格分隔
+  PASS  parseBytes 逗号 + 0x 前缀
+  PASS  parseBytes 连续写法（偶数长度）
+  PASS  parseBytes 奇数长度连续写法必须报错（不能猜）
+  PASS  parseBytes 超过 0xff 必须报错
+  PASS  hexdump 首行地址与字节
+  PASS  hexdump 右侧 ASCII 列
+  PASS  hexdump 按 16 字节分行且第二行地址正确
+  PASS  readLE 小端
+== 2. 寄存器位域（xPSR / CFBP）==
+  PASS  寄存器名大小写不敏感、r15=PC
+  PASS  SP/PSP 的 REGSEL 正确
+  PASS  不认识的寄存器回 null
+  PASS  xPSR：Z 在 bit30、T 在 bit24
+  PASS  xPSR：IPSR 在 [8:0]（异常号）
+  PASS  xPSR：IT 拆在两段（[26:25] 是高位）→ 0xea
+  PASS  formatXpsr 有人话（含 Handler）
+  PASS  setXpsrFlags 只动指定标志位（T 位等原样保留）
+  PASS  CFBP 打包：PRIMASK→byte0、CONTROL→byte3
+  PASS  CFBP 拆包：byte0=PRIMASK / byte1=BASEPRI / byte2=FAULTMASK / byte3=CONTROL
+  PASS  CFBP 改一个字节不会碰兄弟字节
+  PASS  CONTROL 的人话（nPRIV/SPSEL）
+== 3. FPB 硬件断点的编码 ==
+  PASS  FP_CTRL=0x80 → 8 个比较器、rev1（Cortex-M7 的排法）
+  PASS  REV 字段在 [31:28]（0x1 → rev2）
+  PASS  rev1 只能匹配 0x20000000 以下的地址（H7 的 QSPI 代码就打不了）
+  PASS  rev2 地址不限
+  PASS  rev1 偶数地址 → (addr&~3) | BP_MATCH(0x1<<30) | ENABLE
+  PASS  rev1 上半字地址 → BP_MATCH(0x2<<30)（bit1 不进地址字段）
+  PASS  rev1 解码要把 bit1 从 BP_MATCH 还回来
+  PASS  rev2 只按半字对齐 + ENABLE
+  PASS  编码 → 解码可往返（探针回读对账靠它）
+  PASS  planComparators 按顺序填槽位
+  PASS  超出匹配范围的地址单独报出来（不静默丢）
+  PASS  装不下的断点进 overflow
+== 4. 符号表（拿真 ELF 当靶子）==
+  PASS  解析出 74 个符号
+  PASS  _SEGGER_RTT 的地址/大小正确
+  PASS  按名字找到函数并给出类型
+  PASS  PC 落点：函数名 + 偏移
+  PASS  nameOf 的人话格式
+  PASS  resolve 支持「符号+偏移」
+  PASS  resolve 支持裸十六进制
+  PASS  resolve 支持 &变量
+  PASS  resolve 找不到就回 null（命令层要报错）
+  PASS  sym 搜索命中 7 条
+  PASS  summary 有人话摘要：74 个符号（函数 19 · 数据 9），其中 5 个带类型变量（DWARF），行号表 149 条
+== 5. 会话 + 假目标：真跑一遍调试动作 ==
+  PASS  连上假目标
+  PASS  连上时的状态是"已停止"
+  PASS  读到 FPB 能力：8 个比较器 rev1
+  PASS  读回 23 个寄存器（19 内核含 MSP/PSP/XPSR + 4 个特殊）
+  PASS  复位向量取到了代码区入口
+  PASS  SP 来自向量表
+  PASS  xPSR.T = 1（Thumb）
+  PASS  读回写进去的 R0
+  PASS  改 PC 生效
+  PASS  CFBP 端到端：PRIMASK=1 落在 byte0、CONTROL=2 落在 byte3
+  PASS  两个特殊寄存器各读各的
+  PASS  写内存后回读一致
+  PASS  写 flash 会被拒绝（假目标与真板子一致：本页不做烧录）
+  PASS  断点加进去了
+  PASS  硬件上限 = FPB 报的 8 个比较器
+  PASS  「继续」之后目标在跑
+  PASS  目标在 3 s 内停了下来（命中假目标里的 FPB 比较器）
+  PASS  停在了断点地址上
+  PASS  第二次「继续」也命中（跨过断点后绕回来）
+  PASS  仍停在同一地址（说明真的跨过去又回来了）
+  PASS  跨过断点确实是"跑了一段"而不是立即返回
+  PASS  在断点处单步能走开（临时摘比较器）
+  PASS  单步之后比较器装回去了
+  PASS  C_STEP 能用时走主路径（mode=dhcsr）
+  PASS  C_STEP 不生效时自动改用断点单步（mode=breakpoint）
+  PASS  兜底单步真的让 PC 前进了 8000302 → 8000304
+  PASS  兜底的临时比较器收干净了（只剩用户那一个断点）
+  PASS  日志里说清了"为什么改走断点单步"（不许静默降级）：[dim] 已清掉单步残留的 C_MASKINTS —— 不清的话中断再也进不来（中断里的断点永远不会命中） | [warn] C_STEP 没让目标前进（这次；可能刚复位或重连过） —— 改用「断点单步」，后面每一步都走这条路，不再重复试探
+  PASS  连续单步也稳（连续两次都前进：0x8000306）
+  PASS  记住了"C_STEP 不可用"，第二次单步不再白等 400ms 试探
+  PASS  重连（清掉粘性结论）后立刻回到 C_STEP 主路径（0x8000308）
+  PASS  删断点
+  PASS  断点表空了
+  PASS  复位并停：PC 回到复位向量
+  PASS  复位并停：状态是"已停止"
+  PASS  复位并跑：状态是"运行中"
+  PASS  再暂停回来
+== 6. 命令行（跑在同一个会话上）==
+  PASS  h 打印帮助
+  PASS  不认识的命令要报错（不能静默无反应）
+  PASS  r r0 打印一个寄存器
+  PASS  r PC <值> 写进去了
+  PASS  r <reg> <坏值> 报错而不是静默
+  PASS  mw 写内存并回读对账
+  PASS  md 打印 hexdump
+  PASS  b <符号> 走符号表解析
+  PASS  bl 列出断点与硬件上限
+  PASS  bd 1 按编号删断点
+  PASS  p 打印变量（有 DWARF 就解数值）
+  PASS  p 打出来的值对得上刚写的字节
+  PASS  info 有后端/状态/符号
+  PASS  sym 搜符号
+  PASS  x &变量 先解释符号再 dump
+  PASS  md 缺参数时报用法
+  PASS  md 长度上限有保护
+== 7. 没连接时的命令（不能崩，要给人话）==
+  PASS  未连接时 c 提示先连接
+  PASS  未连接时 h 仍然可用
+== 8. 行号表（DWARF .debug_line）：停下来显示源码行的地基 ==
+  PASS  载入 ELF 时顺带解析出了行号表
+  PASS  行号记录 149 条
+  PASS  3 个编译单元（每段一个行号程序）
+  PASS  CU 版本是 DWARF 4
+  PASS  源文件表里有 src/main.c
+  PASS  cleanPath 归一化（盘符/`..`/`.`）
+  PASS  isAbsPath 认盘符与 Unix 根
+  PASS  relTo 算相对路径
+  PASS  SysTick_Handler 的首地址 → src/main.c:24
+  PASS  main+0 → src/main.c:28
+  PASS  locText 给"文件:行"的人话：main.c:24
+  PASS  最小记录地址在代码段里（0x8000040）—— 占位序列被剔掉了
+  PASS  地址 0 / RAM 地址查不到行号（回 null 而不是乱指一行）
+  PASS  行→地址→行 全部自洽（149 条，0 条不一致）
+  PASS  SymTab.lines 要么有表要么是 null（两种都不能崩）
+  PASS  DWARF 5 的行号表也能解析（riscv_dwarf5.elf）
+  PASS  0x80000000 查得到行号（有符号位那个坑的回归测试）
+== 8.1 源码文件仓（选择目录后的匹配与读取）==
+  PASS  索引 FileList（webkitdirectory 兜底路径）：源码目录「proj」：2 个文件
+  PASS  按后缀匹配 ELF 里的绝对路径（编译机路径 ≠ 本机路径）
+  PASS  多级后缀也能匹配
+  PASS  匹配不上就回 null（界面显示"没找到源文件"，不乱猜）
+  PASS  读源码文本（走缓存）
+  PASS  第二次读走缓存（同一份内容）
+  PASS  读不到时给人话（告诉用户去选目录）
+== 9. 监视窗口（表达式解析 / 取值 / 增删）==
+  PASS  w 变量名 → 解析到地址
+  PASS  w 符号+偏移 → 按 u32 看那个地址
+  PASS  w 裸地址 → 按 u32 读
+  PASS  w 认不出来 → 给错误（不静默）
+  PASS  没载入 ELF 时 w 说明原因
+  PASS  u32 取值：十进制 + 十六进制
+  PASS  没有类型信息时也要给出人看得懂的十六进制
+  PASS  加一项监视
+  PASS  同名不重复加（返回 dup）
+  PASS  一共 3 项
+  PASS  wd 按编号删
+  PASS  wd 按名字删
+  PASS  toJSON 不把值存进 localStorage
+  PASS  fromJSON 重新解析（换 ELF 后地址会跟着变）
+  PASS  wd all 全清
+== 10. Tab 补全（命令名 / 符号 / 寄存器）==
+  PASS  commonPrefix 取最长公共前缀
+  PASS  空行 Tab → 列出全部命令名
+  PASS  唯一候选补全并补一个空格："help "
+  PASS  b <前缀> → 补符号名："b main"
+  PASS  p _SEG → 补出 _SEGGER_RTT*（有多个就补公共前缀）："p _SEGGER_RTT"
+  PASS  r 后面补寄存器名："r primask"
+  PASS  没有候选时原样不动（绝不猜一个最近的）
+  PASS  多个候选 → 只补公共前缀（候选交给界面列出来）
+== 11. 新命令：w / wl / wd / sl / src + Ctrl+C 取消 ==
+  PASS  w <变量> 加进监视窗口
+  PASS  wl 列出监视项与值
+  PASS  wd 1 删掉监视项
+  PASS  w 缺参数报用法
+  PASS  sl 打印当前源码位置
+  PASS  sl 顺手把源码视图跳过去
+  PASS  src 不带参数列出源文件
+  PASS  src <文件:行> 跳转
+  PASS  src 找不到文件时报错（不静默）
+  PASS  Ctrl+C（signal=true）时命令抛 Cancelled，不再往下跑
+  PASS  signal=false 时命令照常执行
+  PASS  没有界面时 w 说明"需要界面支持"
+== 12. SWD 时钟：默认 10 MHz + PPB 坏读自动退回 1 MHz ==
+  PASS  默认时钟是 10 MHz（10000 kHz）
+  PASS  PPB 读数正常 → 保持 10 MHz
+  PASS  PPB 读回 0 → 自动退回 1 MHz
+  PASS  探针那边的 SWJ_Clock 也真的改了
+  PASS  日志里说清"为什么退回"（不许静默降级）
+  PASS  已经 ≤1 MHz 时跳过检查
+== 13. SWD 串行化（后台轮询不许和用户动作交错）==
+  PASS  独占动作进行中 → 后台轮询跳过这一拍（不排队、不交错）
+  PASS  空闲时后台轮询正常执行
+  PASS  两个独占动作排队：A 全程跑完才轮到 B
+  PASS  队列跑空后锁已释放
+== 14. 断点目标解析：文件:行 / 函数:行 / 相对行（breakSpec）==
+  PASS  fixture ELF 有行号表（行号表：3 段 · 149 条记录 · 34 个源文件（DWARF 4）)
+  PASS  取到一条 is_stmt 记录：main.c:24@0x8000040
+  PASS  b <文件名:行> 反查到地址（后缀匹配）
+  PASS  b <完整路径:行> 也能解析
+  PASS  b <函数:行> 用该函数所在文件解析
+  PASS  函数形式的出处写明"函数 → 文件:行"：SysTick_Handler → main.c:24
+  PASS  b +2 相对当前行往后
+  PASS  b +2 但目标在跑（没有 PC）→ 明确报错，不猜
+  PASS  不存在的文件 → 报错
+  PASS  不存在的行号 → 报错
+  PASS  普通符号名照旧走 resolve（不回归）
+  PASS  十六进制地址照旧
+== 14b. 行号表的"序列"边界（nextStmtAddr 不许跨进隔壁函数）==
+  PASS  F103 靶子 ELF：139 条记录的"下一行"都在同一条序列里
+  PASS  F103 靶子 ELF：跨函数的"下一行"都是直接衔接（fall-through），没有跳跃
+  PASS  F103 靶子上覆盖到 139 条记录（样本够大）
+  PASS  H743 scope ELF：184 条记录的"下一行"都在同一条序列里
+  PASS  H743 scope ELF：跨函数的"下一行"都是直接衔接（fall-through），没有跳跃
+  PASS  H743 scope 靶子上覆盖到 184 条记录
+== 15. Thumb：指令长度与 BL/BLX 目标 ==
+  PASS  NOP（0xBF00）是 16 位
+  PASS  `b .`（0xE7FE）是 16 位 —— 0xE000~0xE7FF 这一档最容易判错
+  PASS  0xF000/0xF800（32 位分支前缀）是 32 位
+  PASS  BL 目标解码（+0xFC）
+  PASS  H 位（bit12）=0 → BLX
+  PASS  不是分支指令 → null（不瞎算）
+  PASS  负偏移（往回跳）也算对
+  PASS  BLX <reg> 是调用、BX 不是
+  PASS  encode→decode 往返一致（0x8000100 → 0x8000200）
+  PASS  encode→decode 往返一致（0x8000200 → 0x8000100）
+  PASS  encode→decode 往返一致（0x8000040 → 0x8012340）
+== 16. 结构体/数组树（监视窗口的树）==
+  PASS  u32 成员解出数值：3735928559
+  PASS  u32 成员给出十六进制：0xdeadbeef
+  PASS  嵌套结构体给出容器行
+  PASS  嵌套成员按偏移解出（x=7, y=9）
+  PASS  嵌套成员的缩进层级正确
+  PASS  位域按 bitOffset/bitSize 解出：5  (0x5)
+  PASS  位域行有标记（界面用黄字）
+  PASS  数组给出 [n]
+  PASS  数组元素解出 f32：1.50000
+  PASS  越界的元素如实说"读不到"（绝不猜 0）：（越界 / 读不到）
+  PASS  maxRows 限流并给出"只显示前 N 行"
+  PASS  数组超上限时给出"还有 N 项"
+  PASS  折叠摘要给出成员=值：{a=3735928559, x=7, y=9, flag : 3=5  (0x5)}
+  PASS  readBits 按位偏移取值
+  PASS  readBits 低位取值
+  PASS  u8 数组可打印时给出字符串行
+== 17. 源码级单步（假目标真跑：跳过 / 进入 / 跳出 / 运行到）==
+  PASS  假目标从代码区入口开始
+  PASS  nextStmtAddr 给出下一行地址
+  PASS  单步跳过落在下一行（0x8000102）
+  PASS  返回的人话带源码行：单步跳过 → SEGGER_RTT.c:493（0x8000102）
+  PASS  临时比较器收干净了（用户断点 0 个）
+  PASS  记下了这一步是"跳过"（lastStepMode=over）
+  PASS  临时断点落在用户断点上时不动它（剩 1 个）
+  PASS  断点上的出处备注还在：user.bp
+  PASS  比较器占满时给人话错误：单步跳过：需要在 0x8000106 放一个临时比较器，但硬件断点已用完（8/8）—— 先删掉一个用户断点再试
+  PASS  报错后用户断点一个没少
+  PASS  单步进入落在被调函数入口（0x8000300）
+  PASS  假目标按真硬件把返回地址放进了 LR（0x08000204|1）
+  PASS  单步跳出回到调用点的下一条指令（0x8000204）
+  PASS  单步进入/跳出之后比较器都收干净了
+  PASS  LR=0xFFFFFFF9（EXC_RETURN）时拒绝"跳出"并说明原因
+  PASS  运行到指定地址（0x8000400）
+  PASS  目标已经在那里时直接说"已停在这一行"
+  PASS  没有行号信息时 stepOver 明确报错
+== 17b. 「单步跳出」在非叶子函数里（LR 被本函数内部的调用覆盖）==
+  PASS  走到"刚从一个内部调用返回"的位置（PC=0x8000246）
+  PASS  此刻 LR 已被内部调用覆盖（LR=0x8000247，不是真正的返回地址 0x8000050）
+  PASS  页面能识别出"LR 落在本函数里 = 被覆盖"（这正是旧实现原地不动的原因）
+  PASS  「跳出」正确回到调用者（0x8000050，帧已弹掉：SP 0x2000fff8 → 0x20010000）
+  PASS  人话里说明了"LR 被覆盖，所以是一步步走回来的"：单步跳出 → fn@0x8000050（0x8000050，LR 不是本帧的返回地址（被内部调用覆盖或已陈旧），走了 2 条指令回到调用者）
+  PASS  这条慢路径也不留临时比较器（0 个）
+== 18. 命令行：b <文件:行> / p <结构体> / bl 显示出处 ==
+  PASS  b main.c:30 下断点：断点 #1 @ 0x08000056  main+0x6  main.c:30　[main.c:30]
+  PASS  输出里带出处：断点 #1 @ 0x08000056  main+0x6  main.c:30　[main.c:30]
+  PASS  bl 显示源码出处：#1  0x08000056  main.c:30             比较器 0
+  PASS  bd 也能按 文件:行 删：删掉断点 @ 0x08000056
+  PASS  p <结构体> 打成缩进的树（含成员名）
+  PASS  结构体打印是多行（43 行）
+  PASS  b 认不出来时报错（不静默）：解析不了「nope.c:1」：（行号表里没有叫「nope.c」的源文件，它也不是函数名；用 src 看有哪些文件）
+  PASS  help 里列出了新的单步/运行到命令
+  PASS  help 里给出了 文件:行 的例子
+== 19. 位域解码：嵌套结构体里的位域必须按"所在结构体"起算 ==
+  PASS  on（bit0）在嵌套结构体里也解得对：1  (0x1)
+  PASS  level（bit1..3 = 0b111）解得 7：7  (0x7)
+  PASS  mode（bit4..5 = 0b11）解得 3：3  (0x3)
+  PASS  parity（bit6 = 1）解得 1：1  (0x1)
+  PASS  rev（bit7..15 = 0x001）解得 1：1  (0x1)
+  PASS  spare（bit16..31 = 0x00FF）解得 255：255  (0xff)
+  PASS  sbits.bias（有符号位域）解得 +5：5  (0x5)
+  PASS  有符号位域做符号扩展（0b111011 → -5）：-5  (0x3b)
+  PASS  signExtend 三位/单位宽都正确
+  PASS  readBits 位序仍是"最低位在前"（小端 MCU）
+  PASS  decodeBitfield 直接解有符号位域
+  PASS  偏移读不出来时 decodeBitfield 返回 null（不猜）
+  PASS  根对象自己的位域（lo = 0xE）不受影响：14  (0xe)
+  PASS  根对象的最高半字节（hi = 0xC）：12  (0xc)
+== 20. 复合路径：p/w 支持 a.b[2].c（按 DWARF 成员偏移算地址）==
+  PASS  parsePath 拆出 成员/下标 交替的段：[{"name":"g_model"},{"name":"nodes"},{"index":1},{"name":"cell"},{"name":"scale"}]
+  PASS  单段名字不算路径（走原来的精确查）
+  PASS  不认的东西一律返回 null（+偏移/箭头/非数字下标）
+  PASS  顶层变量仍走精确查：{"a":603979840}
+  PASS  路径算出地址 = 基址+16(数组)+16(第 1 项)+8(scale) = 0x24000068，类型 f64
+  PASS  数组元素本身也能取到（类型 = cell_t）：0x24000080
+  PASS  下标越界如实报原因（不返回一个错地址）：下标 [9] 越界（数组只有 4 项）
+  PASS  成员不存在如实报原因：没有成员「nosuch」（model_t 里有：nodes · flags）
+  PASS  标量后面再走成员要报错：uint8_t 不是结构体/联合，没有成员「deeper」
+  PASS  位域成员带出 bit{inUnit,size,signed}（bitOffset 2 在存储单元内仍是 2）：{"inUnit":2,"size":6,"scalar":"i32","signed":true}
+  PASS  监视窗口认复合路径：{"k":"var","s":"f64","a":603979880}
+  PASS  监视复合路径指向结构体时是可展开的树：struct / cell_t
+  PASS  监视位域成员带 bit 信息（取值时按位切）：int32_t 位域
+  PASS  位域监视项按位取值（bytes[0]=0b00111011 从 bit2 取 6 位 = 0b001110 = 14，而不是整个 0x3B）
+  PASS  路径走不通时如实报错、不画一棵看着正常的树：「g_model.nope」：没有成员「nope」（model_t 里有：nodes · flags）
+  PASS  命令行 p 走不通的路径也如实报错：「g_model.nope」：没有成员「nope」（model_t 里有：nodes · flags）
+== 21. 行号写错时说人话（文件只有 1~N 行）==
+  PASS  lineRange 给出文件的行号范围：{"min":24,"max":40,"count":12,"path":"E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_rtt_speed/src/main.c"}
+  PASS  b main.c:99999 报"文件只有 1~N 行"：解析不了「main.c:99999」：（main.c 里只有第 24~40 行有代码，没有第 99999 行）
+  PASS  比最小行还小的行号也给范围提示：解析不了「main.c:1」：（main.c 里只有第 24~40 行有代码，没有第 1 行）
+  PASS  范围内的行照常解析：0x8000056
+  PASS  文件不存在时仍报"没有这个源文件"
+== 22. nextAddrsOf：分支/返回指令的"落点"（断点单步的地基）==
+  PASS  NOP → 下一条（pc+2）：{"addrs":[134217986],"why":"其它 16 位指令（顺序执行）","certain":true}
+  PASS  32 位非分支指令 → pc+4（长度判对）：{"addrs":[134217988],"why":"其它 32 位指令（顺序执行）","certain":true}
+  PASS  bx lr → LR（抹 Thumb 位）：{"addrs":[134218240],"why":"bx lr（返回）","certain":true}
+  PASS  bx r3 → R3：{"addrs":[134218496],"why":"bx r3","certain":true}
+  PASS  blx r3 → R3（间接调用）：{"addrs":[134218752],"why":"blx r3（间接调用）","certain":true}
+  PASS  读不到寄存器时如实标"不确定"（不假装知道、更不能当成寄存器=0）：{"addrs":[134217986],"why":"bx r3（读不到寄存器）","certain":false}
+  PASS  pop {r7,pc} → [sp+4]：{"addrs":[572662306],"why":"pop {…, pc}（返回）","certain":true}
+  PASS  pop {pc} → [sp+0]：{"addrs":[858993458],"why":"pop {…, pc}（返回）","certain":true}
+  PASS  pop.w {r7,pc}（32 位）→ [sp+4]：{"addrs":[1145324612],"why":"pop.w {…, pc}（返回）","certain":true}
+  PASS  ldr pc,[sp,#4] → [sp+4]：{"addrs":[1431655764],"why":"ldr pc, [sp, #imm]（返回）","certain":true}
+  PASS  mov pc, lr（编码 0x46F7）→ LR：{"addrs":[134219008],"why":"mov pc, …","certain":true}
+  PASS  mov pc, r7（0x46BF）→ R7：{"addrs":[134219264],"why":"mov pc, …","certain":true}
+  PASS  普通 mov r0,r1（0x4608）不改变控制流 → pc+2：{"addrs":[134217986],"why":"mov（高寄存器）","certain":true}
+  PASS  b +8（16 位）→ 目标：{"addrs":[134217996],"why":"b 无条件跳转","certain":true}
+  PASS  b .（自己跳自己）→ 目标 == 自己：{"addrs":[134217984],"why":"b 无条件跳转","certain":true}
+  PASS  bcc → **两个候选都返回**（跳 / 不跳，不跳是 pc+2）：{"addrs":[134217992,134217986],"why":"b0 条件分支（两个落点都放比较器）","certain":true}
+  PASS  cbz → 两个候选（pc+2 与 pc+6）：{"addrs":[134217990,134217986],"why":"cbz/cbnz（两个落点都放比较器）","certain":true}
+  PASS  bl → 被调函数入口：{"addrs":[134218496],"why":"bl 调用（进入被调函数）","certain":true}
+  PASS  bl 的落点不是 pc+4（旧兜底就是这么错的）
+== 23. ≥0x80000000 的地址：断点表比对不能踩"有符号掩码"的坑（HPM6800EVK 真机定因）==
+  PASS  _bpAt 认 0x80005ae8（有符号掩码会永远匹配不上）
+  PASS  _bpAt 忽略最低位（半字对齐）
+  PASS  _bpAt 不把相邻地址算成命中
+  PASS  _bpAt 认第二个高地址断点（多断点的地基）
+  PASS  _withBpCleared 在跑之前真的把那个地址摘掉了（单步/继续都要靠它）
+  PASS  跑完把断点原样装回来
+  PASS  bpAdd 存的是**无符号**地址（不然后面每次比对都要出岔子）
+  PASS  同一地址重复下断点会被认出来（不占第二个比较器）
+  PASS  bpDel 能删掉高地址断点（有符号掩码会删不掉）
+  PASS  删不存在的断点回 false（命令层据此说"没有这个断点"）
+  PASS  RISC-V：两个高地址触发器都能对上
+  PASS  断点备注按无符号地址存（bpList 才显示得出来）
+  PASS  bpList 里高地址显示正常（不是负数、备注也在）
+  PASS  RISC-V：删掉第二个断点后表里只剩第一个
+
+== 汇总：321 通过 / 0 失败 ==
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/dbg-core.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s bf7c0cb
+fix(test): use the committed H743 ELF for DWARF sequence regression
+
+$ git commit -C bf7c0cb
+[main b71f7b5] fix(test): use the committed H743 ELF for DWARF sequence regression
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 16:07:54 2026 +0900
+ 3 files changed, 8 insertions(+), 7 deletions(-)
+
+$ git rev-parse HEAD
+b71f7b5be6cbe10ce496415066c417fe4e1bdd09

@@ -1,0 +1,28 @@
+
+$ git cherry-pick -n 64b4739
+
+$ git diff --cached --name-only
+app/dbg/view.js
+tools/selftest/dbg-backend-lifecycle.test.mjs
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/dbg-backend-lifecycle.test.mjs
+dbg-backend-lifecycle: ARM/RISC-V switch waits for old actions and disconnect before replacing session PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/dbg/view.js
+
+$ C:\Program Files\nodejs\node.exe --check tools/selftest/dbg-backend-lifecycle.test.mjs
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 64b4739
+fix(debug): bind controls to the current backend and drain backend switches
+
+$ git commit -C 64b4739
+[main 0c07221] fix(debug): bind controls to the current backend and drain backend switches
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 14:34:17 2026 +0900
+ 2 files changed, 43 insertions(+), 19 deletions(-)
+ create mode 100644 tools/selftest/dbg-backend-lifecycle.test.mjs
+
+$ git rev-parse HEAD
+0c07221d59bb014d852dced64f6a79907b63df4e

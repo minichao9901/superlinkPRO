@@ -1,0 +1,34 @@
+# 构建产物 / 临时文件
+build/
+tools/target-firmware/**/build*/
+# F103CB 的四个活动例程以 build-cb/fw.elf 作为容量匹配的发布文件；
+# 只放行 ELF，目录内的 .bin/.hex/.map 和其它生成结果仍忽略。
+!tools/target-firmware/stm32f103_*/build-cb/
+tools/target-firmware/stm32f103_*/build-cb/*
+!tools/target-firmware/stm32f103_*/build-cb/fw.elf
+node_modules/
+tmp/
+*.log
+*.map
+__pycache__/
+
+# 抓包/采集的原始数据
+*.csv
+captures/
+
+# 编辑器
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# Actions 工作流需要带 workflow 权限的 PAT 才能推；先用分支发布（Settings → Pages）
+.github/workflows/
+
+# ── [superlinkPRO 合并时新增，2 行规则] ────────────────────────────────────────
+# 本目录 docs/validation/ 里有 894 个**已跟踪**的验收记录（120 个 .log + 1 个 .csv 会命中上面的
+# `*.log` / `*.csv`）。`.gitignore` 的优先级是"越深的文件越优先"，所以根 .gitignore 里的放行规则
+# 对这里无效 —— 不补这两行的话，`git add web` 会**静默跳过**这 121 个文件（实测 1916/2037）。
+# 只放行 validation 目录内的这两类；未跟踪产物仍由根 .gitignore 的产物族规则压制。
+!docs/validation/**/*.log
+!docs/validation/**/*.csv

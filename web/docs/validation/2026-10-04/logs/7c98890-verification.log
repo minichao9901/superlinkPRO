@@ -1,0 +1,36 @@
+
+$ git cherry-pick -n 7c98890
+
+$ git diff --cached --name-only
+app/core/probe-users.js
+app/hid/mock.js
+app/hid/view.js
+
+$ C:\Program Files\nodejs\node.exe tmp/patch-verification/integration-before-debug.mjs
+probe-integration: real entry points serialize setup, coexist on disjoint resources, cancel queued START and protect flash PASS
+probe-integration: unknown firmware stop cannot be bypassed by a later feature PASS
+probe-integration: manual release and managed takeover share one complete USB close PASS
+probe-integration: firmware START pending retains ownership until STOP completion is confirmed PASS
+
+$ C:\Program Files\nodejs\node.exe tools/selftest/rtt-cdc-lifecycle.test.mjs
+rtt-cdc-lifecycle: stop cancels pending start, waits for firmware STOP completion, propagates failure PASS
+
+$ C:\Program Files\nodejs\node.exe --check app/core/probe-users.js
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/mock.js
+
+$ C:\Program Files\nodejs\node.exe --check app/hid/view.js
+
+$ git diff --cached --check
+
+$ git show -s --format=%s 7c98890
+fix(rtt-cdc): retain pending firmware start ownership until confirmed stop
+
+$ git commit -C 7c98890
+[main 7772d29] fix(rtt-cdc): retain pending firmware start ownership until confirmed stop
+ Author: Codex <codex@openai.com>
+ Date: Sun Oct 4 15:47:20 2026 +0900
+ 3 files changed, 12 insertions(+), 4 deletions(-)
+
+$ git rev-parse HEAD
+7772d29584f48af117babba011b720f14e718392
