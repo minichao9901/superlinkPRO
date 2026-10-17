@@ -51,6 +51,45 @@ docs/         172   （170 akaLinkPro + merge-map.md + decisions.md）
 **禁止**为了"看起来整齐"把根 `docs/` 里的 170 个 akaLinkPro 文档再挪进 `firmware/docs/`
 （那要同步改 33 处 Makefile/CMake 引用与 `README.md:22` 的说法，纯收益为负）。
 
+---
+
+## D-7 ETM 页面**不物理搬迁**进 `web/app/etm/`（t6 提出，Captain 裁定：**接受**）
+
+### 背景
+我在 t6 任务书里写的是"ETM 页面源码并入 `web/app/etm/`"。t6 执行时**没有照做**，而是保持：
+
+- `web/app/etm/` = **web 侧的 ETM 标签宿主**（首页入口，本来就有）；
+- **ETM 页面源码仍在 `etm/web/**`**，URL 仍是 `/etm/`；
+- **探针驱动真源在 `web/app/**`**（8 个文件：7 个驱动 + 1 个依赖 `core/operation-budget.js`），
+  `etm/web/app/shared/**` 是 `node tools/dev/sync-shared-drivers.mjs`（`make gen-shared`）**逐字节生成**的副本，
+  由 `web/tools/selftest/shared-drivers.test.mjs`（24 项，已入 `make test`）与 `make check` 的 `sync --check` 守着。
+
+### 裁定：**接受**
+理由是三条**真实会坏**的依赖，不是审美问题：
+
+1. `etm/start-web.ps1` 要能**独立启动** ETM 页（合并后仍必须能单跑）；
+2. `web/bridge/etm/backend/**` 是**便携包快照**，必须自洽、不能引用跨子树路径；
+3. `serve-etm.py` 只改写 HTML 的 `href/src`，**不改 JS import** —— 物理搬迁会让 import 解析失败。
+
+### 用户的原始诉求已达成
+用户当时的要求是「**ETM 层的最新成果要同步过来、驱动不能有两份**」。现在：
+**唯一手写真源 = `web/app/**`**，ETM 侧是生成副本 + sha256 守卫 + 回归测试，**没有第二份手写驱动**
+（全仓 `dap-webusb.js` 4 处 = 1 真源 + 1 生成副本 + 1 便携包快照 + 1 历史证据，角色表在
+`web/docs/driver-unification.md` §1）。
+
+### 同时修正的两处口径
+- **副本集是 8 个文件，不是 7 个**：toolbox 的 `dap-webusb.js` 依赖新增的
+  `web/app/core/operation-budget.js`；只拷 7 个会立刻 `ERR_MODULE_NOT_FOUND`（t6 用 import 解析抓到）。
+- **合并取舍**：基线取 toolbox（保住 `OperationBudget`/`DAP_SESSION_LOST`/5 字节 `WriteABORT`/锁内
+  FAULT 自愈/严格 CPUID 复核），**只移植 ETM 独有的 3 项**（`resetDevice()` 永不抛、复位不可用提示、
+  禁短超时 drain 注释）；**不抄** ETM 的 4 字节 `abort()`（缺 DAP index 是缺陷）、不用其锁外 heal（会自锁）。
+
+### 遗留（已记录，非阻塞）
+`web/bridge/etm/backend/**` 运行快照**未重生成**（`sync-etm-runtime.py` 需要 gitignored 的
+`etm/build-native` OpenOCD 静态库 + `etm/records` + msys64 g++）。快照里 8 个 shared 副本仍是
+`a2922f8` 旧版（**旧包自洽**）；页面走 `make serve-etm`（`etm/web`）就是统一后的驱动。
+重生成命令见 `web/docs/driver-unification.md` §7。
+
 ## D-5 `script_test` 的 115 个重复靶子 → **暂不瘦身**
 
 按 mapper 的结论整体保留（akaLinkPro 的 Makefile 里有 20 处引用、`APP_DIR=firmware\application_5301`
