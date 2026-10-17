@@ -1,0 +1,51 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# superlinkPRO —— 根级 .gitattributes（三仓并集：web 那份为底 + ETM 的二进制规则）
+#
+# 三个源仓都用 core.autocrlf=true（本仓沿用，见仓库 config）：文本文件入库时规整成 LF、
+# 取回时转 CRLF。下面这些规则用于「字节必须原样」的对账基线、测试素材与二进制样本 ——
+# 它们一旦被换行转换碰过，段表偏移/像素数据/记录格式就全废了（"本机过、别处崩"）。
+#
+# web/ 子树里还保留着它自己的 web/.gitattributes（随整树平移而来，二者一致）；
+# 根这份是并集版本，也覆盖 etm/ 与根级文件。
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── 批处理：`*.bat` 必须原样（CRLF + 编码），换行转换会让 cmd 解析错位 ──────────────
+*.bat -text
+
+# ── 来自 web/ 的 .gitattributes（路径同步加 web/ 前缀） ─────────────────────────
+# 对账基线必须**原样**保存字节：Python 工具（uvprojx2cmake.py）在 Windows 上写出的是 CRLF，
+# 而本仓 core.autocrlf=true 会把文本规整成 LF 再存 —— 那样基线就不是 Python 的真产物了。
+# 这里把整棵 fixtures 目录标成不做换行转换。
+web/tools/fixtures/gen/** -text
+web/tools/fixtures/gen/mdk-arm/test_sram.bin binary
+# DWARF 解析的对账基线是**真 ELF**（二进制）：绝不能被换行转换碰
+web/tools/fixtures/dwarf/** binary
+# 屏页「动画 / 视频」的示例素材：二进制容器（README.md 不在此列，仍按文本处理）
+web/samples/anim/*.gif binary
+web/samples/anim/*.apng binary
+web/samples/anim/*.webp binary
+web/samples/anim/*.mp4 binary
+web/samples/anim/*.webm binary
+# 屏页「图片通路」/「图片刷屏」的 BMP 测试图样与示例素材：只圈 *.bmp，
+# 同目录的 README.md / manifest.json 仍是文本（diff 看得见）。
+web/samples/test_images/**/*.bmp binary
+# 官方 Keil XML 保持逐字节原样（含厂商格式）
+web/app/dbg/svd/STM32H7*.svd -text -whitespace
+web/app/dbg/svd/*.svd.gz binary
+
+# ── 来自 ETM 的二进制规则（merge-map §2.6 明确要求新增） ────────────────────────
+# ETM 的记录/基准/解码样本：.etmrecord 是自定义二进制容器，.kvdat 是 LA 导出的二进制数据，
+# 换行转换会直接毁掉它们（这类"看着像文本"的样本最容易中招）。
+*.etmrecord binary
+*.kvdat binary
+*.gz binary
+*.zip binary
+
+# 固件交付物与目标固件镜像：一律按二进制处理（不让 diff/merge 对它们做行级操作）
+*.elf binary
+*.bin binary
+
+# 注意：**故意不给 *.hex 加规则**。Intel HEX 是纯 ASCII 文本，三个源仓都把它交给
+# core.autocrlf=true 管（入库 LF、取回 CRLF），本仓沿用同样行为；这些 .hex 都是入库的
+# 交付物（EVKLite/H743/H7B0/HPM 靶子），只是按文本格式处理，与「是否入库」无关。
+# 同理，*.elf/*.bin 的 binary 标记只影响 diff/merge，不影响跟踪 —— 见 .gitignore 文件头约束 1。
