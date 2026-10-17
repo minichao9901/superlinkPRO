@@ -1,4 +1,4 @@
-param([int]$Port=8878,[string]$EtmRoot=(Join-Path $PSScriptRoot '..\..\..\web-etm-trace'))
+param([int]$Port=8878,[string]$EtmRoot=(Join-Path $PSScriptRoot '..\..\..\etm'))
 $ErrorActionPreference='Stop'
 $EtmRoot=(Resolve-Path -LiteralPath $EtmRoot).Path
 $decoder=Join-Path $EtmRoot 'build-native\etm_decode.exe'

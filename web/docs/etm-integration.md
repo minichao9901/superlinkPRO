@@ -16,14 +16,14 @@ ETM的逻辑分析仪采集和OpenCSD解码需要本地服务；串口、RTT、S
 
 ### 开发源码运行（开发者选用）
 
-普通使用无需下面的工具链。开发两个原始仓库时，将更新后的 `web-serial-rtt-tools` 与 `web-etm-trace` 放在同一父目录，在串口工具仓库运行：
+普通使用无需下面的工具链。本仓把 ETM 页面与后端放在 `etm/` 子树；开发时在 `web/` 目录下运行：
 
 ```powershell
-python -m pip install -r ../web-etm-trace/requirements.txt
+python -m pip install -r ../etm/requirements.txt
 pwsh -NoProfile -File tools/dev/start-etm.ps1
 ```
 
-打开 `http://127.0.0.1:8878/#etm`。两个仓库的目录不相邻时，可传 `-EtmRoot '你的ETM工程路径'`；端口可用 `-Port` 调整。本地启动脚本在缺少解码器时调用ETM工程的构建脚本，需要其CMake/Ninja/MinGW工具链。已经构建好的解码器会直接复用。
+打开 `http://127.0.0.1:8878/#etm`。`etm/` 不在默认位置时，可传 `-EtmRoot '你的ETM子树路径'`；端口可用 `-Port` 调整。本地启动脚本在缺少解码器时调用 `etm/build-decoder.ps1`，需要 CMake/Ninja/MinGW 工具链。已经构建好的解码器会直接复用。
 
 普通静态站点的ETM菜单显示本地启动说明；下载并启动完整桥包，再从本地集成入口打开，即可使用同源内嵌和探针共享。
 
@@ -42,7 +42,7 @@ pwsh -NoProfile -File tools/dev/start-etm.ps1
 
 内嵌ETM复用主工具的USB驱动、USB租约和ProbeManager。连接ETM时先释放冲突的RTT/调试器/SWO资源；正在采集或控制目标时拒绝其它功能抢占。操作结束后，切到其它功能并连接时会先恢复ETM资源并断开它。普通历史浏览不申请探针。
 
-ETM 原始工程仍在 `web-etm-trace` 维护；本仓库 `bridge/etm` 保存受审查的运行快照及下载包。完整包不包含 SDK、编译工具链或用户历史记录，只带一个 Demo。独立ETM页面仍能单独启动。PXLogic实验分支未纳入此集成。
+ETM 原始工程（来源 `web-etm-trace`，`master@12746fc`）已并入本仓 `etm/`；`web/bridge/etm` 保存受审查的运行快照及下载包。完整包不包含 SDK、编译工具链或用户历史记录，只带一个 Demo。独立ETM页面仍能单独启动。PXLogic实验分支未纳入此集成。
 
 ## 当前验收
 

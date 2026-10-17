@@ -119,11 +119,15 @@ CDP 页面套件共用同一套 8899/9333 服务与浏览器，**一次只跑一
 
 ## 6. 留给后续任务的事（不在本次范围）
 
-1. **§2.4 的路径改写（5 文件 / ≈10 行）**：`tools/dev/serve-etm.py:3,114`、`tools/dev/start-etm.ps1:1`、
-   `tools/selftest/etm-integration-hw.mjs:6`、`start-etm.bat:34/36/52/83/84`、`bridge/etm/README.md:29`
-   里的 `..\web-etm-trace` → `..\etm`。要等 `etm/` 子树落地后再改（本次未动，避免指向不存在的目录）。
-2. **探针驱动去重**：`app/rtt/dap-webusb.js` 等 7 个文件为唯一真源，`etm/web/app/shared/**` 为生成副本，
-   加 sha256 守卫 → `docs/driver-unification.md`（t6）。
+1. ~~**§2.4 的路径改写（5 文件 / ≈10 行）**~~ → **t6 已完成**：`tools/dev/serve-etm.py`（docstring + 默认
+   `--etm-root`）、`tools/dev/start-etm.ps1`、`tools/selftest/etm-integration-hw.mjs`、`start-etm.bat`
+   （5 处路径 + 4 处文案）、`bridge/etm/README.md` 的 `..\web-etm-trace` → `..\etm`；另修了
+   `tools/dev/sync-etm-runtime.py` 的 provenance 名称、`docs/etm-integration.md` 的开发运行说明与
+   `etm/tools/tests/test_server.py` 的上游目录（`ROOT.parent/'web'`）。
+2. ~~**探针驱动去重**~~ → **t6 已完成**：真源 `web/app/**`（7 驱动 + 1 依赖），生成副本
+   `etm/web/app/shared/**`（`node tools/dev/sync-shared-drivers.mjs`，= `make gen-shared`），
+   sha256 守卫 `tools/selftest/shared-drivers.test.mjs`（已并入 `make test`）+ `--check`（已并入 `make check`）。
+   取舍与理由见 **`web/docs/driver-unification.md`**。
 3. **ETM 页面快照**：`bridge/etm/backend/**` 是 ETM 的**派生快照**（provenance 指向 ETM `a2922f8`），
    **不要手工编辑**；合并后统一用 `python tools/dev/sync-etm-runtime.py --etm-root ../etm` 重新生成，
    再用 `build-etm-package.py` 出包。

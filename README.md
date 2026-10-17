@@ -100,17 +100,23 @@
 | `docs/merge-map.md` | 三仓清单、逐路径映射表、重复冲突清单、执行步骤与对账口径（**合并的唯一依据**） | ✅ 已完成（t1） |
 | `docs/decisions.md` | D-1 ~ D-6 的已批准决策与两条必须传给下游的踩坑 | ✅ 已完成 |
 | `docs/merge-verification.md` | 迁移对账（文件数 / 字节数 / 逐文件 sha256 与已知差异） | ⏳ t7 |
-| `docs/driver-unification.md` | 探针驱动去重方案（真源/生成副本/sha256 守卫） | ⏳ t6 |
+| `web/docs/driver-unification.md` | 探针驱动去重定稿（真源 / 生成副本 / sha256 守卫 / 取舍理由；索引在 `docs/driver-unification.md`） | ✅ 已完成（t6） |
 
 各子树自带的说明文档仍在原位：`firmware/README.md`、`web/README.md`、`etm/README.md`
 （以及各自的 `docs/`）。
 
 ---
 
-## 6. 当前状态（骨架阶段）
+## 6. 当前状态（迁移完成 + 驱动已统一，待 t7 对账）
 
-- ✅ 已建：`git init`（分支 `main`）、根 `.gitignore`（三仓并集）、根 `.gitattributes`、本 `README.md`、
-  `docs/`（`merge-map.md` + `decisions.md`）、六个子树的目录占位（`docs/` 已有文档，其余五个为空目录）。
+- ✅ 迁移：`web/`（t3，2037 文件）、`firmware/ script_test/ tools/ docs/`（t4）、`etm/`（t5，裁剪式）
+  均已入库；各自的 `README-migrated.md` 记录来源路径/分支/40 位 commit、对账数字与裁剪理由。
+- ✅ 驱动统一（t6）：7 个探针驱动 + 1 个依赖的真源在 `web/app/**`，`etm/web/app/shared/**` 为
+  `node tools/dev/sync-shared-drivers.mjs` 生成的逐字节副本（sha256 守卫 24 项全过）；合并取舍与
+  未重生成 ETM 快照的原因见 `web/docs/driver-unification.md`。
+- ⏳ 待做：`docs/merge-verification.md`（t7 全仓对账）。
+- ✅ 骨架期记录（保留作证据）：
+  - `git init`（分支 `main`）、根 `.gitignore`（三仓并集）、根 `.gitattributes`；`docs/` 只放跨仓文档。
 - ✅ 忽略规则已复核（`git check-ignore --no-index -v -n --stdin`，共 3 轮）：
   - 检查集 **8725 个路径** = akaLinkPro 可迁移集 609（按 D-1/D-3 去掉原板硬件、`.opencode`、原板 `.bat` 等，
     **docs 的两种落点都测**：根 `docs/` 与 `firmware/docs/`）+ toolbox 2035 + **ETM 全部 5472**

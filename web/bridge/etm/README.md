@@ -26,7 +26,7 @@ python tools/dev/build-etm-package.py
 日常构建只使用本仓库的快照。更新 ETM 运行源码时，先指定受审查的来源：
 
 ```powershell
-python tools/dev/sync-etm-runtime.py --etm-root E:/web-etm-trace
+python tools/dev/sync-etm-runtime.py --etm-root ../etm
 ```
 
 核对 `provenance.json` 和源码差异后，再重建并验收。源码模式开发入口仍保留在 `tools/dev/start-etm.ps1`；它的仓库路径参数只供开发使用。

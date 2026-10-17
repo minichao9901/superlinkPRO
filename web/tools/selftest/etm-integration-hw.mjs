@@ -3,7 +3,7 @@ import {readFile,writeFile} from 'node:fs/promises';import assert from 'node:ass
 import {resolve,dirname} from 'node:path';import {fileURLToPath,pathToFileURL} from 'node:url';
 import {ProbeManager} from '../../app/core/probe-manager.js';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
-const etmRoot=process.env.ETM_ROOT||resolve(root,'../web-etm-trace');
+const etmRoot=process.env.ETM_ROOT||resolve(root,'../etm');
 const {EtmTarget}=await import(pathToFileURL(resolve(etmRoot,'web/app/target.js')));
 const output=process.env.VALIDATION_DIR;if(!output)throw Error('Set VALIDATION_DIR to a new persistent run directory');
 const base=(process.env.APP||'http://127.0.0.1:8878')+'/etm/api/',bridge=process.env.PROBE_BRIDGE||'http://127.0.0.1:8772',sleep=ms=>new Promise(r=>setTimeout(r,ms));

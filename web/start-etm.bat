@@ -12,13 +12,13 @@ if not "%RTT_TOOLS_UTF8%"=="1" (
 )
 rem ============================================================================
 rem  双击即用：起 **ETM 桥**（serve-etm.py：同一个回环源同时托管工具箱和
-rem  兄弟仓 web-etm-trace 的 ETM 页面），然后直接打开 ETM 标签页。
+rem  本仓 etm/ 子树的 ETM 页面），然后直接打开 ETM 标签页。
 rem
 rem  用法：
 rem    双击                 -> 端口 8878，打开 http://127.0.0.1:8878/#tab-etm
 rem    start-etm.bat 8880   -> 换端口
 rem
-rem  为什么用它而不是直接开 web-etm-trace 的 8766：
+rem  为什么用它而不是直接开 etm/ 自带的 8766：
 rem    8878 把工具箱页面和 ETM 子页放在**同一个 origin** 下（子页挂在 /etm/，
 rem    接口走 /etm/api/），#tab-etm 的内嵌页才不会因为跨源被挡；
 rem    WebUSB / Web Serial 也必须有 http 源，file:// 打不开任何探针。
@@ -29,12 +29,12 @@ rem ============================================================================
 setlocal
 cd /d "%~dp0"
 
-rem ---- 0) 本 bat 需要兄弟仓库 web-etm-trace（它才是 ETM 后端）----
-rem     只有工具箱仓库的用户请改用包自带的 start-etm-bridge.bat（便携桥）
-if not exist "..\web-etm-trace\server.py" (
+rem ---- 0) 本 bat 需要本仓的 etm/ 子树（它才是 ETM 后端）----
+rem     只有网页、没有后端的用户请改用包自带的 start-etm-bridge.bat（便携桥）
+if not exist "..\etm\server.py" (
   echo.
-  echo   [x] 找不到 ..\web-etm-trace 目录 —— 本 bat 需要和 ETM 仓库并排放。
-  echo       如果你只 clone 了工具箱，请改用便携桥：
+  echo   [x] 找不到 ..\etm 目录 —— 本 bat 需要本仓的 etm 子树（在上一级目录）。
+  echo       如果你只有网页、没有 etm 后端，请改用便携桥：
   echo         bridge\etm\downloads\etm-bridge-win64.zip ^-^> 解压 ^-^> 双击 start-etm-bridge.bat
   echo.
   pause
@@ -49,7 +49,7 @@ echo.
 echo   ETM 桥 + 工具箱 —— 本地网页
 echo   ---------------------------------------------------------------
 echo   仓库：%CD%
-echo   ETM 源：%CD%\..\web-etm-trace
+echo   ETM 源：%CD%\..\etm
 echo   地址：%URL%
 echo.
 
@@ -80,8 +80,8 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-echo   [1/3] 启动：python tools/dev/serve-etm.py --etm-root ..\web-etm-trace --port %PORT%
-start "etm-bridge" /min cmd /c python -X utf8 "tools\dev\serve-etm.py" --etm-root "..\web-etm-trace" --port %PORT%
+echo   [1/3] 启动：python tools/dev/serve-etm.py --etm-root ..\etm --port %PORT%
+start "etm-bridge" /min cmd /c python -X utf8 "tools\dev\serve-etm.py" --etm-root "..\etm" --port %PORT%
 
 rem ---- 3) 等端口就绪（最多 ~20 秒），然后开浏览器 ------------------------
 echo   [2/3] 等服务就绪…

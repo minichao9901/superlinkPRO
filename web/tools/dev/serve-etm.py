@@ -1,7 +1,7 @@
-"""One loopback origin for the toolbox and the sibling ETM project.
+"""One loopback origin for the toolbox and this repository's etm/ subtree.
 
-python tools/dev/serve-etm.py --etm-root ../web-etm-trace --port 8878
-The ETM backend, decoder and records stay in their own repository.
+python tools/dev/serve-etm.py --etm-root ../etm --port 8878
+The ETM backend, decoder and records live in this repository's etm/ subtree.
 """
 import argparse
 import importlib.util
@@ -111,7 +111,7 @@ def create_application(etm_root,serial_root=ROOT):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port',type=int,default=8878)
-    parser.add_argument('--etm-root',type=Path,default=ROOT.parent/'web-etm-trace')
+    parser.add_argument('--etm-root',type=Path,default=ROOT.parent/'etm')
     parser.add_argument('--serial-root',type=Path,default=ROOT)
     args=parser.parse_args()
     print(f'统一工作台：http://127.0.0.1:{args.port}/#etm',flush=True)

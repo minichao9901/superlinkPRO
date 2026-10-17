@@ -28,7 +28,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual({r['id'] for r in records},{demo,'manual','early'})
 
     def test_etm_serves_its_committed_source_store_copy(self):
-        upstream=Path(os.environ.get('SERIAL_ROOT',str(ROOT.parent/'web-serial-rtt-tools')))/'app/dbg/source.js'
+        upstream=Path(os.environ.get('SERIAL_ROOT',str(ROOT.parent/'web')))/'app/dbg/source.js'
         bundled=ROOT/'web/app/shared/dbg/source.js'
         self.assertEqual(bundled.read_bytes(),upstream.read_bytes())
         response=self.client.get('/app/shared/dbg/source.js')
