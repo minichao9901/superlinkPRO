@@ -186,8 +186,8 @@ class RecordStore:
             hi=total_end if end is None else max(total_start,min(total_end,int(end)))
             if hi<lo:raise ValueError('区间结束序号不能小于起点')
             step=max(1,math.ceil((hi-lo+1)/bins))
-            root=dict(name='所选执行区间',value=0,self=0,children={})
-            buckets={};functions={};hotspots={};previous=None;observed=0;first=None;pending_irq=False
+            root=dict(name='所选执行区间',value=0,self=0,selfCycles=0,valueCycles=0,children={})
+            buckets={};functions={};hotspots={};inclusive={};previous=None;observed=0;first=None;pending_irq=False
             for row in db.execute('SELECT data FROM events WHERE seq BETWEEN ? AND ? ORDER BY seq',(lo,hi)):
                 e=json.loads(row[0]);key=(e['seq']-lo)//step
                 bucket=buckets.setdefault(key,dict(startSeq=e['seq'],endSeq=e['seq'],firstSeq=e['seq'],path=None,records=0,unknown=0,notTaken=0,mixed=False,events=[]))
@@ -208,28 +208,50 @@ class RecordStore:
                         common.append(a)
                     bucket['path']=common;bucket['mixed']=True
                 bucket['records']+=1;bucket['unknown']+=e.get('executed') is None;bucket['notTaken']+=e.get('executed') is False
-                node=root;node['value']+=1
+                cc=int(e.get('cycleCount') or 0)
+                node=root;node['value']+=1;node['valueCycles']=node.get('valueCycles',0)+cc
                 for name in path:
-                    node=node['children'].setdefault(name,dict(name=name,value=0,self=0,children={}))
-                    node['value']+=1
-                node['self']+=1
-                stat=functions.setdefault(fn,dict(function=fn,instructions=0,knownExecuted=0,unknownExecution=0,notTaken=0,calls=0,interruptEntries=0))
+                    node=node['children'].setdefault(name,dict(name=name,value=0,self=0,selfCycles=0,valueCycles=0,children={}))
+                    node['value']+=1;node['valueCycles']=node.get('valueCycles',0)+cc
+                node['self']+=1;node['selfCycles']=node.get('selfCycles',0)+cc
+                stat=functions.setdefault(fn,dict(function=fn,instructions=0,knownExecuted=0,unknownExecution=0,notTaken=0,calls=0,interruptEntries=0,selfCycles=0))
                 stat['instructions']+=1;stat['knownExecuted']+=e.get('executed') is True;stat['unknownExecution']+=e.get('executed') is None;stat['notTaken']+=e.get('executed') is False
+                if cc:
+                    stat['selfCycles']+=cc
+                    # 包含周期：沿调用路径给每个祖先函数累加（与 flow_analysis 的 totalCycles 同口径）
+                    for name in path:inclusive[name]=inclusive.get(name,0)+cc
                 if pending_irq:stat['interruptEntries']+=1;pending_irq=False
                 if previous and previous.get('flow')=='call' and previous.get('executed') is True:stat['calls']+=1;observed+=1
                 hotkey=(fn,e.get('file',''),e.get('line'))
-                hot=hotspots.setdefault(hotkey,dict(function=fn,file=e.get('file',''),line=e.get('line'),records=0,unknown=0,pc=e['pc']))
-                hot['records']+=1;hot['unknown']+=e.get('executed') is None;previous=e
+                hot=hotspots.setdefault(hotkey,dict(function=fn,file=e.get('file',''),line=e.get('line'),records=0,unknown=0,cycles=0,pc=e['pc']))
+                hot['records']+=1;hot['unknown']+=e.get('executed') is None;hot['cycles']+=cc;previous=e
             def serialize(node):return {**node,'children':[serialize(c) for c in node['children'].values()]}
             for b in buckets.values():
                 b['path']=b['path'] or []
                 if b['mixed']:b['path'].append('多段调用（放大查看）')
+            # 窗口内的周期聚合（供"按周期加权"的火焰图与函数表使用；没有周期数据时明确降级）
+            total_cycles=sum(s['selfCycles'] for s in functions.values())
+            executed=sum(s['knownExecuted'] for s in functions.values())
+            for s in functions.values():
+                s['totalCycles']=inclusive.get(s['function'],0)
+                s['cyclePercent']=100*s['selfCycles']/total_cycles if total_cycles else 0
+                s['cpi']=(s['selfCycles']/s['instructions']) if (s['instructions'] and s['selfCycles']) else None
+            cycle_functions=[dict(function=s['function'],selfCycles=s['selfCycles'],cyclePercent=s['cyclePercent'],
+                                   instructions=s['instructions'],cpi=s['cpi'],calls=s['calls'])
+                              for s in sorted((x for x in functions.values() if x['selfCycles']),key=lambda x:x['selfCycles'],reverse=True)]
             return dict(range=dict(start=lo,end=hi,totalStart=total_start,totalEnd=total_end),firstSeq=first,
                 timing=dict(axis='execution-order',verifiedTime=False,reason='当前记录没有已验收的逐指令时间戳，执行序号不能换算为微秒'),
                 timeline=list(buckets.values()),resolution=step,
                 analysis=dict(flame=serialize(root),functions=sorted(functions.values(),key=lambda x:x['instructions'],reverse=True),
-                    hotspots=sorted(hotspots.values(),key=lambda x:x['records'],reverse=True),observedCalls=observed,
-                    weight='所选区间的路径记录数（含未成立/未知状态），不是耗时'))
+                    hotspots=sorted(hotspots.values(),key=lambda x:(x['cycles'],x['records']),reverse=True),observedCalls=observed,
+                    timing=dict(totalCycles=total_cycles,cycleRanges=sum(1 for s in cycle_functions),
+                                executedInstructions=executed,instructions=sum(s['instructions'] for s in functions.values()),
+                                cpi=(total_cycles/executed) if (executed and total_cycles) else None,
+                                functions=cycle_functions,timeFlameAvailable=bool(total_cycles),
+                                basis=('所选区间的周期计数（区间末指令记录，可求和）' if total_cycles
+                                       else '所选区间没有周期计数数据（目标未启用或 ETMv3 不支持）')),
+                    weight=('所选区间的路径记录数；周期列才是耗时' if total_cycles
+                            else '所选区间的路径记录数（含未成立/未知状态），不是耗时')))
     def event(self,seq):
         with closing(self.connect()) as db:row=db.execute('SELECT data FROM events WHERE seq=?',(int(seq),)).fetchone()
         if not row:raise ValueError('记录序号不存在')

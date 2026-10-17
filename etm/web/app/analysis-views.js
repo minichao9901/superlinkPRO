@@ -6,7 +6,11 @@ const n=value=>Number(value).toLocaleString('zh-CN');
 
 export function integrityView(result){
   const q=result.quality,box=make('div',undefined,'integrity-panel'),title=make('h3','完整性分层核算');
-  const rows=[['OpenCSD 输入',`${n(q.processedBytes)} 字节`],['包记录字节覆盖',`${n(q.accountedBytes)} 字节；重叠 ${q.overlapBytes}，遗漏 ${q.unaccountedBytes}`],['已识别包',`${n(q.validPackets)} 个`],['未同步 ETM 数据',`${n(q.unsynchronizedBytes)} 字节 / ${q.unsynchronizedRecords} 条占位记录`],['TPIU 同步前',`${q.initialPhysicalBytes??'未记录'} 字节`],['未知源 ID 数据',`${q.unknownSourceBytes??'未记录'} 字节`],['尾部不完整帧',`${q.trailingFrameBytes??'未记录'} 字节`],['执行状态未知',`${q.unknownExecution} 条指令记录`],['溢出 / 包问题',`${q.overflowPackets} / ${q.packetIssues}`],['首个恢复区间的 ETM 偏移',q.firstPathOffset??'无'],['周期计数元素',`${q.timing.cycleElements} 个（未生成逐指令时间轴）`]];
+  const t=result.analysis?.timing;
+  const cycleRow=t?.timeFlameAvailable
+    ? `${q.timing.cycleElements} 个 · 合计 ${n(t.totalCycles)} 周期${t.cpi?` · CPI ${t.cpi.toFixed(2)}`:''}${t.coreHz?` · 覆盖 ${(t.totalCycles/t.coreHz*1e6).toFixed(1)} µs`:''}`
+    : `${q.timing.cycleElements} 个（未启用，或 ETMv3/F103 不支持 → 没有时间轴）`;
+  const rows=[['OpenCSD 输入',`${n(q.processedBytes)} 字节`],['包记录字节覆盖',`${n(q.accountedBytes)} 字节；重叠 ${q.overlapBytes}，遗漏 ${q.unaccountedBytes}`],['已识别包',`${n(q.validPackets)} 个`],['未同步 ETM 数据',`${n(q.unsynchronizedBytes)} 字节 / ${q.unsynchronizedRecords} 条占位记录`],['TPIU 同步前',`${q.initialPhysicalBytes??'未记录'} 字节`],['未知源 ID 数据',`${q.unknownSourceBytes??'未记录'} 字节`],['尾部不完整帧',`${q.trailingFrameBytes??'未记录'} 字节`],['执行状态未知',`${q.unknownExecution} 条指令记录`],['溢出 / 包问题',`${q.overflowPackets} / ${q.packetIssues}`],['首个恢复区间的 ETM 偏移',q.firstPathOffset??'无'],['周期计数元素',cycleRow]];
   const physical=result.physical;
   rows[0][0]='OpenCSD 已处理';rows.unshift(['ETM 原始输入',`${n(q.inputBytes??q.processedBytes)} 字节`],['未处理输入',`${n(q.unprocessedBytes??0)} 字节`]);
   if(physical){rows.push(['物理时钟段',`${physical.clock_runs?.length??1} 段`],['长时钟间隔',`${physical.clock_gaps?.length??0} 处`],['最小数据跳变距离',`${physical.min_data_transition_distance_ns?.toFixed(3)??'—'} ns`]);}
@@ -25,17 +29,35 @@ export function integrityView(result){
 }
 
 function aggregateFlameView(result,onFunction,selectedFunction=''){
-  const box=make('div',undefined,'flame-panel'),heading=make('h3','调用路径火焰图'),note=make('p',result.analysis.weight+'。纵向按调用层级延展，可滚动查看。点击方块放大；可查看选中函数的执行流。'+(selectedFunction?' 蓝框标出当前光标所属函数。':''),'hint'),tools=make('div',undefined,'row'),reset=make('button','重置视图'),open=make('button','查看函数执行流'),label=make('span','全部路径','dim'),canvas=make('div');
-  tools.append(reset,open,label);box.append(heading,note,tools,canvas);
+  const box=make('div',undefined,'flame-panel'),heading=make('h3','调用路径火焰图');
+  const timing=result.analysis?.timing;
+  const cyclesReady=!!timing?.timeFlameAvailable&&(timing.totalCycles||0)>0;
+  // 周期加权（Ozone 同款口径）：宽度 = 该节点累计的**周期数**，而不是指令记录数。
+  // 没有周期数据时退回记录数加权，按钮禁用并说明原因。
+  let weightMode=cyclesReady?'cycles':'records';
+  const weightOf=node=>weightMode==='cycles'?(node.valueCycles||0):(node.value||0);
+  const weightText=()=>weightMode==='cycles'?'宽度＝周期（耗时口径）':'宽度＝路径指令记录数';
+  const note=make('p',`${result.analysis.weight}。${weightText()}。纵向按调用层级延展，可滚动查看。点击方块放大；可查看选中函数的执行流。`+(selectedFunction?' 蓝框标出当前光标所属函数。':''),'hint');
+  const tools=make('div',undefined,'row'),reset=make('button','重置视图'),open=make('button','查看函数执行流');
+  const weightBtn=make('button',weightMode==='cycles'?'切换到记录数':'切换到周期');
+  weightBtn.disabled=!cyclesReady;
+  weightBtn.title=cyclesReady?'火焰图权重：周期数（Ozone 口径）↔ 路径指令记录数':'本记录没有周期计数数据（目标未启用，或 ETMv3/F103 不支持）';
+  const label=make('span','全部路径','dim'),canvas=make('div');
+  tools.append(reset,open,weightBtn,label);box.append(heading,note,tools,canvas);
   const namespace='http://www.w3.org/2000/svg',original=result.analysis.flame;let selected=original;
   const levels=node=>1+Math.max(0,...node.children.map(levels));
-  function repaint(root){selected=root;label.textContent=root.name+' · '+n(root.value)+' 条';open.disabled=root===original||/未知|中断/.test(root.name);const svg=document.createElementNS(namespace,'svg'),height=levels(root)*29+12;svg.setAttribute('viewBox',`0 0 1000 ${height}`);svg.setAttribute('role','img');svg.setAttribute('aria-label','按路径指令记录数量加权的调用火焰图');svg.style.width='100%';
+  function repaint(root){selected=root;label.textContent=root.name+' · '+(weightMode==='cycles'?n(root.valueCycles||0)+' 周期':n(root.value)+' 条');open.disabled=root===original||/未知|中断/.test(root.name);const svg=document.createElementNS(namespace,'svg'),height=levels(root)*29+12;svg.setAttribute('viewBox',`0 0 1000 ${height}`);svg.setAttribute('role','img');svg.setAttribute('aria-label',`按${weightMode==='cycles'?'周期数':'路径指令记录数量'}加权的调用火焰图`);svg.style.width='100%';
     function draw(node,x,depth,width,path){const group=document.createElementNS(namespace,'g'),rect=document.createElementNS(namespace,'rect'),text=document.createElementNS(namespace,'text'),title=document.createElementNS(namespace,'title'),y=height-(depth+1)*29;
       rect.setAttribute('x',x);rect.setAttribute('y',y);rect.setAttribute('width',Math.max(.2,width-1));rect.setAttribute('height',26);let hash=0;for(const c of node.name)hash=(hash*31+c.charCodeAt(0))|0;rect.setAttribute('fill',node.name.includes('未知')?'#c4ccd8':`hsl(${25+Math.abs(hash)%40} 78% ${58+depth%3*5}%)`);rect.setAttribute('rx',2);if(selectedFunction&&node.name===selectedFunction){rect.setAttribute('stroke','#58a6ff');rect.setAttribute('stroke-width','2');}
-      title.textContent=path.concat(node.name).join(' → ')+'；包含 '+n(node.value)+' 条，自身 '+n(node.self)+' 条';text.setAttribute('x',x+5);text.setAttribute('y',y+17);text.setAttribute('fill','#403329');text.setAttribute('font-size',12);text.textContent=width>40?node.name.slice(0,Math.max(1,Math.floor((width-10)/7))):'';group.append(rect,text,title);group.setAttribute('role','button');group.setAttribute('tabindex','0');group.setAttribute('aria-label',`函数 ${node.name}，${node.value} 条路径记录`);group.style.cursor='pointer';group.onclick=()=>repaint(node);group.onkeydown=e=>{if(e.key==='Enter')repaint(node);};svg.append(group);let next=x;for(const child of [...node.children].sort((a,b)=>b.value-a.value)){const w=width*child.value/node.value;draw(child,next,depth+1,w,path.concat(node.name));next+=w;}
+      const cycleInfo=(node.valueCycles!==undefined)?`；周期 ${n(node.valueCycles)}（自身 ${n(node.selfCycles||0)}）`:'';
+      title.textContent=path.concat(node.name).join(' → ')+'；包含 '+n(node.value)+' 条，自身 '+n(node.self)+' 条'+cycleInfo;text.setAttribute('x',x+5);text.setAttribute('y',y+17);text.setAttribute('fill','#403329');text.setAttribute('font-size',12);text.textContent=width>40?node.name.slice(0,Math.max(1,Math.floor((width-10)/7))):'';group.append(rect,text,title);group.setAttribute('role','button');group.setAttribute('tabindex','0');group.setAttribute('aria-label',`函数 ${node.name}，${node.value} 条路径记录${node.valueCycles!==undefined?'，'+node.valueCycles+' 周期':''}`);group.style.cursor='pointer';group.onclick=()=>repaint(node);group.onkeydown=e=>{if(e.key==='Enter')repaint(node);};svg.append(group);
+      const total=weightOf(node)||1;let next=x;
+      const children=[...node.children].filter(c=>weightOf(c)>0).sort((a,b)=>weightOf(b)-weightOf(a));
+      for(const child of children){const w=width*weightOf(child)/total;if(w<.15)continue;draw(child,next,depth+1,w,path.concat(node.name));next+=w;}
     }
-    if(root.value)draw(root,0,0,1000,[]);canvas.replaceChildren(svg);
+    if(weightOf(root))draw(root,0,0,1000,[]);else canvas.replaceChildren(make('p','当前权重下没有可绘制区间。','hint'));canvas.replaceChildren(svg);
   }
+  weightBtn.onclick=()=>{weightMode=weightMode==='cycles'?'records':'cycles';weightBtn.textContent=weightMode==='cycles'?'切换到记录数':'切换到周期';const head=note.textContent.split('。')[0];note.textContent=`${head}。${weightText()}。纵向按调用层级延展，可滚动查看。点击方块放大；可查看选中函数的执行流。`+(selectedFunction?' 蓝框标出当前光标所属函数。':'');repaint(original);};
   reset.onclick=()=>repaint(original);open.onclick=()=>onFunction(selected.name);repaint(original);box.append(make('p',`观测到普通调用 ${n(result.analysis.observedCalls)} 次。灰色为采集前或未证实的调用层级；中断单独成树。`,'hint'));return box;
 }
 

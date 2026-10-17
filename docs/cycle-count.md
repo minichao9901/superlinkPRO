@@ -95,3 +95,55 @@ python -m unittest discover -s tools/tests           → 125 项里 120 通过
 python tools/dev/test-etm.py                        → 4/4 PASS
 node tools/selftest/etm-page-copy.test.mjs          → 42/0
 ```
+
+## 追加：周期计数的三个"用起来"（2026-10-18 上午）
+
+### 1) 周期加权火焰图（Ozone 口径）
+
+调用路径火焰图新增 **「切换到周期 / 切换到记录数」** 按钮：
+
+* 宽度 = 该节点累计的 **周期数**（`valueCycles`），而不是指令记录数（`value`）；
+* 节点 title 同时给出"包含 N 条记录、M 周期（自身 K 周期）"；
+* 没有周期数据（F103 / 未启用）时按钮**禁用**并写明原因，绝不假装能按周期画。
+
+实测（H743 CC-only 记录）切换前后同屏对比：
+
+| 口径 | 标签 | 前 5 个方块宽度 |
+|---|---|---|
+| 周期 | `所选执行区间 · 569,211 周期` | `999 / 998.1 / 998.1 / **106.1** / **102**` |
+| 记录数 | `所选执行区间 · 210,706 条` | `999 / 998.2 / 998.2 / **202.2** / **181.5**` |
+
+差别正是有用的信息：叶子函数"指令多但周期少"（`memmove` 类）在周期口径下会明显收窄。
+
+### 2) 所选区间的周期也参与聚合（窗口分析）
+
+`record_store.window()` 原先只统计记录数，现在同样累加周期：
+`analysis.timing = {totalCycles, cycleRanges, cpi, functions[], timeFlameAvailable, basis}`，
+火焰图节点与函数表都带 `selfCycles/cyclePercent/totalCycles/cpi`，
+**窗口口径与整记录口径对得上**（实测同一记录：窗口与记录级都是 **569,211 周期 / CPI 3.12**）。
+
+> 实现细节：事件表 `events.data` 里本来就存了完整事件 JSON（含 `cycleCount`），
+> 所以窗口聚合**不需要改表结构**，直接从 `data` 读。
+
+### 3) 长窗口聚合（多切片）
+
+`etm/tools/agg_cycles.py`：把多份 CC 记录按**切片逐行 + 跨切片合并**给出分布：
+
+```bash
+python -X utf8 etm/tools/agg_cycles.py etm/records            # 全部 CC 记录
+python -X utf8 etm/tools/agg_cycles.py etm/records --limit 6  # 最近 6 份
+```
+
+输出三段：总周期/平均 CPI/总覆盖时长 → 每切片一行（时间轴）→ 按自身周期排序的函数表
+（含"出现在几份切片里"）。**没有周期数据的记录单独列出、不混算**。
+
+原理：LA 在 500 MSa/s 下单窗深度 5M 点 = 10 ms，所以"长窗口"靠**多切片顺序采集**再聚合，
+而不是提高单窗时长（提高时长必须降采样率，240 Mbit/s 的码流就解不出来了，见 `docs/tpiu-utilization.md`）。
+
+### 4) 本次新增/改动的测试
+
+```
+python -m unittest tools.tests.test_flow_cycles   → 6/6（周期聚合，含降级）
+python tools/dev/test-etm.py                      → 4/4 PASS（页面副本 + ETM UI）
+node tools/selftest/etm-page-copy.test.mjs        → 42/0
+```
