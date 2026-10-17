@@ -8,7 +8,7 @@ import {traceSettings,traceSettingsText} from './trace-options.js';
 import {HistoryView} from './history.js';
 import {COMMON_TARGETS,completeClocks,targetPort} from './clock.js';
 const $=id=>document.getElementById(id),hex=n=>'0x'+(n>>>0).toString(16).padStart(8,'0'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const state={records:[],current:null,job:null,operation:false,elfInfo:null,elfId:null,elfFile:null,sourceFiles:{},sourceSnapshot:null,sourceCompat:false,sources:new SourceStore(),entryAddress:null,hseValues:{stm32h7b0:25,stm32h743:25,stm32f103ze:8},symbolAddress:null,pendingBreakpointRestore:[],lastTraceConfig:null,waiting:false,traceConfigDirty:false};
+const state={records:[],current:null,job:null,operation:false,elfInfo:null,elfId:null,elfFile:null,sourceFiles:{},sourceSnapshot:null,sourceCompat:false,sources:new SourceStore(),entryAddress:null,hseValues:{stm32h7b0:25,stm32h743:25,stm32f103ze:8},hseOverride:null,lastProfile:null,symbolAddress:null,pendingBreakpointRestore:[],lastTraceConfig:null,waiting:false,traceConfigDirty:false};
 const host=embeddedHost(),target=new EtmTarget(log,{host});
 /**
  * API base（本地桥地址）的三级来源 + 默认值。见 web/docs/etm-online-bridge.md。
@@ -133,7 +133,7 @@ function setElf(info,id=null,file=null){if(state.elfInfo&&state.elfInfo.sha256!=
 let symbolTimer;
 $('symbol-search').oninput=()=>{clearTimeout(symbolTimer);symbolTimer=setTimeout(renderSymbols,120);};
 for(const p of COMMON_TARGETS)$('target-profile').append(new Option(p.name,p.id));
-$('target-profile').onchange=()=>{target.profile=$('target-profile').value;state.lastTraceConfig=null;const value=state.hseValues[target.profile];$('hse').value=value??'';target.hseHz=value?value*1e6:null;showClocks();};
+$('target-profile').onchange=()=>{target.profile=$('target-profile').value;state.lastTraceConfig=null;/* 手选板子 = 换板：清掉上一块板的手填覆盖，套该板默认值 */state.hseOverride=null;const value=state.hseValues[target.profile];$('hse').value=value??'';target.hseHz=value?value*1e6:null;showClocks();};
 $('next-clock').onclick=()=>panel('clock');$('next-trace').onclick=()=>panel('trace');
 async function resumeBreakpoints(items){
   if(!target.probe)return;const running=!(await target.isHalted());await target.halt();
@@ -146,16 +146,24 @@ async function showTarget(info){state.lastTraceConfig=info.traceSupported&&info.
   $('target-capability').textContent=info.etmVersion+(info.traceSupported?info.profile==='stm32h743'?' · 实验适配':' · 已适配':' · Trace 待适配');$('target-capability').title=info.traceStatus;$('expected-cpu').max=String(targetPort(info.profile).maxCoreHz/1e6);
   const f103=info.profile==='stm32f103ze';
   /**
-   * 🚨 **换目标板后把 HSE 纠回该板的值**（2026-10-18 现场，H743 → F103ZE 踩到）：
-   *    `#hse` 是 store 绑定的（持久化），从 H743(25 MHz) 换到 F103ZE(8 MHz) 时它仍然是 25
-   *    → `decodeClocks()` 按 25 MHz 反推 PLL，时钟校验/ETM 配置全错，采集根本对不上。
-   *    这里按 `state.hseValues[profile]`（stm32h7b0/h743=25、**stm32f103ze=8**）在连接后回填，
-   *    并重算 clocks —— 用户手改过的值仍会被这块板的默认值覆盖，因为**板子才是事实**。
+   * 🚨 **HSE 的语义（2026-10-18 用户定）**：换板子给**默认值**，但**允许手填覆盖**（不做持久化记忆）。
+   *
+   * 背景：`#hse` 是 store 绑定的，从 H743(25 MHz) 换到 F103ZE(8 MHz) 时它还是 25 →
+   * `decodeClocks()` 按 25 反推 PLL，时钟校验/ETM 配置全错（现场踩到）。
+   *
+   * 现在的规则：
+   *   · 板子变了（profile 不同）→ **丢掉手填覆盖**，套该板默认值；
+   *   · 同一块板 → `state.hseOverride`（手填，仅本次会话）优先，其次默认值；
+   *   · 手选板子下拉（`target-profile`）等同换板，也会清掉覆盖。
+   * 这样"同型号 MCU、不同晶振"的板子也能手填，而换板不会把旧值带过去。**不做持久化记忆。**
    */
+  if(state.lastProfile&&state.lastProfile!==info.profile)state.hseOverride=null;
+  state.lastProfile=info.profile;
   const hseDefault=state.hseValues?.[info.profile];
-  if(hseDefault&&Number($('hse').value)!==hseDefault){
-    $('hse').value=String(hseDefault);
-    target.hseHz=hseDefault*1e6;
+  const hseWanted=state.hseOverride??hseDefault;
+  if(hseWanted&&Number($('hse').value)!==hseWanted){
+    $('hse').value=String(hseWanted);
+    target.hseHz=hseWanted*1e6;
     try{ if(info.rcc)info.clocks=completeClocks(targetPort(info.profile),info.rcc,target.hseHz); }catch{}
   }
   if(info.traceSupported&&!state.traceConfigDirty){
@@ -186,7 +194,7 @@ function clockPlan(){const cpu=Number($('expected-cpu').value),trace=Number($('e
   $('clock-plan').textContent=(vco?'当前 RCC 对应 VCO '+vco.toFixed(3)+' MHz：\nP = '+(vco/cpu).toFixed(3)+'，R = '+(vco/(2*trace)).toFixed(3):'连接目标并识别 RCC 后显示 PLL 分频')+'\nCPU / TRACECLK = '+(cpu/trace).toFixed(2)+'\n每半周期约 '+samples.toFixed(2)+' 个采样点\n固件负责 HSE/PLL、供电、Flash 和业务外设；Web 不改变 CPU/Trace 输入频率。\n零解码错误和频率比例都不能单独证明无损。';
 
 }
-$('hse').onchange=()=>{const value=Number($('hse').value),profile=target.info?.profile||$('target-profile').value;target.hseHz=value>0?value*1e6:null;state.hseValues[profile]=value>0?value:null;
+$('hse').onchange=()=>{const value=Number($('hse').value);target.hseHz=value>0?value*1e6:null;/* 手填 = 覆盖**当前这块板**的默认值（仅本次会话，不持久化；换板自动清） */state.hseOverride=value>0?value:null;
   if(target.info){try{target.info.clocks=completeClocks(targetPort(target.info.profile),target.info.rcc,target.hseHz);target.info.clockError=null;}catch(e){target.info.clocks=null;target.info.clockError=e.message;}}showClocks();};
 $('auto-clock').onchange=()=>showClocks();
 for(const id of ['expected-cpu','expected-trace','rate'])$(id).onchange=()=>showClocks();
@@ -224,7 +232,7 @@ async function watchJob(id,{resume=false,kind='decode'}={}){
     throw e;
   }finally{state.job=null;state.jobKind=null;state.jobPhase=null;controls();}
 }
-on('connect',async()=>{state.lastTraceConfig=null;target.profile=$('target-profile').value;target.hseHz=null;const info=await target.connect();const hse=state.hseValues[info.profile]??state.hseValues.auto;$('hse').value=hse??'';target.hseHz=hse?hse*1e6:null;if(state.hseValues.auto!==undefined){state.hseValues[info.profile]=hse;delete state.hseValues.auto;}await showTarget(await target.inspect());if(state.elfInfo&&target.breakpoints.items.some(b=>b.enabled)){await target.verifyElf(state.elfInfo);await target.breakpoints.resume();await showTarget(await target.inspect());}});
+on('connect',async()=>{state.lastTraceConfig=null;target.profile=$('target-profile').value;target.hseHz=null;const info=await target.connect();/* 手填优先于该板默认值，最后才是 auto 兜底 */const hse=state.hseOverride??state.hseValues[info.profile]??state.hseValues.auto;$('hse').value=hse??'';target.hseHz=hse?hse*1e6:null;if(state.hseValues.auto!==undefined){if(state.hseValues[info.profile]===undefined)state.hseValues[info.profile]=hse;delete state.hseValues.auto;}await showTarget(await target.inspect());if(state.elfInfo&&target.breakpoints.items.some(b=>b.enabled)){await target.verifyElf(state.elfInfo);await target.breakpoints.resume();await showTarget(await target.inspect());}});
 on('recover-debug',async()=>{await target.recoverDebugPort();if(state.pendingBreakpointRestore.length){await target.verifyElf(state.elfInfo);await resumeBreakpoints(state.pendingBreakpointRestore);}await showTarget(await target.inspect());$('job-state').classList.remove('bad');$('job-state').textContent='调试口已恢复，目标暂停；请重新联动采集';});
 async function disconnectTarget(){await target.disconnect();target.info=null;showClocks();$('target-state').textContent='探针已断开';$('live-pc').textContent='当前 PC：未连接';renderBreakpoints();controls();}
 on('disconnect',disconnectTarget);

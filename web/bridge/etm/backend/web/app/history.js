@@ -5,6 +5,16 @@ const $=id=>document.getElementById(id),n=v=>Number(v).toLocaleString('zh-CN'),h
 const make=(tag,text,cls='')=>{const e=document.createElement(tag);e.textContent=text??'';e.className=cls;return e;};
 const eventLabel=e=>({1:'未同步边界（初始化或缺口）',2:'跟踪开启边界',3:'记录窗口结束',6:'该范围的执行路径不完整',7:'无法读取匹配代码镜像',8:'执行地址未知',9:'异常进入 · 编号 '+(e.payload??'未知'),10:'异常返回'})[e.type]||e.text;
 const issueLabel=text=>text.replace('OCSD_GEN_TRC_ELEM_NO_SYNC','未同步边界').replace('OCSD_GEN_TRC_ELEM_TRACE_ON','跟踪开启边界').replace('OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN','执行地址未知').replace('OCSD_GEN_TRC_ELEM_ADDR_NACC','代码镜像无法访问').replace('OCSD_GEN_TRC_ELEM_I_RANGE_NOPATH','范围内执行路径不完整');
+/**
+ * 周期计数的"用途"之一是**把指令数换成时间**（参考 Ozone 的耗时列）：
+ *   总周期 + CPI（每指令周期）+ 按 coreHz 折算的覆盖时长（µs）。
+ * 记录里没有周期数据（目标未启用 / ETMv3 的 F103）时返回空串，绝不显示误导性的 0。
+ */
+const cycleMetricsText=r=>{const t=r?.analysis?.timing;if(!t||!t.timeFlameAvailable)return '';
+  // coreHz 优先取分析时写入的；老记录没有就用采集快照里的时钟（页面能拿到 targetSnapshot）
+  const hz=t.coreHz||r?.targetSnapshot?.clocks?.coreHz||0;
+  const us=hz?` · 覆盖 ${(t.totalCycles/hz*1e6).toFixed(1)} µs`:'';
+  return ` · ${n(t.totalCycles)} 周期`+(t.cpi?` · CPI ${t.cpi.toFixed(2)}`:'')+us;};
 export class HistoryView{
   constructor(api,onError){this.api=api;this.onError=onError;this.sid=null;this.result=null;this.view='instructions';this.offset=0;this.selected=null;this.selectedFunction=null;this.rows=[];this.sources=new Map();this.revision=0;this.selectRevision=0;this.range=null;this.rangeHistory=[];this.window=null;this.flameMode='timeline';this.flameSourceCollapsed=false;this.scopeBusy=false;this.timelineKey=null;this.timelineData=null;this.timelineCollapsed=false;this.flameZoomControls=null;
     this.timelineChart=bindFunctionTimeline($('execution-timeline-canvas'),{onRange:r=>this.setRange(r),onSelect:seq=>this.select(seq,true),onError});
@@ -41,7 +51,7 @@ export class HistoryView{
     const revision=++this.revision;const r=await this.api(this.path('overview'));if(revision!==this.revision)return;
     this.result=r;document.querySelector('[data-view="packets"]').textContent=(r.protocol||'ETMv4')+' 包';$('record-description').textContent=(r.name||name||sid)+' · ELF '+r.elf.sha256.slice(0,12);
     $('records').title=$('record-description').textContent;
-    $('metrics').textContent=n(r.summary.instructions)+' 路径 · '+n(r.quality.validPackets)+' 包 · '+r.summary.exceptions+' 中断';
+    $('metrics').textContent=n(r.summary.instructions)+' 路径 · '+n(r.quality.validPackets)+' 包 · '+r.summary.exceptions+' 中断'+cycleMetricsText(r);
     $('quality').textContent=`${r.targetVerified?'采集时镜像已核对':'未记录采集时镜像核对'} · 未知条件 ${r.quality.unknownExecution} 条 · 包问题 ${r.quality.packetIssues} · overflow ${r.quality.overflowPackets}`+(r.status.lastErrorCode?' · 解码器错误 '+r.status.lastErrorCode:'')+(r.quality.unprocessedBytes?' · 未处理 '+r.quality.unprocessedBytes+' 字节':'')+' · 捕获边界保留';
     if(r.recordError)$('quality').textContent+=' · 最近操作失败：'+r.recordError;
     if(r.quality.unaccountedBytes)$('quality').textContent+=' · 字节覆盖缺口 '+r.quality.unaccountedBytes;
@@ -68,16 +78,26 @@ export class HistoryView{
       this.pagination(0,0);return;
     }
     let data,headers;
+    const analysis=this.range?this.window?.analysis:this.result.analysis;
+    const timing=analysis?.timing;
+    const cyclesOn=!!timing?.timeFlameAvailable;
     if(this.view==='instructions'||this.view==='packets'){
       const p=new URLSearchParams({view:this.view==='packets'?'packets':'events',offset:this.offset,limit:150,search,hideSkipped:$('hide-skipped').checked?'1':'0'});
       this.scopeParams(p);data=await this.api(this.path('page?'+p));headers=this.view==='packets'?['偏移','长度','包']:['序号','PC','机器码 / 指令','函数 / 源码'];
     }else if(this.view==='quality'){data=await this.api(this.path('issues?offset='+this.offset+'&limit=150'));data.offset=this.offset;headers=['区段','关联 ETM 偏移','状态 / 原因'];}
-    else{const all=(this.view==='functions'?(this.range?this.window.analysis:this.result.analysis).functions:(this.range?this.window.analysis:this.result.analysis).hotspots).filter(r=>JSON.stringify(r).toLowerCase().includes(search));data={rows:all.slice(this.offset,this.offset+150),total:all.length,offset:this.offset};headers=this.view==='functions'?['函数','路径记录','实际调用','未知状态']:['函数 / 源码行','路径记录','未知状态'];}
+    else if(this.view==='functions'&&cyclesOn){
+      // 周期视图（参考 Ozone 的函数耗时表）：按**自身周期**降序，占比 = 自身周期 / 总周期
+      const all=analysis.functions.filter(r=>JSON.stringify(r).toLowerCase().includes(search)).slice().sort((a,b)=>(b.selfCycles||0)-(a.selfCycles||0));
+      data={rows:all.slice(this.offset,this.offset+150),total:all.length,offset:this.offset};
+      headers=['函数','自身周期','占比','指令','CPI','实际调用'];
+    }
+    else{const all=(this.view==='functions'?(this.range?this.window.analysis:this.result.analysis).functions:(this.range?this.window.analysis:this.result.analysis).hotspots).filter(r=>JSON.stringify(r).toLowerCase().includes(search));data={rows:all.slice(this.offset,this.offset+150),total:all.length,offset:this.offset};headers=this.view==='functions'?['函数','路径记录','实际调用','未知状态']:(cyclesOn?['函数 / 源码行','周期','路径记录','未知状态']:['函数 / 源码行','路径记录','未知状态']);}
     if(revision!==this.revision)return;this.rows=data.rows;this.offset=data.offset;this.pagination(data.total,this.offset);
     const [table,body]=this.table(headers);
     for(const row of data.rows){const tr=document.createElement('tr');
-      if(this.view==='functions'){tr.append(make('td',row.function),make('td',n(row.instructions)),make('td',row.calls+(row.interruptEntries?' / IRQ '+row.interruptEntries:'')),make('td',row.unknownExecution));tr.onclick=()=>{this.view='instructions';$('search').value=row.function;this.offset=0;this.render().catch(this.onError);};tr.className='function-row';}
-      else if(this.view==='hotspots'){tr.append(make('td',row.function+' :'+(row.line??'—')),make('td',n(row.records)),make('td',row.unknown));tr.onclick=()=>this.locatePC(row.pc).catch(this.onError);tr.className='function-row';}
+      if(this.view==='functions'&&cyclesOn){tr.append(make('td',row.function),make('td',n(row.selfCycles||0)),make('td',((row.cyclePercent||0)).toFixed(1)+'%'),make('td',n(row.instructions)),make('td',row.cpi?row.cpi.toFixed(2):'—'),make('td',row.calls+(row.interruptEntries?' / IRQ '+row.interruptEntries:'')));tr.onclick=()=>{this.view='instructions';$('search').value=row.function;this.offset=0;this.render().catch(this.onError);};tr.className='function-row';}
+      else if(this.view==='functions'){tr.append(make('td',row.function),make('td',n(row.instructions)),make('td',row.calls+(row.interruptEntries?' / IRQ '+row.interruptEntries:'')),make('td',row.unknownExecution));tr.onclick=()=>{this.view='instructions';$('search').value=row.function;this.offset=0;this.render().catch(this.onError);};tr.className='function-row';}
+      else if(this.view==='hotspots'){if(cyclesOn)tr.append(make('td',row.function+' :'+(row.line??'—')),make('td',n(row.cycles||0)),make('td',n(row.records)),make('td',row.unknown));else tr.append(make('td',row.function+' :'+(row.line??'—')),make('td',n(row.records)),make('td',row.unknown));tr.onclick=()=>this.locatePC(row.pc).catch(this.onError);tr.className='function-row';}
       else if(this.view==='quality'){const packet=['packet','gap','overlap','decoder'].includes(row.category);tr.className='issue-row'+(packet?' packet-problem':'');tr.append(make('td',row.startSeq===null?(packet?'ETM 数据问题':'物理边界'):'#'+row.startSeq+(row.endSeq!==row.startSeq?'～'+row.endSeq:'')),make('td',row.offset??'—'),make('td',issueLabel(row.reason)+(row.bytes?' · '+row.bytes+' 字节':'')));if(row.startSeq!==null)tr.onclick=()=>this.select(row.startSeq,true).catch(this.onError);}
       else if(this.view==='packets'){tr.append(make('td',row.offset),make('td',row.size),make('td',row.text));tr.title=row.hex;}
       else{tr.dataset.seq=row.seq;tr.className=row.kind==='event'?'event':'instruction'+(row.executionState==='unknown'?' unknown':row.executed?'':' skipped');if(row.seq===this.selected)tr.classList.add('selected');

@@ -98,6 +98,12 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
             elements_jsonl.open('w', encoding='utf-8') as el_out, \
             native_jsonl.open(encoding='utf-8', errors='replace') as src:
 
+        # 周期计数（OCSD_GEN_TRC_ELEM_CYCLE_COUNT，type 12）是**独立元素**，
+        # 语义是"自上次周期计数以来、前一个指令区间消耗的周期"。流式写出时无法回头改已发出的行，
+        # 所以把**区间最后一条指令**先挂起（pending_tail），等周期元素来了再回填、随后发出。
+        pending_tail = None
+        pending_range_size = 0
+
         for line in src:
             if not line.startswith('{'):
                 continue
@@ -118,6 +124,18 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
             emit(el_out, record)
             elements_n += 1
             etype = record['type']
+            if etype == 12:
+                cycles = int(record.get('cycleCount') or 0)
+                if cycles and pending_tail is not None:
+                    pending_tail['cycleCount'] = int(pending_tail.get('cycleCount') or 0) + cycles
+                    pending_tail['cycleSpan'] = pending_tail.get('cycleSpan') or pending_range_size
+                if pending_tail is not None:
+                    emit(ev_out, pending_tail)
+                    pending_tail = None
+                continue
+            if pending_tail is not None:
+                emit(ev_out, pending_tail)
+                pending_tail = None
             if etype == 5:
                 ranges += 1
                 start, end = record['start'], record['end']
@@ -134,6 +152,11 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
                         f'机器码范围核对失败：0x{start:08x}..0x{end:08x}；'
                         f'OpenCSD={record["payload"]}，反汇编={len(ins_list)}。')
                 last = len(ins_list) - 1
+                # 周期计数（ETMv4 的 cycle-count）挂在**整个区间元素**上，不是每条指令上：
+                #   · `cycleCount` 只记在区间的**最后一条指令**上（事件求和 = 总周期，可归因到函数）；
+                #   · `cycleSpan` = 这段周期覆盖了几条指令（便于页面显示"区间 N 条合计"）。
+                # 未开周期计数（如 ETMv3 / F103）时两者都是 0，下游一律按"没有时间基准"降级。
+                range_cycles = int(record.get('cycleCount') or 0)
                 for index, ins in enumerate(ins_list):
                     function, file, line_no = image.location(ins.address)
                     executed_here = bool(record['lastExecuted']) if index == last else True
@@ -141,8 +164,15 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
                                  pc=ins.address, size=ins.size, bytes=ins.bytes.hex(),
                                  mnemonic=ins.mnemonic, operands=ins.op_str,
                                  executed=executed_here, function=function, file=file,
-                                 line=line_no)
-                    emit(ev_out, event)
+                                 line=line_no,
+                                 cycleCount=(range_cycles if index == last else 0),
+                                 cycleSpan=(len(ins_list) if index == last and range_cycles else 0))
+                    # 最后一条指令先挂起：紧随其后的周期计数元素要回填到它身上
+                    if index == last:
+                        pending_tail = event
+                        pending_range_size = len(ins_list)
+                    else:
+                        emit(ev_out, event)
                     seq += 1
                     instruction_count += 1
                     if executed_here:
@@ -174,6 +204,10 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
     sources_data = {f: image.source(f) for f in sorted(source_files)}
     (workdir / 'sources.json').write_text(json.dumps(sources_data, ensure_ascii=False),
                                           encoding='utf-8')
+    # 流结束时仍有挂起的"区间最后一条指令"（其后没有周期计数元素）→ 补发出去
+    if pending_tail is not None:
+        emit(ev_out, pending_tail)
+        pending_tail = None
     processed = int(status.get('processed') or 0)
     result = dict(
         version=1, protocol=protocol, config=config, inputBytes=len(id_stream),

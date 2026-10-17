@@ -120,7 +120,7 @@ def byte_accounting(result):
 
 def analyze_calls(events):
     stats, hotspots, edges = {}, {}, Counter()
-    root = dict(name='已恢复执行区间', self=0, value=0, children={})
+    root = dict(name='已恢复执行区间', self=0, value=0, selfCycles=0, valueCycles=0, children={})
     stack, contexts, previous = [], [], None
     expected_resume = None
     unknown_restarts = 0
@@ -128,7 +128,8 @@ def analyze_calls(events):
     def statistics(fn):
         return stats.setdefault(fn, dict(function=fn, instructions=0, knownExecuted=0,
                                         unknownExecution=0, notTaken=0, calls=0,
-                                        closedCalls=0, tailTransfers=0, interruptEntries=0))
+                                        closedCalls=0, tailTransfers=0, interruptEntries=0,
+                                        selfCycles=0, totalCycles=0, cycleRanges=0))
 
     def frame(fn, return_pc=None, origin=None):
         return dict(function=fn, returnPC=return_pc, origin=origin)
@@ -198,29 +199,65 @@ def analyze_calls(events):
         s['notTaken'] += e.get('executed') is False
         path = [f['function'] for f in stack]
         e['callPath'] = path
+        # ---- 周期计数归因（ETMv4 cycle count，参考 Ozone 的"每函数耗时/热点"）----
+        # cycleCount 只落在"区间最后一条指令"上（见 decode_trace/decode_stream），
+        # 所以这里累加到该条指令所属函数 = 函数的**自身周期**；整条调用路径累加 = **包含周期**。
+        cc = int(e.get('cycleCount') or 0)
+        e['cycles'] = cc
+        if cc:
+            s['selfCycles'] += cc
+            s['cycleRanges'] += 1
+            for name in path:
+                statistics(name)['totalCycles'] += cc
         node = root
         node['value'] += 1
+        node['valueCycles'] = node.get('valueCycles', 0) + cc
         for name in path:
-            node = node['children'].setdefault(name, dict(name=name, self=0, value=0, children={}))
+            node = node['children'].setdefault(name, dict(name=name, self=0, value=0, selfCycles=0, valueCycles=0, children={}))
             node['value'] += 1
+            node['valueCycles'] = node.get('valueCycles', 0) + cc
         node['self'] += 1
+        node['selfCycles'] = node.get('selfCycles', 0) + cc
         key = (fn, e.get('file', ''), e.get('line'))
-        hot = hotspots.setdefault(key, dict(function=fn, file=e.get('file', ''), line=e.get('line'), records=0, unknown=0, pc=e['pc']))
+        hot = hotspots.setdefault(key, dict(function=fn, file=e.get('file', ''), line=e.get('line'), records=0, unknown=0, cycles=0, pc=e['pc']))
         hot['records'] += 1
+        hot['cycles'] += cc
         hot['unknown'] += e.get('executed') is None
         previous = e
     total_calls = sum(s['calls'] for s in stats.values())
+    total_cycles = sum(s['selfCycles'] for s in stats.values())
+    executed_instructions = sum(s['knownExecuted'] for s in stats.values())
     for s in stats.values():
         s['openCalls'] = max(0, s['calls']-s['closedCalls'])
         s['callPercent'] = 100*s['calls']/total_calls if total_calls else 0
+        s['cyclePercent'] = (100*s['selfCycles']/total_cycles) if total_cycles else 0
+        s['cpi'] = (s['selfCycles']/s['instructions']) if (s['instructions'] and s['selfCycles']) else None
+    cycle_functions = sorted((s for s in stats.values() if s['selfCycles']),
+                             key=lambda s: s['selfCycles'], reverse=True)
+    timing = dict(totalCycles=total_cycles,
+                  cycleRanges=sum(s['cycleRanges'] for s in stats.values()),
+                  executedInstructions=executed_instructions,
+                  instructions=sum(s['instructions'] for s in stats.values()),
+                  cpi=(total_cycles/executed_instructions) if (executed_instructions and total_cycles) else None,
+                  functions=[dict(function=s['function'], selfCycles=s['selfCycles'],
+                                  cyclePercent=s['cyclePercent'], instructions=s['instructions'],
+                                  cpi=s['cpi'], calls=s['calls']) for s in cycle_functions],
+                  timeFlameAvailable=bool(total_cycles),
+                  basis=('周期计数来自 ETMv4 cycle-count 元素（区间末指令记录，可求和）；'
+                         '区间若跨越函数边界会让归因偏移，属极端情况'
+                         if total_cycles else
+                         '本记录没有周期计数数据（目标未启用，或 ETMv3/F103 不支持），时间轴不可用'))
     def serialize(node):
         return {**node, 'children':[serialize(child) for child in node['children'].values()]}
     return dict(functions=sorted(stats.values(), key=lambda s:s['instructions'], reverse=True),
-                hotspots=sorted(hotspots.values(),key=lambda h:h['records'],reverse=True),
+                hotspots=sorted(hotspots.values(),key=lambda h:(h['cycles'],h['records']),reverse=True),
                 flame=serialize(root), observedCalls=total_calls, unknownStackRestarts=unknown_restarts,
                 edges=[dict(caller=a, callee=b, kind=k, count=n) for (a,b,k),n in edges.items()],
-                weight='路径指令记录数（含未成立/未知状态），不是耗时', callsPerSecond=None,
-                rateReason='缺少覆盖可信执行区间的时间基准，暂不计算调用/秒')
+                timing=timing,
+                weight=('路径指令记录数（含未成立/未知状态）；周期列才是耗时，指令数不是' if total_cycles
+                        else '路径指令记录数（含未成立/未知状态），不是耗时'), callsPerSecond=None,
+                rateReason=('缺少覆盖可信执行区间的时间基准，暂不计算调用/秒' if not total_cycles
+                            else '可用周期计数折算时间（coreHz 已知），但调用/秒仍取决于覆盖完整度'))
 
 
 def enrich(result, image=None):
@@ -237,6 +274,14 @@ def enrich(result, image=None):
         mark_execution(result['events'])
     result['quality'] = byte_accounting(result)
     result['analysis'] = analyze_calls(result['events'])
+    # 周期计数 → 时间：coreHz 来自采集时的目标快照（时钟未回读时留空，页面就不显示 µs）
+    timing = result['analysis']['timing']
+    target = result.get('targetSnapshot') or {}
+    core_hz = (target.get('clocks') or {}).get('coreHz')
+    timing['coreHz'] = core_hz if isinstance(core_hz, (int, float)) and core_hz > 0 else None
+    if timing['coreHz'] and timing['totalCycles']:
+        timing['coveredSeconds'] = timing['totalCycles'] / timing['coreHz']
+        timing['basis'] += f"；按 coreHz={timing['coreHz']} 折算时间"
     result['summary']['executed'] = sum(e['kind']=='instruction' and e.get('executed') is True for e in result['events'])
     result['summary']['unknownExecution'] = result['quality']['unknownExecution']
     result['summary']['packetIssues'] = result['quality']['packetIssues']

@@ -167,7 +167,19 @@ def decode(id_stream, elf, workdir, config=None, sources=None, max_events=200000
     status = next((r for r in records if r['kind'] == 'status'), {})
     disassembler = Cs(CS_ARCH_ARM, CS_MODE_THUMB | CS_MODE_MCLASS)
     cache, events, counts, gaps = {}, [], collections.Counter(), []
+    # 周期计数：OpenCSD 把 `OCSD_GEN_TRC_ELEM_CYCLE_COUNT`（type 12）作为**独立元素**抛出，
+    # 语义是"自上次周期计数以来、**前一个指令区间**消耗的周期数"（见 trc_gen_elem_types.h）。
+    # 所以这里记住上一条区间指令，等周期元素到来时**回填**到它身上：
+    # 这样"指令事件的 cycleCount 求和 = 总周期"，可直接按函数归因（flow_analysis 的周期聚合）。
+    last_range_tail = None
+    last_range_size = 0
     for element in elements:
+        if element['type'] == 12:
+            cycles = int(element.get('cycleCount') or 0)
+            if cycles and last_range_tail is not None:
+                last_range_tail['cycleCount'] = int(last_range_tail.get('cycleCount') or 0) + cycles
+                last_range_tail['cycleSpan'] = last_range_tail.get('cycleSpan') or last_range_size
+            continue
         if element['type'] == 5:
             start, end = element['start'], element['end']
             key = (start, end)
@@ -176,14 +188,22 @@ def decode(id_stream, elf, workdir, config=None, sources=None, max_events=200000
             instructions = cache[key]
             if len(instructions) != element['payload'] or not instructions or instructions[-1].address + instructions[-1].size != end:
                 raise ValueError(f'机器码范围核对失败：0x{start:08x}..0x{end:08x}；OpenCSD={element["payload"]}，反汇编={len(instructions)}。')
+            # 周期计数挂在**区间元素**上（不是每条指令）：只记在区间最后一条指令，
+            # 这样事件求和 = 总周期，又能归因到函数（见 docs 里的周期计数用途说明）。
+            range_cycles = int(element.get('cycleCount') or 0)
+            last_index = len(instructions) - 1
             for index, ins in enumerate(instructions):
                 function, file, line = image.location(ins.address)
-                executed = bool(element['lastExecuted']) if index == len(instructions)-1 else True
+                executed = bool(element['lastExecuted']) if index == last_index else True
                 event = dict(kind='instruction', seq=len(events), offset=element['offset'],
                              pc=ins.address, size=ins.size, bytes=ins.bytes.hex(),
                              mnemonic=ins.mnemonic, operands=ins.op_str, executed=executed,
-                             function=function, file=file, line=line)
+                             function=function, file=file, line=line,
+                             cycleCount=(range_cycles if index == last_index else 0),
+                             cycleSpan=(len(instructions) if index == last_index and range_cycles else 0))
                 events.append(event)
+                last_range_tail = event
+                last_range_size = len(instructions)
                 if executed:
                     counts[function or '(未知函数)'] += 1
                 if max_events and len(events) > max_events:
