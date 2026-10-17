@@ -1,146 +1,202 @@
+<div align="center">
+
 # superlinkPRO
 
-面向 **HPM5301EVKLite 调试器（akaLinkPro 探针，VID `0x0D28` / PID `0x0204`）** 的一体化工程：
-探针固件 + 网页工具箱 + ETM 执行轨迹后端与页面。
+**一支探针 + 一个网页 = 整条嵌入式调试工作流**
 
-本仓是**三个既有仓库的合并产物**（逐文件复制 + 按取舍清单裁剪，见 `docs/merge-map.md`），
-不是其中任何一个仓的 fork，也**不携带原仓的 git 历史**（决策 D-6，理由与代价见 `docs/decisions.md`）。
+RTT · J-Scope 波形 · 烧录 · 源码级调试 · **ETM 执行轨迹与周期计数** · SPI/I2C 桥
 
-> **默认不接硬件**：本仓的日常开发与自测面（纯 Node 套件、纯 Python 单元测试、语法与守卫检查）
-> 都在**不接探针、不烧录**的前提下可跑通。真机流程（烧录、RTT、J-Scope、逻辑分析仪抓包）
-> 属于显式的手动步骤，不在默认测试面内。
+![零安装](https://img.shields.io/badge/安装-零安装-2ea043)
+![WebUSB](https://img.shields.io/badge/接口-WebUSB%20%2F%20WebHID%20%2F%20Web%20Serial-1f6feb)
+![目标](https://img.shields.io/badge/目标-STM32%20%C2%B7%20HPM%20RISC--V-orange)
+![RTT](https://img.shields.io/badge/RTT%20转发-3.05%20MB%2Fs-brightgreen)
+![ETM](https://img.shields.io/badge/ETM-ETMv4%20%2B%20ETMv3.4-purple)
+![License](https://img.shields.io/badge/License-Apache%202.0-blue)
 
----
+[快速开始](#快速开始) · [功能总览](#功能总览) · [界面预览](#界面预览) · [ETM 执行轨迹](#etm-执行轨迹) · [实测性能](#实测性能) · [文档索引](#文档索引)
 
-## 1. 目录职责
-
-| 目录 | 职责 | 来源 |
-| --- | --- | --- |
-| `firmware/` | HPM5301EVKLite 探针固件：`application_5301/`（探针主程序 + 板级 + SWD blob）、`bootloader_dfu/`（DFU bootloader）、`tools/pack.py`、`version.json` | akaLinkPro |
-| `script_test/` | 探针主机侧验收脚本（Python，含 `hpm6800_flash_probe.py`、`regression_swd.py`、SPI/I2C 桥测试…）与各目标板靶子固件（F103 / H743 / H7B0 / HPM6800EVK …） | akaLinkPro |
-| `tools/` | 根级主机侧工具：SPI 相序扫描、面板初始化表、逻辑分析仪解码、`clean-evklite-build.ps1` | akaLinkPro |
-| `docs/` | **跨仓文档**：本合并工程的地图、决策、迁移对账与驱动去重（决策 D-4：各子树的 `docs/` 仍留在各自子树内，不向根收敛） | 本仓新增 |
-| `web/` | 网页工具箱（RTT Viewer/转发、烧录、J-Scope、SPI-QSPI 桥与屏、USB→I2C、调试器、ETM 内嵌页、工程生成）+ 便携 RTT 桥 + 它自己的 `tools/`（自测/dev/靶子固件）、`samples/`、`docs/`、`bridge/` | web-serial-rtt-tools |
-| `etm/` | ETM 执行轨迹：后端（`server.py`、`tools/`、`native/` 解码器、`vendor/OpenCSD-1.8.3`、`baselines/`）+ ETM 页面源码（`web/`）+ 保留的 ETM 靶子固件工程 | web-etm-trace |
-
-根级 `Makefile` 来自 akaLinkPro：它的 `APP_DIR=firmware\application_5301`、`script_test/`、
-`tools/clean-evklite-build.ps1` 全部按**相对仓库根**寻址，因此在这个布局下**零改动**。
-`web/` 整树保持原样也是同样的理由（它的 Makefile 有 293 处 `tools/` 相对引用、`tools/**` 里还有
-416 处 `app/` 等相对引用；把 `web/tools` 拆到根就要改 ≈600 处）。
-
-> 目标布局与逐路径映射：`docs/merge-map.md` §2.2（A/B/C/D 四张表）。
-> 搬家后需要改路径引用的只有 5 个文件 ≈10 行：`docs/merge-map.md` §2.4。
+</div>
 
 ---
 
-## 2. 与三个原仓的关系
+## 为什么是 superlinkPRO
 
-| 源仓 | 本地路径 | 分支 | commit | 在本仓的落点 | 取舍摘要 |
-| --- | --- | --- | --- | --- | --- |
-| akaLinkPro | `E:\Share\github\akaLinkPro` | `main` | `321487255d2ececea8d56282b07f3c7254e9862b` | `firmware/`、`script_test/`、`tools/` + 根 `Makefile`/`LICENSE`；`docs/`（落点见 D-4） | 只保留 **HPM5301EVKLite** 相关：不迁 `hardware/`、`hardware_pro/`、`boards/akaLinkPro` 原板板级与 3 个原板 `.bat`（D-1），不迁 `.opencode/skills`（D-3）；`script_test/` 里的重复靶子暂不瘦身（D-5） |
-| web-serial-rtt-tools | `E:\web-serial-rtt-tools` | `main` | `089e38392127029025c9c4bcd6d803ad60df3742` | `web/`（整树平移，含它自己的 `tools/`、`samples/`、`docs/`、`bridge/`、`Makefile`） | 不迁团队状态 `.agent-teams/`；不迁未跟踪的验收产物（`docs/validation` 里 4206 个文件 ≈3.5 GB）；**带走** 8 个未提交的真源码改动 + `docs/h743-web-review-2026-10-17.md`（§5.1） |
-| web-etm-trace | `E:\web-etm-trace` | **`master`** | `12746fc035833e90f695d45e15a1f7ffa1e132ad` | `etm/`（后端 + 页面 + OpenCSD + 基线） | ETM 的 `firmware/` 只保留靶子工程（D-2；其余 678 MB 带 SDK 的工程与 toolbox 的 HAL/CMSIS 逐字节重复，不搬） |
+传统做法要装驱动、装 IDE、装厂商工具，换一次芯片就得再换一套软件。superlinkPRO 把三件事合成一套：
 
-- **无 git 历史**（D-6）：合并采用逐文件复制，本仓拿不到原仓的逐文件 `git blame`。需要考古时回原仓，
-  按上表的绝对路径 + 40 位 commit 定位（**原仓若被删除，上表是最后凭据**）。
-  迁移方式、裁剪清单与逐项对账结果分别记在各子树的 `README-migrated.md` 与
-  `docs/merge-verification.md`（t7 产出）。
-- **探针驱动去重**：`dap-webusb.js` 等 7 个文件在三个源仓里有 2~3 份拷贝且已经分叉。
-  合并方案是「toolbox 版为唯一真源 + `etm/web/app/shared/**` 为生成副本 + sha256 守护」，
-  详见 `docs/driver-unification.md`（t6 产出）。
-- 两处**故意不同**的已知重复（不是漏合并，别误当冲突）：
-  1. `etm/web/app/target.js` 是 ETM 独有的目标抽象（`EtmTarget`），与 `web/app/swo/target.js` 同名不同物；
-  2. `etm/tools/la/kingst_la.py` 是上位的超集版本，`web/tools/la/kingst_la.py` 仍在 toolbox 侧使用（§4.6）。
+| | 传统方案 | superlinkPRO |
+|---|---|---|
+| 上位机 | 安装 IDE / 厂商工具链（数百 MB） | **浏览器打开即用**，无驱动、无插件 |
+| 探针 | 商用量产探针，功能受固件限制 | **自研 akaLinkPro 探针**：SWD 60 MHz、JTAG、WebUSB 原生 |
+| 数据 | RTT、波形、trace 各一套工具 | **同一个页面**：RTT / J-Scope / 烧录 / 调试 / **ETM trace** |
+| 执行轨迹 | 高端 trace 探针 + 昂贵软件 | **ETM 四线引出 + 网页解码**，含**周期计数**（函数耗时/CPI） |
 
----
+仓库由三部分组成：
 
-## 3. 入口与自测（都不需要硬件）
+* `firmware/`、`script_test/` —— **探针固件与标定脚本**（HPM5301：CMSIS-DAP + CDC + 自定义 HID + WebUSB）
+* `web/` —— **网页工作台**（串口、RTT、J-Scope、烧录、调试器、SPI/I2C 桥、屏驱动、工程生成）
+* `etm/` —— **ETM 执行轨迹**（Kingst LA 采集 → TPIU 解复用 → OpenCSD 解码 → 源码级回放）
 
-| 子树 | 常用入口 |
-| --- | --- |
-| 根（固件） | `make help`；构建 `cd firmware\application_5301 && build_dfu_evklite.bat`（需本机 `E:\sdk_env_v1.11.0` 工具链）；主机侧逻辑回归 `make test-host`、`make test-jtag-host`、`make test-usb-descriptors` |
-| `web/` | `make serve`（静态服务 8899）/ `make open`（起 CDP 浏览器 9333）/ `make test`（纯 Node 套件）/ `make check`（语法 + Liquid 守卫）；改了 `web/app/**` 要重建 `web/app/site/main.js` |
-| `web/` + `etm/` | `make serve-etm`（8878，把 `etm/` 挂到 `/etm/` 给内嵌页用）/ `make test-etm`、`make test-etm-integration` |
-| `etm/` 单独 | `pwsh -File etm/start-web.ps1`（8766）或 `python etm/server.py`；后端测试 `python -m unittest discover -s etm/tools/tests`、`node --test etm/tools/tests/*.test.mjs` |
+> 仓库是怎么从三个项目合并来的：见 [docs/merge-readme.md](docs/merge-readme.md) 与 [docs/merge-map.md](docs/merge-map.md)。
 
-> 目标名与前置条件以各子树自己的 `Makefile` / `README.md` 为准（合并**不改**这些文件）。
-> CDP 页面套件共用同一套 8899/9333 服务与浏览器，**不要并发跑两个**。
+## 功能总览
 
----
+| 页面 | 能做什么 | 实测 / 状态 |
+|---|---|---|
+| **串口 / 终端** | Web Serial + WebUSB 双后端，HEX/文本、发送历史、记录到文件 | 稳定 |
+| **RTT Viewer** | SWD 轮询或 RISC-V/JTAG（SBA 直读），自动找控制块、通道/缓冲配置 | STM32 **447 KB/s**、RISC-V **60–77 KB/s** |
+| **RTT 转发** | 探针侧桥把 RTT 搬到 CDC，主机直接用串口工具 | **3.05 MB/s**（60 MHz 档） |
+| **J-Scope 波形** | 8 变量、多泳道/叠加、A/B 游标、实时 CSV / 原始包流 | 1 变量 **50 kHz 零 USB 丢** |
+| **烧录器** | STM32（AHB-AP flashloader）与 HPM RISC-V（XPI + XIP 校验），含校验与自愈 | H743 31.6 KB **2.4 s**；HPM 246 KB **8.2 s** |
+| **调试器** | 断点/单步/寄存器/RAM、**源码级单步**（F10/F11/跳出）、结构体树、命令行 | ARM + RISC-V，与 gdb 逐地址对照通过 |
+| **ETM 执行轨迹** | ETMv4 / ETMv3.4 四线并行采集、TPIU 解复用、源码回放、**周期计数** | H743 10 ms → **210,706 指令**；F103ZE 172,596 指令 |
+| **SPI / I2C 桥** | 通用帧 DSL、寄存器面板、定时采集、SPI/NOR Flash 测试 | SPI 发图 **6.29 MB/s**（四线 16.77） |
+| **SPI/QSPI 屏** | 面板初始化表、图片/图案/动画、**局部刷新** | 单线 40 MHz **3.15 MB/s**、60 MHz 3.71 |
+| **工程生成** | Keil `.uvprojx` → CMake + J-Link/OpenOCD/pyOCD 配套件 | 与 Python 工具逐字节对拍 |
 
-## 4. 入库约定（`.gitignore` / `.gitattributes` 的关键点）
+## 界面预览
 
-1. **固件交付物必须入库**：`*.elf` / `*.bin` / `*.hex` 是本项目的交付物（EVKLite 的 DFU 镜像 ELF、
-   F103 的 `fw.elf/.bin/.hex`、H743/H7B0/HPM5300EVK 靶子固件……）。根 `.gitignore` **不写**这些
-   扩展名的通用忽略规则；只忽略具体构建目录，并对随仓库发布的镜像逐个白名单（`.gitignore` 文件头有说明）。
-2. **验收记录入库、验收产物不入库**：三个源仓在 `docs/` 各子树下的 `validation/` 里共有 **1086 个已跟踪**
-   记录（web 894 / akaLinkPro 139 / ETM 53），而 web 侧另有 **4206 个未跟踪产物（2494 MB；
-   连同源仓本就忽略的 814 个文件，整目录约 3.5 GB）**。
-   根 `.gitignore` 的写法是「**默认忽略整层内容 + 放行已跟踪记录所在的目录与文件类型 +
-   对未跟踪产物族按类型压掉（实测 92.7% 文件 / 98.3% 字节）**」。
-   **不要**改成整目录 `docs/validation/` 忽略：目录一旦被排除，git 就无法再放行其内部文件，
-   搬迁时这 1086 个文件会被 `git add -A` **静默丢掉**（`docs/merge-map.md` §7 的对账会直接红）。
-3. **临时件/产物一律忽略**：`tmp/`、`captures/`、`records/`、`build*/`、`build-native/`、`decoded/`、
-   `node_modules/`、`__pycache__/`、`*.log`、`*.map`、`*.csv`、`.agent-teams/`（团队状态，**绝不入库**）……
-4. **字节保真**：三个源仓都是 `core.autocrlf=true`（本仓沿用）。对账基线
-   （`web/tools/fixtures/gen/**`、`web/tools/fixtures/dwarf/**`）、素材（BMP/GIF/APNG/WebM）、
-   ETM 记录（`*.etmrecord` / `*.kvdat`）与压缩包（`*.gz` / `*.zip`）在 `.gitattributes` 里标成
-   `-text` / `binary`，**不要**让换行转换碰它们。
-5. **中文文件名的坑**：三仓都有中文文件名。取清单必须 `git -c core.quotepath=false ls-files`，
-   否则中文名被转义成 `"docs/\344\272\244..."`，按它复制会**静默漏文件**（merge-map §1.1/§6.2 实测踩过）。
-6. **自检忽略规则**：搬迁前后都可跑
-   `git check-ignore --no-index -v --stdin < 待搬迁清单.txt`，确认输出里没有「应当入库」的路径。
+<div align="center">
 
----
+**RTT 转发 / 终端**
 
-## 5. 文档索引
+<img src="web/docs/shots/readme-rttcdc.png" width="820">
 
-| 文档 | 内容 | 状态 |
-| --- | --- | --- |
-| `docs/merge-map.md` | 三仓清单、逐路径映射表、重复冲突清单、执行步骤与对账口径（**合并的唯一依据**） | ✅ 已完成（t1） |
-| `docs/decisions.md` | D-1 ~ D-6 的已批准决策与两条必须传给下游的踩坑 | ✅ 已完成 |
-| `docs/merge-verification.md` | 迁移对账（文件数 / 字节数 / 逐文件 sha256 与已知差异） | ⏳ t7 |
-| `web/docs/driver-unification.md` | 探针驱动去重定稿（真源 / 生成副本 / sha256 守卫 / 取舍理由；索引在 `docs/driver-unification.md`） | ✅ 已完成（t6） |
-| `web/docs/etm-online-bridge.md` | ETM 线上页（GitHub Pages）+ 本地桥（跨源）的拓扑、桥地址配置、端口探测、CORS 白名单与排障 | ✅ 已完成（t8） |
+**J-Scope 波形（多泳道 + 游标）**
 
-各子树自带的说明文档仍在原位：`firmware/README.md`、`web/README.md`、`etm/README.md`
-（以及各自的 `docs/`）。
+<img src="web/docs/shots/readme-scope-demo.png" width="820">
 
----
+**调试器（源码级单步 + 结构体 + 寄存器高亮）**
 
-## 6. 当前状态（迁移完成 + 驱动已统一，待 t7 对账）
+<img src="web/docs/shots/readme-dbg.png" width="820">
 
-- ✅ 迁移：`web/`（t3，2037 文件）、`firmware/ script_test/ tools/ docs/`（t4）、`etm/`（t5，裁剪式）
-  均已入库；各自的 `README-migrated.md` 记录来源路径/分支/40 位 commit、对账数字与裁剪理由。
-- ✅ 驱动统一（t6）：7 个探针驱动 + 1 个依赖的真源在 `web/app/**`，`etm/web/app/shared/**` 为
-  `node tools/dev/sync-shared-drivers.mjs` 生成的逐字节副本（sha256 守卫 24 项全过）；合并取舍与
-  未重生成 ETM 快照的原因见 `web/docs/driver-unification.md`。
-- ⏳ 待做：`docs/merge-verification.md`（t7 全仓对账）。
-- ✅ 骨架期记录（保留作证据）：
-  - `git init`（分支 `main`）、根 `.gitignore`（三仓并集）、根 `.gitattributes`；`docs/` 只放跨仓文档。
-- ✅ 忽略规则已复核（`git check-ignore --no-index -v -n --stdin`，共 3 轮）：
-  - 检查集 **8725 个路径** = akaLinkPro 可迁移集 609（按 D-1/D-3 去掉原板硬件、`.opencode`、原板 `.bat` 等，
-    **docs 的两种落点都测**：根 `docs/` 与 `firmware/docs/`）+ toolbox 2035 + **ETM 全部 5472**
-    （比 D-2 的保留集更大，检查更严）→ **被忽略的 0 个**；
-  - 三个源仓**全部 8187 个已跟踪文件**的朴素映射 → **只有 3 个被忽略**，且全是
-    `hardware_pro/production/*.csv`（KiCad 生产 BOM/坐标表，按 D-1 不迁移）；
-  - 关键交付物逐个复核「不被忽略」：`akaLinkPro_App.elf`、`akaLinkPro_Boot.elf`、
-    `script_test/stm32f103_rtt_speed/build-{cb,ze}/fw.{elf,bin,hex}`、
-    `etm/firmware/{stm32h743,stm32h7b0_*}/fw.{elf,bin,hex}`、`web/tools/target-firmware/stm32f103_*/build-cb/fw.elf`、
-    `etm/vendor/OpenCSD-1.8.3/decoder/build/**`、`web/bridge/etm/backend/build-native/etm_decode.exe`、
-    以及 `web/docs/validation` 下 894 个已跟踪记录（含 120 个 `.log`、1 个 `.csv`）；
-  - 未跟踪验收产物：4206 个里有 **3897 个（92.7% 文件 / 98.3% 字节）** 被 `.gitignore` §E2 的产物族规则压掉，
-    剩余 309 个（43 MB，零散截图/文本/补丁）与已跟踪证据同类型、无法按类型安全忽略，且不在迁移清单内；
-  - `.gitattributes` 复核：`web/tools/fixtures/**` 为 `-text`/`binary`、BMP/GIF/WebM 与大文件为 `binary`、
-    `*.etmrecord`/`*.kvdat`/`*.gz`/`*.zip`/`*.elf`/`*.bin` 为 `binary`、`*.bat` 与 Keil SVD 为 `-text`。
-- ⏳ 待搬：`firmware/ script_test/ tools/ docs/ web/ etm/` 的业务文件按 `docs/merge-map.md` §6.2 复制
-  （逐文件 `Copy-Item`，含已跟踪文件的**工作区最新内容**），随后做 §7 的 12 项对账。
-- ⚠️ 本仓的 `core.autocrlf` 与三个源仓一致为 `true`；`docs/validation` 的放行清单见 `.gitignore` §E。
+</div>
 
-## 7. 已知限制
+## ETM 执行轨迹
 
-- 无原仓 git 历史（D-6）；逐行考古需回原仓（见 §2 的 commit 表）。
-- 真机项（探针、烧录、RTT/J-Scope、逻辑分析仪）不在默认测试面内，相关脚本会显式提示需要硬件。
-- `script_test/` 与 `web/tools/target-firmware/` 之间有 115 个逐字节相同的靶子固件文件（D-5 暂不瘦身）。
-- ETM 的内嵌页依赖同源服务（`web/tools/dev/serve-etm.py` 或包内 `runtime/serve-etm.py`），
-  直接双击 `index.html` 打不开 ETM 页。
+2026-10 新增的主线能力：**把 Cortex-M 的 ETM 端口接出来，用逻辑分析仪采原始波形，在网页里解出"程序到底执行了什么"**。
+
+* **并行采集**：ETMv4（STM32H743，4 位 DDR → TPIU）与 ETMv3.4（STM32F103ZE，PE2–PE6 四位并行）
+* **解码链路**：TPIU 帧同步/解复用 → OpenCSD 1.8.3 → 指令级事件 → 源码映射
+* **源码回放**：执行流按源码行回放，可导出**简化 C**（按执行顺序排列的源码行 + 函数上下文）
+* **周期计数**（ETMv4 独有）：函数**自身周期 / 占比 / CPI / 覆盖时长**、**周期加权火焰图**、长窗口多切片聚合
+
+<div align="center">
+
+**函数耗时视图（自身周期 · 占比 · 指令数 · CPI）**
+
+<img src="docs/shots/etm-cycle-functions.png" width="820">
+
+**周期加权火焰图（宽度＝周期，不是记录数）**
+
+<img src="docs/shots/etm-cycle-flame.png" width="820">
+
+</div>
+
+实测（H743，CPU 60 / TRACECLK 30 MHz，10 ms 窗口）：
+
+| 指标 | 数值 |
+|---|---|
+| 指令 / 包 | **210,706** 条 / 17,601 包，包问题 0 |
+| 周期元素 / 总周期 | 2,126 个 / **569,211** 周期 · CPI **3.12** · 覆盖 **9,486.9 µs** |
+| 函数耗时 Top | `main` 87.5%（CPI 3.10）· `_svfprintf_r` 2.9% · `dwc2_low_level_init` CPI **17.25** |
+| TPIU 使用率 | 全关 **5.62%** / 返回栈 **5.10%** / 周期计数 **7.45%**（带宽远未饱和，瓶颈是采样余量） |
+
+型号支持：
+
+| 型号 | ETM 版本 | 选项能力 | 状态 |
+|---|---|---|---|
+| STM32F103ZE | ETMv3.4 | 分支广播 | 已适配 |
+| STM32H743 | ETMv4 | 分支广播 / 返回栈 / **周期计数** | 已适配 |
+| STM32H7B0 | ETMv4 | 三项 | 已适配 |
+
+> 验收数字与限制见 [docs/acceptance-2026-10-18-etm.md](docs/acceptance-2026-10-18-etm.md)；
+> 周期计数用途见 [docs/cycle-count.md](docs/cycle-count.md)；带宽分析见 [docs/tpiu-utilization.md](docs/tpiu-utilization.md)。
+
+## 实测性能
+
+以下数字来自 **akaLinkPro 探针 + 真实浏览器页面 + 对应目标板** 的实测，不是理论值。
+不同 USB 口、供电与浏览器负载会影响结果。
+
+| 项目 | 实测结果 | 条件 |
+|---|---|---|
+| RTT 转发 | **3.046 MB/s**（45 MHz 档 2.577） | F103ZE 96 MHz 靶子；页面 RX = 探针侧自报 |
+| RTT Viewer（SWD） | **447 / 477 KB/s** | H743 @60 MHz，轮询约 110 Hz |
+| RTT Viewer（RISC-V） | **60–77 KB/s** | HPM6800EVK，SBA 批量读 |
+| J-Scope | 1 变量 **50.00 kHz**，USB 丢 0、探针跳拍 ≈20 ppm | F103ZE，60 MHz 档 |
+| SRAM 读写（网页） | 读 **2.743** / 写 **3.042 MB/s** | 60 MHz 档，1024 B 包、在飞 4 |
+| SPI 发图 | 单线 **6.29 MB/s**、四线 **16.77 MB/s** | SCK 60 MHz，32 KiB 批次 |
+| QSPI 刷屏 | 40 MHz **3.15 MB/s**、60 MHz **3.71 MB/s** | 253 KB 整屏，含开窗 |
+| 烧录 | H743 31.6 KB **2.4 s**；F103ZE 0.7–1.0 s；HPM 246 KB **8.2 s** | 含擦除 + 写入 + 回读校验 |
+| ETM | 10 ms → **210,706 指令**、**569,211 周期** | H743 ETMv4，500 MSa/s LA |
+
+## 快速开始
+
+### 1. 直接用网页（零安装）
+
+打开 <https://minichao9901.github.io/superlinkPRO/>，插上探针，浏览器会请求 USB/HID/串口授权。
+
+> Chrome / Edge 支持 WebUSB 与 WebHID；Web Serial 需要 Chromium 内核浏览器。
+
+### 2. 本地桥（离线可用）
+
+`web/bridge/etm/downloads/etm-bridge-win64.zip`（**约 25 MB 单文件**）解压后双击 `start-bridge.bat`：
+自带运行时探测，缺 Node 会自动下载便携版（不动系统），桥起来后用它托管的页面即可。
+
+```text
+start-bridge.bat        # 起本地桥并托管页面
+check-tools.bat         # 环境自检（--doctor）
+```
+
+### 3. 烧探针固件（可选）
+
+```bash
+cd firmware/application_5301 && build_dfu_evklite.bat      # 构建
+py script_test/hpm6800_flash_probe.py --no-build            # 经 HID 进 DFU 后写入
+```
+
+> 烧录前先关掉占用探针的浏览器页签，否则 HID 会被独占。
+
+## 硬件与兼容性
+
+| 角色 | 支持情况 |
+|---|---|
+| 探针 | **akaLinkPro**（HPM5301：CMSIS-DAP v2 + CDC + 自定义 HID + WebUSB + DFU），SWD 最高 60 MHz，JTAG 支持 RISC-V |
+| ARM 目标 | STM32F103（含 ZE 大容量）、STM32F4、STM32H7B0、**STM32H743**（ETMv4） |
+| RISC-V 目标 | HPM6800EVK、HPM5301EVKLite 等 HPM 系列（JTAG + SBA + 触发器断点） |
+| 逻辑分析仪（ETM 用） | KingstVIS 系列（USB socket API），500 MSa/s · 5M 点/通道 |
+
+已知边界（建议先读）：
+
+* **ETM 分支广播 / 三项全开**在 500 MSa/s 下会因 2.08 样本/位位滑而 demux 失败 —— 带宽不是瓶颈，采样余量才是（见 [docs/tpiu-utilization.md](docs/tpiu-utilization.md)）
+* Web Serial 的端口选择框**必须人工授权一次**（浏览器安全模型），其余授权可由脚本预置
+* 网页调试器覆盖断点/单步/寄存器/结构体，**不含**反汇编编辑器、RTOS 视图与多核同步
+
+## 目录结构
+
+```text
+superlinkPRO/
+├── firmware/        探针固件（HPM5301，DFU 打包与构建脚本）
+├── script_test/     探针标定与真机回归脚本（RTT / SWD / scope 基线）
+├── web/             网页工作台（app/ 源码、tools/ 自测、docs/ 文档与截图）
+│   └── bridge/etm/  ETM 本地桥与便携包
+├── etm/             ETM 执行轨迹（tools/ 解码与后端、web/ 前端、records/ 记录）
+├── docs/            合并说明、验收记录、设计与决策文档
+└── .github/         Pages 自动发布
+```
+
+## 文档索引
+
+| 主题 | 文档 |
+|---|---|
+| 仓库合并说明（原 README） | [docs/merge-readme.md](docs/merge-readme.md) · [docs/merge-map.md](docs/merge-map.md) |
+| ETM 验收与限制 | [docs/acceptance-2026-10-18-etm.md](docs/acceptance-2026-10-18-etm.md) |
+| 周期计数的用途 | [docs/cycle-count.md](docs/cycle-count.md) |
+| TPIU 使用率 / 带宽分析 | [docs/tpiu-utilization.md](docs/tpiu-utilization.md) |
+| 探针 60 MHz 稳定性 | [docs/probe-60mhz-instability-analysis.md](docs/probe-60mhz-instability-analysis.md) |
+| 合并验收记录 | [docs/merge-verification.md](docs/merge-verification.md) · [docs/hpm6800-acceptance-2026-10-18.md](docs/hpm6800-acceptance-2026-10-18.md) |
+| 网页工作台细文档 | [web/README.md](web/README.md) · [web/docs/](web/docs/) |
+| ETM 细文档 | [etm/README.md](etm/README.md) · [etm/docs/](etm/docs/) |
+
+## 许可证
+
+Apache License 2.0 —— 见 [LICENSE](LICENSE)。
