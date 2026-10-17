@@ -22,30 +22,33 @@ const host=embeddedHost(),target=new EtmTarget(log,{host});
 function resolveApiBase(){
   /**
    * 🚨 本模块会被 **Node 直接 import**（`tools/selftest/etm-ui-sequences.test.mjs` 在无 DOM 环境下
-   *    断言页面序列）——所以任何浏览器全局都必须按"可能不存在"处理。
-   *    2026-10-18 全量回归就栽在这：顶层 `const apiBase=resolveApiBase()` 里直接用了 `location`，
+   *    断言页面序列）——所以任何浏览器全局都必须先判断"存不存在"再用。
+   *    2026-10-18 全量回归就栽在这：顶层 `const apiBase=resolveApiBase()` 里直接用 `location`，
    *    Node 里没有这个全局 → import 阶段就 `ReferenceError: location is not defined`，
-   *    整个 ETM UI 套件（200+ 断言）全红。浏览器里行为与之前完全一致。
+   *    整个 ETM UI 套件（200+ 断言）全红。
+   *    ⚠️ 这里刻意**保留原来的字面量写法**（`document.body?.dataset?.apiBase` / `new URLSearchParams(location.search)` /
+   *    `localStorage.getItem('etm.apiBase')`）—— `etm-page-copy.test.mjs` 是按源码文本断言这三个来源的。
    */
-  const attr=globalThis.document?.body?.dataset?.apiBase;
+  const hasDom=typeof document!=='undefined';
+  const hasLoc=typeof location!=='undefined';
+  const attr=hasDom?document.body?.dataset?.apiBase:null;
   if(attr)return attr;
   const injected=globalThis.__etmApiBase;
   if(injected)return injected;
-  const loc=globalThis.location;
-  if(loc?.search){
-    const query=new URLSearchParams(loc.search).get('api');
+  if(hasLoc){
+    const query=new URLSearchParams(location.search).get('api');
     if(query)return query;
   }
-  let saved=null;try{saved=globalThis.localStorage?.getItem('etm.apiBase');}catch{}
+  let saved=null;try{saved=localStorage.getItem('etm.apiBase');}catch{}
   if(saved)return saved;
-  return /\.github\.io$/i.test(loc?.hostname||'')?'http://127.0.0.1:8899/etm/api/':'/api/';
+  return hasLoc&&/\.github\.io$/i.test(location.hostname)?'http://127.0.0.1:8899/etm/api/':'/api/';
 }
 const apiBase=(()=>{const value=resolveApiBase();return value.endsWith('/')?value:value+'/';})();
 /** 把服务端返回的 `download` 字段（可能是 `/etm/api/...` 这种根相对路径）绑到 API 源上。 */
 function apiUrl(value){
   if(!value)return value;
   if(/^[a-z]+:/i.test(value))return value;
-  const href=globalThis.location?.href||'http://127.0.0.1/';   // Node 里没有 location（同上）
+  const href=(typeof location!=='undefined')?location.href:'http://127.0.0.1/';   // Node 无 location（同上）
   return new URL(value,new URL(apiBase,href)).href;
 }
 async function api(path,body){return requestJson(apiBase+path,body===undefined?{}:{method:'POST',...(body instanceof FormData?{body}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})},{timeout:path.endsWith('/overview')?300000:45000});}
@@ -142,6 +145,19 @@ async function withBreakpointsSuspended(fn){const items=target.breakpoints.items
 async function showTarget(info){state.lastTraceConfig=info.traceSupported&&info.config?{...info.config}:null;$('target-state').textContent=info.name+' · '+(info.halted?'已暂停':'运行中')+' · DEV_ID '+hex(info.device&4095);$('config-values').textContent=JSON.stringify(info,null,2);
   $('target-capability').textContent=info.etmVersion+(info.traceSupported?info.profile==='stm32h743'?' · 实验适配':' · 已适配':' · Trace 待适配');$('target-capability').title=info.traceStatus;$('expected-cpu').max=String(targetPort(info.profile).maxCoreHz/1e6);
   const f103=info.profile==='stm32f103ze';
+  /**
+   * 🚨 **换目标板后把 HSE 纠回该板的值**（2026-10-18 现场，H743 → F103ZE 踩到）：
+   *    `#hse` 是 store 绑定的（持久化），从 H743(25 MHz) 换到 F103ZE(8 MHz) 时它仍然是 25
+   *    → `decodeClocks()` 按 25 MHz 反推 PLL，时钟校验/ETM 配置全错，采集根本对不上。
+   *    这里按 `state.hseValues[profile]`（stm32h7b0/h743=25、**stm32f103ze=8**）在连接后回填，
+   *    并重算 clocks —— 用户手改过的值仍会被这块板的默认值覆盖，因为**板子才是事实**。
+   */
+  const hseDefault=state.hseValues?.[info.profile];
+  if(hseDefault&&Number($('hse').value)!==hseDefault){
+    $('hse').value=String(hseDefault);
+    target.hseHz=hseDefault*1e6;
+    try{ if(info.rcc)info.clocks=completeClocks(targetPort(info.profile),info.rcc,target.hseHz); }catch{}
+  }
   if(info.traceSupported&&!state.traceConfigDirty){
     $('traceid').value=info.config.traceid>=1&&info.config.traceid<=111?info.config.traceid:2;
     const current=traceSettings(info.config);if(current){$('branch-broadcast').checked=current.branchBroadcast;$('return-stack').checked=current.returnStack;$('cycles').checked=current.cycleCount;}
