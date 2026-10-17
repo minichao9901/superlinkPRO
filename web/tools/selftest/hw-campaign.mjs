@@ -689,6 +689,9 @@ async function rttForward(){
   /* 1c) 10 s 存盘：页面「记录到文件」→ OPFS（真 FSA 语义）→ 导出到磁盘核对 */
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const savePath = `tmp/rtt-forward-${stamp}.bin`;
+  // ⚠️ `web/tmp/` 是 gitignored 的：**裸克隆里没有这个目录**，直接写会 ENOENT
+  //    （2026-10 现场：make hw-campaign 在转发存盘那一步整个中断）。自己建，幂等。
+  fs.mkdirSync('tmp', { recursive: true });
   await cdp.eval(`(async()=>{
     window.__recStat = { writes: 0, bytes: 0, name: '' };
     const root = await navigator.storage.getDirectory();
