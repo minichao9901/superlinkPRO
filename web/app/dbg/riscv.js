@@ -612,10 +612,26 @@ export class RiscvDebugSession extends DebugSession {
       const d = (await this.dm.readReg(REGNO.DCSR)) >>> 0;
       const control = this.dm._ctl(this.port?.debug.hart ?? 0);
       await this.dm.dmiWrite(0x10, control);
-      const clearUntil = Date.now() + 400;
+      /**
+       * 🚨 **残留的 resumeack 不该拦住单步**（2026-10-18 定因，`test-dbg-riscv` 就是死在这）。
+       *
+       * 走到这里时 `_ensureHalted()` 已经现场核过 `dmstatus`、确认 hart **真的停着**；
+       * 此时 `resumeack[17:16]` 若仍为 1，只说明"上一次 resume 的应答还没被清掉"
+       * ——在这条 legacy(0.11) DM 上它**不会因为 hart 停下就自动清零**（实测恒为 1）。
+       * 旧代码最多等 400 ms 然后抛 `上次运行应答尚未清除，未发起新的单步`，
+       * 于是"继续→单步"这一步直接中断整轮（现象：测试卡在单步）。
+       *
+       * 现在：先给 120 ms 尽量自然清掉；清不掉只记一条日志、**继续单步**
+       * （安全性不受影响：hart 已确认停下，且下面 resume 只写 resumereq）。
+       */
+      const clearUntil = Date.now() + 120;
+      let staleAck = false;
       while ((await this.dm.dmiRead(0x11)) & (3 << 16)) {
-        if (Date.now() >= clearUntil) throw new Error('上次运行应答尚未清除，未发起新的单步');
+        if (Date.now() >= clearUntil) { staleAck = true; break; }
         await waitMs(2);
+      }
+      if (staleAck && typeof this._log === 'function') {
+        this._log('resumeack 未清零（hart 已确认停止，继续单步）', 'warn');
       }
       let operationError;
       try {

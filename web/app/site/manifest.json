@@ -44,7 +44,7 @@
     "app/dbg/image.js": "9e2e8f842287fbcfa4f6bdca282c91839d3ab154bea2a1e22e7b4626994a4111",
     "app/dbg/ram-fill.js": "ac366a556451f3c9eb89302c9e6e3206a445b45007ed529cd64be1eb3512f508",
     "app/dbg/regs.js": "89de3e7d1b210f997bd82469343721b4fe8e7745cec11cdc1f49ff047c33b0a0",
-    "app/dbg/riscv.js": "a53064298d541004b1703e6dfbfa7ae2958ce92672a13255013e2276059ee347",
+    "app/dbg/riscv.js": "4e9ba402983515d6b6c9dbe640dab481ae172029ce1937aa688cf1edfe77b8b5",
     "app/dbg/rv.js": "ee4bb316f7d813f99c32540c176f470ceb114c803a5c353529b4324ead6dd1cc",
     "app/dbg/session.js": "ba79c8c74c3d280906bcd0e8c75127e61434703b62cdfcde3372d465a3a7b1e9",
     "app/dbg/source-syntax.js": "91f2c67733931f051511371a20bb93aa9aebfd17018db5e331a4638accde197c",
@@ -173,6 +173,6 @@
     "app/ui/workspace.js": "25b6ce94e5d90302a37e6cec2b7e35c975af95ce29bef1094a4493f3890fc0b7",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "5975f1377af4094628b330313c48e2815ae33f08a15ad8421d539e6eb5ee751c",
-  "outputBytes": 1333067
+  "outputSha256": "208b90795270e8597de7f2cebbdeaf72f40b4ecbc74e3e4db580becb1c669e6b",
+  "outputBytes": 1333124
 }
