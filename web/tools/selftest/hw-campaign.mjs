@@ -599,7 +599,14 @@ async function startForward(label = '', forceElf = false){
 }
 async function rttForward(){
   await cdp.eval(`document.querySelector('.tab[data-tab="rttcdc"]').click()`);
-  await cdp.eval(`document.getElementById('h-reconnect').click()`, true);
+  /**
+   * ⚠️ 页面里这个按钮早就叫 **`h-refresh`**（「刷新」）；`h-reconnect` 是**陈旧 id**
+   *    → getElementById 返回 null → `null.click()` 抛 TypeError，整轮 campaign 在转发段前中断
+   *    （2026-10 现场只看到 `页面异常：Cannot read properties of null (reading 'click')`）。
+   *    两个都试、并一律带 catch：页面以后改名也不会把整轮炸掉。
+   */
+  await cdp.eval(`(()=>{ const b=document.getElementById('h-refresh')||document.getElementById('h-reconnect');
+      if (b) b.click(); })()`, true).catch(() => {});
   await nap(800);
   if (!await cdp.evalJson(`!!window.__tools.hid.dev?.connected`)){
     await cdp.eval(`document.getElementById('h-connect').click()`, true);
@@ -633,7 +640,8 @@ async function rttForward(){
         try{ await h.dev?.close?.(); }catch(e){}
       })()`).catch(() => {});
       await nap(900);
-      await cdp.eval(`document.getElementById('h-reconnect').click()`, true).catch(() => {});
+      await cdp.eval(`(()=>{ const b=document.getElementById('h-refresh')||document.getElementById('h-reconnect');
+          if (b) b.click(); })()`, true).catch(() => {});
       await cdp.waitFor(`window.__tools.hid.dev?.connected`, 8000, 'HID 重连');
       await nap(300);
       // F103CB 的自动扫描偶尔会在 Viewer→HID 切换后停在 cbAddr=0；
