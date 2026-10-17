@@ -65,16 +65,32 @@ int main(int argc,char **argv) { return decode_main(argc,argv); }
         target=dest/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source/name,target)
         origins[name]=hashlib.sha256(target.read_bytes()).hexdigest()
     # Carry one known demo only. No user recordings, SDKs or toolchain are copied.
+    # ⚠️ demo 记录来自 `etm/records/<previewRecord>`，而 `records/` 是 **gitignored** 的
+    #    ⇒ 裸克隆（只含 git 跟踪内容）里没有它。这里降级跳过而不是崩：
+    #    "运行/采集/解码"不依赖它，只有"包内自带一条示例记录"用得到。
     manifest=json.loads((source/'baselines/spi-70-35-v1/manifest.json').read_text(encoding='utf8'))
     folder=source/'records'/manifest['previewRecord'];demo=dest/'demo';demo.mkdir(exist_ok=True)
-    with zipfile.ZipFile(demo/'sample.etmrecord','w',zipfile.ZIP_DEFLATED) as archive:
-        for name in ['session.json','capture.csv','capture.kvdat','firmware.elf','sources.json','spi-validation.json']:
-            if (folder/name).is_file():archive.write(folder/name,name)
-    (demo/'decoded.json.gz').write_bytes(gzip.compress((folder/'decoded.json').read_bytes(),mtime=0))
+    if folder.is_dir():
+        with zipfile.ZipFile(demo/'sample.etmrecord','w',zipfile.ZIP_DEFLATED) as archive:
+            for name in ['session.json','capture.csv','capture.kvdat','firmware.elf','sources.json','spi-validation.json']:
+                if (folder/name).is_file():archive.write(folder/name,name)
+        (demo/'decoded.json.gz').write_bytes(gzip.compress((folder/'decoded.json').read_bytes(),mtime=0))
+    else:
+        print(f'[sync] ⚠ 缺少 demo 记录 {folder}（records/ 是 gitignored，裸克隆里没有）—— 跳过内置示例，包仍可用')
     baseline=dest/'baselines/spi-70-35-v1';baseline.mkdir(parents=True,exist_ok=True)
     (baseline/'manifest.json').write_text(json.dumps(dict(version=1,id='spi-70-35-v1',profile='spi-70',record='demo-spi-70-35-v1',previewRecord='demo-spi-70-35-v1',sourcePreview=manifest['previewRecord'])),encoding='utf8')
     # Rebuild the portable wrapper against the source project's static OpenCSD libraries.
-    subprocess.run(['C:/msys64/mingw64/bin/g++.exe','-std=c++11','-O2','-municode','-static','-static-libgcc','-static-libstdc++','-I'+str(source/'vendor/OpenCSD-1.8.3/decoder/include'),str(native),str(source/'build-native/vendor/OpenCSD-1.8.3/libopencsd_c_api.a'),str(source/'build-native/vendor/OpenCSD-1.8.3/libopencsd.a'),'-o',str(dest/'build-native/etm_decode.exe')],check=True)
+    # ⚠️ `build-native/` 是构建产物（gitignored），裸克隆里没有 ⇒ 这里**自动用 cmake 建一次**：
+    #    OpenCSD 源码（etm/vendor/OpenCSD-1.8.3）是 git 跟踪内容，所以这一步是自足的。
+    libs=[source/'build-native/vendor/OpenCSD-1.8.3/libopencsd_c_api.a',source/'build-native/vendor/OpenCSD-1.8.3/libopencsd.a']
+    if not all(p.is_file() for p in libs):
+        print('[sync] build-native 缺 OpenCSD 静态库 → 自动构建（cmake + ninja + msys64 gcc/g++）')
+        subprocess.run(['cmake','-S',str(source),'-B',str(source/'build-native'),'-G','Ninja','-DCMAKE_BUILD_TYPE=Release',
+                        '-DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe','-DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/g++.exe'],check=True)
+        subprocess.run(['cmake','--build',str(source/'build-native'),'--config','Release'],check=True)
+    for p in libs:
+        if not p.is_file():raise SystemExit(f'[sync] 自动构建后仍缺静态库：{p}')
+    subprocess.run(['C:/msys64/mingw64/bin/g++.exe','-std=c++11','-O2','-municode','-static','-static-libgcc','-static-libstdc++','-I'+str(source/'vendor/OpenCSD-1.8.3/decoder/include'),str(native),str(libs[0]),str(libs[1]),'-o',str(dest/'build-native/etm_decode.exe')],check=True)
     provenance=dict(sourceRepository='etm',sourceRevision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip(),sourceHashes=origins,localChanges=['server.py: WEB_ETM_RECORDS redirects mutable records to portable data directory','native/decoder.cpp: UTF-16 Windows argv/file APIs for UTF-8 manifests and Unicode paths; recompiled static OpenCSD wrapper'],packagedHashes={p.relative_to(dest).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in dest.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'})
     (ROOT/'bridge/etm/provenance.json').write_text(json.dumps(provenance,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(f'Runtime snapshot: {len(provenance["packagedHashes"])} files; source {provenance["sourceRevision"]}')
