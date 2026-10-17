@@ -1,0 +1,153 @@
+{
+  "operation": "persistent breakpoints and source-line capture",
+  "passed": true,
+  "identity": {
+    "cpuid": 1092600433,
+    "device": 268919936,
+    "profile": "stm32h7b0",
+    "name": "STM32H7B0 / H7A3 / H7B3",
+    "core": "Cortex-M7",
+    "etmVersion": "ETMv4",
+    "traceSupported": true,
+    "traceStatus": "H7B0 70/35 MHz 已验收；同组其他型号仍需实测",
+    "config": {
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "config": 1,
+      "traceid": 0
+    },
+    "halted": false,
+    "rcc": {
+      "cr": 251904037,
+      "cfgr": 8650779,
+      "domain": 72,
+      "pllSource": 33574994,
+      "pllConfig": 33489049,
+      "pllDiv": 117575279,
+      "pllFrac": 0
+    },
+    "clocks": {
+      "knownHz": 70000000,
+      "knownTraceHz": 70000000,
+      "coreHz": 70000000,
+      "traceHz": 70000000,
+      "external": true,
+      "source": "HSE → PLL1",
+      "path": "HSE 25 MHz ÷M5 ×(112) ÷P8 → CPU ÷1 → HCLK ÷2",
+      "tracePath": "PLL1 VCO ÷R8 → TRACEPORTCK",
+      "traceReady": true,
+      "busDivider": 2,
+      "coreDivider": 1,
+      "traceRelation": "并行 trace 的输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；CPU 另经 CDCPRE 分频",
+      "physicalTraceHz": 35000000,
+      "hclkHz": 35000000
+    },
+    "clockError": null,
+    "hseHz": 25000000,
+    "width": 1
+  },
+  "lineBreakpoint": {
+    "address": 134219924,
+    "file": "E:/web-etm-trace/firmware/stm32h7b0_spi_trace/sdk/Core/Src/main.c",
+    "function": "main",
+    "label": "main.c:255",
+    "line": 255
+  },
+  "hardwareCapacity": 8,
+  "firstHit": 134219924,
+  "continuedHit": 134233116,
+  "stepMaskCleared": true,
+  "capture": {
+    "id": "capture-70d357217c3c490fb0571549e4796eee",
+    "job": {
+      "error": null,
+      "id": "1251bec39c9042f6a3f8e703477dd6d1",
+      "record": "capture-70d357217c3c490fb0571549e4796eee",
+      "started": 1791719588.0725422,
+      "state": "done",
+      "summary": {
+        "exceptions": 1,
+        "executed": 42822,
+        "functions": {
+          "HAL_GPIO_WritePin": 78,
+          "HAL_GetTick": 42,
+          "HAL_IncTick": 7,
+          "HAL_SPI_Transmit": 37778,
+          "SPI_CloseTransfer": 533,
+          "SPI_WaitOnFlagUntilTimeout": 195,
+          "SysTick_Handler": 3,
+          "main": 4186
+        },
+        "gaps": 1,
+        "instructions": 48205,
+        "packetIssues": 0,
+        "packets": 2906,
+        "ranges": 9618,
+        "sourceMapped": 48205,
+        "unknownExecution": 40
+      }
+    },
+    "result": null
+  },
+  "firstInstruction": {
+    "pc": 134233116,
+    "bytes": "2de9f047",
+    "function": "HAL_SPI_Transmit"
+  },
+  "summary": {
+    "packets": 2906,
+    "ranges": 9618,
+    "instructions": 48205,
+    "executed": 42822,
+    "sourceMapped": 48205,
+    "exceptions": 1,
+    "gaps": 1,
+    "packetIssues": 0,
+    "functions": {
+      "HAL_SPI_Transmit": 37778,
+      "HAL_GetTick": 42,
+      "SPI_WaitOnFlagUntilTimeout": 195,
+      "SPI_CloseTransfer": 533,
+      "main": 4186,
+      "HAL_GPIO_WritePin": 78,
+      "SysTick_Handler": 3,
+      "HAL_IncTick": 7
+    },
+    "unknownExecution": 40
+  },
+  "quality": {
+    "inputBytes": 3108,
+    "unprocessedBytes": 0,
+    "processedBytes": 3108,
+    "accountedBytes": 3108,
+    "overlapBytes": 0,
+    "unaccountedBytes": 0,
+    "unsynchronizedBytes": 0,
+    "unsynchronizedRecords": 0,
+    "validPackets": 2906,
+    "packetIssues": 0,
+    "overflowPackets": 0,
+    "decoderLastError": 0,
+    "unknownExecution": 40,
+    "initialPhysicalBytes": 0,
+    "unknownSourceBytes": 0,
+    "trailingFrameBytes": 12,
+    "firstPathOffset": 23,
+    "boundaryPresent": true,
+    "timing": {
+      "cycleElements": 0,
+      "timeFlameAvailable": false
+    },
+    "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率"
+  },
+  "breakpointRestoredHit": 134219924,
+  "slotsRestored": true,
+  "running": true
+}

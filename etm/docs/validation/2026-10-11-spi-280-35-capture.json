@@ -1,0 +1,69 @@
+{
+  "id": "capture-0d80d61586bf4f868225dcd908dfa5d7",
+  "job": {
+    "error": null,
+    "id": "b1b53c0269b842ed8f9d077f4c6303f5",
+    "record": "capture-0d80d61586bf4f868225dcd908dfa5d7",
+    "started": 1791681027.8738642,
+    "state": "done",
+    "summary": {
+      "exceptions": 1,
+      "executed": 168956,
+      "functions": {
+        "HAL_GPIO_WritePin": 310,
+        "HAL_GetTick": 756,
+        "HAL_IncTick": 7,
+        "HAL_RCCEx_GetPLL2ClockFreq": 60,
+        "HAL_RCCEx_GetPeriphCLKFreq": 22,
+        "HAL_RCC_GetHCLKFreq": 19,
+        "HAL_RCC_GetSysClockFreq": 100,
+        "HAL_SPI_Transmit": 146576,
+        "SPI_CloseTransfer": 2091,
+        "SPI_WaitOnFlagUntilTimeout": 2565,
+        "SysTick_Handler": 3,
+        "main": 16433,
+        "spi_trace_ready": 14
+      },
+      "gaps": 1,
+      "instructions": 190653,
+      "packetIssues": 0,
+      "packets": 11915,
+      "ranges": 38413,
+      "sourceMapped": 190653,
+      "unknownExecution": 554
+    }
+  },
+  "summary": {
+    "exceptions": 1,
+    "executed": 168956,
+    "functions": {
+      "HAL_GPIO_WritePin": 310,
+      "HAL_GetTick": 756,
+      "HAL_IncTick": 7,
+      "HAL_RCCEx_GetPLL2ClockFreq": 60,
+      "HAL_RCCEx_GetPeriphCLKFreq": 22,
+      "HAL_RCC_GetHCLKFreq": 19,
+      "HAL_RCC_GetSysClockFreq": 100,
+      "HAL_SPI_Transmit": 146576,
+      "SPI_CloseTransfer": 2091,
+      "SPI_WaitOnFlagUntilTimeout": 2565,
+      "SysTick_Handler": 3,
+      "main": 16433,
+      "spi_trace_ready": 14
+    },
+    "gaps": 1,
+    "instructions": 190653,
+    "packetIssues": 0,
+    "packets": 11915,
+    "ranges": 38413,
+    "sourceMapped": 190653,
+    "unknownExecution": 554
+  },
+  "status": {
+    "kind": "status",
+    "lastError": "",
+    "lastErrorCode": 0,
+    "library": "1.8.3",
+    "processed": 12747
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "flashComparedBytes": 7672,
+  "mismatches": 0,
+  "flashSha256": "c967204e9da3fb02a30b96cad4364f033325494f2e0aa836e83f2dcdada51ce9",
+  "elfSha256": "b5bc0f45126988fe4da3f8d93cf5a9c2aaa01826f04b8d472bd6eb8014a5a3b0",
+  "config": {
+    "idr0": 134219489,
+    "idr1": 1090581505,
+    "idr2": 4,
+    "idr8": 1,
+    "idr9": 0,
+    "idr10": 0,
+    "idr11": 0,
+    "idr12": 1,
+    "idr13": 0,
+    "config": 1,
+    "traceid": 2
+  },
+  "g_error": 0,
+  "g_trace_stage": 4
+}

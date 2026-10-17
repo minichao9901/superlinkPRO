@@ -1,0 +1,10 @@
+{
+  "id": "capture-b941917abe1841dd8e40e000ac44e774",
+  "job": {
+    "error": "不能唯一确定 TPIU 字节相位：0 个候选；请检查通道和取样位置。",
+    "id": "8199714ea6ca4f0586573a51afcf5cde",
+    "record": "capture-b941917abe1841dd8e40e000ac44e774",
+    "started": 1791679296.3488462,
+    "state": "error"
+  }
+}

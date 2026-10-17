@@ -1,0 +1,98 @@
+{
+  "filter": {
+    "basis": "user-reported KingstVIS setting",
+    "channels": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "samples": 1,
+    "sampleRate": 500000000,
+    "widthNs": 2
+  },
+  "captures": [
+    {
+      "id": "capture-92295bbca05b47d1b7f253f9e1b2719d",
+      "job": {
+        "error": "不能唯一确定 TPIU 字节相位：0 个候选；请检查通道和取样位置。",
+        "id": "dc900382be5d411e810875e24e347756",
+        "record": "capture-92295bbca05b47d1b7f253f9e1b2719d",
+        "started": 1791685433.7076058,
+        "state": "error"
+      },
+      "result": null
+    },
+    {
+      "pinSpeed": 2,
+      "id": "capture-8b2396852d1445d9b940dace42206824",
+      "job": {
+        "error": "不能唯一确定 TPIU 字节相位：0 个候选；请检查通道和取样位置。",
+        "id": "12ac48be7b784735b5578079f408b8ba",
+        "record": "capture-8b2396852d1445d9b940dace42206824",
+        "started": 1791685441.681575,
+        "state": "error"
+      },
+      "result": null
+    },
+    {
+      "pinSpeed": 1,
+      "id": "capture-4e5526d4df99450c80651d463c20be90",
+      "job": {
+        "error": "不能唯一确定 TPIU 字节相位：0 个候选；请检查通道和取样位置。",
+        "id": "641a68a14da8429f941fdec2f8b2ad83",
+        "record": "capture-4e5526d4df99450c80651d463c20be90",
+        "started": 1791685449.997788,
+        "state": "error"
+      },
+      "result": null
+    }
+  ],
+  "reset": {
+    "cpuid": 1092600433,
+    "device": 268919936,
+    "config": {
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "config": 1,
+      "traceid": 2
+    },
+    "halted": true,
+    "rcc": {
+      "cr": 251904037,
+      "cfgr": 8650779,
+      "domain": 72,
+      "pllSource": 33574994,
+      "pllConfig": 33489049,
+      "pllDiv": 50464367,
+      "pllFrac": 0
+    },
+    "clocks": {
+      "knownHz": 140000000,
+      "knownTraceHz": 140000000,
+      "coreHz": 140000000,
+      "traceHz": 140000000,
+      "external": true,
+      "source": "HSE → PLL1",
+      "path": "HSE 25 MHz ÷M5 ×(112) ÷P4 → CPU ÷1 → HCLK ÷2",
+      "tracePath": "PLL1 VCO ÷R4 → TRACEPORTCK",
+      "traceReady": true,
+      "busDivider": 2,
+      "coreDivider": 1,
+      "traceRelation": "并行 trace 的输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；CPU 另经 CDCPRE 分频",
+      "physicalTraceHz": 70000000,
+      "hclkHz": 70000000
+    },
+    "clockError": null,
+    "hseHz": 25000000,
+    "width": 8
+  }
+}

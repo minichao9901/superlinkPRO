@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "id": "spi-70-35-v1",
+  "profile": "spi-70",
+  "record": "capture-8365b3adb65b4f0cb281e55aef2c89c7",
+  "previewRecord": "capture-926a4f2b899542f5b566e68a1d1eb631",
+  "frequencyOptimization": "paused by user; no scheduled follow-up",
+  "firmware": "firmware\\stm32h7b0_spi_trace\\stable-70-35-v1\\fw.elf",
+  "parameters": {
+    "cpuHz": 70000000,
+    "traceHz": 35000000,
+    "hseHz": 25000000,
+    "supply": "LDO",
+    "rate": 500000000,
+    "seconds": 0.01,
+    "threshold": 1.65,
+    "fraction": 0.25,
+    "channels": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "pinSpeed": 3,
+    "traceid": 2,
+    "config": 1
+  },
+  "artifacts": {
+    "firmware\\stm32h7b0_spi_trace\\stable-70-35-v1\\fw.bin": {
+      "bytes": 19876,
+      "sha256": "4275f9b8873aa602da8e5bf7e7acede3884d2b22fa510f3784dfec5d8e94dad2"
+    },
+    "firmware\\stm32h7b0_spi_trace\\stable-70-35-v1\\fw.elf": {
+      "bytes": 2068492,
+      "sha256": "4e25c663d9e1dda32e41e8c970afce4b176d996b99b396c9cb2b530b84cd02b2"
+    },
+    "firmware\\stm32h7b0_spi_trace\\stable-70-35-v1\\fw.hex": {
+      "bytes": 55962,
+      "sha256": "1bb0704743f1649ac3aace5f2c8a4b487aae5cf61a0bfd9cd2c127ddac16acdf"
+    },
+    "baselines\\spi-70-35-v1\\capture-10ms.etmrecord": {
+      "bytes": 5726888,
+      "sha256": "f4989ed7437809837f314fe9e6e81b084d70ee1a139bc9382042e44069496906"
+    },
+    "baselines\\spi-70-35-v1\\decoded.json.gz": {
+      "bytes": 4527162,
+      "sha256": "cb0dee4823a754676715cac544b81b41b387e7ea3ae953e2d0b337b6be7b34bd"
+    },
+    "baselines\\spi-70-35-v1\\execution.c": {
+      "bytes": 91825433,
+      "sha256": "c6de232eec9cc10a0e19fc7d07ad512d23c2fec63ee2496aa6ac32fbf12ab9cb"
+    },
+    "baselines\\spi-70-35-v1\\execution-simplified.c": {
+      "bytes": 19714699,
+      "sha256": "86730f8c5b75a1b7f611d21010686c55abfce4930616cc2698203d6d2625803e"
+    },
+    "baselines\\spi-70-35-v1\\validation.json": {
+      "bytes": 11039,
+      "sha256": "539d3ffbd3f1a3fb958be4323c0ee5db213f15afc1da806159ffefc197208496"
+    }
+  },
+  "summary": {
+    "packets": 29155,
+    "ranges": 96740,
+    "instructions": 484570,
+    "executed": 430544,
+    "sourceMapped": 484570,
+    "exceptions": 10,
+    "gaps": 1,
+    "packetIssues": 0,
+    "functions": {
+      "spi_trace_ready": 14,
+      "HAL_RCC_GetSysClockFreq": 100,
+      "HAL_RCC_GetHCLKFreq": 19,
+      "HAL_RCCEx_GetPeriphCLKFreq": 22,
+      "HAL_RCCEx_GetPLL2ClockFreq": 60,
+      "main": 42515,
+      "HAL_GPIO_WritePin": 796,
+      "HAL_SPI_Transmit": 379127,
+      "HAL_GetTick": 399,
+      "SPI_WaitOnFlagUntilTimeout": 1980,
+      "SPI_CloseTransfer": 5412,
+      "SysTick_Handler": 30,
+      "HAL_IncTick": 70
+    },
+    "unknownExecution": 397
+  },
+  "quality": {
+    "processedBytes": 31014,
+    "accountedBytes": 31014,
+    "overlapBytes": 0,
+    "unaccountedBytes": 0,
+    "unsynchronizedBytes": 0,
+    "unsynchronizedRecords": 0,
+    "validPackets": 29155,
+    "packetIssues": 0,
+    "overflowPackets": 0,
+    "decoderLastError": 0,
+    "unknownExecution": 397,
+    "initialPhysicalBytes": 2,
+    "unknownSourceBytes": 0,
+    "trailingFrameBytes": 14,
+    "firstPathOffset": 23,
+    "boundaryPresent": true,
+    "timing": {
+      "cycleElements": 0,
+      "timeFlameAvailable": false
+    },
+    "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率"
+  },
+  "spiValidation": {
+    "record": "capture-8365b3adb65b4f0cb281e55aef2c89c7",
+    "branchTransitionsChecked": 95909,
+    "observedSpiCalls": 133,
+    "closedSpiCalls": 132,
+    "bytesPerClosedTransfer": 100,
+    "partialTransferBytes": 3,
+    "unknownPredicates": 397,
+    "scope": "只核对此版本真实捕获中的控制流与发送次数；不证明所有变量值或绝对无损"
+  }
+}

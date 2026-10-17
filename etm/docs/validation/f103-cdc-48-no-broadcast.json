@@ -1,0 +1,355 @@
+{
+  "elfPath": "firmware/stm32f103_cdc_trace/fw-ze.elf",
+  "seconds": 0.01,
+  "branchBroadcast": false,
+  "captures": [
+    {
+      "record": "capture-197cdd35a3ef4c258e22885c3f2ef656",
+      "entryPC": 134218960,
+      "summary": {
+        "exceptions": 9,
+        "executed": 155349,
+        "functions": {
+          "HAL_IncTick": 63,
+          "SysTick_Handler": 27,
+          "cdc_poll": 77634,
+          "main": 77625
+        },
+        "gaps": 1,
+        "instructions": 172600,
+        "packetIssues": 0,
+        "packets": 35255,
+        "ranges": 172600,
+        "sourceMapped": 172600,
+        "unknownExecution": 0
+      },
+      "quality": {
+        "accountedBytes": 36596,
+        "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率",
+        "boundaryPresent": true,
+        "decoderLastError": 0,
+        "firstPathOffset": 1535,
+        "initialPhysicalBytes": 0,
+        "inputBytes": 36596,
+        "overflowPackets": 0,
+        "overlapBytes": 0,
+        "packetIssues": 0,
+        "processedBytes": 36596,
+        "timing": {
+          "cycleElements": 0,
+          "timeFlameAvailable": false
+        },
+        "trailingFrameBytes": 0,
+        "unaccountedBytes": 0,
+        "unknownExecution": 0,
+        "unknownSourceBytes": 0,
+        "unprocessedBytes": 0,
+        "unsynchronizedBytes": 1017,
+        "unsynchronizedRecords": 79,
+        "validPackets": 35176
+      },
+      "capture": {
+        "name": "capture.csv",
+        "sha256": "d9c132f276a3addb063a43fa366867bc42b2100f31c21c795cbe9851d09958c5"
+      },
+      "physicalClock": [
+        {
+          "clock_hz_average": 24001383.601937044,
+          "end_seconds": 0.009500004,
+          "half_cycles": 480027,
+          "start_seconds": -0.000499982
+        }
+      ]
+    },
+    {
+      "record": "capture-e82a84a6cca3408b94bd1576b704e036",
+      "entryPC": 134218960,
+      "summary": {
+        "exceptions": 9,
+        "executed": 155349,
+        "functions": {
+          "HAL_IncTick": 63,
+          "SysTick_Handler": 27,
+          "cdc_poll": 77634,
+          "main": 77625
+        },
+        "gaps": 1,
+        "instructions": 172600,
+        "packetIssues": 0,
+        "packets": 35255,
+        "ranges": 172600,
+        "sourceMapped": 172600,
+        "unknownExecution": 0
+      },
+      "quality": {
+        "accountedBytes": 36596,
+        "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率",
+        "boundaryPresent": true,
+        "decoderLastError": 0,
+        "firstPathOffset": 1535,
+        "initialPhysicalBytes": 3,
+        "inputBytes": 36596,
+        "overflowPackets": 0,
+        "overlapBytes": 0,
+        "packetIssues": 0,
+        "processedBytes": 36596,
+        "timing": {
+          "cycleElements": 0,
+          "timeFlameAvailable": false
+        },
+        "trailingFrameBytes": 0,
+        "unaccountedBytes": 0,
+        "unknownExecution": 0,
+        "unknownSourceBytes": 0,
+        "unprocessedBytes": 0,
+        "unsynchronizedBytes": 1017,
+        "unsynchronizedRecords": 79,
+        "validPackets": 35176
+      },
+      "capture": {
+        "name": "capture.csv",
+        "sha256": "2aed27d7e04fec67a074ca8ab9b514818329bc8e55705238c722f299e9beb6b5"
+      },
+      "physicalClock": [
+        {
+          "clock_hz_average": 24001381.604697455,
+          "end_seconds": 0.009500006,
+          "half_cycles": 480026,
+          "start_seconds": -0.00049996
+        }
+      ]
+    },
+    {
+      "record": "capture-4c7b8634a19c4422952530fbea549522",
+      "entryPC": 134218960,
+      "summary": {
+        "exceptions": 9,
+        "executed": 155331,
+        "functions": {
+          "HAL_IncTick": 63,
+          "SysTick_Handler": 27,
+          "cdc_poll": 77625,
+          "main": 77616
+        },
+        "gaps": 1,
+        "instructions": 172580,
+        "packetIssues": 0,
+        "packets": 35251,
+        "ranges": 172580,
+        "sourceMapped": 172580,
+        "unknownExecution": 0
+      },
+      "quality": {
+        "accountedBytes": 36592,
+        "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率",
+        "boundaryPresent": true,
+        "decoderLastError": 0,
+        "firstPathOffset": 1535,
+        "initialPhysicalBytes": 3,
+        "inputBytes": 36592,
+        "overflowPackets": 0,
+        "overlapBytes": 0,
+        "packetIssues": 0,
+        "processedBytes": 36592,
+        "timing": {
+          "cycleElements": 0,
+          "timeFlameAvailable": false
+        },
+        "trailingFrameBytes": 14,
+        "unaccountedBytes": 0,
+        "unknownExecution": 0,
+        "unknownSourceBytes": 0,
+        "unprocessedBytes": 0,
+        "unsynchronizedBytes": 1017,
+        "unsynchronizedRecords": 79,
+        "validPackets": 35172
+      },
+      "capture": {
+        "name": "capture.csv",
+        "sha256": "74ee7bcb65544935dc9f7727ecfb587c6669ef01f873622fd5f8d57a6bb915b2"
+      },
+      "physicalClock": [
+        {
+          "clock_hz_average": 24001381.60469746,
+          "end_seconds": 0.009500024,
+          "half_cycles": 480026,
+          "start_seconds": -0.000499942
+        }
+      ]
+    }
+  ],
+  "checks": [
+    "Flash matches ELF",
+    "48/24 clock readback",
+    "USB PLL /1 readback",
+    "reset to CDC init",
+    "Kingst arm before CPU run"
+  ],
+  "created": "2026-10-13T02:22:43.533Z",
+  "elf": "63881ed9f6c1187d56924795ccad3f151a677aea0dfa201823fe44e0cb857522",
+  "entry": 134218960,
+  "identity": {
+    "cpuid": 1092600369,
+    "device": 268657684,
+    "profile": "stm32f103ze",
+    "name": "STM32F103ZE / 高容量 F103（PE2～PE6）",
+    "core": "Cortex-M3",
+    "etmVersion": "ETMv3.4",
+    "traceSupported": true,
+    "traceStatus": "F103ZE 48/24 MHz Kingst 联动与 ETMv3 解码已验收；封装须有 PE2～PE6",
+    "flashLimit": 134742016,
+    "traceOptions": {
+      "returnStack": false,
+      "cycleCount": false
+    },
+    "config": {
+      "protocol": "ETMv3",
+      "idr": 1091891777,
+      "ctrl": 2064,
+      "ccer": 100352,
+      "traceid": 2
+    },
+    "halted": true,
+    "rcc": {
+      "cr": 50548355,
+      "cfgr": 5309450
+    },
+    "clocks": {
+      "knownHz": 48000000,
+      "knownTraceHz": 48000000,
+      "coreHz": 48000000,
+      "traceHz": 48000000,
+      "external": true,
+      "source": "HSE → PLL",
+      "path": "HSE 8 MHz ÷1 ×6 → AHB ÷1",
+      "tracePath": "HCLK → TRACEPORTCK（与 CPU 相同）",
+      "traceReady": true,
+      "busDivider": 1,
+      "coreDivider": 1,
+      "traceRelation": "Trace 输入 = HCLK；4 位 DDR 的 TRACECLK = HCLK / 2",
+      "physicalTraceHz": 24000000,
+      "hclkHz": 48000000
+    },
+    "clockError": null,
+    "hseHz": 8000000,
+    "width": 8
+  },
+  "usbClockHz": 48000000,
+  "overflowFree": true,
+  "machineCodeChecks": [
+    {
+      "record": "capture-197cdd35a3ef4c258e22885c3f2ef656",
+      "directBranches": 17258,
+      "notTaken": 0,
+      "linearTransitions": 129438,
+      "quality": {
+        "inputBytes": 36596,
+        "unprocessedBytes": 0,
+        "processedBytes": 36596,
+        "accountedBytes": 36596,
+        "overlapBytes": 0,
+        "unaccountedBytes": 0,
+        "unsynchronizedBytes": 1017,
+        "unsynchronizedRecords": 79,
+        "validPackets": 35176,
+        "packetIssues": 0,
+        "overflowPackets": 0,
+        "decoderLastError": 0,
+        "unknownExecution": 0,
+        "initialPhysicalBytes": 0,
+        "unknownSourceBytes": 0,
+        "trailingFrameBytes": 0,
+        "firstPathOffset": 1535,
+        "boundaryPresent": true,
+        "timing": {
+          "cycleElements": 0,
+          "timeFlameAvailable": false
+        },
+        "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率"
+      },
+      "summary": {
+        "instructions": 172600,
+        "executed": 155349,
+        "sourceMapped": 172600,
+        "exceptions": 9,
+        "unknownExecution": 0
+      }
+    },
+    {
+      "record": "capture-e82a84a6cca3408b94bd1576b704e036",
+      "directBranches": 17258,
+      "notTaken": 0,
+      "linearTransitions": 129438,
+      "quality": {
+        "inputBytes": 36596,
+        "unprocessedBytes": 0,
+        "processedBytes": 36596,
+        "accountedBytes": 36596,
+        "overlapBytes": 0,
+        "unaccountedBytes": 0,
+        "unsynchronizedBytes": 1017,
+        "unsynchronizedRecords": 79,
+        "validPackets": 35176,
+        "packetIssues": 0,
+        "overflowPackets": 0,
+        "decoderLastError": 0,
+        "unknownExecution": 0,
+        "initialPhysicalBytes": 3,
+        "unknownSourceBytes": 0,
+        "trailingFrameBytes": 0,
+        "firstPathOffset": 1535,
+        "boundaryPresent": true,
+        "timing": {
+          "cycleElements": 0,
+          "timeFlameAvailable": false
+        },
+        "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率"
+      },
+      "summary": {
+        "instructions": 172600,
+        "executed": 155349,
+        "sourceMapped": 172600,
+        "exceptions": 9,
+        "unknownExecution": 0
+      }
+    },
+    {
+      "record": "capture-4c7b8634a19c4422952530fbea549522",
+      "directBranches": 17256,
+      "notTaken": 0,
+      "linearTransitions": 129423,
+      "quality": {
+        "inputBytes": 36592,
+        "unprocessedBytes": 0,
+        "processedBytes": 36592,
+        "accountedBytes": 36592,
+        "overlapBytes": 0,
+        "unaccountedBytes": 0,
+        "unsynchronizedBytes": 1017,
+        "unsynchronizedRecords": 79,
+        "validPackets": 35172,
+        "packetIssues": 0,
+        "overflowPackets": 0,
+        "decoderLastError": 0,
+        "unknownExecution": 0,
+        "initialPhysicalBytes": 3,
+        "unknownSourceBytes": 0,
+        "trailingFrameBytes": 14,
+        "firstPathOffset": 1535,
+        "boundaryPresent": true,
+        "timing": {
+          "cycleElements": 0,
+          "timeFlameAvailable": false
+        },
+        "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率"
+      },
+      "summary": {
+        "instructions": 172580,
+        "executed": 155331,
+        "sourceMapped": 172580,
+        "exceptions": 9,
+        "unknownExecution": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,444 @@
+{
+  "summary": {
+    "packets": 29155,
+    "ranges": 96740,
+    "instructions": 484570,
+    "executed": 430544,
+    "sourceMapped": 484570,
+    "exceptions": 10,
+    "gaps": 1,
+    "packetIssues": 0,
+    "functions": {
+      "spi_trace_ready": 14,
+      "HAL_RCC_GetSysClockFreq": 100,
+      "HAL_RCC_GetHCLKFreq": 19,
+      "HAL_RCCEx_GetPeriphCLKFreq": 22,
+      "HAL_RCCEx_GetPLL2ClockFreq": 60,
+      "main": 42515,
+      "HAL_GPIO_WritePin": 796,
+      "HAL_SPI_Transmit": 379127,
+      "HAL_GetTick": 399,
+      "SPI_WaitOnFlagUntilTimeout": 1980,
+      "SPI_CloseTransfer": 5412,
+      "SysTick_Handler": 30,
+      "HAL_IncTick": 70
+    },
+    "unknownExecution": 397
+  },
+  "quality": {
+    "processedBytes": 31014,
+    "accountedBytes": 31014,
+    "overlapBytes": 0,
+    "unaccountedBytes": 0,
+    "unsynchronizedBytes": 0,
+    "unsynchronizedRecords": 0,
+    "validPackets": 29155,
+    "packetIssues": 0,
+    "overflowPackets": 0,
+    "decoderLastError": 0,
+    "unknownExecution": 397,
+    "initialPhysicalBytes": 2,
+    "unknownSourceBytes": 0,
+    "trailingFrameBytes": 14,
+    "firstPathOffset": 23,
+    "boundaryPresent": true,
+    "timing": {
+      "cycleElements": 0,
+      "timeFlameAvailable": false
+    },
+    "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率"
+  },
+  "spiValidation": {
+    "record": "capture-8365b3adb65b4f0cb281e55aef2c89c7",
+    "branchTransitionsChecked": 95909,
+    "observedSpiCalls": 133,
+    "closedSpiCalls": 132,
+    "bytesPerClosedTransfer": 100,
+    "partialTransferBytes": 3,
+    "unknownPredicates": 397,
+    "scope": "只核对此版本真实捕获中的控制流与发送次数；不证明所有变量值或绝对无损"
+  },
+  "samplingValidation": {
+    "phases": [
+      {
+        "fraction": 0.1,
+        "phase": 0,
+        "clock": 35000098.000274405,
+        "margin_ns": 3.399999998557335,
+        "sync": 23628,
+        "frames": {
+          "frames": 2085,
+          "fsyncs": 23628,
+          "hsyncs": 111056,
+          "errors": 0,
+          "unknown_bytes": 0,
+          "initial_skipped_bytes": 2,
+          "id_changes": [
+            2
+          ],
+          "trailing_frame_bytes": 14,
+          "trailing_raw_bytes": 0,
+          "stream_bytes": {
+            "2": 31014
+          }
+        },
+        "etm_bytes": 31014,
+        "sha": "3291c818f727ed5dd5761788661de7cff4b1f93e4d3c98d23b3cef6fedef81a2"
+      },
+      {
+        "fraction": 0.2,
+        "phase": 0,
+        "clock": 35000098.000274405,
+        "margin_ns": 3.1999999993564954,
+        "sync": 23628,
+        "frames": {
+          "frames": 2085,
+          "fsyncs": 23628,
+          "hsyncs": 111056,
+          "errors": 0,
+          "unknown_bytes": 0,
+          "initial_skipped_bytes": 2,
+          "id_changes": [
+            2
+          ],
+          "trailing_frame_bytes": 14,
+          "trailing_raw_bytes": 0,
+          "stream_bytes": {
+            "2": 31014
+          }
+        },
+        "etm_bytes": 31014,
+        "sha": "3291c818f727ed5dd5761788661de7cff4b1f93e4d3c98d23b3cef6fedef81a2"
+      },
+      {
+        "fraction": 0.25,
+        "phase": 0,
+        "clock": 35000098.000274405,
+        "margin_ns": 2.4999999986841104,
+        "sync": 23628,
+        "frames": {
+          "frames": 2085,
+          "fsyncs": 23628,
+          "hsyncs": 111056,
+          "errors": 0,
+          "unknown_bytes": 0,
+          "initial_skipped_bytes": 2,
+          "id_changes": [
+            2
+          ],
+          "trailing_frame_bytes": 14,
+          "trailing_raw_bytes": 0,
+          "stream_bytes": {
+            "2": 31014
+          }
+        },
+        "etm_bytes": 31014,
+        "sha": "3291c818f727ed5dd5761788661de7cff4b1f93e4d3c98d23b3cef6fedef81a2"
+      },
+      {
+        "fraction": 0.3,
+        "phase": 0,
+        "clock": 35000098.000274405,
+        "margin_ns": 1.7999999980117254,
+        "sync": 23628,
+        "frames": {
+          "frames": 2085,
+          "fsyncs": 23628,
+          "hsyncs": 111056,
+          "errors": 0,
+          "unknown_bytes": 0,
+          "initial_skipped_bytes": 2,
+          "id_changes": [
+            2
+          ],
+          "trailing_frame_bytes": 14,
+          "trailing_raw_bytes": 0,
+          "stream_bytes": {
+            "2": 31014
+          }
+        },
+        "etm_bytes": 31014,
+        "sha": "3291c818f727ed5dd5761788661de7cff4b1f93e4d3c98d23b3cef6fedef81a2"
+      },
+      {
+        "fraction": 0.4,
+        "phase": 0,
+        "clock": 35000098.000274405,
+        "margin_ns": 0.3999999984016789,
+        "sync": 23628,
+        "frames": {
+          "frames": 2085,
+          "fsyncs": 23628,
+          "hsyncs": 111056,
+          "errors": 0,
+          "unknown_bytes": 0,
+          "initial_skipped_bytes": 2,
+          "id_changes": [
+            2
+          ],
+          "trailing_frame_bytes": 14,
+          "trailing_raw_bytes": 0,
+          "stream_bytes": {
+            "2": 31014
+          }
+        },
+        "etm_bytes": 31014,
+        "sha": "3291c818f727ed5dd5761788661de7cff4b1f93e4d3c98d23b3cef6fedef81a2"
+      },
+      {
+        "fraction": 0.5,
+        "error": "没有唯一有效的 TPIU/ETM 流候选"
+      },
+      {
+        "fraction": 0.6,
+        "error": "没有唯一有效的 TPIU/ETM 流候选"
+      },
+      {
+        "fraction": 0.7,
+        "error": "没有唯一有效的 TPIU/ETM 流候选"
+      },
+      {
+        "fraction": 0.75,
+        "phase": 1,
+        "clock": 35000098.000274405,
+        "margin_ns": 0.0,
+        "sync": 23628,
+        "frames": {
+          "frames": 2085,
+          "fsyncs": 23628,
+          "hsyncs": 111056,
+          "errors": 0,
+          "unknown_bytes": 0,
+          "initial_skipped_bytes": 1,
+          "id_changes": [
+            2
+          ],
+          "trailing_frame_bytes": 14,
+          "trailing_raw_bytes": 0,
+          "stream_bytes": {
+            "2": 31014
+          }
+        },
+        "etm_bytes": 31014,
+        "sha": "0ed07158f79b39ec85da4aa9da05b8c55ceba4ce6da0d2e875e1378342d99f9c"
+      },
+      {
+        "fraction": 0.8,
+        "phase": 1,
+        "clock": 35000098.000274405,
+        "margin_ns": 0.3999999992690406,
+        "sync": 23628,
+        "frames": {
+          "frames": 2085,
+          "fsyncs": 23628,
+          "hsyncs": 111056,
+          "errors": 0,
+          "unknown_bytes": 0,
+          "initial_skipped_bytes": 1,
+          "id_changes": [
+            2
+          ],
+          "trailing_frame_bytes": 14,
+          "trailing_raw_bytes": 0,
+          "stream_bytes": {
+            "2": 31014
+          }
+        },
+        "etm_bytes": 31014,
+        "sha": "0d97f4b30fa5a17b30e81d64e940979480cf4916082e20542857a4f98e42678c"
+      },
+      {
+        "fraction": 0.9,
+        "phase": 1,
+        "clock": 35000098.000274405,
+        "margin_ns": 0.5999999993372418,
+        "sync": 23628,
+        "frames": {
+          "frames": 2085,
+          "fsyncs": 23628,
+          "hsyncs": 111056,
+          "errors": 0,
+          "unknown_bytes": 0,
+          "initial_skipped_bytes": 1,
+          "id_changes": [
+            2
+          ],
+          "trailing_frame_bytes": 14,
+          "trailing_raw_bytes": 0,
+          "stream_bytes": {
+            "2": 31014
+          }
+        },
+        "etm_bytes": 31014,
+        "sha": "3291c818f727ed5dd5761788661de7cff4b1f93e4d3c98d23b3cef6fedef81a2"
+      }
+    ],
+    "distinctStreams": 3,
+    "selected": 0.25,
+    "stableWindow": [
+      0.1,
+      0.4
+    ],
+    "stableWindowNs": 4.200000000001078,
+    "sensitive": false
+  },
+  "targetSnapshot": {
+    "cpuid": 1092600433,
+    "device": 268919936,
+    "config": {
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "config": 1,
+      "traceid": 2
+    },
+    "halted": true,
+    "rcc": {
+      "cr": 251904037,
+      "cfgr": 8650779,
+      "domain": 72,
+      "pllSource": 33574994,
+      "pllConfig": 33489049,
+      "pllDiv": 117575279,
+      "pllFrac": 0
+    },
+    "clocks": {
+      "knownHz": 70000000,
+      "knownTraceHz": 70000000,
+      "coreHz": 70000000,
+      "traceHz": 70000000,
+      "external": true,
+      "source": "HSE → PLL1",
+      "path": "HSE 25 MHz ÷M5 ×(112) ÷P8 → CPU ÷1 → HCLK ÷2",
+      "tracePath": "PLL1 VCO ÷R8 → TRACEPORTCK",
+      "traceReady": true,
+      "busDivider": 2,
+      "coreDivider": 1,
+      "traceRelation": "并行 trace 的输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；CPU 另经 CDCPRE 分频",
+      "physicalTraceHz": 35000000,
+      "hclkHz": 35000000
+    },
+    "clockError": null,
+    "hseHz": 25000000,
+    "width": 8,
+    "tracePins": {
+      "pinSpeed": 3,
+      "mode": 4294961839,
+      "speed": 16368,
+      "alternate": 0
+    }
+  },
+  "laFilter": {
+    "basis": "record snapshot",
+    "source": "E:\\web-etm-trace\\records\\capture-8365b3adb65b4f0cb281e55aef2c89c7\\capture.kvdat",
+    "keepOnRestart": false,
+    "channels": [
+      {
+        "channel": 0,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 1,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 2,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 3,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 4,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 5,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 6,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 7,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 8,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 9,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 10,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 11,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 12,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 13,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 14,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      },
+      {
+        "channel": 15,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2.0
+      }
+    ],
+    "sampleRate": 500000000,
+    "nativeSocketControl": false
+  },
+  "captureScope": "采集窗口内全部地址的业务指令 trace；启动过程未包含",
+  "limits": "边界保留；条件状态未知不算已证实执行；未证明任意程序绝对无损"
+}

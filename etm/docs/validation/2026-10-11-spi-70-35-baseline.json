@@ -1,0 +1,85 @@
+{
+  "profile": "spi-70",
+  "captures": [
+    {
+      "seconds": 0.001,
+      "id": "capture-926a4f2b899542f5b566e68a1d1eb631",
+      "job": {
+        "error": null,
+        "id": "4096aefaea6b40f6a5008987f2c0e018",
+        "record": "capture-926a4f2b899542f5b566e68a1d1eb631",
+        "started": 1791686102.8788168,
+        "state": "done",
+        "summary": {
+          "exceptions": 1,
+          "executed": 42209,
+          "functions": {
+            "HAL_GPIO_WritePin": 76,
+            "HAL_GetTick": 39,
+            "HAL_IncTick": 7,
+            "HAL_RCCEx_GetPLL2ClockFreq": 60,
+            "HAL_RCCEx_GetPeriphCLKFreq": 22,
+            "HAL_RCC_GetHCLKFreq": 19,
+            "HAL_RCC_GetSysClockFreq": 100,
+            "HAL_SPI_Transmit": 37309,
+            "SPI_CloseTransfer": 492,
+            "SPI_WaitOnFlagUntilTimeout": 193,
+            "SysTick_Handler": 3,
+            "main": 3875,
+            "spi_trace_ready": 14
+          },
+          "gaps": 1,
+          "instructions": 47537,
+          "packetIssues": 0,
+          "packets": 2876,
+          "ranges": 9441,
+          "sourceMapped": 47537,
+          "unknownExecution": 39
+        }
+      },
+      "result": null
+    },
+    {
+      "seconds": 0.01,
+      "id": "capture-8365b3adb65b4f0cb281e55aef2c89c7",
+      "job": {
+        "error": null,
+        "id": "5cf51a6c1d1b40058d2afd102154a7f3",
+        "record": "capture-8365b3adb65b4f0cb281e55aef2c89c7",
+        "started": 1791686112.3802772,
+        "state": "done",
+        "summary": {
+          "exceptions": 10,
+          "executed": 430544,
+          "functions": {
+            "HAL_GPIO_WritePin": 796,
+            "HAL_GetTick": 399,
+            "HAL_IncTick": 70,
+            "HAL_RCCEx_GetPLL2ClockFreq": 60,
+            "HAL_RCCEx_GetPeriphCLKFreq": 22,
+            "HAL_RCC_GetHCLKFreq": 19,
+            "HAL_RCC_GetSysClockFreq": 100,
+            "HAL_SPI_Transmit": 379127,
+            "SPI_CloseTransfer": 5412,
+            "SPI_WaitOnFlagUntilTimeout": 1980,
+            "SysTick_Handler": 30,
+            "main": 42515,
+            "spi_trace_ready": 14
+          },
+          "gaps": 1,
+          "instructions": 484570,
+          "packetIssues": 0,
+          "packets": 29155,
+          "ranges": 96740,
+          "sourceMapped": 484570,
+          "unknownExecution": 397
+        }
+      },
+      "result": null
+    }
+  ],
+  "scope": "all-addresses business window; startup not captured",
+  "elfSha": "4e25c663d9e1dda32e41e8c970afce4b176d996b99b396c9cb2b530b84cd02b2",
+  "restored": true,
+  "running": true
+}

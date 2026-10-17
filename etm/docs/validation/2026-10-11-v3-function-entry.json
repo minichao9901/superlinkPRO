@@ -1,0 +1,249 @@
+{
+  "profile": "spi-70",
+  "operation": "one-shot function entry capture",
+  "entry": {
+    "address": 134233116,
+    "file": "E:/web-etm-trace/firmware/stm32h7b0_spi_trace/sdk/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c",
+    "line": 795,
+    "name": "HAL_SPI_Transmit",
+    "size": 708
+  },
+  "haltedAt": {
+    "cpuid": 1092600433,
+    "device": 268919936,
+    "config": {
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "config": 1,
+      "traceid": 0
+    },
+    "halted": true,
+    "rcc": {
+      "cr": 251904037,
+      "cfgr": 8650779,
+      "domain": 72,
+      "pllSource": 33574994,
+      "pllConfig": 33489049,
+      "pllDiv": 117575279,
+      "pllFrac": 0
+    },
+    "clocks": {
+      "knownHz": 70000000,
+      "knownTraceHz": 70000000,
+      "coreHz": 70000000,
+      "traceHz": 70000000,
+      "external": true,
+      "source": "HSE → PLL1",
+      "path": "HSE 25 MHz ÷M5 ×(112) ÷P8 → CPU ÷1 → HCLK ÷2",
+      "tracePath": "PLL1 VCO ÷R8 → TRACEPORTCK",
+      "traceReady": true,
+      "busDivider": 2,
+      "coreDivider": 1,
+      "traceRelation": "并行 trace 的输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；CPU 另经 CDCPRE 分频",
+      "physicalTraceHz": 35000000,
+      "hclkHz": 35000000
+    },
+    "clockError": null,
+    "hseHz": 25000000,
+    "width": 1,
+    "entryPC": 134233116
+  },
+  "breakpointsRestored": true,
+  "capture": {
+    "id": "capture-f42eb5d755bd4f4eb64cf39ec8c2dbb9",
+    "job": {
+      "error": null,
+      "id": "95f7d325e3264d19ab78a085563b5746",
+      "record": "capture-f42eb5d755bd4f4eb64cf39ec8c2dbb9",
+      "started": 1791704111.760252,
+      "state": "done",
+      "summary": {
+        "exceptions": 1,
+        "executed": 42850,
+        "functions": {
+          "HAL_GPIO_WritePin": 78,
+          "HAL_GetTick": 42,
+          "HAL_IncTick": 7,
+          "HAL_SPI_Transmit": 37806,
+          "SPI_CloseTransfer": 533,
+          "SPI_WaitOnFlagUntilTimeout": 195,
+          "SysTick_Handler": 3,
+          "main": 4186
+        },
+        "gaps": 1,
+        "instructions": 48237,
+        "packetIssues": 0,
+        "packets": 2907,
+        "ranges": 9624,
+        "sourceMapped": 48237,
+        "unknownExecution": 40
+      }
+    },
+    "result": null
+  },
+  "firstInstruction": {
+    "pc": 134233116,
+    "bytes": "2de9f047",
+    "mnemonic": "push.w",
+    "function": "HAL_SPI_Transmit"
+  },
+  "summary": {
+    "packets": 2907,
+    "ranges": 9624,
+    "instructions": 48237,
+    "executed": 42850,
+    "sourceMapped": 48237,
+    "exceptions": 1,
+    "gaps": 1,
+    "packetIssues": 0,
+    "functions": {
+      "HAL_SPI_Transmit": 37806,
+      "HAL_GetTick": 42,
+      "SPI_WaitOnFlagUntilTimeout": 195,
+      "SPI_CloseTransfer": 533,
+      "main": 4186,
+      "HAL_GPIO_WritePin": 78,
+      "SysTick_Handler": 3,
+      "HAL_IncTick": 7
+    },
+    "unknownExecution": 40
+  },
+  "quality": {
+    "processedBytes": 3108,
+    "accountedBytes": 3108,
+    "overlapBytes": 0,
+    "unaccountedBytes": 0,
+    "unsynchronizedBytes": 0,
+    "unsynchronizedRecords": 0,
+    "validPackets": 2907,
+    "packetIssues": 0,
+    "overflowPackets": 0,
+    "decoderLastError": 0,
+    "unknownExecution": 40,
+    "initialPhysicalBytes": 3,
+    "unknownSourceBytes": 0,
+    "trailingFrameBytes": 12,
+    "firstPathOffset": 23,
+    "boundaryPresent": true,
+    "timing": {
+      "cycleElements": 0,
+      "timeFlameAvailable": false
+    },
+    "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率"
+  },
+  "filter": {
+    "basis": "record snapshot",
+    "source": "E:\\web-etm-trace\\records\\capture-f42eb5d755bd4f4eb64cf39ec8c2dbb9\\capture.kvdat",
+    "keepOnRestart": false,
+    "channels": [
+      {
+        "channel": 0,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 1,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 2,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 3,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 4,
+        "enabled": true,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 5,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 6,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 7,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 8,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 9,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 10,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 11,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 12,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 13,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 14,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      },
+      {
+        "channel": 15,
+        "enabled": false,
+        "samples": 1,
+        "widthNs": 2
+      }
+    ],
+    "sampleRate": 500000000,
+    "nativeSocketControl": false
+  },
+  "passed": true,
+  "running": true,
+  "restored": true
+}

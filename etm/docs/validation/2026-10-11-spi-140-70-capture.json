@@ -1,0 +1,11 @@
+{
+  "id": "capture-29847a2db9be4e0e9c22d59a17838b53",
+  "job": {
+    "error": "不能唯一确定 TPIU 字节相位：0 个候选；请检查通道和取样位置。",
+    "id": "390f65b7f49345e5a27cc847f0a9a071",
+    "record": "capture-29847a2db9be4e0e9c22d59a17838b53",
+    "started": 1791685146.0136073,
+    "state": "error"
+  },
+  "filterBasis": "user-set KingstVIS <=1 sample on all channels"
+}

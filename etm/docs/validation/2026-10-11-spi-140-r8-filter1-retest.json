@@ -1,0 +1,319 @@
+{
+  "filter": {
+    "basis": "user-reported KingstVIS setting",
+    "channels": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "samples": 1,
+    "sampleRate": 500000000,
+    "widthNs": 2
+  },
+  "captures": [
+    {
+      "id": "capture-6f1bb925af80488ab2f1ed14db87b98f",
+      "job": {
+        "error": null,
+        "id": "47acae47ff0941978d9781f13d003666",
+        "record": "capture-6f1bb925af80488ab2f1ed14db87b98f",
+        "started": 1791685840.4697833,
+        "state": "done",
+        "summary": {
+          "exceptions": 1,
+          "executed": 84832,
+          "functions": {
+            "HAL_GPIO_WritePin": 154,
+            "HAL_GetTick": 150,
+            "HAL_IncTick": 7,
+            "HAL_RCCEx_GetPLL2ClockFreq": 60,
+            "HAL_RCCEx_GetPeriphCLKFreq": 22,
+            "HAL_RCC_GetHCLKFreq": 19,
+            "HAL_RCC_GetSysClockFreq": 100,
+            "HAL_SPI_Transmit": 74626,
+            "SPI_CloseTransfer": 1025,
+            "SPI_WaitOnFlagUntilTimeout": 591,
+            "SysTick_Handler": 3,
+            "main": 8061,
+            "spi_trace_ready": 14
+          },
+          "gaps": 1,
+          "instructions": 95571,
+          "packetIssues": 0,
+          "packets": 5833,
+          "ranges": 19074,
+          "sourceMapped": 95571,
+          "unknownExecution": 124
+        }
+      },
+      "result": {
+        "summary": {
+          "exceptions": 1,
+          "executed": 84832,
+          "functions": {
+            "HAL_GPIO_WritePin": 154,
+            "HAL_GetTick": 150,
+            "HAL_IncTick": 7,
+            "HAL_RCCEx_GetPLL2ClockFreq": 60,
+            "HAL_RCCEx_GetPeriphCLKFreq": 22,
+            "HAL_RCC_GetHCLKFreq": 19,
+            "HAL_RCC_GetSysClockFreq": 100,
+            "HAL_SPI_Transmit": 74626,
+            "SPI_CloseTransfer": 1025,
+            "SPI_WaitOnFlagUntilTimeout": 591,
+            "SysTick_Handler": 3,
+            "main": 8061,
+            "spi_trace_ready": 14
+          },
+          "gaps": 1,
+          "instructions": 95571,
+          "packetIssues": 0,
+          "packets": 5833,
+          "ranges": 19074,
+          "sourceMapped": 95571,
+          "unknownExecution": 124
+        },
+        "quality": {
+          "accountedBytes": 6262,
+          "basis": "字节核算不等于采集无损证明；源码映射率不等于程序覆盖率",
+          "boundaryPresent": true,
+          "decoderLastError": 0,
+          "firstPathOffset": 23,
+          "initialPhysicalBytes": 3,
+          "overflowPackets": 0,
+          "overlapBytes": 0,
+          "packetIssues": 0,
+          "processedBytes": 6262,
+          "timing": {
+            "cycleElements": 0,
+            "timeFlameAvailable": false
+          },
+          "trailingFrameBytes": 12,
+          "unaccountedBytes": 0,
+          "unknownExecution": 124,
+          "unknownSourceBytes": 0,
+          "unsynchronizedBytes": 0,
+          "unsynchronizedRecords": 0,
+          "validPackets": 5833
+        },
+        "status": {
+          "kind": "status",
+          "lastError": "",
+          "lastErrorCode": 0,
+          "library": "1.8.3",
+          "processed": 6262
+        },
+        "physical": {
+          "candidates": [
+            {
+              "bytes": 34999,
+              "first_32_bytes_hex": "ff ff ff f7 ff ff ff f7 ff ff ff f7 ff ff ff f7 ff ff ff f7 ff ff ff f7 ff ff ff f7 ff ff ff f7",
+              "frame_sync_matches": 0,
+              "phase": 0
+            },
+            {
+              "bytes": 34998,
+              "first_32_bytes_hex": "ff ff 7f ff ff ff 7f ff ff ff 7f ff ff ff 7f ff ff ff 7f ff ff ff 7f ff ff ff 7f ff ff ff 7f ff",
+              "frame_sync_matches": 2163,
+              "phase": 1
+            }
+          ],
+          "clock_channel": 0,
+          "clock_edges": 69999,
+          "clock_gaps": [],
+          "clock_hz_average": 35000120.003840126,
+          "clock_hz_median": 35714285.71427655,
+          "clock_runs": [
+            {
+              "clock_hz_average": 35000120.003840126,
+              "end_seconds": 0.000950032,
+              "half_cycles": 69998,
+              "start_seconds": -4.9936e-05
+            }
+          ],
+          "data_channels_D0_to_D3": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "data_transitions": {
+            "CH1": 11966,
+            "CH2": 6588,
+            "CH3": 6496,
+            "CH4": 26196
+          },
+          "half_period_ns": 14.000000000003594,
+          "input": "E:\\web-etm-trace\\records\\capture-6f1bb925af80488ab2f1ed14db87b98f\\capture.csv",
+          "input_sha256": "cc5050de233d3919c2a98c244f94ff41a23ac4ba9aa2182df4347cbfec6e5f76",
+          "irregular_half_periods": 7,
+          "min_data_transition_distance_ns": 2.499999999985153,
+          "nibbles": 69998,
+          "note": "Byte phase must be confirmed by TPIU framing and ETM decode; sync matches alone do not prove valid capture.",
+          "sample_fraction_after_each_edge": 0.25,
+          "stage": "physical DDR extraction only; no TPIU demux or ETM instruction decode",
+          "window_seconds": [
+            -4.9952e-05,
+            0.00095004
+          ]
+        },
+        "laFilter": {
+          "basis": "record snapshot",
+          "channels": [
+            {
+              "channel": 0,
+              "enabled": true,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 1,
+              "enabled": true,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 2,
+              "enabled": true,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 3,
+              "enabled": true,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 4,
+              "enabled": true,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 5,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 6,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 7,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 8,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 9,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 10,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 11,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 12,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 13,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 14,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            },
+            {
+              "channel": 15,
+              "enabled": false,
+              "samples": 1,
+              "widthNs": 2
+            }
+          ],
+          "keepOnRestart": false,
+          "nativeSocketControl": false,
+          "sampleRate": 500000000,
+          "source": "E:\\web-etm-trace\\records\\capture-6f1bb925af80488ab2f1ed14db87b98f\\capture.kvdat"
+        }
+      }
+    }
+  ],
+  "profile": "spi-140-r8",
+  "reset": {
+    "cpuid": 1092600433,
+    "device": 268919936,
+    "config": {
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "config": 1,
+      "traceid": 0
+    },
+    "halted": true,
+    "rcc": {
+      "cr": 251904037,
+      "cfgr": 8650779,
+      "domain": 72,
+      "pllSource": 33574994,
+      "pllConfig": 33489049,
+      "pllDiv": 117573231,
+      "pllFrac": 0
+    },
+    "clocks": {
+      "knownHz": 140000000,
+      "knownTraceHz": 70000000,
+      "coreHz": 140000000,
+      "traceHz": 70000000,
+      "external": true,
+      "source": "HSE → PLL1",
+      "path": "HSE 25 MHz ÷M5 ×(112) ÷P4 → CPU ÷1 → HCLK ÷2",
+      "tracePath": "PLL1 VCO ÷R8 → TRACEPORTCK",
+      "traceReady": true,
+      "busDivider": 2,
+      "coreDivider": 1,
+      "traceRelation": "并行 trace 的输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；CPU 另经 CDCPRE 分频",
+      "physicalTraceHz": 35000000,
+      "hclkHz": 70000000
+    },
+    "clockError": null,
+    "hseHz": 25000000,
+    "width": 1
+  },
+  "error": "NAK",
+  "restoreError": "[Errno 5] Input/Output Error"
+}

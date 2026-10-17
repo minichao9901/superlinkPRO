@@ -1,0 +1,75 @@
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# gcc dependency files
+*.d
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+
+# Vc++ build files
+*tlog
+Debug/
+ipch/
+*.opensdf
+*.sdf
+*.suo
+*.user
+*.idb
+*.pdb
+*.exp
+*.ilk
+.vs/
+
+# ignore emacs backup saves
+*~
+
+# ignore bin test directory
+bin/
+*.log
+*.lastbuildstate
+*.manifest
+*.cache
+*.bak
+*.orig
+decoder/docs/html/*
+*.orig
+*.VC.db
+*.VC.VC.opendb
+*.iobj
+*.ipdb
+decoder/tests/results*
+*.recipe
+decoder/tests/ds-snapshots
+*.FileListAbsolute.txt
+decoder/tests/build/win-vs2022/c_api_pkt_print_test/Release/*
+decoder/tests/build/win-vs2022/itm_decode_test/x64/Release/*
+decoder/tests/build/win-vs2022/mem-acc-test/x64/Release/*
+decoder/tests/build/win-vs2022/perr/x64/Release/*

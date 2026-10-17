@@ -1,0 +1,63 @@
+{
+  "id": "capture-875ff273a831421a864c8379afc5b544",
+  "job": {
+    "error": null,
+    "id": "f11656fcdfd64ba1a571db15b20be3e8",
+    "record": "capture-875ff273a831421a864c8379afc5b544",
+    "started": 1791681206.411018,
+    "state": "done",
+    "summary": {
+      "exceptions": 1,
+      "executed": 169820,
+      "functions": {
+        "HAL_GPIO_WritePin": 306,
+        "HAL_GetTick": 759,
+        "HAL_IncTick": 7,
+        "HAL_SPI_Transmit": 147649,
+        "SPI_CloseTransfer": 2091,
+        "SPI_WaitOnFlagUntilTimeout": 2583,
+        "SysTick_Handler": 3,
+        "main": 16422
+      },
+      "gaps": 1,
+      "instructions": 191663,
+      "packetIssues": 0,
+      "packets": 11975,
+      "ranges": 38610,
+      "sourceMapped": 191663,
+      "unknownExecution": 557
+    }
+  },
+  "summary": {
+    "exceptions": 1,
+    "executed": 169820,
+    "functions": {
+      "HAL_GPIO_WritePin": 306,
+      "HAL_GetTick": 759,
+      "HAL_IncTick": 7,
+      "HAL_SPI_Transmit": 147649,
+      "SPI_CloseTransfer": 2091,
+      "SPI_WaitOnFlagUntilTimeout": 2583,
+      "SysTick_Handler": 3,
+      "main": 16422
+    },
+    "gaps": 1,
+    "instructions": 191663,
+    "packetIssues": 0,
+    "packets": 11975,
+    "ranges": 38610,
+    "sourceMapped": 191663,
+    "unknownExecution": 557
+  },
+  "diag": [
+    1,
+    0,
+    280000000,
+    140000000,
+    200000000,
+    35000000,
+    10085335,
+    0
+  ],
+  "restored": true
+}

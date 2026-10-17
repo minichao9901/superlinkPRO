@@ -1,0 +1,48 @@
+{
+  "cpuid": 1092600433,
+  "device": 268919936,
+  "config": {
+    "idr0": 134219489,
+    "idr1": 1090581505,
+    "idr2": 4,
+    "idr8": 1,
+    "idr9": 0,
+    "idr10": 0,
+    "idr11": 0,
+    "idr12": 1,
+    "idr13": 0,
+    "config": 1,
+    "traceid": 2
+  },
+  "halted": true,
+  "rcc": {
+    "cr": 16445,
+    "cfgr": 0,
+    "domain": 0,
+    "pllSource": 33686016,
+    "pllConfig": 33488896,
+    "pllDiv": 16843392,
+    "pllFrac": 0
+  },
+  "clocks": {
+    "knownHz": 8000000,
+    "knownTraceHz": 8000000,
+    "coreHz": 8000000,
+    "traceHz": 8000000,
+    "external": false,
+    "source": "HSI",
+    "path": "HSI 64 MHz ÷8 → CPU ÷1 → HCLK ÷1",
+    "tracePath": "HSI 64 MHz ÷8 → SWO 输入",
+    "traceReady": true,
+    "busDivider": 1,
+    "coreDivider": 1,
+    "traceRelation": "SWO 的 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；CPU 另经 CDCPRE 分频",
+    "physicalTraceHz": 4000000,
+    "hclkHz": 8000000
+  },
+  "clockError": null,
+  "hseHz": 25000000,
+  "width": 8,
+  "pwr_cr3": 6,
+  "backupBytes": 131072
+}

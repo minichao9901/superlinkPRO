@@ -1,0 +1,13 @@
+{
+  "protocol": "ETMv3",
+  "idr": 1091891777,
+  "ctrl": 2320,
+  "ccer": 100352,
+  "traceid": 2,
+  "evidence": {
+    "method": "OpenOCD halt/read after baseline capture; verify_image passed; reset run before fresh 10 ms capture",
+    "idrHex": "0x4114f241",
+    "ctrlHex": "0x910",
+    "ccerHex": "0x18800"
+  }
+}

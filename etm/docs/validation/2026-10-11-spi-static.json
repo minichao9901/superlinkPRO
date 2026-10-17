@@ -1,0 +1,57 @@
+[
+  {
+    "profile": "fw-280-r5",
+    "elfSha256": "ad66352dbdf55b6b153ea498c54e6c2f5430811f9135a2754559f49a61a3d50a",
+    "binSha256": "bc725ec6e1546b5c6779a68e28f9099fbcf9c7b97c44856244626d22d02048ba",
+    "flashBytes": 19876,
+    "vectorBytes": 684,
+    "dwarf": [
+      2,
+      4
+    ]
+  },
+  {
+    "profile": "fw-280-r6",
+    "elfSha256": "0548e5839274723fe03a6ca67d4d2b3a43446def411ab59e035a83c107a32f4f",
+    "binSha256": "3858f2bf014e93c80806f7fb2b6d19ade063aab087291c3e5c313c269fc615bd",
+    "flashBytes": 19876,
+    "vectorBytes": 684,
+    "dwarf": [
+      2,
+      4
+    ]
+  },
+  {
+    "profile": "fw-280-r8",
+    "elfSha256": "f559d3f92cd62d5e42507e1c53370b9c571daac9659a11b407d367e2ca16ad22",
+    "binSha256": "38422a9ab7281a45d408aad86d50ef8a3d73238e31b2e6d1589c38c7cbccda48",
+    "flashBytes": 19876,
+    "vectorBytes": 684,
+    "dwarf": [
+      2,
+      4
+    ]
+  },
+  {
+    "profile": "fw-280",
+    "elfSha256": "0c24173859c0c507d1e347a86a43741e468f77b274c33707d60ae4f6a114f6fb",
+    "binSha256": "4b6068faac49513a9b78edc6d4969a0b2a8781ba3cefd146a562052857c92332",
+    "flashBytes": 19876,
+    "vectorBytes": 684,
+    "dwarf": [
+      2,
+      4
+    ]
+  },
+  {
+    "profile": "fw-70",
+    "elfSha256": "4e25c663d9e1dda32e41e8c970afce4b176d996b99b396c9cb2b530b84cd02b2",
+    "binSha256": "4275f9b8873aa602da8e5bf7e7acede3884d2b22fa510f3784dfec5d8e94dad2",
+    "flashBytes": 19876,
+    "vectorBytes": 684,
+    "dwarf": [
+      2,
+      4
+    ]
+  }
+]

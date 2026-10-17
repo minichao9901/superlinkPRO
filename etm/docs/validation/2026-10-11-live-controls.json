@@ -1,0 +1,128 @@
+{
+  "initial": {
+    "cpuid": 1092600433,
+    "device": 268919936,
+    "config": {
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "config": 4113,
+      "traceid": 2
+    },
+    "halted": false,
+    "rcc_cr": 16445,
+    "rcc_cfgr": 0,
+    "width": 8
+  },
+  "configured": {
+    "cpuid": 1092600433,
+    "device": 268919936,
+    "config": {
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "config": 1,
+      "traceid": 2
+    },
+    "halted": true,
+    "rcc_cr": 16445,
+    "rcc_cfgr": 0,
+    "width": 8
+  },
+  "linkedCapture": {
+    "id": "capture-123e06d353d344e3aa48049cdb263ca0",
+    "summary": {
+      "exceptions": 10,
+      "executed": 15120,
+      "functions": {
+        "HAL_IncTick": 110,
+        "SysTick_Handler": 30,
+        "main": 12813,
+        "trace_even": 327,
+        "trace_odd": 330,
+        "trace_workload": 1510
+      },
+      "gaps": 1,
+      "instructions": 17229,
+      "packetIssues": 0,
+      "packets": 1543,
+      "ranges": 4718,
+      "sourceMapped": 17229
+    }
+  },
+  "reset": {
+    "cpuid": 1092600433,
+    "device": 268919936,
+    "config": {
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "config": 1,
+      "traceid": 2
+    },
+    "halted": true,
+    "rcc_cr": 16445,
+    "rcc_cfgr": 0,
+    "width": 8
+  },
+  "stop": {
+    "error": null,
+    "id": "47e3c774b50347bf99901c5e0f0cef5f",
+    "record": "capture-caae3c35dc6140468159c15fb3cb4b01",
+    "started": 1791652864.1344237,
+    "state": "done"
+  },
+  "returnStackAndCycles": {
+    "id": "capture-e427901882fe45c9b0779233e01ad745",
+    "config": {
+      "config": 4113,
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "traceid": 2
+    },
+    "summary": {
+      "exceptions": 9,
+      "executed": 15177,
+      "functions": {
+        "HAL_IncTick": 99,
+        "SysTick_Handler": 27,
+        "main": 12855,
+        "trace_even": 333,
+        "trace_odd": 333,
+        "trace_workload": 1530
+      },
+      "gaps": 1,
+      "instructions": 17296,
+      "packetIssues": 0,
+      "packets": 1763,
+      "ranges": 4741,
+      "sourceMapped": 17296
+    }
+  },
+  "passed": true
+}

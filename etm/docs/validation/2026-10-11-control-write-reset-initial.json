@@ -1,0 +1,58 @@
+{
+  "operation": "default reset-to-business capture after control-write fix",
+  "passed": false,
+  "identity": {
+    "cpuid": 1092600433,
+    "device": 268919936,
+    "profile": "stm32h7b0",
+    "name": "STM32H7B0 / H7A3 / H7B3",
+    "core": "Cortex-M7",
+    "etmVersion": "ETMv4",
+    "traceSupported": true,
+    "traceStatus": "H7B0 70/35 MHz 已验收；同组其他型号仍需实测",
+    "config": {
+      "idr0": 134219489,
+      "idr1": 1090581505,
+      "idr2": 4,
+      "idr8": 1,
+      "idr9": 0,
+      "idr10": 0,
+      "idr11": 0,
+      "idr12": 1,
+      "idr13": 0,
+      "config": 1,
+      "traceid": 0
+    },
+    "halted": true,
+    "rcc": {
+      "cr": 16421,
+      "cfgr": 0,
+      "domain": 0,
+      "pllSource": 33686016,
+      "pllConfig": 33488896,
+      "pllDiv": 16843392,
+      "pllFrac": 0
+    },
+    "clocks": {
+      "knownHz": 64000000,
+      "knownTraceHz": 64000000,
+      "coreHz": 64000000,
+      "traceHz": 64000000,
+      "external": false,
+      "source": "HSI",
+      "path": "HSI 64 MHz ÷1 → CPU ÷1 → HCLK ÷1",
+      "tracePath": "HSI 64 MHz ÷1 → TRACEPORTCK",
+      "traceReady": true,
+      "busDivider": 1,
+      "coreDivider": 1,
+      "traceRelation": "并行 trace 的输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；CPU 另经 CDCPRE 分频",
+      "physicalTraceHz": 32000000,
+      "hclkHz": 64000000
+    },
+    "clockError": null,
+    "hseHz": 25000000,
+    "width": 1
+  },
+  "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 64000000\n- 70000000\n",
+  "running": true
+}
