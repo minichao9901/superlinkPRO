@@ -6,7 +6,7 @@ import path from 'node:path';
 const CDP = process.env.CDP || 'http://127.0.0.1:9340';
 const APP = process.env.APP || 'http://127.0.0.1:8766/';
 const SID = process.env.SID || 'h743-clk30-trace';
-const DL = process.env.DL || 'E:\\web-etm-trace\\tmp\\web-download';
+const DL = process.env.DL || 'tmp/web-download';   // 相对 cwd；不再写死任何仓库绝对路径
 fs.mkdirSync(DL, { recursive: true });
 
 const watchdog = setTimeout(() => { console.error('WATCHDOG: 90s 未完成'); process.exit(9); }, 90_000);

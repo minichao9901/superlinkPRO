@@ -3,7 +3,7 @@ import fs from 'node:fs';
 
 const CDP = process.env.CDP || 'http://127.0.0.1:9340';
 const APP = process.env.APP || 'http://127.0.0.1:8766/';
-const OUT = process.env.OUT || 'E:\\web-etm-trace\\captures\\h743-sweep\\30mhz\\web-page-decode.png';
+const OUT = process.env.OUT || 'tmp/h743-web-page-decode.png';   // 相对 cwd；不再写死任何仓库绝对路径
 
 const list = await (await fetch(`${CDP}/json/list`)).json();
 const page = list.find(t => t.type === 'page' && t.url.startsWith(APP.slice(0, 24)));
