@@ -1,0 +1,50 @@
+# 把 web/ 作为 GitHub Pages 站点根发布（superlinkPRO 合并仓）
+#
+# 为什么不是仓库根：合并后仓库是三子树布局（web/ etm/ firmware/ script_test/ tools/ docs/），
+# 站点根在 web/。用 Actions 发布就不必把 web/ 的内容搬到根目录。
+#
+# 前置（一次性，仓库设置里）：Settings → Pages → Build and deployment → Source = GitHub Actions
+name: Deploy web/ to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload web/ as the site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

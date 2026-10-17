@@ -61,7 +61,9 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
-.github/workflows/
+.github/workflows/*
+# 例外：合并仓的站点根在 web/，靠这个 workflow 发布 Pages —— 必须入库
+!.github/workflows/pages.yml
 
 # 日志 / 映射表 / 抓包表格：三仓都按产物处理（*.map 不入库）
 *.log
