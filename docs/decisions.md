@@ -78,3 +78,26 @@ toolbox 512 行未提交改动 = **8 个已修改文件（全是 ETM 相关真�
 - 必须**不搬**：`.agent-teams/`（本团队状态）、`docs/validation/`（4206 个未跟踪验证产物）
 
 详见 `docs/merge-map.md` §5。
+
+---
+
+## t2 实测偏差（2026-10-17，webapp 发现并已按正确方式实现）
+
+**`docs/validation/` 不能整目录 ignore。** mapper 的清单把它当"未跟踪产物"，但实测那里有
+**1086 个已跟踪文件**（toolbox 894 / akaLinkPro 139 / ETM 53）——目录一旦被 `.gitignore` 排除，
+`git add -A` 会**静默丢**这 1086 个文件，而 t7 的 §7 对账会因此变红。
+
+当前实现（**接受，不改**）：
+- 默认忽略 `docs/validation/` 整层，**放行其中的已跟踪目录与文件类型**，再对未跟踪产物族压制；
+- 实测压掉 4206 个未跟踪产物里的 **3897 个（92.7% 文件 / 98.3% 字节）**；
+- 剩 **309 个 / 43 MB** 是零散截图/文本/补丁，与已跟踪证据同类型、无法按类型安全忽略，
+  且**不在迁移清单内** —— 允许留在磁盘上但**不要入库**（t3/t4 搬完用 `git status` 确认无残留未跟踪）。
+
+**因此**：t3 / t4 **不需要**对 `docs/validation` 用 `git add -f`。若后续有人改成"整目录 ignore"，
+必须同步把 t3/t4 改成对该目录下的已跟踪文件 `git add -f`，否则必丢文件。
+
+另：`.agent-teams/`（团队状态）整目录忽略，**绝不入库** —— 这条不变。
+
+**git 身份**：初始提交原为 `webapp <webapp@superlinkpro.local>`；Captain 已设仓库本地
+`user.name=minichao` 并 `--amend --reset-author` 修正（全局 `user.name` 里带字面引号 `'minichao'`，
+是个历史遗留 bug，本仓已用本地配置覆盖；**其它仓如要提交，需各自设本地身份**）。
