@@ -120,7 +120,7 @@ export class EtmTarget {
     }catch(e){clockError=e.message;}
     this.breakpoints.capacity=decodeFpCtrl(await this.read(0xe0002000)).numCode;
     this.info={cpuid,device,profile:port.id,name:port.name,core:port.core,etmVersion:port.etmVersion,traceSupported,
-      traceStatus:traceSupported?port.id==='stm32f103ze'?'F103ZE 48/24 MHz Kingst 联动与 ETMv3 解码已验收；封装须有 PE2～PE6':port.id==='stm32h743'?'H743 ETMv4 实验适配：推荐 CPU 60 / TRACECLK 30 MHz；同组其他型号未验收':'H7B0 70/35 MHz 已验收；同组其他型号仍需实测':'型号/时钟/断点可用；本型号 trace 配置与解码尚未验收',
+      traceStatus:traceSupported?port.id==='stm32f103ze'?'F103ZE 48/24 MHz Kingst 联动与 ETMv3 解码已验收；封装须有 PE2～PE6':port.id==='stm32h743'?'H743 ETMv4 已验收：48/24～60/30 MHz、周期计数/返回栈/分支广播选项回读与解码；同 DEV_ID 的 H742/H750/H753 未单独验收':'H7B0 70/35 MHz 已验收；同组其他型号仍需实测':'型号/时钟/断点可用；本型号 trace 配置与解码尚未验收',
       flashLimit:port.id==='stm32h7b0'?0x08020000:port.flashLimit,traceOptions:traceCapabilities(port.id,config),
       config,halted:await this.isHalted(),rcc,clocks,clockError,hseHz:this.hseHz,width};return this.info;
   }

@@ -143,7 +143,7 @@ async function resumeBreakpoints(items){
 }
 async function withBreakpointsSuspended(fn){const items=target.breakpoints.items.filter(b=>b.lease);await target.halt();state.pendingBreakpointRestore=items;state.waiting=true;return withCleanup(async()=>{await target.breakpoints.suspend();renderBreakpoints();return await fn();},async()=>{state.waiting=false;await resumeBreakpoints(items);},e=>log('断点恢复失败（保留首次错误）：'+e.message));}
 async function showTarget(info){state.lastTraceConfig=info.traceSupported&&info.config?{...info.config}:null;$('target-state').textContent=info.name+' · '+(info.halted?'已暂停':'运行中')+' · DEV_ID '+hex(info.device&4095);$('config-values').textContent=JSON.stringify(info,null,2);
-  $('target-capability').textContent=info.etmVersion+(info.traceSupported?info.profile==='stm32h743'?' · 实验适配':' · 已适配':' · Trace 待适配');$('target-capability').title=info.traceStatus;$('expected-cpu').max=String(targetPort(info.profile).maxCoreHz/1e6);
+  $('target-capability').textContent=info.etmVersion+(info.traceSupported?(targetPort(info.profile).traceValidated?' · 已适配':' · 实验适配'):' · Trace 待适配');$('target-capability').title=info.traceStatus;$('expected-cpu').max=String(targetPort(info.profile).maxCoreHz/1e6);
   const f103=info.profile==='stm32f103ze';
   /**
    * 🚨 **HSE 的语义（2026-10-18 用户定）**：换板子给**默认值**，但**允许手填覆盖**（不做持久化记忆）。
