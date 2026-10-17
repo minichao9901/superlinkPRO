@@ -101,3 +101,33 @@ toolbox 512 行未提交改动 = **8 个已修改文件（全是 ETM 相关真�
 **git 身份**：初始提交原为 `webapp <webapp@superlinkpro.local>`；Captain 已设仓库本地
 `user.name=minichao` 并 `--amend --reset-author` 修正（全局 `user.name` 里带字面引号 `'minichao'`，
 是个历史遗留 bug，本仓已用本地配置覆盖；**其它仓如要提交，需各自设本地身份**）。
+
+---
+
+## t3 实测偏差（2026-10-17，webapp 发现）—— `.gitignore` 越深越优先
+
+**现象**：`git add -- web` 第一次只暂存 **1916 / 2037**。原因是 toolbox 自带 `web/.gitignore`，
+它的规则**优先级高于根 `.gitignore`**（git 规则"越深的文件越优先"，根里写的放行赢不了子目录里的忽略）。
+被静默吞掉的是 `web/docs/validation/` 下的 **121 个已跟踪 `.log` / `.csv`**。
+
+**危害等级：高** —— git **不报错**，只是少加；只有 t7 的对账（2037 期望 vs 实际）才会暴露，
+而且如果 t7 用"就是这些文件"的自我口径，就会**把丢文件当成正常**。
+
+**修法（已做）**：在 `web/.gitignore` **末尾**补两条否定规则并写进 `web/README-migrated.md §5.1`：
+
+```
+!docs/validation/**/*.log
+!docs/validation/**/*.csv
+```
+
+这是本次迁移**唯一对源文件的改动**（+2 行 + 注释）。复查：staged = 2037/2037、
+`web` 下已跟踪 validation 记录 894（120 log + 1 csv）、`ignored-but-present under web/` = 0。
+
+**对下游的硬要求**：
+- **t6**：`web/.gitignore` 的这两行**必须保留**，合并子目录时不要覆盖；
+- **t7**：对 web 的期望是 **2037 个文件**；对账若用 `git add -A` 式结果做基线，必须先去重"被忽略但存在"的文件
+  （用 `git ls-files --others --ignored --exclude-standard -- web` 自检，应为 0）；
+- **t5（ETM）/ t4（akaLinkPro）不会踩这个坑**（它们的 `.gitignore` 不在迁移清单里），但**搬完仍要做同一自检**。
+
+**通用纪律（写进最终 README）**：凡整树平移带 `.gitignore` 的子目录，`git add` 之后必须
+**用 `git ls-files` 的数量与源清单对账**，不能只看 `git status` 干净与否。
