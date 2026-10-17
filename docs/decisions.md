@@ -21,10 +21,35 @@ ETM 仓 `firmware/` 共 ~678 MB / ~385 文件，其余 249 个文件与 toolbox 
 
 属于 agent 工具链配置，不是产品内容。
 
-## D-4 `docs/` → **不收敛**
+## D-4 `docs/` → **不收敛**（t4 后补充落点细则）
 
-保持 web / etm / firmware 各自的 docs 子树，不强行合并到根 `docs/`（收敛需改 web 侧 25 处引用）。
-根 `docs/` 只放**跨仓**文档：`merge-map.md`、本文件、`merge-verification.md`、`driver-unification.md`。
+**原则**：三仓的 docs **各随其子树**，不强行合并成一份统一文档树（web 侧有 25 处引用会被打破）。
+
+**落点细则（t4 实测后定稿，解决字面矛盾）**：
+
+| 来源 | 落点 | 理由 |
+|---|---|---|
+| toolbox 的 `docs/` | **`web/docs/`**（已在 web/ 整树里） | 整树平移，内部相对引用最多 |
+| ETM 的 `docs/` | **`etm/docs/`**（随 t5 整树） | 同上 |
+| **akaLinkPro 的根级 `docs/`（170 文件）** | **根 `docs/`** | akaLinkPro 没有"独立子树容器"——它的代码分散在 `firmware/`、`script_test/`、根 `tools/`、根 `Makefile`，其 `docs/` 在源仓就是**根级**的。整树平移到根 `docs/` 才是"原样"；且 `make test-host` 已验证构建不受 docs 影响 |
+| 跨仓文档（`merge-map.md`/本文件/`merge-verification.md`/`driver-unification.md`） | **根 `docs/`** | 全仓共用 |
+
+⇒ 因此**根 `docs/` 是混合的**：跨仓文档 + akaLinkPro 根级文档，这是**有意为之**，不是收敛。
+
+**给 t7 的对账期望（务必按此计数）**：
+
+```
+web/         2037
+etm/         （t5 完成后以 t5 的 README-migrated 为准）
+firmware/     129
+script_test/  289
+tools/         19
+docs/         172   （170 akaLinkPro + merge-map.md + decisions.md）
+根文件        LICENSE / Makefile / .gitignore / .gitattributes / README.md
+```
+
+**禁止**为了"看起来整齐"把根 `docs/` 里的 170 个 akaLinkPro 文档再挪进 `firmware/docs/`
+（那要同步改 33 处 Makefile/CMake 引用与 `README.md:22` 的说法，纯收益为负）。
 
 ## D-5 `script_test` 的 115 个重复靶子 → **暂不瘦身**
 
