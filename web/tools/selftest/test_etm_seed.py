@@ -21,6 +21,14 @@ class DemoSeedTests(unittest.TestCase):
         with self.assertRaises(Exception):bridge.seed_demo(self.backend,self.records)
         self.assertFalse(self.folder.exists());self.assertEqual(list(self.records.iterdir()),[])
         (self.backend/'demo/decoded.json.gz').write_bytes(gzip.compress(b'{}'));bridge.seed_demo(self.backend,self.records);self.assertTrue(bridge.valid_demo(self.folder))
+    def test_missing_bundled_demo_is_skipped_not_fatal(self):
+        # 审查 R10：records/ 是 gitignored，同步脚本会"跳过内置示例，包仍可用"。
+        # 启动器/--check 不能再无条件 seed，否则干净包一启动就 FileNotFoundError。
+        (self.backend/'demo/sample.etmrecord').unlink()
+        self.assertFalse(bridge.demo_bundled(self.backend))
+        self.assertFalse(bridge.seed_demo(self.backend,self.records))
+        self.assertFalse(self.folder.exists())
+        self.assertEqual(list(self.records.iterdir()),[])
     def test_old_partial_demo_is_repaired_without_deleting_evidence(self):
         self.folder.mkdir();(self.folder/'session.json').write_text('{broken');(self.folder/'user.txt').write_text('evidence')
         bridge.seed_demo(self.backend,self.records);self.assertTrue(bridge.valid_demo(self.folder))
