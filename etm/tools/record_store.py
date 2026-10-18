@@ -18,6 +18,8 @@ from pathlib import Path
 
 VERSION=4
 SIDECAR='browse-columns.tsv'
+# 与 decode_stream.SIDECAR_HEADER 对应：`#etm-browse-columns 1 events=<20 位字节数> rows=<10 位行数>`
+SIDECAR_HEADER_PREFIX='#etm-browse-columns 1 '
 SCHEMA_SQL='''
     PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA page_size=8192;
     PRAGMA cache_size=-2097152; PRAGMA temp_store=MEMORY; PRAGMA locking_mode=EXCLUSIVE;
@@ -143,6 +145,24 @@ class RecordStore:
         if rows:db.executemany(f'INSERT INTO events VALUES ({",".join("?"*12)})',rows)
         if run:issues.append(run)
         return first
+    def _sidecar_fresh(self,sidecar,source,events):
+        """sidecar 头部指纹是否对得上 events.jsonl（size + 行数），不再依赖 mtime。
+
+        展开阶段会把 events.jsonl 的字节数与事件行数回填到 sidecar 首行；文件被改写/重新解码
+        或展开中途失败（首行仍是占位 0）时指纹不符，调用方退回逐行 json.loads。
+        """
+        if not sidecar.exists():return False
+        try:
+            with sidecar.open(encoding='utf-8') as handle:
+                header=handle.readline()
+            if not header.startswith(SIDECAR_HEADER_PREFIX):return False
+            fields=dict(token.split('=',1) for token in header.split()[2:] if '=' in token)
+            if int(fields.get('events','-1'))!=source.stat().st_size:return False
+            try:declared=len(events)
+            except TypeError:declared=None
+            if declared is not None and int(fields.get('rows','-1'))!=declared:return False
+            return True
+        except (OSError,ValueError):return False
     def _insert_events_streamed(self,db,events,issues):
         """流式记录：列来自展开阶段的 sidecar，`data` 留空、只存 src（该行字节偏移）。"""
         source=self.folder/'events.jsonl';sidecar=self.folder/SIDECAR
@@ -151,8 +171,9 @@ class RecordStore:
         if not source.exists():
             raise ValueError('流式记录缺少 events.jsonl，无法建立浏览索引')
         with source.open('rb') as raw:
-            if sidecar.exists() and sidecar.stat().st_mtime_ns>=source.stat().st_mtime_ns:
+            if self._sidecar_fresh(sidecar,source,events):
                 with sidecar.open(encoding='utf-8') as side:
+                    side.readline()          # 跳过头部指纹
                     offset=0
                     for line in raw:
                         fields=next(side,None)

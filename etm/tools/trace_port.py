@@ -6,6 +6,10 @@
     跳变提取都是 C 级批量操作；
   * 纯 Python 路径（csv.reader + bisect）：numpy 缺失或 CSV 形状不支持批量处理时使用。
 两条路径产出同一份 physical 报告与同一对相位字节流，切换不影响解码结果。
+
+时间列用 pandas `float_precision='round_trip'` 解析，与历史实现的 Python `float()` **逐位一致**
+（默认解析器对个别小数会差 1 ULP）；通道只有 0/1、按 int8 读入，所以 round_trip 只作用在时间列，
+500 MB CSV 实测只多 3~4 s。
 """
 import argparse
 import bisect
@@ -175,9 +179,15 @@ def _extract_vectorized(path, clock, data, fraction, glitch_ns):
     if len(set(channels)) != len(channels):
         raise _NotVectorizable('duplicate channel')
 
+    # 时间列用 round_trip 精确解析：与历史实现的 Python float() 逐位一致
+    # （pandas 默认解析器对个别小数会差 1 ULP）；通道只有 0/1，按 int8 读入，
+    # 因此 round_trip 只作用在时间列上（500 MB CSV 实测仅 +3~4 s）。
+    dtypes = {index: _np.int8 for index in range(1, len(fields))}
+    dtypes[0] = _np.float64
     try:
-        frame = pd.read_csv(path, header=None, skiprows=1, dtype=_np.float64,
-                            encoding=encoding, engine='c', memory_map=True)
+        frame = pd.read_csv(path, header=None, skiprows=1, dtype=dtypes,
+                            encoding=encoding, engine='c', memory_map=True,
+                            float_precision='round_trip')
     except (ValueError, OSError, UnicodeError):
         raise _NotVectorizable('parse') from None
     table = frame.to_numpy(copy=False)
