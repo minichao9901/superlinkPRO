@@ -89,4 +89,25 @@ class StoreTests(unittest.TestCase):
         self.assertGreater(view['markers'][-1]['seq'],5900)
         self.assertEqual(sum(marker['count'] for marker in view['markers']),6001)
         self.assertEqual(sum(sum(marker['types'].values()) for marker in view['markers']),6001)
+    def test_sidecar_fingerprint_rejects_equal_length_rewrite(self):
+        # 审查 F03：只比 size/行数时，events.jsonl 被等长改写（甚至保持 mtime）仍会复用旧 sidecar，
+        # 查询列来自旧事件、按偏移读回的 JSON 来自新事件 → 自相矛盾。v2 用 sha256 绑定内容。
+        import hashlib,os
+        folder=Path(self.tmp.name);source=folder/'events.jsonl';sidecar=folder/'browse-columns.tsv'
+        body=b'{"seq":0,"kind":"event"}\n{"seq":1,"kind":"event"}\n'
+        source.write_bytes(body);stat=source.stat()
+        header=('#etm-browse-columns 2 events=%020d rows=%010d mtime=%020d sha256=%064s\n'
+                % (stat.st_size,2,stat.st_mtime_ns,hashlib.sha256(body).hexdigest()))
+        sidecar.write_text(header+'0\tevent\n1\tevent\n',encoding='utf-8')
+        class Events:
+            def __len__(self):return 2
+        store=RecordStore(folder,lambda:None)
+        self.assertTrue(store._sidecar_fresh(sidecar,source,Events()))
+        # 等长改写 + 强制保持 mtime：只有 sha256 能发现
+        source.write_bytes(body.replace(b'event',b'evxnt'));os.utime(source,ns=(stat.st_atime_ns,stat.st_mtime_ns))
+        self.assertFalse(store._sidecar_fresh(sidecar,source,Events()))
+        # v1 头部（只有 size/行数）一律视为过期，强制重建
+        sidecar.write_text('#etm-browse-columns 1 events=%020d rows=%010d\n0\tevent\n1\tevent\n'
+                           % (stat.st_size,2),encoding='utf-8')
+        self.assertFalse(store._sidecar_fresh(sidecar,source,Events()))
 if __name__=='__main__':unittest.main()

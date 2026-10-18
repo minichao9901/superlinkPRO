@@ -37,8 +37,10 @@ FAULT_TERMS = ('OVERFLOW', 'BAD_SEQUENCE', 'BAD_TRACEMODE', 'RESERVED')
 CACHE_MAX = 8192
 IT_REASON = 'IT 非分支条件指令：当前 trace 未记录条件结果'
 SIDECAR_NAME = 'browse-columns.tsv'
-# 索引列 sidecar 的头部指纹：events.jsonl 的字节数 + 事件行数（定宽，便于原地回填）。
-SIDECAR_HEADER = '#etm-browse-columns 1 events=%020d rows=%010d\n'
+# 索引列 sidecar 的头部指纹（v2）：events.jsonl 的字节数 + 事件行数 + mtime_ns + sha256。
+# 只比 size/行数无法发现"等长改写"（审查 F03）；sha256 在展开成功后按文件流式计算，
+# 索引端逐字节校验，代价约 1 s（相对 30 s+ 的索引构建可以忽略）。
+SIDECAR_HEADER = '#etm-browse-columns 2 events=%020d rows=%010d mtime=%020d sha256=%064s\n'
 
 
 def expansion_engine():
@@ -350,9 +352,9 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
             elements_jsonl.open('w', encoding='utf-8') as el_out, \
             sidecar_path.open('w', encoding='utf-8', newline='\n') as side_out, \
             native_jsonl.open(encoding='utf-8', errors='replace') as src:
-        # 头部先写占位（定宽），展开成功后回填 events.jsonl 的 size+行数指纹；
-        # 索引端据此判断 sidecar 是否对得上（不依赖 mtime，展开中断则保持占位=视为过期）。
-        side_out.write(SIDECAR_HEADER % (0, 0))
+        # 头部先写占位（定宽），展开成功后回填 events.jsonl 的 size/行数/mtime/sha256 指纹；
+        # 索引端据此判断 sidecar 是否对得上（展开中断则保持占位=视为过期）。
+        side_out.write(SIDECAR_HEADER % (0, 0, 0, '0' * 64))
         for line in src:
             if not line.startswith('{'):
                 continue
@@ -486,9 +488,15 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
         raise ValueError('没有恢复到可信指令范围；原始采集和包记录已保留。'
                          '请检查 CPU 是否继续、ETM 同步、Trace ID 与匹配 ELF。')
 
-    # 展开成功后回填 sidecar 头部指纹（events.jsonl 的字节数与事件行数）。
+    # 展开成功后回填 sidecar 头部指纹（events.jsonl 的 size/行数/mtime/sha256）。
+    events_digest = hashlib.sha256()
+    with events_jsonl.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b''):
+            events_digest.update(chunk)
+    events_stat = events_jsonl.stat()
     with sidecar_path.open('r+b') as handle:
-        handle.write((SIDECAR_HEADER % (events_jsonl.stat().st_size, seq)).encode('utf-8'))
+        handle.write((SIDECAR_HEADER % (events_stat.st_size, seq, events_stat.st_mtime_ns,
+                                        events_digest.hexdigest())).encode('utf-8'))
 
     sources_data = {name: image.source(name) for name in sorted(table.files)}
     (workdir / 'sources.json').write_text(json.dumps(sources_data, ensure_ascii=False),

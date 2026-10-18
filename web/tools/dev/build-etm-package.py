@@ -19,7 +19,10 @@ def main():
     payload=work/'backend'
     for name in provenance['packagedHashes']:
         target=payload/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(snapshot/name,target)
-    command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name','etm-bridge','--contents-directory','runtime','--distpath',str(work/'dist'),'--workpath',str(work/'build'),'--specpath',str(work),'--add-data',str(payload)+';backend','--add-data',str(ROOT/'tools/dev/serve-etm.py')+';.','--paths',str(snapshot),'--paths',str(snapshot/'tools'),'--paths',str(snapshot/'tools/la'),'--collect-all','capstone','--collect-all','elftools']
+    command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name','etm-bridge','--contents-directory','runtime','--distpath',str(work/'dist'),'--workpath',str(work/'build'),'--specpath',str(work),'--add-data',str(payload)+';backend','--add-data',str(ROOT/'tools/dev/serve-etm.py')+';.','--paths',str(snapshot),'--paths',str(snapshot/'tools'),'--paths',str(snapshot/'tools/la'),'--collect-all','capstone','--collect-all','elftools',
+               # numpy 2.x 的 `numpy._core._exceptions` 等子模块不会被默认 hook 完整收进 PYZ，
+               # 冻结后首次 import 就 ModuleNotFoundError → 前端静默回退纯 Python（审查 F02）。
+               '--collect-all','numpy','--collect-all','pandas']
     for name in ['server','werkzeug.middleware.dispatcher','html.parser','decode_trace','decode_stream','stream_store','trace_port','tpiu_demux','flow_analysis','record_store','source_export','breakpoint_resolver','kingst_la']:
         command+=['--hidden-import',name]
     # 便携包**随带** numpy/pandas（用户明确要求）：只有它们在，trace_port 的向量化前端才生效，
@@ -67,13 +70,13 @@ def main():
     shutil.copyfile(ROOT/'bridge/etm/provenance.json',package/'source-provenance.json')
     files=[dict(name=p.relative_to(package).as_posix(),bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(package.rglob('*')) if p.is_file()]
     identity=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()
-    manifest=dict(version='1.0.8',platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],python=sys.version,dependencies=distributions,files=files)
+    manifest=dict(version='1.0.9',platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],python=sys.version,dependencies=distributions,files=files)
     (package/'package-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     args.output.mkdir(parents=True,exist_ok=True);archive=args.output/'etm-bridge-win64.zip'
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as zip:
         for file in sorted(package.rglob('*')):
             if file.is_file():zip.write(file,'etm-bridge-kit/'+file.relative_to(package).as_posix())
-    download=dict(version='1.0.8',platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'])
+    download=dict(version='1.0.9',platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'])
     (args.output/'manifest.json').write_text(json.dumps(download,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(dict(package=str(package),archive=str(archive),**download),ensure_ascii=False))
 if __name__=='__main__':main()

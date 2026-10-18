@@ -139,6 +139,40 @@ class PulseFilterTests(unittest.TestCase):
             self.assertNotEqual(broken,expected)
             self.assertEqual(fixed,expected)
             self.assertEqual(report['software_filter']['removed_transitions']['0'],2)
+    def test_first_short_pair_at_index_zero_keeps_later_edges(self):
+        # 审查 F01：首个过窄对在索引 0 时，旧向量实现用 [-1,0] 初始化栈，负下标指向数组末尾，
+        # 会把后续合法边沿一起删掉。逐条实现保留 [10,22] ns。
+        edges=[(0.0,1),(2e-9,0),(10e-9,1),(22e-9,0)]
+        self.assertEqual(filter_pulses(edges,4),[(10e-9,1),(22e-9,0)])
+        from trace_port import _filter_keep
+        import numpy as np
+        times=np.array([t for t,_ in edges])
+        keep=_filter_keep(times,4)
+        self.assertEqual([float(t) for t,k in zip(times,keep) if k],[10e-9,22e-9])
+    def test_vectorized_filter_matches_legacy_on_random_edges(self):
+        import random
+        import numpy as np
+        from trace_port import _filter_keep
+        rng=random.Random(20261018)
+        for trial in range(300):
+            count=rng.randint(2,80);clock=0.0;times=[]
+            for _ in range(count):
+                clock+=rng.choice([0.5e-9,1e-9,2e-9,3e-9,8e-9,16e-9,32e-9]);times.append(clock)
+            legacy=[t for t,_ in filter_pulses([(t,0) for t in times],4)]
+            keep=_filter_keep(np.array(times),4)
+            self.assertEqual(legacy,[float(t) for t,k in zip(times,keep) if k],f'trial {trial}: {times}')
+    def test_non_binary_levels_are_rejected_before_narrowing(self):
+        # 审查 F04：向量路径曾按 int8 读通道，256/257/-256 被截成 0/1 后通过校验。
+        with tempfile.TemporaryDirectory() as folder:
+            for bad in ('256','257','-256'):
+                with self.subTest(level=bad):
+                    p=Path(folder)/f'wave-{bad}.csv'
+                    waveform(p,bytes.fromhex('ff ff ff 7f 05 20'),0)
+                    lines=p.read_text(encoding='utf-8-sig').splitlines()
+                    header,rows=lines[0],lines[1:]
+                    row=rows[1].split(',');row[1]=bad;rows[1]=','.join(row)
+                    p.write_text('\n'.join([header]+rows)+'\n',encoding='utf-8-sig')
+                    with self.assertRaises(ValueError):extract(p,0,[1,2,3,4])
     def test_removes_complete_short_pairs_without_moving_surviving_edges(self):
         edges=[(10e-9,1),(12e-9,0),(20e-9,1),(36e-9,0),(38e-9,1),(52e-9,0)]
         self.assertEqual(filter_pulses(edges,4),[(20e-9,1),(52e-9,0)])

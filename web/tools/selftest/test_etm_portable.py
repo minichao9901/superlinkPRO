@@ -56,6 +56,12 @@ class PortableTests(unittest.TestCase):
         for path in ['app/rtt/dap-webusb.js','app/site/main.js']:
             with urlopen(self.base+path) as response:driver=response.read().decode()
             for method in ['writeMemDiagnostic','recoverDebugPort']:self.assertIn(method,driver)
+        # 审查 F02：冻结包里 numpy/pandas 必须真的能 import（否则前端会静默回退纯 Python）。
+        health=self.api('etm/api/health')
+        self.assertTrue(health['ok'])
+        self.assertTrue(health['frontend']['numpy'],health)
+        self.assertTrue(health['frontend']['pandas'],health)
+        self.assertTrue(health['frontend']['vectorized'],health)
         self.assertEqual(self.run_exe('--check').returncode,0)
     def test_optional_firmware_and_interrupted_demo_repair_in_compiled_exe(self):
         for path in ['etm/api/default-elf','etm/api/firmware','etm/api/profile-firmware/spi-280']:
