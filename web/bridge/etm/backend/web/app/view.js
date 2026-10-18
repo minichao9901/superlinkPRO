@@ -248,7 +248,10 @@ on('open-record',()=>loadRecord($('records').value));
 on('start',async()=>{const sync=$('sync').checked,tokens=$('channels').value.split(','),channels=tokens.map(s=>Number(s.trim()));if(tokens.some(t=>!t.trim())||channels.length!==5||new Set(channels).size!==5||channels.some(c=>!Number.isInteger(c)||c<0||c>15))throw Error('需要五个不同且不为空的 CH0～15 通道');
   const glitchNs=Number($('glitch-ns').value);if(!Number.isFinite(glitchNs)||glitchNs<0||glitchNs>100)throw Error('软件滤波须为 0～100 ns，0 表示关闭；尚未操作目标');
   const rate=Number($('rate').value),seconds=Number($('duration').value)/1000,threshold=Number($('threshold').value),fraction=Number($('fraction').value),requested=options();
-  if(!Number.isInteger(rate)||!(rate>0&&rate<=500000000&&seconds>0&&seconds<=2&&rate*seconds<=100000000))throw Error('采集参数无效：时间上限 2 秒、深度上限 1 亿样本；尚未操作目标');
+  // 采集窗口上限：实测这台 LA 在 500 MSa/s 下可直接采 1 s / 2 s / 4 s
+  // （set-sample-time → 500M / 1G / 2G 深度，2026-10-18 实测），所以放宽到 4 秒 / 21 亿样本。
+  // 注意 >0.02 s 会走流式解码：200 ms ≈ 478 MB CSV / 7 分钟；1 s ≈ 2.4 GB / 半小时级。
+  if(!Number.isInteger(rate)||!(rate>0&&rate<=500000000&&seconds>0&&seconds<=4&&rate*seconds<=2100000000))throw Error('采集参数无效：时间上限 4 秒、深度上限 21 亿样本；尚未操作目标');
   if(!Number.isFinite(threshold)||threshold< -4||threshold>4||!(fraction>0&&fraction<1))throw Error('阈值或取样相位无效；尚未操作目标');
   if(!Number.isInteger(requested.traceid)||requested.traceid<1||requested.traceid>111)throw Error('Trace ID 范围为 1～111；尚未操作目标');
   log('采集步骤：检查逻辑分析仪');const available=await api('status');if(available.captureProtocol!==2)throw Error('本地 ETM 桥版本不匹配，请重启或更新完整桥包，避免新页面混用旧解码器；尚未操作目标');if(!available.rates.includes(rate))throw Error('LA 不支持所选采样率；请选择设备支持的采样率，尚未操作目标');

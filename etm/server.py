@@ -803,8 +803,12 @@ def start_capture():
         raise ValueError('取样位置必须介于 0 和 1。')
     if not math.isfinite(o['threshold']) or not -4<=o['threshold']<=4:
         raise ValueError('阈值必须是 -4～4 V 的有限数值。')
-    if not (0 < o['seconds'] <= 2 and 0 < o['rate'] <= 500000000 and o['seconds']*o['rate'] <= 100000000):
-        raise ValueError('初版采集深度上限 1 亿样本，时间上限 2 秒。')
+    # 深度上限：实测这台 Kingst（MIPI16）在 500 MSa/s 下可采 1 s / 2 s / 4 s
+    # （set-sample-time 分别得到 500M / 1G / 2G 深度，实测于 2026-10-18），
+    # 所以上限放到 4 秒 / 21 亿样本。注意 >0.02 s 自动走流式解码：
+    # 200 ms ≈ 478 MB CSV / 7 分钟解码；1 s 约 2.4 GB CSV / 半小时级；2~4 s 建议分窗解码。
+    if not (0 < o['seconds'] <= 4 and 0 < o['rate'] <= 500000000 and o['seconds']*o['rate'] <= 2100000000):
+        raise ValueError('采集上限 4 秒 / 21 亿样本（500 MSa/s 下 4 秒）；更长的覆盖请多次采集后按窗口合并。')
     if len(o['data']) != 4 or len(set([o['clock']] + o['data'])) != 5 or any(n < 0 or n > 15 for n in [o['clock']] + o['data']):
         raise ValueError('请配置五个不同的 CH0~15 通道。')
     with lock:
