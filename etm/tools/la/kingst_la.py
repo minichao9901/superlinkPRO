@@ -605,8 +605,8 @@ def do_export(v, out: str, channels=None, time_span=None, kvdat=True):
     span = (" --time-span " + " ".join(str(x) for x in time_span)) if time_span else ""
     if os.path.exists(out):
         os.remove(out)
-    v.cmd(f'export-data "{out}"{sel}{span}', timeout=120)
-    if not wait_for_file(out, timeout=120):
+    v.cmd(f'export-data "{out}"{sel}{span}', timeout=600)   # 0.2 s 窗口 ≈ 481 MB，应答经常 >120 s
+    if not wait_for_file(out, timeout=600):
         raise RuntimeError(f"export-data 没落地：{out}\n  get-last-error: {_safe_last_error(v)}")
     kv = None
     if kvdat:
@@ -1066,3 +1066,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

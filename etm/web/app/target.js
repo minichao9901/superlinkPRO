@@ -255,17 +255,19 @@ export class EtmTarget {
         await sleep(10);
       }
       const resetPC=await this.pc();
+      // 🚨 2026-10-18 真机定因（对照 web-serial-rtt-tools 的 #dbg 页 `_resetCore`）：
+      //   H743 的软复位会把**调试端口本身**也复位掉。复位后不重建 SWD，后面写 DHCSR 会"看着成功"
+      //   （回读 running），但核其实没有恢复执行 —— 症状就是 PC 和 RAM 计数器一动不动、
+      //   等 15 s 超时误报"未命中起点"。调试器页正是靠 `_targetInit()` 这一步才在 H743 上跑通的。
+      try{
+        await this.write(0xe000edf0,0xa05f0003,false);           // 先保持 halt
+        await this.probe.recoverDebugPort();                     // 重建 DP/AP（复位后必须）
+        await this.halt();
+      }catch(e){this.log('复位后重建调试口失败（继续尝试）：'+e.message);}
       await this.write(free.slot,encoded,false);               // 复位**之后**才装比较器
       await this.write(0xe0002000,3,false);                    // FP_CTRL: KEY|ENABLE
-      // 🚨 2026-10-18 真机定因（STM32H743）：从"复位停住(VC_CORERESET halt)"这个**特殊状态**
-      //   直接写 DHCSR.C_HALT=0 放行是不生效的 —— DHCSR 回读说 running，但核一条指令都不执行
-      //   （实测 g_trace.loops 精确不变、CFSR/HFSR 全 0、随后一直停不到业务起点）。
-      //   OpenOCD/pyOCD 的做法是三步：先把它转成**普通 halt**（C_DEBUGEN|C_HALT）→
-      //   再清 DEMCR.VC_CORERESET → 最后才放行。
-      await this.write(0xe000edf0,0xa05f0003,false);           // DBGKEY|C_DEBUGEN|C_HALT：转普通 halt
-      await sleep(20);
-      await this.write(0xe000edfc,demcr&~1,false);             // 清 VC_CORERESET
       await sleep(10);
+      await this.write(0xe000edfc,demcr&~1,false);             // 清 VC_CORERESET
       this.log(`已停在复位处 ${hex(resetPC)}；比较器已装好，放行至 ${hex(address)}`);
       // 这颗探针的 PPB 写偶发不落地（见 app/rtt/dap-webusb.js 的历史教训）：放行后必须
       // 回读确认 S_HALT 真的掉了，没掉就重写，最多 6 次；否则核会一直停着，等 15 s 后误报"未命中起点"。
