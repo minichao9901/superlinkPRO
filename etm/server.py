@@ -28,6 +28,7 @@ from kingst_la import Vis, do_export, read_glitch_settings
 from record_store import RecordStore
 from stream_store import attach_streams, JsonLines
 from decode_stream import decode_capture_stream, decode_stream, export_simplified_stream
+from slice_merge import merge_slice_events, aggregate_slices
 from breakpoint_resolver import resolve_breakpoint
 from source_export import simplified_html
 
@@ -576,6 +577,74 @@ def capture_start_info(events,metadata):
                 entryRecovered=present,firstMatchesEntry=bool(first and first.get('pc')==entry))
 
 
+SLICE_MIN_SECONDS = 0.15     # 超过这个窗口就走"一次采集 + 自动分窗"
+DEFAULT_SLICE_SECONDS = 0.2  # 单片时长（0.2 s ≈ 481 MB CSV、约 7 分钟解码 ≈ 3.9M 指令）
+
+
+def export_slices(jid, sid, v, options):
+    """一次采集 + 自动分窗导出/解码，最后合成一条记录（用户无感）。
+
+    为什么需要它：Kingst 的**全量导出**在 0.5 s 以上会卡死（1 s ≈ 470M 采样，实测 CSV 一直 0 字节、
+    页面停在"保存原始数据"），而 LA 缓冲里的数据本身是好的 —— CLI 的 `--time-span` 可以只导一段。
+    这正是前人 long_flow.py / finalize_long500.py 的做法（一次连续采集 + 分窗解码），这里固化成产品路径：
+      1) 采集完成后按 sliceSeconds 逐片 `do_export(time_span=(t0,t1))`；
+      2) 每片流式解码到 slices/NN/（events.jsonl 就地保留，便于复解）；
+      3) 把各片事件拼成记录级 events.jsonl：seq 递增、cycles 累加、加 slice 字段，
+         于是所有既有视图（序列/火焰/函数/热点）无需改动就能读"整段"；
+      4) 记录级 decoded.json 给合并 summary + slices[]（t0/t1/指令/包/包问题）。
+    """
+    folder = directory(sid)
+    m = meta(sid)
+    seconds = float(options['seconds'])
+    step = float(options.get('sliceSeconds') or DEFAULT_SLICE_SECONDS)
+    step = max(.05, min(step, seconds))
+    count = max(1, int(math.ceil(seconds / step - 1e-9)))
+    slices = []
+    seq_off = 0
+    cyc_off = 0
+    merged = folder / 'events.jsonl'
+    for k in range(count):
+        t0, t1 = k * step, min(seconds, (k + 1) * step)
+        if t1 - t0 < 1e-6:
+            break
+        change(jid, state='saving', slice=dict(index=k, count=count, t0=t0, t1=t1))
+        d = folder / 'slices' / f'{k:02d}'
+        d.mkdir(parents=True, exist_ok=True)
+        csv = d / 'capture.csv'
+        do_export(v, str(csv.resolve()), [options['clock']] + options['data'], time_span=(t0, t1))
+        change(jid, state='decoding', slice=dict(index=k, count=count, t0=t0, t1=t1))
+        r = decode_capture_stream(csv, folder / 'firmware.elf', d, m['config'], None,
+                                  fraction=m.get('fraction', .25), clock=m.get('clock', 0),
+                                  data=m.get('data', [1, 2, 3, 4]), glitch_ns=m.get('glitchNs', 0))
+        summary = r.get('summary') or {}
+        quality = r.get('quality') or {}
+        cyc_before = cyc_off
+        seq_off, cyc_off = merge_slice_events(merged, d, k, seq_off, cyc_off)
+        slices.append(dict(index=k, t0=t0, t1=t1, csvBytes=csv.stat().st_size,
+                           instructions=int(summary.get('instructions') or 0),
+                           packets=int(summary.get('packets') or 0),
+                           cycles=cyc_off - cyc_before,
+                           packetIssues=int(quality.get('packetIssues') or 0)))
+        # 每片解完就更新一次进度，页面能看到 k/N
+        save_json(folder / 'slices.json', dict(sliceSeconds=step, seconds=seconds, slices=slices))
+    if not slices:
+        raise ValueError('分窗导出没有产生任何切片。')
+    first = folder / 'slices' / '00'
+    base = load_json(first / 'decoded.json') if (first / 'decoded.json').exists() else {}
+    base = aggregate_slices(base, slices, step, m.get('laFilter'))
+    save_json(folder / 'decoded.json', base)
+    src_snapshot = first / 'sources.json'
+    if src_snapshot.exists() and not (folder / 'sources.json').exists():
+        (folder / 'sources.json').write_text(src_snapshot.read_text(encoding='utf8'), encoding='utf8')
+    m = meta(sid)
+    m.update(slices=slices, sliceSeconds=step, longWindow=True, decodeStatus='done',
+             summary=base['summary'], captureScope='sliced-window')
+    m.pop('error', None)
+    m.pop('errorStage', None)
+    save(sid, m)
+    browse_store(sid).ensure()
+
+
 def decode_job(jid,sid):
     change(jid,state='decoding')
     try:
@@ -592,6 +661,9 @@ def _decode_job(jid, sid):
     try:
         change(jid, state='decoding')
         folder, m = directory(sid), meta(sid)
+        if m.get('longWindow') and (folder / 'slices.json').exists():
+            # 长窗记录的产物是逐片解出来的（slices/NN），整段重解会只剩第一片 —— 明确拒绝而不是悄悄降级。
+            raise ValueError('这是长窗（自动分窗）记录，不能按单窗重解；请重新采集，或直接用已完成的切片产物。')
         sources = load_json(folder/'sources.json') if (folder / 'sources.json').exists() else None
         raw=folder/m['input']
         streamed=bool(raw.suffix.lower()=='.bin' or m.get('seconds',0)>.02 or raw.stat().st_size>50*1024*1024)
@@ -750,20 +822,34 @@ def capture_job(jid, sid, options):
         v = Vis()
         change(jid, state='saving')
         folder = directory(sid)
-        do_export(v, str((folder / 'capture.csv').resolve()), [options['clock']] + options['data'])
-        depth = v.cmd('get-actual-sample-depth')
-        span = v.cmd('get-actual-sample-time')
-        m = meta(sid)
-        m.update(actualDepth=depth, actualTime=span, stopped=stopped,captureStatus='saved')
-        try:
-            m['laFilter']=read_glitch_settings(folder/'capture.kvdat',options['rate'])
-        except Exception as error:
-            m['laFilter']=dict(basis='unknown',error=str(error))
-        save(sid, m)
-        if options['decode']:
-            decode_job(jid, sid)
-        else:
+        if options['decode'] and options['seconds'] > SLICE_MIN_SECONDS:
+            # 长窗：一次采集 + 自动分窗（全量导出会卡死，见 export_slices 的说明）
+            export_slices(jid, sid, v, options)
+            depth = v.cmd('get-actual-sample-depth')
+            span = v.cmd('get-actual-sample-time')
+            m = meta(sid)
+            m.update(actualDepth=depth, actualTime=span, stopped=stopped, captureStatus='saved')
+            try:
+                m['laFilter'] = read_glitch_settings(folder / 'capture.kvdat', options['rate'])
+            except Exception as error:
+                m['laFilter'] = dict(basis='unknown', error=str(error))
+            save(sid, m)
             change(jid, state='done')
+        else:
+            do_export(v, str((folder / 'capture.csv').resolve()), [options['clock']] + options['data'])
+            depth = v.cmd('get-actual-sample-depth')
+            span = v.cmd('get-actual-sample-time')
+            m = meta(sid)
+            m.update(actualDepth=depth, actualTime=span, stopped=stopped,captureStatus='saved')
+            try:
+                m['laFilter']=read_glitch_settings(folder/'capture.kvdat',options['rate'])
+            except Exception as error:
+                m['laFilter']=dict(basis='unknown',error=str(error))
+            save(sid, m)
+            if options['decode']:
+                decode_job(jid, sid)
+            else:
+                change(jid, state='done')
     except (Exception,SystemExit) as error:
         record_failure(sid,error,'capture')
         cleanup_error=None
@@ -796,7 +882,8 @@ def start_capture():
              config=decoder_config(o.get('config', {})), elfId=o.get('elfId'),sourceSnapshot=o.get('sourceSnapshot'),
              libraryOrigin='validation' if o.get('libraryOrigin')=='validation' else 'user',
              targetVerified=bool(o.get('targetVerified')), fraction=float(o.get('fraction', .25)),glitchNs=float(o.get('glitchNs',0)),
-             targetSnapshot=o.get('targetSnapshot'),captureScope=o.get('captureScope','unfiltered-window'),captureEntry=o.get('captureEntry'))
+             targetSnapshot=o.get('targetSnapshot'),captureScope=o.get('captureScope','unfiltered-window'),captureEntry=o.get('captureEntry'),
+             sliceSeconds=float(o.get('sliceSeconds') or DEFAULT_SLICE_SECONDS))
     if not math.isfinite(o['glitchNs']) or not 0<=o['glitchNs']<=100:
         raise ValueError('软件滤波须为 0～100 ns，0 表示关闭')
     if not 0 < o['fraction'] < 1:
@@ -975,4 +1062,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     samples()
     app.run(host='127.0.0.1', port=args.port, threaded=True, debug=False)
+
 

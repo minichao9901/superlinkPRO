@@ -278,7 +278,12 @@ on('start',async()=>{const sync=$('sync').checked,tokens=$('channels').value.spl
     }
     stage='配置 ETM / TPIU';log('采集步骤：'+stage);await showTarget(await target.configure(requestedOptions));config=target.config;
   }else config=externalDecodeConfig();
-  stage='启动 LA 并采集';log('采集步骤：'+stage);const created=await api('capture',{rate:Number($('rate').value),seconds:Number($('duration').value)/1000,threshold:Number($('threshold').value),sync,decode:$('auto-decode').checked,clock:channels[0],data:channels.slice(1),fraction:Number($('fraction').value),glitchNs:Number($('glitch-ns').value),config,elfId:captureElfId,targetVerified:sync,targetSnapshot:sync?target.info:null,captureScope:sync?'business-unfiltered-window':'externally-configured-window',captureEntry,sourceSnapshot:captureSourceSnapshot});
+  // 长窗（>150 ms）由服务端自动"一次采集 + 分窗导出/解码"：全量导出在半秒以上会卡死，
+  // 分窗是前人 long_flow.py 的做法，这里做成产品路径，页面只发一个普通采集请求。
+  const captureSeconds=Number($('duration').value)/1000;
+  const sliceSeconds=captureSeconds>0.15?0.2:null;
+  if(sliceSeconds)log(`长窗采集：服务端将按 ${Math.round(sliceSeconds*1000)} ms 分窗导出并逐片解码（${Math.ceil(captureSeconds/sliceSeconds)} 片）`);
+  stage='启动 LA 并采集';log('采集步骤：'+stage);const created=await api('capture',{rate:Number($('rate').value),seconds:captureSeconds,sliceSeconds,threshold:Number($('threshold').value),sync,decode:$('auto-decode').checked,clock:channels[0],data:channels.slice(1),fraction:Number($('fraction').value),glitchNs:Number($('glitch-ns').value),config,elfId:captureElfId,targetVerified:sync,targetSnapshot:sync?target.info:null,captureScope:sync?'business-unfiltered-window':'externally-configured-window',captureEntry,sourceSnapshot:captureSourceSnapshot});
   log('联动任务创建；起点 '+(captureEntry===null?'当前暂停位置':hex(captureEntry)));await watchJob(created.job,{resume:sync,kind:'capture'});
   }catch(e){throw new Error(stage+'失败：'+e.message,{cause:e});}},async()=>{if(sync&&target.probe){target.assertTransport();await target.clearEntryBreak();await target.restore();await resumeBreakpoints(suspendedBps);await showTarget(await target.inspect());log('本次 trace 配置与断点已恢复；目标状态已刷新');}},e=>log('采集后的清理/回读失败（未覆盖首次错误）：'+e.message));
 });

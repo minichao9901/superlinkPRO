@@ -257,9 +257,27 @@ export class EtmTarget {
       const resetPC=await this.pc();
       await this.write(free.slot,encoded,false);               // 复位**之后**才装比较器
       await this.write(0xe0002000,3,false);                    // FP_CTRL: KEY|ENABLE
+      // 🚨 2026-10-18 真机定因（STM32H743）：从"复位停住(VC_CORERESET halt)"这个**特殊状态**
+      //   直接写 DHCSR.C_HALT=0 放行是不生效的 —— DHCSR 回读说 running，但核一条指令都不执行
+      //   （实测 g_trace.loops 精确不变、CFSR/HFSR 全 0、随后一直停不到业务起点）。
+      //   OpenOCD/pyOCD 的做法是三步：先把它转成**普通 halt**（C_DEBUGEN|C_HALT）→
+      //   再清 DEMCR.VC_CORERESET → 最后才放行。
+      await this.write(0xe000edf0,0xa05f0003,false);           // DBGKEY|C_DEBUGEN|C_HALT：转普通 halt
+      await sleep(20);
       await this.write(0xe000edfc,demcr&~1,false);             // 清 VC_CORERESET
+      await sleep(10);
       this.log(`已停在复位处 ${hex(resetPC)}；比较器已装好，放行至 ${hex(address)}`);
-      await this.write(0xe000edf0,0xa05f0001,false);           // DBGKEY|C_DEBUGEN，C_HALT=0：放行
+      // 这颗探针的 PPB 写偶发不落地（见 app/rtt/dap-webusb.js 的历史教训）：放行后必须
+      // 回读确认 S_HALT 真的掉了，没掉就重写，最多 6 次；否则核会一直停着，等 15 s 后误报"未命中起点"。
+      let resumed=false;
+      for(let attempt=0;attempt<6&&!resumed;attempt++){
+        await this.write(0xe000edf0,0xa05f0001,false);          // DBGKEY|C_DEBUGEN，C_HALT=0：放行
+        await sleep(30);
+        const dh=await this.read(0xe000edf0);
+        if(!(dh&(1<<17))&&(dh&1))resumed=true;
+        else this.log(`放行第 ${attempt+1} 次没生效（DHCSR=${hex(dh)}），重写`);
+      }
+      if(!resumed)throw Error('放行失败：DHCSR 的 C_HALT 清不掉（探针 PPB 写没有落地）；目标将暂停');
       const until=Date.now()+timeout;
       while(!(await this.read(0xe000edf0)&(1<<17))){if(this.cancelEntry)throw Error('已取消等待起点');if(Date.now()>until)throw Error('复位后未命中业务起点；目标将暂停');await sleep(10);}
       const pc=await this.pc();if(pc!==address)throw await this.unexpectedHalt(pc,address,'复位后');
