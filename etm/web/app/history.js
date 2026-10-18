@@ -76,21 +76,23 @@ export class HistoryView{
     $('scope-state').hidden=$('clear-scope').hidden=!this.range;$('scope-state').textContent=this.range?['packets','quality'].includes(this.view)?'包 / 完整性显示全记录':'区间 #'+this.range.start+'～#'+this.range.end:'';
     if(!await this.renderTimeline(revision,search)||revision!==this.revision)return;
     if((this.view==='flame'||this.range)&&!this.window){
-      if(this.view==='flame'&&!this.range){
-        // 全记录火焰图：直接复用解码时已经算好的 analysis（聚合视图），不再对几百万事件重扫。
-        // 实测 3.86 M 指令的 window() 需 119.5 s，远超前端 45 s 超时（审查 P2）。
-        this.window={analysis:this.result.analysis,range:this.fullRange(),firstSeq:this.result.firstSeq,timeline:null};
+      const weightOnly=this.view==='flame'&&!this.range&&this.flameMode==='aggregate';
+      if(weightOnly){
+        // 「按调用权重」复用解码时算好的 analysis，立即出图（不重扫事件）。
+        this.window={analysis:this.result.analysis,range:this.fullRange(),firstSeq:this.result.firstSeq,timeline:null,weightOnly:true};
       }else{
+        // 「按执行顺序」（含全记录）：取带分桶 timeline 的窗口，才能按序号拖选放大。
+        // 全记录首次计算较慢（服务端结果会缓存），先给出明确提示。
         const p=new URLSearchParams();this.scopeParams(p);
-        if(this.view==='flame')$('table-container').replaceChildren(make('p','正在计算所选区间的统计…首次可能需要几十秒，结果会缓存。','hint'));
+        if(this.view==='flame')$('table-container').replaceChildren(make('p','正在计算执行顺序图…首次可能需要几十秒，结果会缓存。','hint'));
         try{const window=await this.api(this.path('window?'+p));if(revision!==this.revision)return;this.window=window;}
-        catch(error){if(revision===this.revision)$('table-container').replaceChildren(make('p','区间统计计算失败：'+error.message+'。可重试；区间越小越快。','hint'));throw error;}
+        catch(error){if(revision===this.revision)$('table-container').replaceChildren(make('p','执行顺序图计算失败：'+error.message+'。可改用「按调用权重」，它立即出图。','hint'));throw error;}
       }
     }
     if(this.view==='flame'){
       const flame=flameView(this.result,fn=>{this.view='instructions';$('search').value=fn;this.offset=0;this.render().catch(this.onError);},
         {window:this.window,mode:this.flameMode,cursorSeq:this.selected,cursorFunction:this.selectedFunction,zoomBusy:this.scopeBusy,sourceCollapsed:this.flameSourceCollapsed,canBack:!!this.rangeHistory.length,onError:this.onError,onZoom:zoomIn=>this.zoomRange(zoomIn),
-         onMode:mode=>{this.flameMode=mode;return this.render();},onToggleSource:()=>{this.flameSourceCollapsed=!this.flameSourceCollapsed;return this.render();},onRange:r=>this.setRange(r),onBack:()=>this.backRange(),onReset:()=>this.setRange(null,true,this.selected),onSelect:seq=>this.select(seq,false)});
+         onMode:mode=>{if(this.flameMode!==mode){this.flameMode=mode;if(!this.range)this.window=null;}return this.render();},onToggleSource:()=>{this.flameSourceCollapsed=!this.flameSourceCollapsed;return this.render();},onRange:r=>this.setRange(r),onBack:()=>this.backRange(),onReset:()=>this.setRange(null,true,this.selected),onSelect:seq=>this.select(seq,false)});
       this.flameZoomControls=flame.zoomControls;$('table-container').replaceChildren(flame);
       this.pagination(0,0);return;
     }

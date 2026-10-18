@@ -139,13 +139,14 @@
 #etm-app dialog::backdrop{background:#0009}
 #etm-app .bad{color:var(--err)!important}
 #etm-app .symbol-list{max-height:148px;overflow:auto;border:1px solid var(--line);border-radius:4px;margin-top:6px}
-#etm-app .execution-chart{padding:10px;min-height:100%;overflow:auto}
+#etm-app .execution-chart{padding:10px;min-height:100%;overflow:visible}
 #etm-app .window-tools{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
 #etm-app .window-actions,#etm-app .window-range{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;flex-shrink:0;white-space:nowrap}
 #etm-app .zoom-controls{display:inline-flex;align-items:center;gap:2px;flex:none}
 #etm-app .zoom-controls .zoom-button{display:grid;place-items:center;width:23px;height:22px;min-width:23px;padding:2px 3px;line-height:1;color:var(--fg2)}
 #etm-app .zoom-controls .zoom-button:hover{color:var(--acc)}
 #etm-app .zoom-controls .zoom-button svg{display:block;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#etm-app .window-tools{position:sticky;top:0;z-index:3;background:var(--bg);padding:2px 0 4px;border-bottom:1px solid var(--line)}
 #etm-app .window-tools button{font-size:11px;padding:3px 6px}
 #etm-app .window-range input{width:74px;min-width:50px;font:11px var(--mono);padding:3px 4px}
 #etm-app .window-range{margin-left:auto}
