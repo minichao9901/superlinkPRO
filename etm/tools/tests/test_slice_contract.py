@@ -104,14 +104,47 @@ class SliceRecordContract(unittest.TestCase):
         for index, count, cycles, packets, functions in plan:
             rows = [event(i, 0x08000000 + i * 2, 'main', cycles // count) for i in range(count)]
             parts.append(self._slice(index, rows, cycles, packets, functions))
+            seq_start = seq_off
             seq_off = merge_slice_events(self.root / 'events.jsonl', self.root / 'slices' / f'{index:02d}',
                                          index, seq_off)
             slices.append(dict(index=index, t0=index * .2, t1=(index + 1) * .2,
                                csvBytes=(self.root / 'slices' / f'{index:02d}' / 'capture.csv').stat().st_size,
-                               instructions=count, packets=packets, cycles=cycles, packetIssues=0))
+                               instructions=count, packets=packets, cycles=cycles, packetIssues=0,
+                               seqStart=seq_start, seqEnd=seq_off - 1))
+        # 生产路径里 export_slices() 每解完一片就写 slices.json（此处对齐同一份片表）
+        (self.root / 'slices.json').write_text(
+            json.dumps(dict(sliceSeconds=.2, seconds=1.0, slices=slices), ensure_ascii=False),
+            encoding='utf8')
         m = server.meta(self.sid)
         server.finalize_slices(self.sid, self.root, m, slices, .2, 1.0, seq_off, parts)
         return slices, seq_off
+
+    def _assert_seq_ranges(self, slices, events):
+        """各片 seqStart/seqEnd 首尾相接，整体覆盖 0..events-1。"""
+        self.assertTrue(slices, '至少一片')
+        self.assertEqual(slices[0]['seqStart'], 0)
+        self.assertEqual(slices[-1]['seqEnd'], events - 1)
+        covered = 0
+        for position, item in enumerate(slices):
+            self.assertIn('seqStart', item)
+            self.assertIn('seqEnd', item)
+            self.assertIsInstance(item['seqStart'], int)
+            self.assertIsInstance(item['seqEnd'], int)
+            self.assertLessEqual(item['seqStart'], item['seqEnd'])
+            if position:
+                self.assertEqual(item['seqStart'], slices[position - 1]['seqEnd'] + 1,
+                                 f'第 {position} 片 seqStart 应接上一片 seqEnd + 1')
+            covered += item['seqEnd'] - item['seqStart'] + 1
+        self.assertEqual(covered, events, '各片区间长度之和应等于记录级事件数')
+
+    def test_slice_seq_ranges_are_contiguous_and_cover_the_record(self):
+        slices, events = self._finalize()
+        meta_slices = server.meta(self.sid)['slices']
+        self.assertEqual(meta_slices, slices)
+        self._assert_seq_ranges(meta_slices, events)
+        # 片表 slices.json 与 session.json 是同一份契约
+        table = json.loads((self.root / 'slices.json').read_text(encoding='utf8'))
+        self._assert_seq_ranges(table['slices'], events)
 
     def test_slice_record_is_readable_and_totals_are_whole_window(self):
         slices, events = self._finalize()
@@ -174,6 +207,9 @@ class SliceRecordContract(unittest.TestCase):
         rows = [json.loads(line) for line in (self.root / 'events.jsonl').read_text(encoding='utf8').splitlines() if line]
         self.assertEqual([r['seq'] for r in rows], list(range(events)))
         self.assertEqual(server.meta(self.sid)['decodeStatus'], 'done')
+        # 离线重建也写 seqStart/seqEnd（旧记录修好后前端时间轴才能点）
+        self._assert_seq_ranges(server.meta(self.sid)['slices'], events)
+        self._assert_seq_ranges(decoded['slices'], events)
 
 
 if __name__ == '__main__':

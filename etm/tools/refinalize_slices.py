@@ -33,6 +33,9 @@ def rebuild(record):
         for index, folder in enumerate(folders):
             decoded = folder / 'decoded.json'
             part = json.loads(decoded.read_text(encoding='utf8')) if decoded.is_file() else {}
+            # 与 server.export_slices() 同一契约：seqStart/seqEnd 是本片在记录级 events.jsonl
+            # 里的闭区间（合并前 seq_off 起，合并后 seq_off - 1 止），空片为 seqStart-1。
+            seq_start = seq_off
             seq_off = merge_slice_events(temporary, folder, index, seq_off)
             timing = (part.get('analysis') or {}).get('timing') or {}
             summary = part.get('summary') or {}
@@ -43,7 +46,8 @@ def rebuild(record):
                                instructions=int(summary.get('instructions') or 0),
                                packets=int(summary.get('packets') or 0),
                                cycles=int(timing.get('totalCycles') or 0),
-                               packetIssues=int(quality.get('packetIssues') or 0)))
+                               packetIssues=int(quality.get('packetIssues') or 0),
+                               seqStart=seq_start, seqEnd=seq_off - 1))
             parts.append(part)
             print(f'  片 {index:02d}: {slices[-1]["instructions"]:,} 指令 · '
                   f'{slices[-1]["cycles"]:,} 周期', flush=True)

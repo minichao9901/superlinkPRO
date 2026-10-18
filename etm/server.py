@@ -628,12 +628,17 @@ def export_slices(jid, sid, v, options):
         summary = r.get('summary') or {}
         quality = r.get('quality') or {}
         timing = (r.get('analysis') or {}).get('timing') or {}
+        # 本片事件在记录级 events.jsonl 里的 seq 区间（闭区间，按输出顺序重编后的编号）：
+        # 合并前 seq_off 是上一片的结束位置，合并后 seq_off 是本片之后的位置 → seqEnd = seq_off - 1。
+        # 空片（0 条事件）会得到 seqEnd = seqStart - 1，前端按"空区间"处理。
+        seq_start = seq_off
         seq_off = merge_slice_events(merged, d, k, seq_off)
         slices.append(dict(index=k, t0=t0, t1=t1, csvBytes=csv.stat().st_size,
                            instructions=int(summary.get('instructions') or 0),
                            packets=int(summary.get('packets') or 0),
                            cycles=int(timing.get('totalCycles') or 0),
-                           packetIssues=int(quality.get('packetIssues') or 0)))
+                           packetIssues=int(quality.get('packetIssues') or 0),
+                           seqStart=seq_start, seqEnd=seq_off - 1))
         # 每片解完就更新一次进度，页面能看到 k/N
         save_json(folder / 'slices.json', dict(sliceSeconds=step, seconds=seconds, slices=slices))
     if not slices:

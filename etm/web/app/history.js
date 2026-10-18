@@ -16,7 +16,7 @@ const cycleMetricsText=r=>{const t=r?.analysis?.timing;if(!t||!t.timeFlameAvaila
   const us=hz?` · 覆盖 ${(t.totalCycles/hz*1e6).toFixed(1)} µs`:'';
   return ` · ${n(t.totalCycles)} 周期`+(t.cpi?` · CPI ${t.cpi.toFixed(2)}`:'')+us;};
 export class HistoryView{
-  constructor(api,onError){this.api=api;this.onError=onError;this.sid=null;this.result=null;this.view='instructions';this.offset=0;this.selected=null;this.selectedFunction=null;this.rows=[];this.sources=new Map();this.revision=0;this.selectRevision=0;this.range=null;this.rangeHistory=[];this.window=null;this.flameMode='timeline';this.flameSourceCollapsed=false;this.scopeBusy=false;this.timelineKey=null;this.timelineData=null;this.timelineCollapsed=false;this.flameZoomControls=null;
+  constructor(api,onError){this.api=api;this.onError=onError;this.sid=null;this.result=null;this.view='instructions';this.offset=0;this.selected=null;this.selectedFunction=null;this.rows=[];this.sources=new Map();this.revision=0;this.selectRevision=0;this.range=null;this.rangeHistory=[];this.window=null;this.flameMode='timeline';this.flameSourceCollapsed=false;this.scopeBusy=false;this.timelineKey=null;this.timelineData=null;this.timelineCollapsed=false;this.flameZoomControls=null;this.onScopeChange=null;
     this.timelineChart=bindFunctionTimeline($('execution-timeline-canvas'),{onRange:r=>this.setRange(r),onSelect:seq=>this.select(seq,true),onError});
     this.timelineZoom=createZoomControls({onZoomOut:()=>this.zoomRange(false).catch(onError),onZoomIn:()=>this.zoomRange(true).catch(onError),onFit:()=>this.setRange(null,true,this.selected).catch(onError)});$('execution-timeline-zoom').replaceChildren(this.timelineZoom.element);
     $('toggle-execution-timeline').onclick=()=>{this.timelineCollapsed=!this.timelineCollapsed;$('execution-timeline-body').hidden=this.timelineCollapsed;$('toggle-execution-timeline').textContent=this.timelineCollapsed?'展开轨迹图':'收起轨迹图';$('toggle-execution-timeline').setAttribute('aria-expanded',String(!this.timelineCollapsed));if(!this.timelineCollapsed)requestAnimationFrame(()=>this.timelineChart.redraw());};
@@ -36,6 +36,7 @@ export class HistoryView{
   unload(sid=null){
     this.recordRevision=(this.recordRevision||0)+1;this.revision++;this.selectRevision++;
     this.sid=sid;this.result=null;this.range=null;this.rangeHistory=[];this.window=null;
+    this.onScopeChange?.(null);
     this.timelineKey=null;this.timelineData=null;this.selected=null;this.selectedFunction=null;
     this.offset=0;this.view='instructions';this.sources.clear();this.sourceDomFile=null;this.scopeBusy=false;this.rows=[];
     this.timelineChart.setData(null);$('execution-timeline-panel').hidden=true;
@@ -136,6 +137,7 @@ export class HistoryView{
     if(range&&(!Number.isInteger(range.start)||!Number.isInteger(range.end)||range.start<0||range.end<range.start))throw Error('请输入有效的执行序号区间');
     if(remember&&range)this.rangeHistory.push(this.range?{...this.range}:null);if(!range&&remember)this.rangeHistory=[];
     this.scopeBusy=true;this.updateZoomControlState();try{this.range=range?{start:Math.min(range.start,Math.max(0,this.result.eventCount-1)),end:Math.min(range.end,Math.max(0,this.result.eventCount-1))}:null;this.window=null;this.timelineKey=null;this.timelineData=null;this.offset=0;
+      this.onScopeChange?.(this.range);
       await this.render();if(generation!==this.recordRevision||selectionRevision!==this.selectRevision)return;const first=this.range?this.window?.firstSeq:this.result.firstSeq;const keep=Number.isInteger(focusSeq)&&(!this.range||focusSeq>=this.range.start&&focusSeq<=this.range.end);const target=keep?focusSeq:first;if(target!=null)await this.select(target,false);
     }finally{if(generation===this.recordRevision){this.scopeBusy=false;this.updateZoomControlState();}}
   }

@@ -40,11 +40,16 @@ CLI 的 `--time-span` 可以只导一段 —— 0.2 s ≈ 481 MB CSV、解码约
 capture-xxxxxxxx/
 ├── slices/00/{capture.csv, events.jsonl, decoded.json}   ← 每片原始产物，可单独复解
 ├── slices/01/...
-├── slices.json            ← 片表（t0/t1/指令/包/周期/包问题），每解完一片就更新
+├── slices.json            ← 片表（t0/t1/指令/包/周期/包问题/seqStart/seqEnd），每解完一片就更新
 ├── events.jsonl           ← 各片合并（seq 按输出顺序重编、cycles 原样保留、带 slice 字段）
 ├── decoded.json           ← 合并 summary/quality/**analysis** + slices[] + streamed.schema=3
 └── session.json           ← longWindow=true、slices[]、sliceSeconds
 ```
+
+片表里的 `seqStart` / `seqEnd` 是**本片事件在记录级 `events.jsonl` 中的闭区间**
+（合并前/后的 `seq_off`，即首条与最后一条事件的 `seq`；空片为 `seqEnd = seqStart - 1`）。
+各片首尾相接、整体覆盖 `0..eventCount-1`，页面据此把时间轴上的某一段映射回浏览范围
+（`fromSeq/toSeq`）；`export_slices()` 与离线重建的 `refinalize_slices.py` 都写这两个字段。
 
 **多片记录没有顶层 `capture.csv`**（这是与单窗记录最大的契约差异，2026-10-18 审查 R01 修正）：
 
