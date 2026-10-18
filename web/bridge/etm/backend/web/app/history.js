@@ -67,10 +67,26 @@ export class HistoryView{
     }finally{if(generation===this.recordRevision)this.setLoading(false);}
   }
   table(headers){const t=document.createElement('table'),head=document.createElement('thead'),row=document.createElement('tr'),body=document.createElement('tbody');for(const h of headers)row.append(make('th',h));head.append(row);t.append(head,body);return [t,body];}
+  fullRange(){
+    const r=this.timelineData?.range;
+    if(r&&Number.isInteger(r.totalStart)&&Number.isInteger(r.totalEnd))return {start:r.totalStart,end:r.totalEnd,totalStart:r.totalStart,totalEnd:r.totalEnd};
+    const end=Math.max(0,(this.result?.eventCount||1)-1);return {start:0,end,totalStart:0,totalEnd:end};
+  }
   async render(){if(!this.result)return;const revision=++this.revision;for(const b of document.querySelectorAll('[data-view]'))b.classList.toggle('active',b.dataset.view===this.view);$('analysis-panes').classList.toggle('flame-layout',this.view==='flame');$('analysis-panes').classList.toggle('flame-source-collapsed',this.view==='flame'&&this.flameSourceCollapsed);const search=$('search').value.trim().toLowerCase();
     $('scope-state').hidden=$('clear-scope').hidden=!this.range;$('scope-state').textContent=this.range?['packets','quality'].includes(this.view)?'包 / 完整性显示全记录':'区间 #'+this.range.start+'～#'+this.range.end:'';
     if(!await this.renderTimeline(revision,search)||revision!==this.revision)return;
-    if((this.view==='flame'||this.range)&&!this.window){const p=new URLSearchParams();this.scopeParams(p);const window=await this.api(this.path('window?'+p));if(revision!==this.revision)return;this.window=window;}
+    if((this.view==='flame'||this.range)&&!this.window){
+      if(this.view==='flame'&&!this.range){
+        // 全记录火焰图：直接复用解码时已经算好的 analysis（聚合视图），不再对几百万事件重扫。
+        // 实测 3.86 M 指令的 window() 需 119.5 s，远超前端 45 s 超时（审查 P2）。
+        this.window={analysis:this.result.analysis,range:this.fullRange(),firstSeq:this.result.firstSeq,timeline:null};
+      }else{
+        const p=new URLSearchParams();this.scopeParams(p);
+        if(this.view==='flame')$('table-container').replaceChildren(make('p','正在计算所选区间的统计…首次可能需要几十秒，结果会缓存。','hint'));
+        try{const window=await this.api(this.path('window?'+p));if(revision!==this.revision)return;this.window=window;}
+        catch(error){if(revision===this.revision)$('table-container').replaceChildren(make('p','区间统计计算失败：'+error.message+'。可重试；区间越小越快。','hint'));throw error;}
+      }
+    }
     if(this.view==='flame'){
       const flame=flameView(this.result,fn=>{this.view='instructions';$('search').value=fn;this.offset=0;this.render().catch(this.onError);},
         {window:this.window,mode:this.flameMode,cursorSeq:this.selected,cursorFunction:this.selectedFunction,zoomBusy:this.scopeBusy,sourceCollapsed:this.flameSourceCollapsed,canBack:!!this.rangeHistory.length,onError:this.onError,onZoom:zoomIn=>this.zoomRange(zoomIn),
