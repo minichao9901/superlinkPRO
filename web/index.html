@@ -13,7 +13,7 @@
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=847791c1e2ac935b';
+  window.__webBundleUrl = 'app/site/main.js?v=4b759ba48b6c59e6';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -38,12 +38,12 @@
   <div class="brand" title="串口 / RTT 工具箱"><span class="brand-title">串口 / RTT 工具箱</span></div>
   <nav class="tabs" id="tabs" aria-label="工具切换">
     <div class="primary-tabs">
-      <button class="tab active" data-tab="serial">串口助手</button>
+      <button class="tab" data-tab="serial">串口助手</button>
       <button class="tab" data-tab="terminal">终端</button>
       <button class="tab" data-tab="rtt">RTT Viewer</button>
       <button class="tab" data-tab="rttcdc">RTT 转发</button>
       <button class="tab" data-tab="scope">J-Scope 波形</button>
-      <button class="tab" data-tab="flash">烧录器</button>
+      <button class="tab active" data-tab="flash">烧录器</button>
       <button class="tab" data-tab="dbg">调试器</button>
     </div>
     <details class="tool-switch" id="tool-switch">
@@ -100,7 +100,7 @@
   </div>
   <iframe id="etm-frame" title="ETM 执行轨迹" allow="usb" hidden></iframe>
 </section>
-<section class="panel active" id="tab-serial">
+<section class="panel" id="tab-serial">
   <div class="ws">
     <aside class="side">
       <fieldset>
@@ -680,7 +680,7 @@
 </section>
 
 <!-- ============================ 烧录器 ============================ -->
-<section class="panel" id="tab-flash">
+<section class="panel active" id="tab-flash">
   <div class="ws">
     <aside class="side tool-side">
       <fieldset>

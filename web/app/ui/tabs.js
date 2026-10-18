@@ -1,4 +1,8 @@
-/** 顶部标签页的切换。支持 #serial / #terminal / #rtt / #flash / #gen 直达（也方便做演示链接）。 */
+/**
+ * 顶部标签页的切换。支持 #serial / #terminal / #rtt / #flash / #gen 直达（也方便做演示链接）。
+ * 无 hash、无记忆时默认进「烧录器」——合并后的工作台以烧录为首要入口（2026-10-18 用户要求）。
+ */
+export const TAB_KEY = 'superlinkpro:tab';   // 新键：旧站同源留下的 serial-rtt-tools:tab 不再生效（可能停在 etm）
 export function initTabs(onSwitch){
   const tabs = [...document.querySelectorAll('#tabs .tab')];
   const panels = [...document.querySelectorAll('.panel')];
@@ -18,7 +22,7 @@ export function initTabs(onSwitch){
     if(menu){const wasOpen=menu.open;menu.open=false;if(wasOpen)summary.focus();}
     for (const p of panels) p.classList.toggle('active', p.id === 'tab-' + name);
     try {
-      localStorage.setItem('serial-rtt-tools:tab', name);
+      localStorage.setItem(TAB_KEY, name);
       if (push) history.replaceState(null, '', '#' + name);
     } catch {}
     onSwitch?.(name);
@@ -36,8 +40,8 @@ export function initTabs(onSwitch){
   });
   const hash = (location.hash || '').replace('#', '');
   let last = null;
-  try { last = localStorage.getItem('serial-rtt-tools:tab'); } catch {}
-  show(names.includes(hash) ? hash : (names.includes(last) ? last : 'serial'), false);
+  try { last = localStorage.getItem(TAB_KEY); } catch {}
+  show(names.includes(hash) ? hash : (names.includes(last) ? last : 'flash'), false);
   window.addEventListener('hashchange', () => {
     const h = (location.hash || '').replace('#', '');
     if (names.includes(h)) show(h, false);
