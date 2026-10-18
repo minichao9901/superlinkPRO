@@ -13,7 +13,7 @@
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=208b90795270e859';
+  window.__webBundleUrl = 'app/site/main.js?v=7593cc3b3afad96a';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -62,9 +62,14 @@
   </nav>
   <div class="topright">
     <span id="conn-flag" class="flag flag-off">串口：未连接</span>
-    <label class="chk" id="global-nrst-control" title="连接支持该功能的 akaLinkPro 固件后可用。">
-      <input type="checkbox" id="global-nrst-open-drain" checked disabled> NRST 开漏
+    <label class="chk" id="global-nrst-control" title="未连接探针：这一格是未知（2026-10-18 起固件默认推挽）。连接 akaLinkPro 后显示 PA27/J3[23] 的真实模式；J5[3]/PA08 是独立的 TRST 输出。">
+      <input type="checkbox" id="global-nrst-open-drain" disabled> NRST 开漏
     </label>
+    <script>
+      /* 未连接探针时这一格是"未知"，画成横杠而不是假装"开漏"。
+         连接后 app/hid/view.js 的 _setResetIoUi() 会按 HID 0x3A 的真实状态清掉 indeterminate。 */
+      (function(){ var c = document.getElementById('global-nrst-open-drain'); if (c) c.indeterminate = true; })();
+    </script>
     <button id="btn-global-reset" class="mini" type="button" title="向目标 NRST 发送硬复位脉冲；EVKLite 使用 PA27/J3[23]，PA08 接 TRST 时仅复位 JTAG">全局复位</button>
     <button id="btn-fullscreen" class="mini" type="button" aria-pressed="false" title="全屏显示工作台">全屏</button>
     <span id="probe-flag" class="flag flag-off" role="status">探针：未使用</span>
@@ -85,9 +90,8 @@
   <div id="etm-notice">
     <h2>ETM 执行轨迹</h2>
     <p id="etm-status">ETM 采集与解码需要本地工作台及 KingstVIS。</p>
-    <p>本页可以放在线上（GitHub Pages）；ETM 的数据面由本机桥提供：先启动桥（默认 <code>127.0.0.1:8899</code>），再点「重新检测」。桥地址支持自动探测 8878 / 8890 / 8899，也可以手填。</p>
-    <label class="row"><span>桥地址</span><input id="etm-bridge" placeholder="留空 = 自动探测（127.0.0.1:8878/8890/8899）" spellcheck="false" autocomplete="off"></label>
-    <div class="etm-actions"><button id="etm-retry">重新检测服务</button><a id="etm-open" href="http://127.0.0.1:8878/#etm" target="_blank" rel="noopener">打开本地 ETM 工作台</a><a href="bridge/etm/downloads/etm-bridge-win64.zip" download>下载完整 ETM 桥包</a><a href="docs/etm-online-bridge.md" target="_blank" rel="noopener">线上页 + 本地桥说明</a><a href="docs/etm-integration.md" target="_blank" rel="noopener">启动与使用说明</a></div>
+    <p>请使用本地启动入口打开工具箱；载入 ELF、选择断点起点后，即可采集并对照源码分析。</p>
+    <div class="etm-actions"><button id="etm-retry">重新检测服务</button><a id="etm-open" href="http://127.0.0.1:8878/#etm" target="_blank" rel="noopener">打开本地 ETM 工作台</a><a href="docs/etm-integration.md" target="_blank" rel="noopener">启动与使用说明</a></div>
   </div>
   <iframe id="etm-frame" title="ETM 执行轨迹" allow="usb" hidden></iframe>
 </section>
@@ -2557,3 +2561,5 @@ import(window.__useWebBundle ? './' + window.__webBundleUrl : './app/main.js').c
 </script>
 </body>
 </html>
+
+

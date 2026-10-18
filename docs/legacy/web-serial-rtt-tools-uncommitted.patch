@@ -1,0 +1,236 @@
+diff --git a/app/etm/style.css b/app/etm/style.css
+index 158577e..8e6d092 100644
+--- a/app/etm/style.css
++++ b/app/etm/style.css
+@@ -1,4 +1,4 @@
+-#tab-etm{padding:0;min-height:0;flex:1;overflow:hidden}
++#tab-etm{padding:0;min-height:0;height:100%;flex:1;overflow:hidden}
+ #tab-etm.active{display:flex;flex-direction:column}
+ #etm-frame{border:0;display:block;width:100%;flex:1;min-height:0;background:var(--bg,#0b1016)}
+ #etm-frame[hidden],#etm-notice[hidden]{display:none}
+diff --git a/app/hid/view.js b/app/hid/view.js
+index 2ba5575..8e0a6a1 100644
+--- a/app/hid/view.js
++++ b/app/hid/view.js
+@@ -221,10 +221,14 @@ export class RttCdcView {
+     this._resetIoSupported = !!(state?.supportsMode && state?.dualReset && state?.pa27Configurable && !this.mock);
+     if (this._resetIoSupported) input.checked = !!state.openDrain;
+     input.disabled = !this._resetIoSupported;
++    // 没连探针 / 连的是老固件时，这一格是"未知"，不是"开漏"：
++    // 用 indeterminate 画成横杠，避免用户把它当成探针的真实状态
++    //（2026-10-18 起固件默认改成推挽，页面默认值也必须跟上）。
++    input.indeterminate = !this._resetIoSupported;
+     if (label){
+       label.title = this._resetIoSupported
+-        ? `J3[23]/PA27 NRST：${state.openDrain ? '开漏' : '推挽'}；J5[3]/PA08 固定开漏；接 TRST 时仅复位 JTAG。`
+-        : '连接支持双路复位与 PA27 NRST 电气模式切换的新版本 akaLinkPro 固件后可用。';
++        ? `J3[23]/PA27 NRST：${state.openDrain ? '开漏' : '推挽'}；J5[3]/PA08 固定开漏（只由 CMSIS-DAP nTRST 驱动，两路互不联动）。`
++        : '未知：连接支持 PA27 NRST 电气模式切换的新版 akaLinkPro 固件后才能读取/修改（固件默认推挽）。';
+     }
+   }
+ 
+diff --git a/docs/etm-integration.md b/docs/etm-integration.md
+index 5e8de76..9fa826c 100644
+--- a/docs/etm-integration.md
++++ b/docs/etm-integration.md
+@@ -71,3 +71,16 @@ F103ZE 实板使用生产工具箱探针 JS，经原始 USB 字节转发验收
+ 补齐失联内嵌页停止/释放、显式重试恢复旧调试口、独立页忙状态保护；Demo 完整目录发布与半成品恢复；缺少可选固件的明确 404、任务历史回收、源码/画布复用、可配置工作台链接、稳健 HTML 挂载及 UTF-16 CSV。DHCSR 控制写的地址设置和数据写入纳入共享传输锁，DP 上电 ACK 掩码未改动。
+ 
+ 整页关闭时异步清理的完成程度仍受浏览器约束，本版本不宣称已完成真实浏览器关闭、拔插和各板新硬件回归。逐条核对结论见 [DeepSeek 审查修正说明](etm-review-followup-2026-10-15.md)。原审查纪要作为用户提供的证据保留，未改写。
++
++
++### 1.0.5：H743 实验适配与严格解码
++
++H743 阿波罗板已接入同一工作台：ELF → 硬件断点 → 时钟 → Kingst 联动采集 → 源码/火焰图。板载HSE为25 MHz；本轮验收固件CPU/HCLK60 MHz、物理TRACECLK30 MHz，USB仍为独立PLL3Q48 MHz。完整桥包附H743实验ELF；实际烧录镜像必须与网页载入的ELF一致，网页不会自动烧录或改PLL。
++
++采集页“通道、相位与滤波”增加**解码前软件滤波（ns）**，默认0关闭。当前接线有2 ns窄脉冲，4 ns明确对照通过；原始CSV/KVDAT保留，报告显示处理量。KingstVIS滤波快照不保证CSV导出已应用滤波。该功能不是模拟信号质量修复，也不证明采集全程无丢失。
++
++必须更新完整桥包并重新启动服务。新网页检查captureProtocol=2，拒绝混用旧后台，避免旧解码器忽略滤波参数或继续跨错误帧拼接。只下载BAT/启动脚本不能升级解码器。
++
++长记录使用JSONL和SQLite分页，保留条件执行未知、真实包错误、overflow和捕获边界；CSV取样仍需要与波形规模相关的内存。旧版大JSON需重新解码。当前115项Python、44项源工程Node回归及4次新实板采集通过相应条件；原生浏览器USB授权、物理拔插、其他芯片实板回归和完整初始化至hello连续长窗不在本轮已通过范围。
++
++审查详情、操作步骤和证据索引：[H743 网页复核](h743-web-review-2026-10-17.md)。新源码提交为 `f28299e`，未推送远端。
+diff --git a/index.html b/index.html
+index 9011d30..d988a86 100644
+--- a/index.html
++++ b/index.html
+@@ -62,9 +62,14 @@
+   </nav>
+   <div class="topright">
+     <span id="conn-flag" class="flag flag-off">串口：未连接</span>
+-    <label class="chk" id="global-nrst-control" title="连接支持该功能的 akaLinkPro 固件后可用。">
+-      <input type="checkbox" id="global-nrst-open-drain" checked disabled> NRST 开漏
++    <label class="chk" id="global-nrst-control" title="未连接探针：这一格是未知（2026-10-18 起固件默认推挽）。连接 akaLinkPro 后显示 PA27/J3[23] 的真实模式；J5[3]/PA08 是独立的 TRST 输出。">
++      <input type="checkbox" id="global-nrst-open-drain" disabled> NRST 开漏
+     </label>
++    <script>
++      /* 未连接探针时这一格是"未知"，画成横杠而不是假装"开漏"。
++         连接后 app/hid/view.js 的 _setResetIoUi() 会按 HID 0x3A 的真实状态清掉 indeterminate。 */
++      (function(){ var c = document.getElementById('global-nrst-open-drain'); if (c) c.indeterminate = true; })();
++    </script>
+     <button id="btn-global-reset" class="mini" type="button" title="向目标 NRST 发送硬复位脉冲；EVKLite 使用 PA27/J3[23]，PA08 接 TRST 时仅复位 JTAG">全局复位</button>
+     <button id="btn-fullscreen" class="mini" type="button" aria-pressed="false" title="全屏显示工作台">全屏</button>
+     <span id="probe-flag" class="flag flag-off" role="status">探针：未使用</span>
+@@ -2556,3 +2561,5 @@ import(window.__useWebBundle ? './' + window.__webBundleUrl : './app/main.js').c
+ </script>
+ </body>
+ </html>
++
++
+diff --git a/start-etm.bat b/start-etm.bat
+index cca68cc..8b8a766 100644
+--- a/start-etm.bat
++++ b/start-etm.bat
+@@ -53,13 +53,24 @@ echo   ETM 源：%CD%\..\web-etm-trace
+ echo   地址：%URL%
+ echo.
+ 
+-rem ---- 1) 端口已在监听？在跑就直接开页面 -------------------------------
+-netstat -ano | findstr ":%PORT% " | findstr /i "LISTENING" >nul 2>nul
+-if not errorlevel 1 (
+-  echo   [1/3] 服务已在运行（端口 %PORT%）—— 跳过启动
+-  goto :open
+-)
++rem ---- 1) 端口被占：必须先核实"占的到底是不是本仓库的 serve-etm.py" ------
++rem     旧版只看"端口在监听"就跳过启动 —— 于是便携包里遗留的 etm-bridge.exe（旧代码）
++rem     占着端口时，用户拿到的仍是旧页面/旧烧录器，表现成"改了还是不生效"。
++set "OWNER="
++for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":%PORT% " ^| findstr /i "LISTENING"') do set "OWNER=%%p"
++if not defined OWNER goto :startbridge
++powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=%OWNER%; $c=(Get-CimInstance Win32_Process -Filter ('ProcessId='+$p)).CommandLine; if($c -match 'serve-etm\.py'){ Write-Host ('   [1/3] 端口 %PORT% 由本仓库 serve-etm.py 提供（PID '+$p+'），跳过启动'); exit 0 } else { Write-Host ''; Write-Host ('   [!] 端口 %PORT% 被**别的程序**占着（PID '+$p+'）：'); Write-Host ('       '+$c); exit 3 }"
++if not errorlevel 3 goto :open
++echo.
++echo   这一步很关键：便携包里的 etm-bridge.exe 也可能是旧代码，
++echo   那样页面会一直是旧的，改了半天看不到效果。
++choice /c YN /n /m "     结束它、改用本仓库的 serve-etm.py 吗？(Y=是 / N=就用现在这个) "
++if errorlevel 2 goto :open
++echo       正在结束 PID %OWNER% …
++taskkill /PID %OWNER% /F >nul 2>nul
++ping -n 3 127.0.0.1 >nul
+ 
++:startbridge
+ rem ---- 2) 起 ETM 桥（后台最小化窗口）-----------------------------------
+ where python >nul 2>nul
+ if errorlevel 1 (
+diff --git a/tools/dev/build-etm-package.py b/tools/dev/build-etm-package.py
+index 73983fc..dd26bcf 100644
+--- a/tools/dev/build-etm-package.py
++++ b/tools/dev/build-etm-package.py
+@@ -16,8 +16,11 @@ def main():
+     for name,expected in provenance['packagedHashes'].items():
+         if sha(snapshot/name)!=expected:raise ValueError('ETM 快照与来源清单不一致：'+name)
+     work=ROOT/'tmp'/('etm-package-'+uuid.uuid4().hex[:8]);work.mkdir(parents=True)
+-    command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name','etm-bridge','--contents-directory','runtime','--distpath',str(work/'dist'),'--workpath',str(work/'build'),'--specpath',str(work),'--add-data',str(snapshot)+';backend','--add-data',str(ROOT/'tools/dev/serve-etm.py')+';.','--paths',str(snapshot),'--paths',str(snapshot/'tools'),'--paths',str(snapshot/'tools/la'),'--collect-all','capstone','--collect-all','elftools']
+-    for name in ['server','werkzeug.middleware.dispatcher','html.parser','decode_trace','trace_port','tpiu_demux','flow_analysis','record_store','source_export','breakpoint_resolver','kingst_la']:
++    payload=work/'backend'
++    for name in provenance['packagedHashes']:
++        target=payload/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(snapshot/name,target)
++    command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name','etm-bridge','--contents-directory','runtime','--distpath',str(work/'dist'),'--workpath',str(work/'build'),'--specpath',str(work),'--add-data',str(payload)+';backend','--add-data',str(ROOT/'tools/dev/serve-etm.py')+';.','--paths',str(snapshot),'--paths',str(snapshot/'tools'),'--paths',str(snapshot/'tools/la'),'--collect-all','capstone','--collect-all','elftools']
++    for name in ['server','werkzeug.middleware.dispatcher','html.parser','decode_trace','decode_stream','stream_store','trace_port','tpiu_demux','flow_analysis','record_store','source_export','breakpoint_resolver','kingst_la']:
+         command+=['--hidden-import',name]
+     for name in ['tkinter','matplotlib','numpy','scipy','IPython','pytest','PyQt6']:
+         command+=['--exclude-module',name]
+@@ -29,7 +32,7 @@ def main():
+     # A pre-commit build must also ship newly introduced bundle source modules.
+     public_files+=list(json.loads((ROOT/'app/site/manifest.json').read_text(encoding='utf8'))['inputs'])
+     # Include new app files introduced by this task before their first commit.
+-    public_files+=['app/gen/etm-kit.js','app/gen/etm-kit-src.js','docs/etm-integration.md','docs/etm-audit-2026-10-14.md','docs/etm-review-followup-2026-10-15.md']
++    public_files+=['app/gen/etm-kit.js','app/gen/etm-kit-src.js','docs/etm-integration.md','docs/h743-web-review-2026-10-17.md','docs/etm-audit-2026-10-14.md','docs/etm-review-followup-2026-10-15.md']
+     for name in sorted(set(public_files)):
+         original=ROOT/name
+         if original.is_file() and original.suffix!='.map':
+@@ -61,13 +64,13 @@ def main():
+     shutil.copyfile(ROOT/'bridge/etm/provenance.json',package/'source-provenance.json')
+     files=[dict(name=p.relative_to(package).as_posix(),bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(package.rglob('*')) if p.is_file()]
+     identity=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()
+-    manifest=dict(version='1.0.4',platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],python=sys.version,dependencies=distributions,files=files)
++    manifest=dict(version='1.0.5',platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],python=sys.version,dependencies=distributions,files=files)
+     (package/'package-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+     args.output.mkdir(parents=True,exist_ok=True);archive=args.output/'etm-bridge-win64.zip'
+     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as zip:
+         for file in sorted(package.rglob('*')):
+             if file.is_file():zip.write(file,'etm-bridge-kit/'+file.relative_to(package).as_posix())
+-    download=dict(version='1.0.4',platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'])
++    download=dict(version='1.0.5',platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'])
+     (args.output/'manifest.json').write_text(json.dumps(download,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+     print(json.dumps(dict(package=str(package),archive=str(archive),**download),ensure_ascii=False))
+ if __name__=='__main__':main()
+diff --git a/tools/dev/sync-etm-runtime.py b/tools/dev/sync-etm-runtime.py
+index fcff15e..e16a19f 100644
+--- a/tools/dev/sync-etm-runtime.py
++++ b/tools/dev/sync-etm-runtime.py
+@@ -2,7 +2,7 @@
+ import argparse,gzip,hashlib,json,shutil,subprocess,zipfile
+ from pathlib import Path
+ ROOT=Path(__file__).resolve().parents[2]
+-FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py']
++FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stream.py','tools/stream_store.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py']
+ def main():
+     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--etm-root',required=True,type=Path);args=parser.parse_args()
+     source=args.etm_root.resolve();dest=ROOT/'bridge/etm/backend';origins={}
+@@ -59,7 +59,7 @@ int main(int argc,char **argv) { return decode_main(argc,argv); }
+ #endif
+ '''
+     native.write_text(text,encoding='utf8')
+-    for name in ['firmware/stm32h7b0_spi_trace/stable-70-35-v1/fw.elf','firmware/stm32f103_cdc_trace/fw-ze.elf']:
++    for name in ['firmware/stm32h7b0_spi_trace/stable-70-35-v1/fw.elf','firmware/stm32f103_cdc_trace/fw-ze.elf','firmware/stm32h743_cdc_trace/fw.elf']:
+         target=dest/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source/name,target)
+         origins[name]=hashlib.sha256(target.read_bytes()).hexdigest()
+     # Carry one known demo only. No user recordings, SDKs or toolchain are copied.
+@@ -73,7 +73,7 @@ int main(int argc,char **argv) { return decode_main(argc,argv); }
+     (baseline/'manifest.json').write_text(json.dumps(dict(version=1,id='spi-70-35-v1',profile='spi-70',record='demo-spi-70-35-v1',previewRecord='demo-spi-70-35-v1',sourcePreview=manifest['previewRecord'])),encoding='utf8')
+     # Rebuild the portable wrapper against the source project's static OpenCSD libraries.
+     subprocess.run(['C:/msys64/mingw64/bin/g++.exe','-std=c++11','-O2','-municode','-static','-static-libgcc','-static-libstdc++','-I'+str(source/'vendor/OpenCSD-1.8.3/decoder/include'),str(native),str(source/'build-native/vendor/OpenCSD-1.8.3/libopencsd_c_api.a'),str(source/'build-native/vendor/OpenCSD-1.8.3/libopencsd.a'),'-o',str(dest/'build-native/etm_decode.exe')],check=True)
+-    provenance=dict(sourceRepository='web-etm-trace',sourceRevision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip(),sourceHashes=origins,localChanges=['server.py: WEB_ETM_RECORDS redirects mutable records to portable data directory','native/decoder.cpp: UTF-16 Windows argv/file APIs for UTF-8 manifests and Unicode paths; recompiled static OpenCSD wrapper'],packagedHashes={p.relative_to(dest).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in dest.rglob('*') if p.is_file()})
++    provenance=dict(sourceRepository='web-etm-trace',sourceRevision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip(),sourceHashes=origins,localChanges=['server.py: WEB_ETM_RECORDS redirects mutable records to portable data directory','native/decoder.cpp: UTF-16 Windows argv/file APIs for UTF-8 manifests and Unicode paths; recompiled static OpenCSD wrapper'],packagedHashes={p.relative_to(dest).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in dest.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'})
+     (ROOT/'bridge/etm/provenance.json').write_text(json.dumps(provenance,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+     print(f'Runtime snapshot: {len(provenance["packagedHashes"])} files; source {provenance["sourceRevision"]}')
+ if __name__=='__main__':main()
+diff --git a/tools/selftest/etm-history-races.test.mjs b/tools/selftest/etm-history-races.test.mjs
+index 804c776..0eb9d88 100644
+--- a/tools/selftest/etm-history-races.test.mjs
++++ b/tools/selftest/etm-history-races.test.mjs
+@@ -45,3 +45,12 @@ test('mapped source selection preserves DOM nodes and moves the highlight; unloa
+   h.unload('record-b');h.result={};await h.select(1);assert.notEqual(box.children[0],line);assert.equal(box.querySelector('.highlight'),box.children[0]);
+  }finally{u.close();}
+ });
++
++
++test('pending zoom completion cannot reset a newer explicit selection',async()=>{
++ const u=await ui();try{const h=u.history,d=deferred();h.result={eventCount:100,firstSeq:0};h.selected=2;
++  h.render=()=>d.promise;h.select=async seq=>{h.selectRevision++;h.selected=seq;};
++  const zoom=h.setRange({start:0,end:49});await h.select(7);d.resolve();await zoom;
++  assert.equal(h.selected,7);assert.equal(h.scopeBusy,false);
++ }finally{u.close();}
++});
+diff --git a/tools/selftest/etm-ui-harness.mjs b/tools/selftest/etm-ui-harness.mjs
+index 3934c3f..5100849 100644
+--- a/tools/selftest/etm-ui-harness.mjs
++++ b/tools/selftest/etm-ui-harness.mjs
+@@ -36,7 +36,7 @@ export async function ui(){
+     else if(path==='capture'){jobs.push(options.body);data={job:'capture-a',record:'record-a'};}
+     else if(path.startsWith('jobs/')){const phase=model.jobStates.length>1?model.jobStates.shift():model.jobStates[0];data={state:phase,record:'record-a',error:model.jobError||'capture failed'};}
+     else if(path.startsWith('stop/')){events.push('stop-la');model.jobStates=['cancelled'];}
+-    else if(path==='status')data={rates:[500e6]};
++    else if(path==='status')data={rates:[500e6],captureProtocol:model.captureProtocol??2,softwareFilter:true};
+     else throw Error('Unexpected test API '+path);
+     return {ok:true,status:200,json:async()=>data};
+   };
+diff --git a/tools/selftest/etm-ui-sequences.test.mjs b/tools/selftest/etm-ui-sequences.test.mjs
+index d25df0f..7a907e0 100644
+--- a/tools/selftest/etm-ui-sequences.test.mjs
++++ b/tools/selftest/etm-ui-sequences.test.mjs
+@@ -89,3 +89,13 @@ test('200 repeat operation orders recover from validation/entry errors and never
+  }
+  console.log('Verified '+cases+' real controller operation-order cases');
+ });
++
++
++test('old capture backend is rejected before any target or LA mutation',async()=>{
++ const u=await ui();try{
++  await u.upload();await u.click('connect');await u.select();u.model.captureProtocol=1;
++  const before=u.events.length;await u.click('start');
++  assert.equal(u.events.length,before);assert.equal(u.jobs.length,0);
++  assert.match(u.$('job-state').textContent,/版本不匹配/);
++ }finally{u.close();}
++});

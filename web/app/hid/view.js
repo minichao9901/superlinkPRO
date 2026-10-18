@@ -221,10 +221,14 @@ export class RttCdcView {
     this._resetIoSupported = !!(state?.supportsMode && state?.dualReset && state?.pa27Configurable && !this.mock);
     if (this._resetIoSupported) input.checked = !!state.openDrain;
     input.disabled = !this._resetIoSupported;
+    // 没连探针 / 连的是老固件时，这一格是"未知"，不是"开漏"：
+    // 用 indeterminate 画成横杠，避免用户把它当成探针的真实状态
+    //（2026-10-18 起固件默认改成推挽，页面默认值也必须跟上）。
+    input.indeterminate = !this._resetIoSupported;
     if (label){
       label.title = this._resetIoSupported
-        ? `J3[23]/PA27 NRST：${state.openDrain ? '开漏' : '推挽'}；J5[3]/PA08 固定开漏；接 TRST 时仅复位 JTAG。`
-        : '连接支持双路复位与 PA27 NRST 电气模式切换的新版本 akaLinkPro 固件后可用。';
+        ? `J3[23]/PA27 NRST：${state.openDrain ? '开漏' : '推挽'}；J5[3]/PA08 固定开漏（只由 CMSIS-DAP nTRST 驱动，两路互不联动）。`
+        : '未知：连接支持 PA27 NRST 电气模式切换的新版 akaLinkPro 固件后才能读取/修改（固件默认推挽）。';
     }
   }
 

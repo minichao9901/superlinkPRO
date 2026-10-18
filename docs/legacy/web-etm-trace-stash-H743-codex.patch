@@ -1,0 +1,472 @@
+diff --git a/firmware/stm32h743_cdc_trace/build.ps1 b/firmware/stm32h743_cdc_trace/build.ps1
+index cadb013..7c0bc2a 100644
+--- a/firmware/stm32h743_cdc_trace/build.ps1
++++ b/firmware/stm32h743_cdc_trace/build.ps1
+@@ -1,15 +1,15 @@
+ # STM32H743 (阿波罗, HSE 25MHz) + CherryUSB CDC ACM + etm-trace 钩子 —— GCC 构建脚本
+ #
+ # 用法：
+-#   pwsh -NoProfile -File .\build.ps1                    # CPU 480MHz / TRACEPORTCK 480MHz(VCO 960/R=2)
+-#   pwsh -NoProfile -File .\build.ps1 -TraceR 4          # TRACEPORTCK 改 240MHz
+-#   （本工程固定 480MHz —— 阿波罗 H743 + 25MHz 晶振，PLLN=192；要降频改 src/main.c）
++#   ./build.ps1 -CoreMHz 480 -TraceR 8                 # CPU480 / 引脚Trace60
++#   ./build.ps1 -CoreMHz 35                            # CPU35 / 引脚Trace35
+ #
+-# 产物：build\fw.elf / fw.bin / fw.hex，并在根目录放一份副本。
++# 产物：build\<CPU>-r<R>\fw.{elf,bin,hex}，保留根目录原始镜像。
+ # 只编译，不烧录；固件**不配置 ETM**，trace 由外部 SWD 工具配置。
+ param(
+-    [ValidateSet('480')][string]$CoreMHz = '480',
+-    [ValidateSet(0, 4, 5, 6, 8, 16)][int]$TraceR = 0,
++    [ValidateSet('25','30','35','40','45','50','55','60','65','70','75','80','90','100','400','480')][string]$CoreMHz = '480',
++    [ValidateRange(0,128)][int]$TraceR = 0,
++    [ValidateSet('FS','HS')][string]$UsbPort = 'FS',
+     [string]$Gcc
+ )
+ $ErrorActionPreference = 'Stop'
+@@ -19,13 +19,19 @@ $h7Root = $PSScriptRoot
+ if (-not $Gcc) { $Gcc = (Get-Command arm-none-eabi-gcc).Source }
+ $h7Bin = Split-Path -Parent $Gcc
+ $h7Sdk = Join-Path $h7Root 'sdk'
+-$h7Build = Join-Path $h7Root 'build'
+-New-Item -ItemType Directory -Path $h7Build -Force | Out-Null
+-
+-# VCO = 960MHz（25MHz/5*192）；P=2 -> SYSCLK 480MHz；R 决定 TRACEPORTCK
+-$h7P = 2
+-$h7R = 2
++# Low speed: VCO=CPU*8, P=8, R=4 -> physical TRACECLK=CPU.
++# USB uses HSI48 independently. Keep the old 480 MHz profile explicit only.
++$h7P = 8
++$h7N = [int]$CoreMHz * 8 / 5
++$h7R = 4
++if ($CoreMHz -eq '480') { $h7P=2; $h7N=192; $h7R=8 }
++if ($CoreMHz -eq '400') { $h7P=2; $h7N=160; $h7R=8 }
+ if ($TraceR -ne 0) { $h7R = $TraceR }
++$h7Profile = "$CoreMHz-r$h7R"
++if ($UsbPort -eq 'HS') { $h7Profile += '-hs' }
++$h7UsbBase = if ($UsbPort -eq 'HS') { '0x40040000u' } else { '0x40080000u' }
++$h7Build = Join-Path $h7Root "build\$h7Profile"
++New-Item -ItemType Directory -Path $h7Build -Force | Out-Null
+ 
+ $h7Flags = @(
+     '-mcpu=cortex-m7', '-mthumb', '-mfpu=fpv5-d16', '-mfloat-abi=hard',
+@@ -35,7 +41,8 @@ $h7Flags = @(
+     '-ffunction-sections', '-fdata-sections', '-fno-common',
+     '-Wall', '-Wextra', '-Wno-unused-parameter', '-Wno-unused-function',
+     '-DUSE_HAL_DRIVER', '-DSTM32H743xx', '-DHSE_VALUE=25000000',
+-    "-DH7_CDC_PLL_P=$h7P", "-DH7_CDC_PLL_R=$h7R",
++    "-DH7_CDC_PLL_N=$h7N", "-DH7_CDC_PLL_P=$h7P", "-DH7_CDC_PLL_R=$h7R",
++    "-DH7_CDC_USB_BASE=$h7UsbBase",
+     # SEGGER RTT 控制块固定到 .rtt_cb（链接脚本把它放在 DTCM 0x20002000）
+     '-DRTT_CB_ATTR=__attribute__((section(".rtt_cb"),aligned(4)))',
+     "-I$h7Root\src",
+@@ -109,10 +116,6 @@ foreach ($h7Fmt in @(@('binary', 'bin'), @('ihex', 'hex'))) {
+ Write-Output (Invoke-Tool -Exe "$h7Bin\arm-none-eabi-size.exe" -Args @($h7Elf)).Stdout
+ (Invoke-Tool -Exe "$h7Bin\arm-none-eabi-nm.exe" -Args @('-n', '-S', $h7Elf)).Stdout | Set-Content -LiteralPath "$h7Build\fw.symbols.txt" -Encoding utf8
+ (Invoke-Tool -Exe "$h7Bin\arm-none-eabi-objdump.exe" -Args @('-d', '-S', $h7Elf)).Stdout | Set-Content -LiteralPath "$h7Build\fw.disasm.txt" -Encoding utf8
+-foreach ($h7Ext in @('elf', 'bin', 'hex')) {
+-    Copy-Item -LiteralPath "$h7Build\fw.$h7Ext" -Destination "$h7Root\fw.$h7Ext" -Force
+-}
+-
+-Write-Output "构建完成：STM32H743 CPU ${CoreMHz}MHz / TRACEPORTCK $(960 / $h7R)MHz -> $h7Elf"
++Write-Output "构建完成：STM32H743 CPU ${CoreMHz}MHz / TRACEPORTCK $(5*$h7N/$h7R)MHz / 引脚TRACECLK $(5*$h7N/$h7R/2)MHz -> $h7Elf"
+ Write-Output "固件不开启 ETM；trace 由外部 SWD 工具配置。关键符号："
+ Select-String -Path "$h7Build\fw.symbols.txt" -Pattern ' g_trace$| _SEGGER_RTT$| g_boot_stage$| OTG_FS_IRQHandler' | ForEach-Object { $_.Line }
+diff --git a/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_dc_dwc2.c b/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_dc_dwc2.c
+index 92479c8..c20dcc4 100644
+--- a/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_dc_dwc2.c
++++ b/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_dc_dwc2.c
+@@ -116,7 +116,7 @@ static inline int dwc2_core_init(uint8_t busid)
+     return ret;
+ }
+ 
+-static inline void dwc2_set_mode(uint8_t busid, uint8_t mode)
++static inline int dwc2_set_mode(uint8_t busid, uint8_t mode)
+ {
+     USB_OTG_GLB->GUSBCFG &= ~(USB_OTG_GUSBCFG_FHMOD | USB_OTG_GUSBCFG_FDMOD);
+ 
+@@ -126,12 +126,13 @@ static inline void dwc2_set_mode(uint8_t busid, uint8_t mode)
+         USB_OTG_GLB->GUSBCFG |= USB_OTG_GUSBCFG_FDMOD;
+     }
+ 
+-    while (1) {
+-        if ((USB_OTG_GLB->GINTSTS & 0x1U) == USB_OTG_MODE_DEVICE) {
+-            break;
++    for (uint32_t attempt = 0; attempt < 100u; attempt++) {
++        if ((USB_OTG_GLB->GINTSTS & 0x1U) == mode) {
++            return 0;
+         }
+         usbd_dwc2_delay_ms(10);
+     }
++    return -1;
+ }
+ 
+ static inline int dwc2_flush_rxfifo(uint8_t busid)
+@@ -517,7 +518,10 @@ int usb_dc_init(uint8_t busid)
+     ret = dwc2_core_init(busid);
+ 
+     /* Force Device Mode*/
+-    dwc2_set_mode(busid, USB_OTG_MODE_DEVICE);
++    if (dwc2_set_mode(busid, USB_OTG_MODE_DEVICE) != 0) {
++        USB_LOG_ERR("USB device-mode timeout; check PHY and 48 MHz clock\r\n");
++        return -1;
++    }
+ 
+     USB_ASSERT_MSG((USB_OTG_GLB->GRXFSIZ & 0xffff) >= g_dwc2_udc[busid].user_params.device_rx_fifo_size,
+                    "device_rx_fifo_size cannot be larger than power_on_value %u", (unsigned int)(USB_OTG_GLB->GRXFSIZ & 0xffff));
+diff --git a/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_glue_st_h7b0.c b/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_glue_st_h7b0.c
+index b144db8..6e563bc 100644
+--- a/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_glue_st_h7b0.c
++++ b/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_glue_st_h7b0.c
+@@ -33,12 +33,12 @@ const struct dwc2_user_params param_pa11_pa12 = {
+     .device_dma_desc_enable = false,
+     .device_rx_fifo_size = (952 - 16 - 256 - 128 - 128 - 128 - 128),
+     .device_tx_fifo_size = {
+-        [0] = 16,  // 64 byte
+-        [1] = 256, // 1024 byte
+-        [2] = 128, // 512 byte
+-        [3] = 128, // 512 byte
+-        [4] = 128, // 512 byte
+-        [5] = 128, // 512 byte
++        [0] = 16,
++        [1] = 256,
++        [2] = 128,
++        [3] = 128,
++        [4] = 128,
++        [5] = 128,
+         [6] = 0,
+         [7] = 0,
+         [8] = 0,
+@@ -133,7 +133,7 @@ void usbd_dwc2_delay_ms(uint8_t ms)
+ 
+ uint32_t usbd_dwc2_get_system_clock(void)
+ {
+-    return SystemCoreClock;
++    return HAL_RCC_GetHCLKFreq();
+ }
+ 
+ /* 中断分发表：由 src/usb_dc_low_level.c 的 usb_dc_low_level_init() 填好。
+diff --git a/firmware/stm32h743_cdc_trace/ld/stm32h743.ld b/firmware/stm32h743_cdc_trace/ld/stm32h743.ld
+index 2f207f1..b4e70d8 100644
+--- a/firmware/stm32h743_cdc_trace/ld/stm32h743.ld
++++ b/firmware/stm32h743_cdc_trace/ld/stm32h743.ld
+@@ -116,5 +116,3 @@ SECTIONS
+ 
+   /DISCARD/ : { *(.ARM.attributes) }
+ }
+-
+-PROVIDE(_init = 0);
+diff --git a/firmware/stm32h743_cdc_trace/src/boot_probe.c b/firmware/stm32h743_cdc_trace/src/boot_probe.c
+index 848f8aa..7a57c83 100644
+--- a/firmware/stm32h743_cdc_trace/src/boot_probe.c
++++ b/firmware/stm32h743_cdc_trace/src/boot_probe.c
+@@ -10,6 +10,10 @@
+  */
+ #include <stdint.h>
+ 
++/* -nostartfiles omits crti.o; newlib still calls this function. */
++void _init(void) {}
++void _fini(void) {}
++
+ #if defined(STM32H7B0xx) || defined(STM32H743xx) || defined(STM32H750xx)
+ /* H7：GPIOA @0x58020000，RCC @0x58024400 */
+ #define PROBE_GPIOA_MODER (*(volatile uint32_t *)0x58020000u)
+diff --git a/firmware/stm32h743_cdc_trace/src/main.c b/firmware/stm32h743_cdc_trace/src/main.c
+index 7f48f84..1fc5203 100644
+--- a/firmware/stm32h743_cdc_trace/src/main.c
++++ b/firmware/stm32h743_cdc_trace/src/main.c
+@@ -31,8 +31,23 @@
+ 
+ #include <string.h>
+ 
++#ifndef H7_CDC_PLL_N
++#define H7_CDC_PLL_N 56u
++#endif
++#ifndef H7_CDC_PLL_P
++#define H7_CDC_PLL_P 8u
++#endif
++#ifndef H7_CDC_PLL_R
++#define H7_CDC_PLL_R 4u
++#endif
++#ifndef H7_CDC_USB_BASE
++#define H7_CDC_USB_BASE USB_OTG_FS_PERIPH_BASE
++#endif
++
+ uint32_t g_sysclk_hz = 0;
+ uint32_t g_clock_err = 0;
++uint32_t g_usb_clock_hz = 0;
++int32_t g_usb_init_status = -1;
+ 
+ extern void probe_stage(uint32_t stage);
+ 
+@@ -198,7 +213,7 @@ void usbd_cdc_acm_set_rts(uint8_t busid, uint8_t intf, bool rts)
+     (void)rts;
+ }
+ 
+-void cdc_acm_init(uint8_t busid, uintptr_t reg_base)
++int cdc_acm_init(uint8_t busid, uintptr_t reg_base)
+ {
+     usbd_desc_register(busid, &cdc_descriptor);
+ 
+@@ -207,7 +222,7 @@ void cdc_acm_init(uint8_t busid, uintptr_t reg_base)
+     usbd_add_endpoint(busid, &cdc_out_ep);
+     usbd_add_endpoint(busid, &cdc_in_ep);
+ 
+-    usbd_initialize(busid, reg_base, usbd_event_handler);
++    return usbd_initialize(busid, reg_base, usbd_event_handler);
+ }
+ 
+ /* ======================= 发送 ======================= */
+@@ -286,7 +301,7 @@ static void handle_command(const uint8_t *buf, uint32_t len)
+         cdc_puts("\r\n");
+     } else if (n == 0u) {
+         /* 空行忽略 */
+-    } else {
++    } else if (!echo_enable) {
+         cdc_puts("ERR UNKNOWN\r\n");
+     }
+ }
+@@ -303,7 +318,7 @@ static void system_clock_init(void)
+      *    表现为永远等不到 VOSRDY） */
+     PWR->CR3 &= ~PWR_CR3_SCUEN;
+     HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
+-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
++    __HAL_PWR_VOLTAGESCALING_CONFIG(H7_CDC_PLL_P == 2u && H7_CDC_PLL_N >= 192u ? PWR_REGULATOR_VOLTAGE_SCALE0 : PWR_REGULATOR_VOLTAGE_SCALE1);
+     while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
+     }
+ 
+@@ -318,23 +333,25 @@ static void system_clock_init(void)
+     osc.PLL.PLLState = RCC_PLL_ON;
+     osc.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+     osc.PLL.PLLM = 5;
+-    osc.PLL.PLLN = 192;
+-    osc.PLL.PLLP = 2;
++    osc.PLL.PLLN = H7_CDC_PLL_N;
++    osc.PLL.PLLP = H7_CDC_PLL_P;
+     osc.PLL.PLLQ = 2;
+-    osc.PLL.PLLR = 2;
++    osc.PLL.PLLR = H7_CDC_PLL_R;
+     osc.PLL.PLLRGE = RCC_PLL1VCIRANGE_2; /* 4~8MHz 参考 */
+     osc.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+     osc.PLL.PLLFRACN = 0;
+     if (HAL_RCC_OscConfig(&osc) != HAL_OK) {
+         g_clock_err |= 1u;
+     }
++    __HAL_RCC_PLLCLKOUT_ENABLE(RCC_PLL1_DIVR);
+ 
+     /* ④ AXI/HCLK /2 = 240MHz，APB1/2/3 /2 = 120MHz，APB4 /4 = 60MHz */
+     clk.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
+-                    RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
++                    RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2 |
++                    RCC_CLOCKTYPE_D1PCLK1 | RCC_CLOCKTYPE_D3PCLK1;
+     clk.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+     clk.SYSCLKDivider = RCC_SYSCLK_DIV1;
+-    clk.AHBCLKDivider = RCC_HCLK_DIV2;
++    clk.AHBCLKDivider = H7_CDC_PLL_P == 2u ? RCC_HCLK_DIV2 : RCC_HCLK_DIV1;
+     clk.APB3CLKDivider = RCC_APB3_DIV2;
+     clk.APB1CLKDivider = RCC_APB1_DIV2;
+     clk.APB2CLKDivider = RCC_APB2_DIV2;
+@@ -345,20 +362,51 @@ static void system_clock_init(void)
+ 
+     /* ⑤ USB 时钟 = HSI48 */
+     periph.PeriphClockSelection = RCC_PERIPHCLK_USB;
+-    periph.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;
++    periph.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
++    periph.PLL3.PLL3M = 5;
++    periph.PLL3.PLL3N = 96;
++    periph.PLL3.PLL3P = 2;
++    periph.PLL3.PLL3Q = 10;
++    periph.PLL3.PLL3R = 2;
++    periph.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_2;
++    periph.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
+     if (HAL_RCCEx_PeriphCLKConfig(&periph) != HAL_OK) {
+         g_clock_err |= 4u;
+     }
+ 
+     g_sysclk_hz = HAL_RCC_GetSysClockFreq();
++    {
++        uint32_t m3 = (RCC->PLLCKSELR & RCC_PLLCKSELR_DIVM3) >> RCC_PLLCKSELR_DIVM3_Pos;
++        uint32_t n3 = (RCC->PLL3DIVR & RCC_PLL3DIVR_N3) + 1u;
++        uint32_t q3 = ((RCC->PLL3DIVR & RCC_PLL3DIVR_Q3) >> RCC_PLL3DIVR_Q3_Pos) + 1u;
++        g_usb_clock_hz = m3 ? (HSE_VALUE / m3) * n3 / q3 : 0u;
++    }
+ }
+ 
+ /* ======================= main ======================= */
+ int main(void)
+ {
++    SCB->VTOR = FLASH_BASE;
++    __DSB();
++    __ISB();
+     probe_stage(1);
+ 
+     HAL_Init();
++    HAL_DBGMCU_EnableDBGSleepMode();
++    /* A debugger reset/reflash can be shorter than Windows' disconnect debounce.
++     * Hold the selected D+ pin low before enabling the USB PHY again. */
++    {
++        GPIO_InitTypeDef dp = {0};
++        GPIO_TypeDef *port = H7_CDC_USB_BASE == USB_OTG_FS_PERIPH_BASE ? GPIOA : GPIOB;
++        dp.Pin = H7_CDC_USB_BASE == USB_OTG_FS_PERIPH_BASE ? GPIO_PIN_12 : GPIO_PIN_15;
++        dp.Mode = GPIO_MODE_OUTPUT_PP;
++        dp.Speed = GPIO_SPEED_FREQ_LOW;
++        __HAL_RCC_GPIOA_CLK_ENABLE();
++        __HAL_RCC_GPIOB_CLK_ENABLE();
++        HAL_GPIO_WritePin(port, dp.Pin, GPIO_PIN_RESET);
++        HAL_GPIO_Init(port, &dp);
++        HAL_Delay(350);
++    }
+     probe_stage(2);
+ 
+     system_clock_init();
+@@ -382,12 +430,17 @@ int main(void)
+     probe_stage(6);
+ 
+     trace_hook_entry();
+-    cdc_acm_init(0, USB_OTG_FS_PERIPH_BASE);
++    g_usb_init_status = cdc_acm_init(0, H7_CDC_USB_BASE);
+     trace_log_printf("usb initialized (USB_OTG_FS_PERIPH_BASE=0x%08lx)\r\n",
+-                     (unsigned long)USB_OTG_FS_PERIPH_BASE);
++                     (unsigned long)H7_CDC_USB_BASE);
+     probe_stage(7);
+ 
+-    trace_hook_ready();
++    if (g_usb_init_status == 0) {
++        trace_hook_ready();
++    } else {
++        g_clock_err |= 8u;
++        trace_log_printf("USB initialization failed: %ld\r\n", (long)g_usb_init_status);
++    }
+     probe_stage(8);
+ 
+     for (;;) {
+@@ -415,6 +468,9 @@ int main(void)
+             cdc_puts(banner);
+             banner_sent = 1;
+         }
++        /* Interrupt-driven idle: retain real CDC work without flooding trace
++         * with an empty polling loop while Windows enumerates the device. */
++        __WFI();
+     }
+ }
+ 
+diff --git a/firmware/stm32h743_cdc_trace/src/usb_dc_low_level.c b/firmware/stm32h743_cdc_trace/src/usb_dc_low_level.c
+index b864db8..6379eef 100644
+--- a/firmware/stm32h743_cdc_trace/src/usb_dc_low_level.c
++++ b/firmware/stm32h743_cdc_trace/src/usb_dc_low_level.c
+@@ -23,9 +23,7 @@ extern void (*g_usb_dwc2_irq[2])(uint8_t busid);
+ extern uint8_t g_usb_dwc2_busid[2];
+ 
+ /* HAL_PCD_MspInit 只读 hpcd->Instance，用一个本地壳传参即可 */
+-static struct {
+-    USB_OTG_GlobalTypeDef *Instance;
+-} s_pcd_fake;
++static PCD_HandleTypeDef s_pcd;
+ 
+ void usb_dc_low_level_init(uint8_t busid)
+ {
+@@ -39,8 +37,8 @@ void usb_dc_low_level_init(uint8_t busid)
+         g_usb_dwc2_irq[0] = USBD_IRQHandler;
+     }
+ 
+-    s_pcd_fake.Instance = (USB_OTG_GlobalTypeDef *)base;
+-    HAL_PCD_MspInit((PCD_HandleTypeDef *)&s_pcd_fake);
++    s_pcd.Instance = (USB_OTG_GlobalTypeDef *)base;
++    HAL_PCD_MspInit(&s_pcd);
+ }
+ 
+ void usb_dc_low_level_deinit(uint8_t busid)
+@@ -55,8 +53,8 @@ void usb_dc_low_level_deinit(uint8_t busid)
+         g_usb_dwc2_irq[0] = NULL;
+     }
+ 
+-    s_pcd_fake.Instance = (USB_OTG_GlobalTypeDef *)base;
+-    HAL_PCD_MspDeInit((PCD_HandleTypeDef *)&s_pcd_fake);
++    s_pcd.Instance = (USB_OTG_GlobalTypeDef *)base;
++    HAL_PCD_MspDeInit(&s_pcd);
+ }
+ 
+ /* ---------------- HAL_PCD_MspInit / DeInit（ST 惯例的板级钩子） ---------------- */
+@@ -65,6 +63,7 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef *hpcd)
+     GPIO_InitTypeDef io = { 0 };
+ 
+     if (hpcd->Instance == USB_OTG_FS) {
++        HAL_PWREx_EnableUSBVoltageDetector();
+         /* PA11 = DM, PA12 = DP，AF10（H743 上是 OTG_FS 复用） */
+         __HAL_RCC_GPIOA_CLK_ENABLE();
+         io.Pin = GPIO_PIN_11 | GPIO_PIN_12;
+@@ -79,9 +78,14 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef *hpcd)
+         HAL_GPIO_Init(GPIOA, &io);
+ 
+         __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
++        __HAL_RCC_USB_OTG_FS_FORCE_RESET();
++        __DSB();
++        __HAL_RCC_USB_OTG_FS_RELEASE_RESET();
+         HAL_NVIC_SetPriority(OTG_FS_IRQn, 3, 0);
++        HAL_NVIC_ClearPendingIRQ(OTG_FS_IRQn);
+         HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
+     } else if (hpcd->Instance == USB_OTG_HS) {
++        HAL_PWREx_EnableUSBVoltageDetector();
+         /* PB14/PB15（或 PA11/PA12 备用）走 HS 口 —— 本工程默认不用，
+          * 保留这段是为了将来换 ULPI 高速口时不用重写。 */
+         __HAL_RCC_GPIOB_CLK_ENABLE();
+@@ -93,7 +97,11 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef *hpcd)
+         HAL_GPIO_Init(GPIOB, &io);
+ 
+         __HAL_RCC_USB1_OTG_HS_CLK_ENABLE();
++        __HAL_RCC_USB1_OTG_HS_FORCE_RESET();
++        __DSB();
++        __HAL_RCC_USB1_OTG_HS_RELEASE_RESET();
+         HAL_NVIC_SetPriority(OTG_HS_IRQn, 3, 0);
++        HAL_NVIC_ClearPendingIRQ(OTG_HS_IRQn);
+         HAL_NVIC_EnableIRQ(OTG_HS_IRQn);
+     }
+ }
+diff --git a/web/app/clock.js b/web/app/clock.js
+index ce34e1b..a4ab8f0 100644
+--- a/web/app/clock.js
++++ b/web/app/clock.js
+@@ -3,7 +3,7 @@ export const COMMON_TARGETS=[
+   {id:'stm32f103ze',name:'STM32F103ZE / 高容量 F103（PE2～PE6）',core:'Cortex-M3',part:0xc23,devices:[0x414],flashLimit:0x08080000,traceValidated:true,etmVersion:'ETMv3.4',maxCoreHz:72e6,rcc:0x40021000,clockRegisters:{cr:0,cfgr:4},traceRelation:'Trace 输入 = HCLK；4 位 DDR 的 TRACECLK = HCLK / 2',traceDiv:1},
+   {id:'stm32f1',name:'STM32F103（标准/超大容量，Trace 待验收）',core:'Cortex-M3',part:0xc23,devices:[0x410,0x430],flashLimit:0x08100000,traceValidated:false,etmVersion:'ETMv3（须核对具体型号/封装）',maxCoreHz:72e6,rcc:0x40021000,clockRegisters:{cr:0,cfgr:4},traceRelation:'HCLK = CPU',traceDiv:1},
+   {id:'stm32f4',name:'STM32F407 / F405',core:'Cortex-M4',part:0xc24,devices:[0x413],flashLimit:0x08100000,traceValidated:false,etmVersion:'ETMv3.5',maxCoreHz:168e6,rcc:0x40023800,clockRegisters:{cr:0,pll:4,cfgr:8},traceRelation:'HCLK = CPU',traceDiv:1},
+-  {id:'stm32h743',name:'STM32H743 / H742 / H750 / H753',core:'Cortex-M7',part:0xc27,devices:[0x450],flashLimit:0x08200000,traceValidated:false,etmVersion:'ETMv4',maxCoreHz:480e6,rcc:0x58024400,clockRegisters:{cr:0,cfgr:0x10,domain:0x18,pllSource:0x28,pllConfig:0x2c,pllDiv:0x30,pllFrac:0x34},traceRelation:'SWO 输入：HSI / CSI / HSE / PLL1_R，由 RCC SW 选择；独立于 CPU / HCLK 分频',traceDiv:null},
++  {id:'stm32h743',name:'STM32H743（同组 H742 / H750 / H753 须另测）',core:'Cortex-M7',part:0xc27,devices:[0x450],flashLimit:0x08200000,traceValidated:false,traceImplemented:true,etmVersion:'ETMv4',maxCoreHz:480e6,rcc:0x58024400,clockRegisters:{cr:0,cfgr:0x10,domain:0x18,pllSource:0x28,pllConfig:0x2c,pllDiv:0x30,pllFrac:0x34},traceRelation:'并行 Trace 输入 TRACEPORTCK；4 位 DDR 引脚 TRACECLK 为输入的一半，必须与实测核对',traceDiv:null},
+   {id:'stm32h7b0',name:'STM32H7B0 / H7A3 / H7B3',core:'Cortex-M7',part:0xc27,devices:[0x480],flashLimit:0x08200000,traceValidated:true,etmVersion:'ETMv4',maxCoreHz:280e6,rcc:0x58024400,clockRegisters:{cr:0,cfgr:0x10,domain:0x18,pllSource:0x28,pllConfig:0x2c,pllDiv:0x30,pllFrac:0x34},traceRelation:'并行 trace 的输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；CPU 另经 CDCPRE 分频',traceDiv:null}
+ ];
+ export const targetPort=id=>COMMON_TARGETS.find(p=>p.id===id);
+diff --git a/web/app/target.js b/web/app/target.js
+index bfc1c82..42b3940 100644
+--- a/web/app/target.js
++++ b/web/app/target.js
+@@ -98,7 +98,7 @@ export class EtmTarget {
+     const device=await this.read(part===0xc27?0x5c001000:0xe0042000);
+     const port=identifyTarget(cpuid,device,this.profile);
+     if(!port)throw Error(`未预置此芯片：CPUID ${hex(cpuid)} / DEV_ID ${hex(device&4095)}`);
+-    const traceSupported=port.traceValidated;
++    const traceSupported=!!(port.traceImplemented||port.traceValidated);
+     const config={};let width=null;
+     if(traceSupported&&port.id==='stm32f103ze'){
+       this.traceFamily='f103';const f=await inspectF103(this);Object.assign(config,f.config);width=f.width;
+@@ -120,7 +120,7 @@ export class EtmTarget {
+     }catch(e){clockError=e.message;}
+     this.breakpoints.capacity=decodeFpCtrl(await this.read(0xe0002000)).numCode;
+     this.info={cpuid,device,profile:port.id,name:port.name,core:port.core,etmVersion:port.etmVersion,traceSupported,
+-      traceStatus:traceSupported?port.id==='stm32f103ze'?'F103ZE 48/24 MHz Kingst 联动与 ETMv3 解码已验收；封装须有 PE2～PE6':'H7B0 70/35 MHz 已验收；同组其他型号仍需实测':'型号/时钟/断点可用；本型号 trace 配置与解码尚未验收',
++      traceStatus:traceSupported?port.id==='stm32f103ze'?'F103ZE 48/24 MHz Kingst 联动与 ETMv3 解码已验收；封装须有 PE2～PE6':port.id==='stm32h743'?'H743 ETMv4 实验适配；当前尚未通过实板验收，不外推同组芯片':'H7B0 70/35 MHz 已验收；同组其他型号仍需实测':'型号/时钟/断点可用；本型号 trace 配置与解码尚未验收',
+       flashLimit:port.id==='stm32h7b0'?0x08020000:port.flashLimit,traceOptions:traceCapabilities(port.id,config),
+       config,halted:await this.isHalted(),rcc,clocks,clockError,hseHz:this.hseHz,width};return this.info;
+   }
+diff --git a/web/app/trace-options.js b/web/app/trace-options.js
+index e21f684..a138183 100644
+--- a/web/app/trace-options.js
++++ b/web/app/trace-options.js
+@@ -11,7 +11,7 @@ export function traceSettings(config){
+ 
+ export function traceCapabilities(profile,config){
+   if(profile==='stm32f103ze')return {branchBroadcast:true,returnStack:false,cycleCount:false};
+-  if(profile==='stm32h7b0')return {branchBroadcast:!!(config.idr0&0x20),returnStack:!!(config.idr0&0x200),cycleCount:!!(config.idr0&0x80)};
++  if(profile==='stm32h7b0'||profile==='stm32h743')return {branchBroadcast:!!(config.idr0&0x20),returnStack:!!(config.idr0&0x200),cycleCount:!!(config.idr0&0x80)};
+   return {branchBroadcast:false,returnStack:false,cycleCount:false};
+ }
+ 

@@ -1,0 +1,95 @@
+# macOS
+.DS_Store
+
+# firmware build
+build
+build_xip
+build_dfu
+.vscode
+
+# kicad
+fp-info-cache
+*-backups
+*.lck
+_autosave-*
+
+# firmware build (evklite)
+build_dfu_evklite
+build_xip_evklite
+
+# script_test generated artifacts
+script_test/sram_test.bin
+script_test/sram_out.bin
+script_test/stm32f103_rtt_speed/build/
+script_test/stm32f103_rtt_speed/_tmp_*.bin
+script_test/stm32f103_rtt_speed/_in20k.bin
+script_test/stm32f103_rtt_speed/_out20k.bin
+# F103 固件：fw.bin / fw.hex（可直接烧录，各 ~1KB/3KB）**入库**，两块板随时可用；
+# fw.elf / fw.map 是机器生成的大文件，不入库（重跑 build.ps1 即可）
+script_test/stm32f103_rtt_speed/build-*/fw.elf
+script_test/stm32f103_rtt_speed/build-*/fw.map
+# 手工/工具产生的临时文件（RTT 日志、基准落盘、临时测试数据）
+script_test/_rtt_jlink/
+script_test/swd/_h7out.bin
+script_test/swd/_in20k.bin
+script_test/swd/_out20k.bin
+script_test/swd/.bench_*.tcl
+script_test/swd/readback_*.bin
+
+# local reference material (kept out of the repo)
+/webusb_spec.html
+/webusb_chrome.cc
+
+# script_test scratch
+script_test/_openocd_probe.log
+
+# python cache
+__pycache__/
+
+# H743 SRAM 基准临时目录
+script_test/_h743bench/
+# HPM6800EVK JTAG 临时/构建产物
+script_test/hpm6800evk_rtt_flood/build/
+script_test/_upstream/
+script_test/_*.txt
+script_test/_*.json
+script_test/_*.py
+script_test/_*.log
+
+# scope 靶子固件的构建产物（可重新 build.ps1 生成）
+script_test/stm32f103_scope/build/
+# 逻辑分析仪抓包与临时件
+captures/
+tmp/
+
+
+# ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====
+.git/
+.hg/
+.svn/
+node_modules/
+bower_components/
+jspm_packages/
+site-packages/
+venv/
+coverage/
+htmlcov/
+lcov-report/
+cmakefiles/
+cmake-build-*/
+bazel-*/
+pods/
+deriveddata/
+storybook-static/
+playwright-report/
+test-results/
+allure-results/
+allure-report/
+cdk.out/
+*.egg-info/
+*.dist-info/
+eggs/
+pip-wheel-metadata/
+wheels/
+# ----- ↑ 以上为 ZCode 默认排除规则（自定义规则请写在本行下方，不会被同步/恢复改动）-----
+# 自定义规则写在下方（本行提示可删除）
