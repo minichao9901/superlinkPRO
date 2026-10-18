@@ -1,4 +1,13 @@
-"""可重建的 SQLite 浏览索引；原始记录/decoded.json 是证据，不改写它们。"""
+"""可重建的 SQLite 浏览索引；原始记录/decoded.json 是证据，不改写它们。
+
+v4 与 v3 的差别（查询结果等价；文件字节本来就不保证可复现）：
+  * **不再把整条事件 JSON 复制进 `data` 列**：流式记录（events/packets 有 JSONL 文件）
+    只存该行的**字节偏移** `src`，查询时按偏移读回原始行再 `json.loads`；
+  * 插入前不建二级索引，插完一次性 `CREATE INDEX`（避免 3.67 M 行逐行维护 B 树）；
+  * `journal_mode=OFF`/`synchronous=OFF`/`temp_store=MEMORY`/`locking_mode=EXCLUSIVE`/
+    `page_size=8192` + 大页缓存，只保留查询真正用到的 3 个索引。
+旧索引（v3）因签名里的版本号不同会判定为过期并重建，不存在新旧混用。
+"""
 import json
 import math
 import sqlite3
@@ -7,9 +16,49 @@ import time
 from contextlib import closing
 from pathlib import Path
 
-VERSION=3
+VERSION=4
+SIDECAR='browse-columns.tsv'
+SCHEMA_SQL='''
+    PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA page_size=8192;
+    PRAGMA cache_size=-2097152; PRAGMA temp_store=MEMORY; PRAGMA locking_mode=EXCLUSIVE;
+    PRAGMA threads=8;
+    CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT);
+    CREATE TABLE events(seq INTEGER PRIMARY KEY,kind TEXT,pc INTEGER,fn TEXT,file TEXT,line INTEGER,
+       flow TEXT,state TEXT,type INTEGER,search TEXT,src INTEGER,data TEXT);
+    CREATE TABLE packets(id INTEGER PRIMARY KEY,search TEXT,src INTEGER,data TEXT);
+    CREATE TABLE sources(file TEXT PRIMARY KEY,text TEXT);
+    CREATE TABLE issues(id INTEGER PRIMARY KEY,startSeq INTEGER,endSeq INTEGER,data TEXT);
+'''
+INDEX_SQL=('CREATE INDEX events_pc ON events(pc,seq)',
+           'CREATE INDEX events_flow ON events(flow,seq)',
+           'CREATE INDEX events_state ON events(state,seq)')
+EVENT_COLUMNS='(seq,kind,pc,fn,file,line,flow,state,type,search,src,data)'
 _guard=threading.Lock()
 def dumps(value):return json.dumps(value,ensure_ascii=False,separators=(',',':'))
+
+def _packet_fields(line):
+    """packet 行（compact 或 json.dumps 默认分隔符皆可）→ (offset, size, search 文本, text)。"""
+    head, separator, tail = line.partition(',"text":')
+    if not separator:
+        head, separator, tail = line.partition(', "text": ')
+    if not separator:
+        raise ValueError('包记录缺少 text 字段')
+    fields = {}
+    for part in head.lstrip('{').split(','):
+        key, _, value = part.partition(':')
+        fields[key.strip().strip('"')] = value.strip()
+    offset = int(fields['offset'])
+    size = int(fields['size'])
+    hexed = fields.get('hex', '""').strip('"')
+    text = json.loads(tail.rstrip()[:-1])
+    return offset, size, (text + ' ' + str(offset) + ' ' + hexed).lower(), text
+
+def _base_search(event):
+    search=' '.join(str(event.get(k,'') or '') for k in ('function','file','mnemonic','operands','text'))
+    if 'pc' in event:
+        search+=f" 0x{event['pc']:08x} {event['pc']}"
+    return search.lower()
+
 
 class RecordStore:
     def __init__(self,folder,loader):
@@ -27,6 +76,7 @@ class RecordStore:
             with closing(sqlite3.connect(self.path)) as db:
                 return db.execute("SELECT value FROM meta WHERE key='signature'").fetchone()==(self.signature(),)
         except sqlite3.DatabaseError:return False
+    # ---- 建索引 -------------------------------------------------------------------------------
     def ensure(self):
         if self.ready():return
         with _guard:
@@ -34,63 +84,27 @@ class RecordStore:
             r=self.loader();temporary=self.path.with_suffix('.building')
             if temporary.exists():temporary.unlink()
             with closing(sqlite3.connect(temporary)) as db:
-                db.executescript('''
-                CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT);
-                CREATE TABLE events(seq INTEGER PRIMARY KEY,kind TEXT,pc INTEGER,fn TEXT,file TEXT,line INTEGER,
-                   flow TEXT,state TEXT,type INTEGER,search TEXT,data TEXT);
-                CREATE INDEX events_pc ON events(pc,seq);
-                CREATE INDEX events_flow ON events(flow,seq);
-                CREATE INDEX events_kind ON events(kind,seq);
-                CREATE INDEX events_state ON events(state,seq);
-                CREATE TABLE packets(id INTEGER PRIMARY KEY,search TEXT,data TEXT);
-                CREATE TABLE sources(file TEXT PRIMARY KEY,text TEXT);
-                CREATE TABLE issues(id INTEGER PRIMARY KEY,startSeq INTEGER,endSeq INTEGER,data TEXT);
-                ''')
+                db.executescript(SCHEMA_SQL)
                 summary={k:v for k,v in r.items() if k not in ('events','elements','packets','sources')}
-                summary['eventCount']=len(r['events']);summary['packetCount']=len(r['packets'])
-                summary['sourceFiles']=list(r.get('sources',{}));summary['firstSeq']=next((e['seq'] for e in r['events'] if e['kind']=='instruction'),None)
-                db.executemany('INSERT INTO meta VALUES (?,?)',[('signature',self.signature()),('overview',dumps(summary))])
-                def event_row(e):
-                    search=' '.join(str(e.get(k,'') or '') for k in ('function','file','mnemonic','operands','text'))
-                    if 'pc' in e:search+=f" 0x{e['pc']:08x} {e['pc']}"
-                    return (e['seq'],e['kind'],e.get('pc'),e.get('function'),e.get('file'),e.get('line'),
-                            e.get('flow'),e.get('executionState'),e.get('type'),search.lower(),dumps(e))
-                db.executemany('INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?)',(event_row(e) for e in r['events']))
-                db.executemany('INSERT INTO packets VALUES (?,?,?)',((i,(p.get('text','')+' '+str(p.get('offset'))+' '+p.get('hex','')).lower(),dumps(p)) for i,p in enumerate(r['packets'])))
+                events=r['events'];packets=r['packets']
+                summary['eventCount']=len(events);summary['packetCount']=len(packets)
+                summary['sourceFiles']=list(r.get('sources',{}))
+                issues=[]
+                if isinstance(events,list):
+                    summary['firstSeq']=self._insert_event_dicts(db,events,issues)
+                else:
+                    summary['firstSeq']=self._insert_events_streamed(db,events,issues)
+                if isinstance(packets,list):
+                    db.executemany('INSERT INTO packets VALUES (?,?,?,?)',
+                                   ((i,(p.get('text','')+' '+str(p.get('offset'))+' '+p.get('hex','')).lower(),None,dumps(p))
+                                    for i,p in enumerate(packets)))
+                else:
+                    self._insert_packets_streamed(db,packets)
                 db.executemany('INSERT INTO sources VALUES (?,?)',r.get('sources',{}).items())
-                issues=[];run=None
-                def end_run():
-                    nonlocal run
-                    if run:issues.append(run);run=None
-                for e in r['events']:
-                    if e.get('executionState')=='unknown':
-                        if run and e['seq']==run['endSeq']+1:run['endSeq']=e['seq'];run['records']+=1
-                        else:
-                            end_run();run=dict(category='predicate',startSeq=e['seq'],endSeq=e['seq'],records=1,
-                                  offset=e.get('offset'),reason=e.get('executionReason') or '条件执行结果未被当前 trace 证实')
-                    else:end_run()
-                    if e['kind']=='event' and e['type'] in (1,2,6,7,8):
-                        issues.append(dict(category='boundary',startSeq=e['seq'],endSeq=e['seq'],offset=e.get('offset'),
-                                           reason=e.get('text','边界事件'),records=1))
-                end_run()
-                q=r.get('quality',{})
-                packet_end=0
-                for p in (sorted(r['packets'],key=lambda p:p['offset']) if isinstance(r['packets'],list) else r['packets']):
-                    start,stop=p['offset'],p['offset']+p['size']
-                    if start>packet_end:issues.append(dict(category='gap',startSeq=None,endSeq=None,records=0,offset=packet_end,bytes=start-packet_end,reason='ETM 包字节覆盖缺口；不能据此补造指令'))
-                    if start<packet_end:issues.append(dict(category='overlap',startSeq=None,endSeq=None,records=0,offset=start,bytes=max(0,min(stop,packet_end)-start),reason='ETM 包字节覆盖重叠'))
-                    packet_end=max(packet_end,stop)
-                    if any(t in p.get('text','').upper() for t in ('OVERFLOW','BAD_','RESERVED','INCOMPLETE_EOT')):
-                        issues.append(dict(category='packet',startSeq=None,endSeq=None,records=0,offset=start,bytes=p['size'],reason='包问题：'+p['text']))
-                input_size=q.get('inputBytes',q.get('processedBytes',0))
-                # 长窗（streamed.schema=3）记录只合并了事件流，packets 留在各片里：
-                # 拿"整段输入字节"去比"根目录 packet_end"会造出一条几十 MB 的假"尾部覆盖缺口"。
-                if r.get('streamed',{}).get('schema')!=3 and input_size>packet_end:
-                    issues.append(dict(category='gap',startSeq=None,endSeq=None,records=0,offset=packet_end,bytes=input_size-packet_end,reason='ETM 输入尾部未被包记录覆盖'))
-                if r.get('status',{}).get('lastErrorCode'):issues.append(dict(category='decoder',startSeq=None,endSeq=None,records=0,offset=r['status'].get('processed'),reason='解码器错误：'+r['status'].get('lastError','未知错误')))
-                for key,label in [('initialPhysicalBytes','TPIU 同步前物理字节'),('trailingFrameBytes','不完整的 TPIU 尾帧'),('unknownSourceBytes','未知源 ID 字节')]:
-                    if q.get(key):issues.append(dict(category='physical',startSeq=None,endSeq=None,records=0,bytes=q[key],reason=label))
+                self._append_packet_issues(r,packets,issues)
                 db.executemany('INSERT INTO issues VALUES (?,?,?,?)',((i,p['startSeq'],p['endSeq'],dumps(p)) for i,p in enumerate(issues)))
+                db.executemany('INSERT INTO meta VALUES (?,?)',[('signature',self.signature()),('overview',dumps(summary))])
+                for statement in INDEX_SQL:db.execute(statement)
                 db.commit()
             deadline=time.monotonic()+10
             while True:
@@ -100,6 +114,154 @@ class RecordStore:
                     # handle on Windows. Wait boundedly; keep the old index intact.
                     if time.monotonic()>=deadline:raise
                     time.sleep(.02)
+    @staticmethod
+    def _note_issue(issues,run,event,seq):
+        """谓词未知区间与边界事件（与 v3 逐条同口径）。返回新的 run。"""
+        if event.get('executionState')=='unknown':
+            if run and seq==run['endSeq']+1:run['endSeq']=seq;run['records']+=1
+            else:
+                if run:issues.append(run)
+                run=dict(category='predicate',startSeq=seq,endSeq=seq,records=1,
+                         offset=event.get('offset'),
+                         reason=event.get('executionReason') or '条件执行结果未被当前 trace 证实')
+            return run
+        if run:issues.append(run)
+        if event['kind']=='event' and event['type'] in (1,2,6,7,8):
+            issues.append(dict(category='boundary',startSeq=seq,endSeq=seq,offset=event.get('offset'),
+                               reason=event.get('text','边界事件'),records=1))
+        return None
+    def _insert_event_dicts(self,db,events,issues):
+        run=None;first=None;rows=[]
+        for event in events:
+            if first is None and event['kind']=='instruction':first=event['seq']
+            run=self._note_issue(issues,run,event,event['seq'])
+            rows.append((event['seq'],event['kind'],event.get('pc'),event.get('function'),event.get('file'),
+                         event.get('line'),event.get('flow'),event.get('executionState'),event.get('type'),
+                         _base_search(event),None,dumps(event)))
+            if len(rows)>=8192:
+                db.executemany(f'INSERT INTO events VALUES ({",".join("?"*12)})',rows);rows.clear()
+        if rows:db.executemany(f'INSERT INTO events VALUES ({",".join("?"*12)})',rows)
+        if run:issues.append(run)
+        return first
+    def _insert_events_streamed(self,db,events,issues):
+        """流式记录：列来自展开阶段的 sidecar，`data` 留空、只存 src（该行字节偏移）。"""
+        source=self.folder/'events.jsonl';sidecar=self.folder/SIDECAR
+        statement=f'INSERT INTO events VALUES ({",".join("?"*12)})'
+        run=None;first=None;rows=[];counted=0
+        if not source.exists():
+            raise ValueError('流式记录缺少 events.jsonl，无法建立浏览索引')
+        with source.open('rb') as raw:
+            if sidecar.exists() and sidecar.stat().st_mtime_ns>=source.stat().st_mtime_ns:
+                with sidecar.open(encoding='utf-8') as side:
+                    offset=0
+                    for line in raw:
+                        fields=next(side,None)
+                        if fields is None:
+                            raise ValueError(f'索引列记录数不一致：{SIDECAR} 少于 events.jsonl；请重新解码')
+                        fields=fields.rstrip('\n').split('\t')
+                        seq=int(fields[0])
+                        counted+=1
+                        if first is None and fields[1]=='instruction':first=seq
+                        if fields[7]=='unknown' or (fields[1]=='event' and fields[8] in ('1','2','6','7','8')):
+                            run=self._note_issue(issues,run,json.loads(line),seq)
+                        elif run:
+                            issues.append(run);run=None
+                        rows.append((seq,fields[1],fields[2] or None,fields[3] or None,fields[4] or None,
+                                     fields[5] or None,fields[6] or None,fields[7] or None,
+                                     fields[8] or None,fields[9],offset,None))
+                        offset+=len(line)
+                        if len(rows)>=8192:
+                            db.executemany(statement,rows);rows.clear()
+            else:
+                offset=0
+                for line in raw:
+                    event=json.loads(line)
+                    counted+=1
+                    if first is None and event['kind']=='instruction':first=event['seq']
+                    run=self._note_issue(issues,run,event,event['seq'])
+                    rows.append((event['seq'],event['kind'],event.get('pc'),event.get('function'),
+                                 event.get('file'),event.get('line'),event.get('flow'),
+                                 event.get('executionState'),event.get('type'),_base_search(event),
+                                 offset,None))
+                    offset+=len(line)
+                    if len(rows)>=8192:
+                        db.executemany(statement,rows);rows.clear()
+        if rows:db.executemany(statement,rows)
+        if run:issues.append(run)
+        # 与 JsonLines 同口径：JSONL 实际行数必须等于记录声明的条数，否则拒绝建立索引
+        expected=len(events)
+        if counted!=expected:
+            raise ValueError(f'JSONL记录数不一致：events.jsonl，预期{expected}，实际{counted}；请重新解码')
+        return first
+    def _insert_packets_streamed(self,db,packets):
+        source=self.folder/'packets.jsonl'
+        if not source.exists():return
+        statement='INSERT INTO packets VALUES (?,?,?,?)'
+        rows=[];identifier=0;offset=0
+        with source.open('rb') as raw:
+            for line in raw:
+                _,_,search,_=_packet_fields(line.decode('utf-8'))
+                rows.append((identifier,search,offset,None))
+                identifier+=1;offset+=len(line)
+                if len(rows)>=8192:
+                    db.executemany(statement,rows);rows.clear()
+        if rows:db.executemany(statement,rows)
+        expected=len(packets)
+        if identifier!=expected:
+            raise ValueError(f'JSONL记录数不一致：packets.jsonl，预期{expected}，实际{identifier}；请重新解码')
+    def _append_packet_issues(self,r,packets,issues):
+        q=r.get('quality',{})
+        packet_end=0
+        if isinstance(packets,list):
+            iterator=((p['offset'],p['size'],p.get('text','')) for p in packets)
+        else:
+            source=self.folder/'packets.jsonl'
+            def stream():
+                if not source.exists():return
+                with source.open(encoding='utf-8') as handle:
+                    for line in handle:
+                        offset,size,_,text=_packet_fields(line.rstrip('\n'));yield offset,size,text
+            iterator=stream()
+        for offset,size,text in iterator:
+            start,stop=offset,offset+size
+            if start>packet_end:issues.append(dict(category='gap',startSeq=None,endSeq=None,records=0,offset=packet_end,bytes=start-packet_end,reason='ETM 包字节覆盖缺口；不能据此补造指令'))
+            if start<packet_end:issues.append(dict(category='overlap',startSeq=None,endSeq=None,records=0,offset=start,bytes=max(0,min(stop,packet_end)-start),reason='ETM 包字节覆盖重叠'))
+            packet_end=max(packet_end,stop)
+            if any(t in text.upper() for t in ('OVERFLOW','BAD_','RESERVED','INCOMPLETE_EOT')):
+                issues.append(dict(category='packet',startSeq=None,endSeq=None,records=0,offset=start,bytes=size,reason='包问题：'+text))
+        input_size=q.get('inputBytes',q.get('processedBytes',0))
+        # 长窗（streamed.schema=3）记录只合并了事件流，packets 留在各片里：
+        # 拿"整段输入字节"去比"根目录 packet_end"会造出一条几十 MB 的假"尾部覆盖缺口"。
+        if r.get('streamed',{}).get('schema')!=3 and input_size>packet_end:
+            issues.append(dict(category='gap',startSeq=None,endSeq=None,records=0,offset=packet_end,bytes=input_size-packet_end,reason='ETM 输入尾部未被包记录覆盖'))
+        if r.get('status',{}).get('lastErrorCode'):issues.append(dict(category='decoder',startSeq=None,endSeq=None,records=0,offset=r['status'].get('processed'),reason='解码器错误：'+r['status'].get('lastError','未知错误')))
+        for key,label in [('initialPhysicalBytes','TPIU 同步前物理字节'),('trailingFrameBytes','不完整的 TPIU 尾帧'),('unknownSourceBytes','未知源 ID 字节')]:
+            if q.get(key):issues.append(dict(category='physical',startSeq=None,endSeq=None,records=0,bytes=q[key],reason=label))
+    # ---- 读取 ---------------------------------------------------------------------------------
+    def _payloads(self,table,rows):
+        """(data, src) 行 → 字典列表；流式记录按 src 从原始 JSONL 读回该行（等价于 v3 的 data 列）。"""
+        payloads=[data for data,_ in rows]
+        if any(data is None for data in payloads):
+            path=self.folder/('events.jsonl' if table=='events' else 'packets.jsonl')
+            with path.open('rb') as stream:
+                for index,(data,src) in enumerate(rows):
+                    if data is None:
+                        stream.seek(src)
+                        payloads[index]=stream.readline().decode('utf-8')
+        return [json.loads(text) for text in payloads]
+    def _payload_stream(self,table,rows):
+        """惰性版本：窗口可能覆盖上百万条事件，逐条读回再解析，不整体驻留。"""
+        path=self.folder/('events.jsonl' if table=='events' else 'packets.jsonl')
+        stream=None
+        try:
+            for data,src in rows:
+                if data is None:
+                    if stream is None:stream=path.open('rb')
+                    stream.seek(src)
+                    data=stream.readline().decode('utf-8')
+                yield json.loads(data)
+        finally:
+            if stream is not None:stream.close()
     def connect(self):
         self.ensure();return sqlite3.connect(f'{self.path.as_uri()}?mode=ro',uri=True)
     def overview(self):
@@ -119,8 +281,8 @@ class RecordStore:
         with closing(self.connect()) as db:
             total=db.execute(f'SELECT count(*) FROM {table}'+clause,params).fetchone()[0]
             offset=min(offset,max(0,((total-1)//limit)*limit))
-            rows=[json.loads(r[0]) for r in db.execute(f'SELECT data FROM {table}'+clause+f' ORDER BY {order} LIMIT ? OFFSET ?',params+[limit,offset])]
-        return dict(rows=rows,total=total,offset=offset,limit=limit)
+            rows=db.execute(f'SELECT data,src FROM {table}'+clause+f' ORDER BY {order} LIMIT ? OFFSET ?',params+[limit,offset]).fetchall()
+        return dict(rows=self._payloads(table,rows),total=total,offset=offset,limit=limit)
     def function_timeline(self,start=None,end=None,search='',hide_skipped=False,bins=1600,max_functions=6):
         """Compact function-lane activity indexed by execution sequence, never by inferred time."""
         bins=max(240,min(2400,int(bins)));max_functions=max(1,min(10,int(max_functions)))
@@ -140,7 +302,7 @@ class RecordStore:
             clause=' AND '.join(query_where)
             counts={name:count for name,count in db.execute(
                 'SELECT coalesce(fn,\'(未知函数)\'),count(*) FROM events WHERE '+clause+
-                " AND kind='instruction' AND state='executed' GROUP BY coalesce(fn,\'(未知函数)\')",query_params)}
+                " AND kind='instruction' AND state='executed' GROUP BY coalesce(fn,'(未知函数)')",query_params)}
             state_counts=dict(db.execute('SELECT state,count(*) FROM events WHERE '+clause+
                 " AND kind='instruction' GROUP BY state",query_params))
             unknown=sum(count for state,count in state_counts.items() if state not in ('executed','not-taken'))
@@ -191,8 +353,9 @@ class RecordStore:
             step=max(1,math.ceil((hi-lo+1)/bins))
             root=dict(name='所选执行区间',value=0,self=0,selfCycles=0,valueCycles=0,children={})
             buckets={};functions={};hotspots={};inclusive={};previous=None;observed=0;first=None;pending_irq=False
-            for row in db.execute('SELECT data FROM events WHERE seq BETWEEN ? AND ? ORDER BY seq',(lo,hi)):
-                e=json.loads(row[0]);key=(e['seq']-lo)//step
+            cursor=db.execute('SELECT data,src FROM events WHERE seq BETWEEN ? AND ? ORDER BY seq',(lo,hi))
+            for e in self._payload_stream('events',cursor):
+                key=(e['seq']-lo)//step
                 bucket=buckets.setdefault(key,dict(startSeq=e['seq'],endSeq=e['seq'],firstSeq=e['seq'],path=None,records=0,unknown=0,notTaken=0,mixed=False,events=[]))
                 bucket['endSeq']=e['seq']
                 if e['kind']!='instruction':
@@ -256,9 +419,10 @@ class RecordStore:
                     weight=('所选区间的路径记录数；周期列才是耗时' if total_cycles
                             else '所选区间的路径记录数（含未成立/未知状态），不是耗时')))
     def event(self,seq):
-        with closing(self.connect()) as db:row=db.execute('SELECT data FROM events WHERE seq=?',(int(seq),)).fetchone()
+        with closing(self.connect()) as db:row=db.execute('SELECT data,src FROM events WHERE seq=?',(int(seq),)).fetchone()
         if not row:raise ValueError('记录序号不存在')
-        e=json.loads(row[0]);return dict(event=e,callPath=e.get('callPath',[]),stackBasis='历史 trace 重建，包含未证实祖先；不是当前寄存器快照')
+        e=self._payloads('events',[row])[0]
+        return dict(event=e,callPath=e.get('callPath',[]),stackBasis='历史 trace 重建，包含未证实祖先；不是当前寄存器快照')
     def source(self,file):
         with closing(self.connect()) as db:row=db.execute('SELECT text FROM sources WHERE file=?',(file,)).fetchone()
         return dict(file=file,text=row[0] if row else '')

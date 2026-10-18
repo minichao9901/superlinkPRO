@@ -2,12 +2,25 @@
 
 与常规解码一致地保留条件执行未知、调用栈及真实包字节核算。
 events/packets/elements 只存 JSONL；decoded.json 是小型元数据与分析摘要。
+
+展开引擎有两条实现，产出逐字节相同、语义相同：
+
+* **fast（默认）**：native.jsonl 只读一遍，同一遍里完成
+  「区间展开 → IT 谓词/mark_execution 判定 → 调用栈与周期归因 → 字节核算 →
+  浏览索引列 sidecar → JSONL 落盘」。每个 PC 的固定字段（mnemonic/operands/函数/文件/行/
+  反汇编流类型/JSON 片段）只算一次，落盘用预生成模板直接拼行，因此 3.67 M 条指令不再需要
+  3.67 M 次字典构造 + json.dumps，也没有"再读 7 遍事件流"。
+* **legacy（`ETM_DECODE_ENGINE=legacy`）**：历史口径，展开后再分多遍读 JSONL
+  （unique PC 扫描 / mark_execution / analyze_calls / byte_accounting ×2 / summary 扫描），
+  仅用于对照与故障回退。
+
 注意：CSV 取样仍加载跳变轨迹，ETM 输入、ELF 和派生调用树也占内存；
 本模块不声称整个采集链路 O(1) 或支持无限长度。
 """
 import collections
 import hashlib
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -16,11 +29,19 @@ from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_MCLASS
 import decode_trace as decoder_runtime
 from decode_trace import DEFAULT_CONFIG, REG_ORDER, V3_REG_ORDER, Image, decoder_config
 
-from flow_analysis import possible_predicates, mark_execution, analyze_calls, byte_accounting
+from flow_analysis import (possible_predicates, mark_execution, analyze_calls, byte_accounting,
+                           CallTracker, instruction_info, predicate_addresses)
 from stream_store import JsonLines
 
 FAULT_TERMS = ('OVERFLOW', 'BAD_SEQUENCE', 'BAD_TRACEMODE', 'RESERVED')
 CACHE_MAX = 8192
+IT_REASON = 'IT 非分支条件指令：当前 trace 未记录条件结果'
+SIDECAR_NAME = 'browse-columns.tsv'
+
+
+def expansion_engine():
+    """展开引擎选择：默认 fast；`ETM_DECODE_ENGINE=legacy` 回退到历史多遍实现。"""
+    return 'legacy' if os.environ.get('ETM_DECODE_ENGINE', '').strip().lower() == 'legacy' else 'fast'
 
 
 def _native():
@@ -46,15 +67,9 @@ def _write_array(handle, source, key):
     handle.write(']')
 
 
-def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events=None,
-                  progress_every=500000):
-    """流式解码；返回精简结果（不含 events/packets/elements 本体）。"""
-    workdir = Path(workdir).resolve()
-    workdir.mkdir(parents=True, exist_ok=True)
-    config = decoder_config(config)
+def _run_native(id_stream, image, workdir, config):
+    """写 etm.bin/镜像段/manifest，跑一次 OpenCSD，返回 native.jsonl 与协议名。"""
     protocol = 'ETMv3' if str(config.get('protocol', 'ETMv4')) == 'ETMv3' else 'ETMv4'
-    image = Image(elf, sources)
-
     (workdir / 'etm.bin').write_bytes(id_stream)
     order = V3_REG_ORDER if protocol == 'ETMv3' else REG_ORDER
     manifest = ('ETMv3\n' if protocol == 'ETMv3' else '')
@@ -73,7 +88,436 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
     (workdir / 'native.log').write_bytes(process.stderr or b'')
     if process.returncode:
         raise ValueError('OpenCSD 解码失败：' + (process.stderr or b'').decode('utf-8', 'replace')[-3000:])
+    return native_jsonl, protocol
 
+
+def quality_from_counters(status, input_bytes, counters, framing=None):
+    """byte_accounting 的等价物：用单遍展开累加好的计数直接算（口径逐项相同）。"""
+    size = status.get('processed', 0)
+    covered = counters['covered']
+    return dict(
+        inputBytes=input_bytes,
+        unprocessedBytes=max(0, input_bytes - size),
+        processedBytes=size,
+        accountedBytes=covered,
+        overlapBytes=counters['overlap'],
+        unaccountedBytes=max(0, input_bytes - covered),
+        unsynchronizedBytes=counters['unknown'],
+        unsynchronizedRecords=counters['unsync_records'],
+        validPackets=counters['packet_count'] - counters['unsync_records'] - counters['invalid'],
+        packetIssues=counters['invalid'],
+        overflowPackets=counters['overflow'],
+        decoderLastError=status.get('lastErrorCode', None),
+        unknownExecution=counters['unknown_execution'],
+        initialPhysicalBytes=framing.get('initial_skipped_bytes') if framing else None,
+        unknownSourceBytes=framing.get('unknown_bytes') if framing else None,
+        trailingFrameBytes=framing.get('trailing_frame_bytes') if framing else None,
+        trailingSyncBytes=(framing.get('trailing_sync_bytes', 0) if framing else 0),
+        firstPathOffset=counters['first_path_offset'],
+        boundaryPresent=bool(counters['unknown'] or (framing or {}).get('initial_skipped_bytes')
+                             or (framing or {}).get('trailing_frame_bytes')
+                             or (framing or {}).get('trailing_sync_bytes')),
+        timing=dict(cycleElements=counters['cycle_elements'], timeFlameAvailable=False),
+        basis='字节核算不等于采集无损证明；源码映射率不等于程序覆盖率')
+
+
+# ---------------------------------------------------------------------------------------------
+# fast 引擎：native.jsonl 单遍展开
+# ---------------------------------------------------------------------------------------------
+
+class _Unsupported(Exception):
+    """native 行形状超出快速解析范围。"""
+
+
+def _spaced(head):
+    """compact JSON 头（只有键/数字/无转义字符串）→ json.dumps 默认分隔符形式。"""
+    return head.replace('":', '": ').replace(',"', ', "')
+
+
+def _number(part):
+    return int(part[part.find(':') + 1:])
+
+
+def _template(event, slots):
+    """事件字典 → `%` 模板：值用占位串顶替，字面量里的 % 先转义；行尾补换行（JSONL）。"""
+    text = (json.dumps(event, ensure_ascii=False) + '\n').replace('%', '%%')
+    for token, placeholder in slots:
+        text = text.replace('"%s"' % token, placeholder)
+    return text
+
+
+class _InstructionTable:
+    """每个 PC 的派生信息：只算一次，之后展开就是一次字典查表。"""
+
+    def __init__(self, image, predicates, known):
+        self.image = image
+        self.predicates = predicates
+        self.known = known
+        self.decoder = Cs(CS_ARCH_ARM, CS_MODE_THUMB | CS_MODE_MCLASS)
+        self.decoder.detail = True
+        self.table = {}
+        self.files = set()
+        self._extra = {}
+
+    def predicate(self, pc):
+        """possible_predicates 的逐 PC 等价判定（镜像外的 PC 才做 IT 回溯扫描）。"""
+        if pc in self.known:
+            return pc in self.predicates
+        cached = self._extra.get(pc)
+        if cached is not None:
+            return cached
+        found = False
+        image = self.image
+        for start in range(max(0, pc - 18), pc, 2):
+            decoded = list(self.decoder.disasm(image.read(start, pc - start + 4), start))
+            if decoded and _is_it(decoded[0]):
+                count = len(decoded[0].mnemonic) - 1
+                if any(item.address == pc for item in decoded[1:count + 1]):
+                    found = True
+                    break
+        self._extra[pc] = found
+        return found
+
+    def info(self, ins):
+        """返回该 PC 的信息元组（同一 PC 只计算一次）。"""
+        pc = ins.address
+        entry = self.table.get(pc)
+        if entry is not None:
+            return entry
+        function, source, line = self.image.location(pc)
+        # flow/conditional 必须与 mark_execution 同口径：它把该指令的字节**单独**反汇编
+        # （不继承 IT 块状态），因此 IT 块内的指令这里是 unconditional/linear。
+        single = next(self.decoder.disasm(ins.bytes, pc), None)
+        detail = instruction_info(single) if single else dict(flow='unknown', conditional=True)
+        flow = detail['flow']
+        forced = flow == 'linear' and self.predicate(pc)
+        size = ins.size
+        hexed = ins.bytes.hex()
+        mnemonic, operands = ins.mnemonic, ins.op_str
+        constant = dict(kind='instruction', seq='@@SEQ@@', offset='@@OFF@@', pc=pc, size=size,
+                        bytes=hexed, mnemonic=mnemonic, operands=operands,
+                        executed=None if forced else True,
+                        function=function, file=source, line=line, cycleCount=0, cycleSpan=0,
+                        flow=flow, conditional=detail['conditional'],
+                        executionState='unknown' if forced else 'executed',
+                        executionReason=IT_REASON if forced else '',
+                        callPath='@@PATH@@', cycles=0)
+        body = _template(constant, (('@@SEQ@@', '%d'), ('@@OFF@@', '%d'), ('@@PATH@@', '%s')))
+        search = ' '.join((function or '', source or '', mnemonic, operands, ''))
+        search = ('%s 0x%08x %d' % (search, pc, pc)).lower().replace('\t', ' ').replace('\n', ' ')
+        prefix = '\tinstruction\t%d\t%s\t%s\t%s\t%s\t' % (
+            pc, (function or '').replace('\t', ' '), (source or '').replace('\t', ' '),
+            '' if line is None else line, flow)
+        suffix = '\t\t' + search + '\n'
+        columns = [prefix + 'executed' + suffix, prefix + 'not-taken' + suffix,
+                   prefix + 'unknown' + suffix]
+        entry = (size, hexed, mnemonic, operands, flow, detail['conditional'], function, source,
+                 line, forced, body, columns, {}, pc)
+        self.table[pc] = entry
+        if source:
+            self.files.add(source)
+        return entry
+
+    def tail_template(self, entry, executed):
+        """区间末指令模板（executed 可能是 None = 条件执行未证实）。"""
+        cache = entry[12]
+        text = cache.get(executed)
+        if text is None:
+            size, hexed, mnemonic, operands, flow, conditional, function, source, line = entry[:9]
+            if executed is None:
+                state, reason = 'unknown', IT_REASON
+            else:
+                state, reason = ('executed' if executed else 'not-taken'), ''
+            event = dict(kind='instruction', seq='@@SEQ@@', offset='@@OFF@@', pc=entry[13], size=size,
+                         bytes=hexed, mnemonic=mnemonic, operands=operands, executed=executed,
+                         function=function, file=source, line=line, cycleCount='@@CC@@',
+                         cycleSpan='@@SPAN@@', flow=flow, conditional=conditional,
+                         executionState=state, executionReason=reason, callPath='@@PATH@@',
+                         cycles='@@CYC@@')
+            text = _template(event, (('@@SEQ@@', '%d'), ('@@OFF@@', '%d'), ('@@CC@@', '%d'),
+                                     ('@@SPAN@@', '%d'), ('@@PATH@@', '%s'), ('@@CYC@@', '%d')))
+            cache[executed] = text
+        return text
+
+
+def _is_it(ins):
+    from capstone.arm import ARM_INS_IT
+    return ins.id == ARM_INS_IT
+
+
+def _range_instructions(start, end, decoder, image, span_cache):
+    """从 start 线性反汇编到 end 的指令列表（同一 start 缓存较长前缀，结果与精确长度一致）。"""
+    entry = span_cache.get(start)
+    if entry is None or entry[0] < end:
+        instructions = list(decoder.disasm(image.read(start, end - start), start))
+        entry = (end, instructions)
+        span_cache[start] = entry
+    else:
+        instructions = entry[1]
+    selected = []
+    for ins in instructions:
+        if ins.address >= end:
+            break
+        selected.append(ins)
+    if not selected or selected[-1].address + selected[-1].size != end:
+        # 缓存窗口的末条指令跨过了 end：按精确长度重解析，与历史实现同口径
+        instructions = list(decoder.disasm(image.read(start, end - start), start))
+        selected = [ins for ins in instructions if ins.address < end]
+        span_cache[start] = (end, instructions)
+    return selected
+
+
+def _parse_element(line):
+    """native element 行 → (type, offset, start, end, cycleCount, lastExecuted, payload, flags, 元素行)。"""
+    head, separator, tail = line.partition(',"text":')
+    if not separator:
+        raise _Unsupported('element text')
+    parts = head.split(',')
+    if len(parts) != 15:
+        raise _Unsupported('element fields')
+    if not (parts[1].startswith('"offset":') and parts[3].startswith('"type":')
+            and parts[14].startswith('"payload":')):
+        raise _Unsupported('element order')
+    etype = _number(parts[3])
+    offset = _number(parts[1])
+    line_out = _spaced(head) + ', "text": ' + tail
+    if etype == 5:
+        return (etype, offset, _number(parts[4]), _number(parts[5]), _number(parts[8]),
+                _number(parts[10]), _number(parts[14]), 0, line_out)
+    if etype == 12:
+        return (etype, offset, 0, 0, _number(parts[8]), 0, 0, 0, line_out)
+    return (etype, offset, _number(parts[4]), _number(parts[5]), 0, 0, _number(parts[14]),
+            _number(parts[7]), line_out)
+
+
+def _parse_packet(line):
+    head, separator, tail = line.partition(',"text":')
+    if not separator:
+        raise _Unsupported('packet text')
+    parts = head.split(',')
+    if len(parts) != 4 or not parts[1].startswith('"offset":') or not parts[2].startswith('"size":'):
+        raise _Unsupported('packet fields')
+    quoted = tail.rstrip()
+    return (_spaced(head) + ', "text": ' + tail, _number(parts[1]), _number(parts[2]), quoted[1:-2])
+
+
+def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, max_events=None,
+                 progress_every=500000):
+    """单遍展开 native.jsonl，返回与历史实现相同的 result 结构。"""
+    known = set()
+    probe = Cs(CS_ARCH_ARM, CS_MODE_THUMB | CS_MODE_MCLASS)
+    for start, size, _ in image.functions:
+        known.update(item.address for item in probe.disasm(image.read(start, size), start))
+    table = _InstructionTable(image, predicate_addresses(image), known)
+    decoder = table.decoder
+
+    events_jsonl = workdir / 'events.jsonl'
+    packets_jsonl = workdir / 'packets.jsonl'
+    elements_jsonl = workdir / 'elements.jsonl'
+    sidecar_path = workdir / SIDECAR_NAME
+
+    tracker = CallTracker()
+    seq = 0
+    instruction_count = mapped = ranges = exceptions = gaps = 0
+    packets_n = elements_n = 0
+    counters = dict(covered=0, overlap=0, unknown=0, unsync_records=0, invalid=0, overflow=0,
+                    packet_count=0, unknown_execution=0, first_path_offset=None, cycle_elements=0)
+    status = {}
+    previous_packet = -1
+    packet_end = 0
+    pending = None
+    span_cache = {}
+    body_lines, side_lines, element_lines, packet_lines = [], [], [], []
+
+    def flush_tail():
+        nonlocal seq, pending
+        entry, offset, executed, cycle_count, cycle_span, reserved, function, source, line_no, span, pc = pending
+        tracker.feed_instruction(function, source, line_no, executed, entry[4], pc, entry[0], cycle_count)
+        body_lines.append(table.tail_template(entry, executed) % (
+            reserved, offset, cycle_count, cycle_span, tracker.path_json, cycle_count))
+        side_lines.append(str(reserved) + entry[11][0 if executed is True else (1 if executed is False else 2)])
+        pending = None
+        if len(body_lines) >= 8192:
+            ev_out.writelines(body_lines)
+            body_lines.clear()
+            side_out.writelines(side_lines)
+            side_lines.clear()
+
+    with events_jsonl.open('w', encoding='utf-8') as ev_out, \
+            packets_jsonl.open('w', encoding='utf-8') as pk_out, \
+            elements_jsonl.open('w', encoding='utf-8') as el_out, \
+            sidecar_path.open('w', encoding='utf-8', newline='\n') as side_out, \
+            native_jsonl.open(encoding='utf-8', errors='replace') as src:
+        for line in src:
+            if not line.startswith('{'):
+                continue
+            if line.startswith('{"kind":"packet"'):
+                text_line, offset, size, text = _parse_packet(line)
+                packet_lines.append(text_line)
+                packets_n += 1
+                if len(packet_lines) >= 8192:
+                    pk_out.writelines(packet_lines)
+                    packet_lines.clear()
+                if offset < previous_packet:
+                    raise ValueError('包偏移倒序，拒绝伪造字节对账')
+                previous_packet = offset
+                stop = offset + size
+                if offset < packet_end:
+                    counters['overlap'] += max(0, min(packet_end, stop) - offset)
+                counters['covered'] += max(0, stop - max(offset, packet_end))
+                packet_end = max(packet_end, stop)
+                if text.startswith(('I_NOT_SYNC', 'NOTSYNC')):
+                    counters['unknown'] += size
+                    counters['unsync_records'] += 1
+                upper = text.upper()
+                if ('BAD_' in upper or 'RESERVED' in upper or 'OVERFLOW' in upper
+                        or 'INCOMPLETE_EOT' in upper):
+                    counters['invalid'] += 1
+                    if 'OVERFLOW' in upper:
+                        counters['overflow'] += 1
+                counters['packet_count'] += 1
+                continue
+            if line.startswith('{"kind":"status"'):
+                status = json.loads(line)
+                continue
+            if not line.startswith('{"kind":"element"'):
+                continue
+            etype, offset, start, end, cycle_count, last_executed, payload, flags, line_out = _parse_element(line)
+            element_lines.append(line_out)
+            elements_n += 1
+            if len(element_lines) >= 8192:
+                el_out.writelines(element_lines)
+                element_lines.clear()
+            if etype == 12:
+                counters['cycle_elements'] += 1
+                if pending is not None:
+                    if cycle_count:
+                        pending[3] += cycle_count
+                        if not pending[4]:
+                            pending[4] = pending[9]
+                    flush_tail()
+                continue
+            if pending is not None:
+                flush_tail()
+            if etype == 5:
+                ranges += 1
+                selected = _range_instructions(start, end, decoder, image, span_cache)
+                if (len(selected) != payload or not selected
+                        or selected[-1].address + selected[-1].size != end):
+                    raise ValueError(
+                        f'机器码范围核对失败：0x{start:08x}..0x{end:08x}；'
+                        f'OpenCSD={payload}，反汇编={len(selected)}。')
+                last = len(selected) - 1
+                for index in range(len(selected)):
+                    ins = selected[index]
+                    entry = table.info(ins)
+                    pc = ins.address
+                    function, source, line_no = entry[6], entry[7], entry[8]
+                    if counters['first_path_offset'] is None:
+                        counters['first_path_offset'] = offset
+                    if index == last:
+                        executed = bool(last_executed)
+                        if entry[9]:
+                            executed = None
+                        pending = [entry, offset, executed, cycle_count,
+                                   (len(selected) if cycle_count else 0), seq, function, source,
+                                   line_no, len(selected), pc]
+                        if executed is None:
+                            counters['unknown_execution'] += 1
+                        seq += 1
+                    else:
+                        executed = None if entry[9] else True
+                        tracker.feed_instruction(function, source, line_no, executed, entry[4], pc,
+                                                 entry[0], 0)
+                        body_lines.append(entry[10] % (seq, offset, tracker.path_json))
+                        side_lines.append(str(seq) + entry[11][0 if executed is True else (1 if executed is False else 2)])
+                        if executed is None:
+                            counters['unknown_execution'] += 1
+                        seq += 1
+                        if len(body_lines) >= 8192:
+                            ev_out.writelines(body_lines)
+                            body_lines.clear()
+                            side_out.writelines(side_lines)
+                            side_lines.clear()
+                    instruction_count += 1
+                    if line_no:
+                        mapped += 1
+                    if max_events and instruction_count > max_events:
+                        raise ValueError(f'已超过 --max-events={max_events}；流式解码本身没有上限。')
+                    if progress_every and instruction_count % progress_every == 0:
+                        print(f'  流式解码：已展开 {instruction_count} 条指令（seq={seq}）', flush=True)
+            elif etype in (1, 2, 3, 6, 7, 8, 9, 10):
+                quoted = line.partition(',"text":')[2].rstrip()
+                text = json.loads(quoted[:-1])
+                event = dict(kind='event', seq=seq, type=etype, offset=offset, text=text,
+                             payload=payload, start=start, end=end, flags=flags)
+                body_lines.append(json.dumps(event, ensure_ascii=False) + '\n')
+                side_lines.append('\t'.join((str(seq), 'event', '', '', '', '', '', '',
+                                             str(etype),
+                                             ('    ' + text).lower().replace('\t', ' ').replace('\n', ' '))) + '\n')
+                tracker.feed_event(etype, flags, payload, end)
+                seq += 1
+                if etype == 9:
+                    exceptions += 1
+                if etype in (1, 6, 7, 8) or (etype == 2 and payload):
+                    gaps += 1
+                if len(body_lines) >= 8192:
+                    ev_out.writelines(body_lines)
+                    body_lines.clear()
+                    side_out.writelines(side_lines)
+                    side_lines.clear()
+        if pending is not None:
+            flush_tail()
+        if body_lines:
+            ev_out.writelines(body_lines)
+        if side_lines:
+            side_out.writelines(side_lines)
+        if element_lines:
+            el_out.writelines(element_lines)
+        if packet_lines:
+            pk_out.writelines(packet_lines)
+
+    if not instruction_count:
+        raise ValueError('没有恢复到可信指令范围；原始采集和包记录已保留。'
+                         '请检查 CPU 是否继续、ETM 同步、Trace ID 与匹配 ELF。')
+
+    sources_data = {name: image.source(name) for name in sorted(table.files)}
+    (workdir / 'sources.json').write_text(json.dumps(sources_data, ensure_ascii=False),
+                                          encoding='utf-8')
+    processed = int(status.get('processed') or 0)
+    result = dict(
+        version=1, protocol=protocol, config=config, inputBytes=input_bytes,
+        elf=dict(name=Path(image.path).name, sha256=hashlib.sha256(image.bytes).hexdigest()),
+        summary=dict(packets=packets_n, ranges=ranges, instructions=instruction_count,
+                     executed=0, sourceMapped=mapped, exceptions=exceptions,
+                     gaps=gaps, packetIssues=counters['invalid']),
+        status=status, timeBasis='execution order; no per-instruction timestamp',
+        streamed=dict(eventsFile='events.jsonl', events=seq, elements=elements_n,
+                      packets=packets_n, nativeJsonl='native.jsonl'),
+        quality=dict(inputBytes=input_bytes, processedBytes=processed,
+                     unprocessedBytes=max(0, input_bytes - processed),
+                     overlapBytes=0, unaccountedBytes=max(0, input_bytes - processed)))
+    analysis = tracker.finish()
+    result['analysis'] = analysis
+    result['quality'] = quality_from_counters(status, input_bytes, counters)
+    result['summary']['executed'] = analysis['timing']['executedInstructions']
+    result['summary']['unknownExecution'] = result['quality']['unknownExecution']
+    result['summary']['packetIssues'] = result['quality']['packetIssues']
+    result['summary']['functions'] = {row['function']: row['knownExecuted']
+                                      for row in analysis['functions'] if row['knownExecuted']}
+    result['version'] = 3
+    result['streamed']['schema'] = 2
+    (workdir / 'decoded.json').write_text(json.dumps(result, ensure_ascii=False), encoding='utf-8')
+    return result
+
+
+# ---------------------------------------------------------------------------------------------
+# legacy 引擎：历史多遍实现（对照/回退）
+# ---------------------------------------------------------------------------------------------
+
+def _expand_legacy(workdir, image, native_jsonl, protocol, config, input_bytes, max_events=None,
+                   progress_every=500000):
+    """历史口径：先展开成三个 JSONL，再分别做 unique/mark/calls/accounting/summary 多遍。"""
     disassembler = Cs(CS_ARCH_ARM, CS_MODE_THUMB | CS_MODE_MCLASS)
     cache = {}
     counts = collections.Counter()
@@ -152,10 +596,7 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
                         f'机器码范围核对失败：0x{start:08x}..0x{end:08x}；'
                         f'OpenCSD={record["payload"]}，反汇编={len(ins_list)}。')
                 last = len(ins_list) - 1
-                # 周期计数（ETMv4 的 cycle-count）挂在**整个区间元素**上，不是每条指令上：
-                #   · `cycleCount` 只记在区间的**最后一条指令**上（事件求和 = 总周期，可归因到函数）；
-                #   · `cycleSpan` = 这段周期覆盖了几条指令（便于页面显示"区间 N 条合计"）。
-                # 未开周期计数（如 ETMv3 / F103）时两者都是 0，下游一律按"没有时间基准"降级。
+                # 周期计数（ETMv4 的 cycle-count）挂在**整个区间元素**上，不是每条指令上。
                 range_cycles = int(record.get('cycleCount') or 0)
                 for index, ins in enumerate(ins_list):
                     function, file, line_no = image.location(ins.address)
@@ -196,31 +637,30 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
                     exceptions += 1
                 if etype in (1, 6, 7, 8) or (etype == 2 and record['payload']):
                     gaps += 1
+        if pending_tail is not None:
+            emit(ev_out, pending_tail)
+            pending_tail = None
 
     if not instruction_count:
-        raise ValueError('没有恢复到可信指令范围；原始采集和 native 包记录已保留。'
+        raise ValueError('没有恢复到可信指令范围；原始采集和包记录已保留。'
                          '请检查 CPU 是否继续、ETM 同步、Trace ID 与匹配 ELF。')
 
     sources_data = {f: image.source(f) for f in sorted(source_files)}
     (workdir / 'sources.json').write_text(json.dumps(sources_data, ensure_ascii=False),
                                           encoding='utf-8')
-    # 流结束时仍有挂起的"区间最后一条指令"（其后没有周期计数元素）→ 补发出去
-    if pending_tail is not None:
-        emit(ev_out, pending_tail)
-        pending_tail = None
     processed = int(status.get('processed') or 0)
     result = dict(
-        version=1, protocol=protocol, config=config, inputBytes=len(id_stream),
-        elf=dict(name=Path(elf).name, sha256=hashlib.sha256(image.bytes).hexdigest()),
+        version=1, protocol=protocol, config=config, inputBytes=input_bytes,
+        elf=dict(name=Path(image.path).name, sha256=hashlib.sha256(image.bytes).hexdigest()),
         summary=dict(packets=packets_n, ranges=ranges, instructions=instruction_count,
                      executed=executed, sourceMapped=mapped, exceptions=exceptions,
                      gaps=gaps, packetIssues=faults, functions=dict(counts)),
         status=status, timeBasis='execution order; no per-instruction timestamp',
         streamed=dict(eventsFile='events.jsonl', events=seq, elements=elements_n,
                       packets=packets_n, nativeJsonl='native.jsonl'),
-        quality=dict(inputBytes=len(id_stream), processedBytes=processed,
-                     unprocessedBytes=max(0, len(id_stream) - processed),
-                     overlapBytes=0, unaccountedBytes=max(0, len(id_stream) - processed)))
+        quality=dict(inputBytes=input_bytes, processedBytes=processed,
+                     unprocessedBytes=max(0, input_bytes - processed),
+                     overlapBytes=0, unaccountedBytes=max(0, input_bytes - processed)))
 
     # Keep the same predicate/call-stack semantics as the ordinary web decoder.
     # Unique PCs are bounded by the executable image, not by loop iterations.
@@ -263,6 +703,19 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
     return result
 
 
+def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events=None,
+                  progress_every=500000):
+    """流式解码；返回精简结果（不含 events/packets/elements 本体）。"""
+    workdir = Path(workdir).resolve()
+    workdir.mkdir(parents=True, exist_ok=True)
+    config = decoder_config(config)
+    image = Image(elf, sources)
+    native_jsonl, protocol = _run_native(id_stream, image, workdir, config)
+    expand = _expand_legacy if expansion_engine() == 'legacy' else _expand_fast
+    return expand(workdir, image, native_jsonl, protocol, config, len(id_stream), max_events,
+                  progress_every)
+
+
 def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fraction=0.25,
                           clock=0, data=None, max_events=None, glitch_ns=0):
     """从 LA 的 CSV 开始走完整条流式链路（取样相位 + TPIU 解复用 + 解码）。"""
@@ -275,7 +728,6 @@ def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fra
     valid = []
     failures=[]
     workdir.mkdir(parents=True,exist_ok=True)
-    (workdir/'physical.json').write_text(json.dumps(physical,ensure_ascii=False),encoding='utf8')
     for phase, raw in enumerate(candidates):
         try:
             frames, streams = demux(raw)
@@ -286,9 +738,9 @@ def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fra
             continue
     if len(valid) != 1:
         (workdir/'demux-errors.json').write_text(json.dumps(failures,ensure_ascii=False),encoding='utf8')
+        (workdir/'physical.json').write_text(json.dumps(physical,ensure_ascii=False),encoding='utf8')
         raise ValueError(f'不能唯一确定 TPIU 字节相位：{len(valid)} 个候选；请检查通道和取样位置。'+ (' '+failures[-1]['error'] if failures else ''))
     phase, frames, streams = valid[0]
-    workdir.mkdir(parents=True, exist_ok=True)
     (workdir / 'tpiu.bin').write_bytes(candidates[phase])
     framing = {**frames, 'phase': phase}
     (workdir / 'framing.json').write_text(json.dumps(framing, ensure_ascii=False), encoding='utf-8')
@@ -297,16 +749,23 @@ def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fra
                            max_events=max_events)
     result['physical'] = physical
     result['framing'] = framing
-    with csv_path.open('rb') as stream:
-        capture_hash = hashlib.sha256()
-        for chunk in iter(lambda: stream.read(1024*1024), b''):
-            capture_hash.update(chunk)
-    result['capture'] = {'name': csv_path.name, 'sha256': capture_hash.hexdigest()}
-    # Recompute physical boundary fields after attaching framing. No large JSON reread.
-    streams_result = {**result, 'events': JsonLines(workdir / 'events.jsonl', result['streamed']['events']),
-                      'packets': JsonLines(workdir / 'packets.jsonl', result['streamed']['packets']),
-                      'elements': JsonLines(workdir / 'elements.jsonl', result['streamed']['elements'])}
-    result['quality'] = byte_accounting(streams_result)
+    # extract() 已对整份 CSV 做过 sha256，直接复用（同一文件、同一算法），不再重读 500 MB。
+    result['capture'] = {'name': csv_path.name, 'sha256': physical.get('input_sha256')}
+    # 字节核算的边界字段依赖 framing：fast 引擎已在单遍里算好与 framing 无关的全部字段，
+    # 这里只补 5 个依赖 framing 的字段，不再为了几个标量重新遍历 3.67 M 条事件。
+    if expansion_engine() == 'legacy':
+        streams_result = {**result, 'events': JsonLines(workdir / 'events.jsonl', result['streamed']['events']),
+                          'packets': JsonLines(workdir / 'packets.jsonl', result['streamed']['packets']),
+                          'elements': JsonLines(workdir / 'elements.jsonl', result['streamed']['elements'])}
+        result['quality'] = byte_accounting(streams_result)
+    else:
+        quality = result['quality']
+        quality['initialPhysicalBytes'] = framing.get('initial_skipped_bytes')
+        quality['unknownSourceBytes'] = framing.get('unknown_bytes')
+        quality['trailingFrameBytes'] = framing.get('trailing_frame_bytes')
+        quality['trailingSyncBytes'] = framing.get('trailing_sync_bytes', 0)
+        quality['boundaryPresent'] = bool(quality['unsynchronizedBytes'] or quality['initialPhysicalBytes']
+                                          or quality['trailingFrameBytes'] or quality['trailingSyncBytes'])
     (workdir / 'decoded.json').write_text(json.dumps(result, ensure_ascii=False), encoding='utf-8')
     return result
 
