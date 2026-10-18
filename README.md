@@ -45,7 +45,7 @@ RTT · J-Scope 波形 · 烧录 · 源码级调试 · **ETM 执行轨迹与周�
 | **串口 / 终端** | Web Serial + WebUSB 双后端，HEX/文本、发送历史、记录到文件 | 稳定 |
 | **RTT Viewer** | SWD 轮询或 RISC-V/JTAG（SBA 直读），自动找控制块、通道/缓冲配置 | STM32 **447 KB/s**、RISC-V **60–77 KB/s** |
 | **RTT 转发** | 探针侧桥把 RTT 搬到 CDC，主机直接用串口工具 | **3.05 MB/s**（60 MHz 档） |
-| **J-Scope 波形** | 8 变量、多泳道/叠加、A/B 游标、实时 CSV / 原始包流 | 单变量 **495.8 kHz @ 2 µs**（探针本体 629 kHz；稳定窗 USB 丢 0 / 读错 0，边界另计）；8 通道 50 kHz 零丢 |
+| **J-Scope 波形** | 8 变量、多泳道/叠加、A/B 游标、实时 CSV / 原始包流 | 单变量 **495.8 kHz @ 2 µs**（名义 500 kHz；探针跳拍 ≈0.8%、探针本体 629 kHz；稳定窗 USB 丢 0 / 读错 0，边界另计）；8 通道 50 kHz 零丢 |
 | **烧录器** | STM32（AHB-AP flashloader）与 HPM RISC-V（XPI + XIP 校验），含校验与自愈 | H743 31.6 KB **2.4 s**；HPM 246 KB **8.2 s** |
 | **调试器** | 断点/单步/寄存器/RAM、**源码级单步**（F10/F11/跳出）、结构体树、命令行 | ARM + RISC-V，与 gdb 逐地址对照通过 |
 | **SWO 执行轨迹** | 目标 SWO（NRZ）经 VCOM 接收、**PC 采样**、源码级回放与完整导出 | F103CB 72 MHz：1 s **252,198 PC @ 18 Mbaud**；236 个 PC 与 GNU 定位全一致；溢出/错误 0 |
@@ -125,7 +125,7 @@ RTT · J-Scope 波形 · 烧录 · 源码级调试 · **ETM 执行轨迹与周�
 | RTT 转发 | **3.046 MB/s**（45 MHz 档 2.577） | F103ZE 96 MHz 靶子；页面 RX = 探针侧自报 |
 | RTT Viewer（SWD） | **447 / 477 KB/s** | H743 @60 MHz，轮询约 110 Hz |
 | RTT Viewer（RISC-V） | **60–77 KB/s** | HPM6800EVK，SBA 批量读 |
-| J-Scope | 单变量 **495.8 kHz @ 2 µs**（名义 500 kHz；探针本体 629 kHz；稳定窗 USB 丢 0 / 读错 0，启动/停止边界另计）；50 kHz 档跳拍 ≈20 ppm、8 通道 50 kHz 零丢 | F103ZE 96 MHz 靶子，60 MHz 档 |
+| J-Scope | 单变量 **495.8 kHz @ 2 µs**（名义 500 kHz；探针跳拍 ≈0.8%、探针本体 629 kHz；稳定窗 USB 丢 0 / 读错 0，启动/停止边界另计）；50 kHz 档跳拍 ≈20 ppm、8 通道 50 kHz 零丢 | F103ZE 96 MHz 靶子，60 MHz 档 |
 | SWO PC 采样 | 1 s **252,198 PC**，236 个 PC 的函数/文件/行号与 GNU `addr2line` 全一致；SWO 溢出/串口错误 0 | F103CB @72 MHz、256 周期纯 PC、实际 18 Mbaud |
 | ADC 示波器 | **1 / 2 MSa/s** 持续采集，8/10/12/16 位各 30 s 计数一致、无溢出 | EVKLite，硬件触发 + DMA，含网页卡顿注入 |
 | SRAM 读写（网页） | 读 **2.743** / 写 **3.042 MB/s** | 60 MHz 档，1024 B 包、在飞 4 |
