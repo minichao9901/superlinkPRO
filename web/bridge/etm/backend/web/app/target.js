@@ -232,28 +232,46 @@ export class EtmTarget {
     address=(Number(address)>>>0)&~1;
     if(address<0x08000000||address>=(this.info?.flashLimit||0x08200000))throw Error('起点必须在 STM32 内部 Flash');
     await this.clearEntryBreak();await this.stopTrace();
-    const demcr=await this.read(0xe000edfc),caps=decodeFpCtrl(await this.read(0xe0002000));
+    const initialDemcr=await this.read(0xe000edfc),caps=decodeFpCtrl(await this.read(0xe0002000));
     let free=null,retained=false;
     for(let i=0;i<caps.numCode;i++){const slot=compAddr(i),v=await this.read(slot);if(v&1)retained=true;else if(!free)free={slot,before:v};}
     if(!caps.enabled&&retained)throw Error('FPB 关闭但保留了其他断点，拒绝擅自启用');
     if(!free)throw Error('没有空闲硬件断点，无法可靠停在业务入口');
     const encoded=encodeComparator(address,caps.rev);
     this.entryBreak={...free,encoded,capacity:caps.numCode,enabled:caps.enabled};
-    return withCleanup(async()=>{
-      // 🚨 2026-10-18 真机定因（STM32H743）：**系统复位会清空 FPB 比较器**。
-      //   实测：复位前 comparator[0]=0x88000b51，复位后 =0x00000000（FP_CTRL 仍使能）。
-      //   所以"先装断点再复位"在本芯片上永远停不到业务起点 —— 症状就是
-      //   「复位后未命中业务起点」（目标跑完初始化后一直在主循环里）。
-      //   正确顺序：VC_CORERESET 先停在复位处 → **停住之后**再装比较器 → 清 VC_CORERESET → 放行。
-      this.log(`复位并在 Reset 处停住，随后装业务起点 ${hex(address)}`);
-      await this.write(0xe000edfc,demcr|1,false);              // VC_CORERESET=1
-      await this.write(0xe000ed0c,0x05fa0004,false);           // SYSRESETREQ（自清，不做读回校验）
-      const resetUntil=Date.now()+timeout;
+
+    const waitHalt=async(deadline,message)=>{
       while(!(await this.read(0xe000edf0)&(1<<17))){
-        if(this.cancelEntry)throw Error('已取消等待复位');
-        if(Date.now()>resetUntil)throw Error('复位后没有停在 Reset（VC_CORERESET 未生效）；目标将暂停');
+        if(this.cancelEntry)throw Error('已取消等待起点');
+        if(Date.now()>deadline)throw Error(message);
         await sleep(10);
       }
+    };
+
+    // 放行后自检：核到底有没有在执行？
+    // 🚨 2026-10-18 真机现场：H743 的 SYSRESETREQ 会把**调试端口**一起复位，若没重建好，
+    //   DHCSR 回读是 running、但 PC 与 RAM 里的循环计数器一动不动 —— 最终表现成"未命中起点"，
+    //   极易误判成"起点地址选错"。这里用"停→读PC→放行→再停→再读"区分两种失败：
+    //   PC 没变 = 核根本没执行（该重建调试口重试）；PC 变了 = 在跑但没到起点（地址/条件问题）。
+    const probeExecuting=async()=>{
+      await this.halt();const pc0=await this.pc();
+      await this.write(0xe000edf0,0xa05f0001,false);await sleep(150);
+      await this.halt();const pc1=await this.pc();
+      return {pc0,pc1,ok:pc0!==pc1};
+    };
+
+    // 一次完整的"复位 → 停 Reset → 重建调试口 → 装比较器 → 放行 → 等起点"。
+    // 抽成函数是为了失败后能**自动重试一次**（2026-10-18：这个坑靠单次重试就能过）。
+    const attempt=async(n)=>{
+      const demcr=await this.read(0xe000edfc);
+      // 🚨 2026-10-18 真机定因（STM32H743）：**系统复位会清空 FPB 比较器**。
+      //   实测：复位前 comparator[0]=0x88000b51，复位后 =0x00000000（FP_CTRL 仍使能）。
+      //   所以"先装断点再复位"在本芯片上永远停不到业务起点。
+      //   正确顺序：VC_CORERESET 先停在复位处 → **停住之后**再装比较器 → 清 VC_CORERESET → 放行。
+      this.log(`复位并在 Reset 处停住（第 ${n} 次尝试），随后装业务起点 ${hex(address)}`);
+      await this.write(0xe000edfc,demcr|1,false);              // VC_CORERESET=1
+      await this.write(0xe000ed0c,0x05fa0004,false);           // SYSRESETREQ（自清，不做读回校验）
+      await waitHalt(Date.now()+timeout,'复位后没有停在 Reset（VC_CORERESET 未生效）；目标将暂停');
       const resetPC=await this.pc();
       // 🚨 2026-10-18 真机定因（对照 web-serial-rtt-tools 的 #dbg 页 `_resetCore`）：
       //   H743 的软复位会把**调试端口本身**也复位掉。复位后不重建 SWD，后面写 DHCSR 会"看着成功"
@@ -272,19 +290,41 @@ export class EtmTarget {
       // 这颗探针的 PPB 写偶发不落地（见 app/rtt/dap-webusb.js 的历史教训）：放行后必须
       // 回读确认 S_HALT 真的掉了，没掉就重写，最多 6 次；否则核会一直停着，等 15 s 后误报"未命中起点"。
       let resumed=false;
-      for(let attempt=0;attempt<6&&!resumed;attempt++){
+      for(let resumeTry=0;resumeTry<6&&!resumed;resumeTry++){
         await this.write(0xe000edf0,0xa05f0001,false);          // DBGKEY|C_DEBUGEN，C_HALT=0：放行
         await sleep(30);
         const dh=await this.read(0xe000edf0);
         if(!(dh&(1<<17))&&(dh&1))resumed=true;
-        else this.log(`放行第 ${attempt+1} 次没生效（DHCSR=${hex(dh)}），重写`);
+        else this.log(`放行第 ${resumeTry+1} 次没生效（DHCSR=${hex(dh)}），重写`);
       }
       if(!resumed)throw Error('放行失败：DHCSR 的 C_HALT 清不掉（探针 PPB 写没有落地）；目标将暂停');
-      const until=Date.now()+timeout;
-      while(!(await this.read(0xe000edf0)&(1<<17))){if(this.cancelEntry)throw Error('已取消等待起点');if(Date.now()>until)throw Error('复位后未命中业务起点；目标将暂停');await sleep(10);}
+      // 先给 200 ms 的"正常命中"窗口：正常情况下初始化很快，会直接停在业务起点。
+      const until=Date.now()+timeout,quick=Date.now()+200;
+      let halted=false;
+      while(Date.now()<quick){if((await this.read(0xe000edf0))&(1<<17)){halted=true;break;}await sleep(10);}
+      if(!halted){
+        const {ok,pc0,pc1}=await probeExecuting();
+        if(!ok)throw Error(`放行后核没有执行（PC 停在 ${hex(pc1)}；调试端口可能需要重建）`);
+        this.log(`核在运行（PC ${hex(pc0)} → ${hex(pc1)}），但还没到起点，继续等`);
+        await this.write(0xe000edf0,0xa05f0001,false);          // 自检时停过一次，继续放行
+      }
+      await waitHalt(until,'复位后未命中业务起点；目标将暂停');
       const pc=await this.pc();if(pc!==address)throw await this.unexpectedHalt(pc,address,'复位后');
-      const info=await this.inspect();info.entryPC=pc;info.resetPC=resetPC;return info;
-    },async()=>{await this.clearEntryBreak();await this.write(0xe000edfc,demcr);},e=>this.log('复位后的清理失败（保留首次错误）：'+e.message));
+      const info=await this.inspect();info.entryPC=pc;info.resetPC=resetPC;info.resetAttempts=n;return info;
+    };
+
+    return withCleanup(async()=>{
+      try{ return await attempt(1); }
+      catch(error){
+        if(this.cancelEntry)throw error;
+        // 只重试一次：先把调试口重建干净再来；仍失败才把错误抛给调用方（文案里带"重试"字样）。
+        this.log(`复位第 1 次失败：${error.message}；重建调试口后自动重试一次`);
+        try{ await this.probe.recoverDebugPort(); }catch(e){ this.log('重试前重建调试口失败：'+e.message); }
+        try{ await this.halt(); }catch(e){ this.log('重试前暂停失败：'+e.message); }
+        try{ return await attempt(2); }
+        catch(second){ second.message=`复位重试后仍失败：${second.message}`; throw second; }
+      }
+    },async()=>{await this.clearEntryBreak();await this.write(0xe000edfc,initialDemcr);},e=>this.log('复位后的清理失败（保留首次错误）：'+e.message));
   }
   async verifyElf(info){
     await this.halt();
