@@ -7,6 +7,7 @@ import json
 import math
 import os
 import re
+import shutil
 import socket
 import sys
 import threading
@@ -33,7 +34,13 @@ from breakpoint_resolver import resolve_breakpoint
 from source_export import simplified_html
 
 app = Flask(__name__, static_folder='web', static_url_path='')
-app.config['MAX_CONTENT_LENGTH'] = 150 * 1024 * 1024
+# 200 ms 单窗的 capture.csv 实测约 500 MB（500 MSa/s × 0.2 s）。旧的 150 MiB 上传/解压
+# 成员上限会让“自己导出的记录包导不回来”（2026-10-18 审查 F01）。统一放宽，同时保留
+# 单成员/整包总量预算，并用流式解压落盘（不把整个成员读进内存）。
+MAX_UPLOAD_BYTES = 1024 * 1024 * 1024           # 1 GiB：.etmrecord 或裸 CSV 上传
+MAX_RECORD_MEMBER_BYTES = 1024 * 1024 * 1024    # 1 GiB：单个解压成员
+MAX_RECORD_TOTAL_BYTES = 2 * 1024 * 1024 * 1024  # 2 GiB：整包解压总量
+app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_BYTES
 RECORDS = Path(os.environ.get('WEB_ETM_RECORDS', str(ROOT / 'records')))
 RECORDS.mkdir(exist_ok=True)
 jobs = {}
@@ -681,6 +688,11 @@ def finalize_slices(sid, folder, m, slices, step, seconds, seq_off, parts):
 
 
 def decode_job(jid,sid):
+    with lock:
+        if jobs[jid].get('_stopped'):
+            # 停止请求在解码开始前到达：直接收尾，不进入 ~800 s 的解码（审查 F02）。
+            change(jid,state='cancelled',error='停止请求已接收：解码尚未开始')
+            return
     change(jid,state='decoding')
     try:
         with record_guard(sid).write():
@@ -688,7 +700,16 @@ def decode_job(jid,sid):
             save_json(marker,dict(started=time.time(),job=jid))
             summary=_decode_job(jid,sid)
             if summary is not None:marker.unlink(missing_ok=True)
-        if summary is not None:change(jid,state='done',summary=summary)
+        with lock:
+            stopped=jobs[jid].get('_stopped',False)
+        if summary is not None:
+            if stopped:
+                # 解码本身无法中途打断：已完成的结果保留，但明确按“已取消”收尾，
+                # 不再继续建索引（下次浏览时按需重建）。
+                change(jid,state='cancelled',summary=summary,
+                       error='停止请求已接收：解码已完成并保留结果，索引待下次浏览时重建')
+            else:
+                change(jid,state='done',summary=summary)
     except (Exception,SystemExit) as error:
         record_failure(sid,error,'decode');change(jid,state='error',error=str(error))
 
@@ -722,6 +743,14 @@ def _decode_job(jid, sid):
         m['summary'] = r['summary']
         m.pop('error',None);m.pop('errorStage',None);m['decodeStatus']='done'
         save(sid, m)
+        with lock:
+            stop_requested=jobs[jid].get('_stopped',False)
+        if stop_requested:
+            # 停止请求在解码期间到达：结果保留，跳过建索引（可能要十几分钟），
+            # 由 decode_job 外层按 cancelled 收尾（审查 F02）。
+            m['stopRequested']=True
+            save(sid, m)
+            return r['summary']
         if streamed:browse_store(sid).ensure()
         return r['summary']
     except (Exception,SystemExit) as error:
@@ -758,12 +787,19 @@ def import_record():
                 raise ValueError('记录格式无效。')
             if m['input'] not in archive.namelist():raise ValueError('记录包缺少原始波形，不能作为完整记录导入。')
             m['config']=decoder_config(m.get('config'))
+            total = 0
             for name in ('session.json', m['input'], 'firmware.elf', 'sources.json', 'capture.kvdat'):
-                if name in archive.namelist():
-                    info = archive.getinfo(name)
-                    if info.file_size > 150 * 1024 * 1024:
-                        raise ValueError('记录成员过大。')
-                    (folder / name).write_bytes(archive.read(name))
+                if name not in archive.namelist():
+                    continue
+                info = archive.getinfo(name)
+                if info.file_size > MAX_RECORD_MEMBER_BYTES:
+                    raise ValueError(f'记录成员过大：{name} {info.file_size:,} B（上限 {MAX_RECORD_MEMBER_BYTES:,} B）')
+                total += info.file_size
+                if total > MAX_RECORD_TOTAL_BYTES:
+                    raise ValueError(f'记录包解压后总量过大（上限 {MAX_RECORD_TOTAL_BYTES:,} B）')
+                # 流式落盘：200 ms 的 capture.csv 约 500 MB，不能整块读进内存。
+                with archive.open(name) as source, (folder / name).open('wb') as target:
+                    shutil.copyfileobj(source, target, 1024 * 1024)
     else:
         suffix = Path(uploaded.filename).suffix.lower()
         if suffix not in ('.csv', '.bin'):
@@ -872,6 +908,18 @@ def capture_job(jid, sid, options):
         except Exception as error:
             m['laFilter']=dict(basis='unknown',error=str(error))
         save(sid, m)
+        with lock:
+            stop_after_export = jobs[jid].get('_stopped', False)
+        if stop_after_export:
+            # 单窗路径没有“分片边界”，导出完成就是唯一的检查点：在这里消费停止请求，
+            # 不再花几百秒去解码，并如实把记录标成 stopped（审查 F02）。
+            m.update(captureStatus='stopped', stopped=True, stopRequested=True)
+            m.pop('error', None)
+            m.pop('errorStage', None)
+            save(sid, m)
+            change(jid, state='cancelled',
+                   error='采集已停止：原始波形已保存，未启动解码')
+            return
         if options['decode']:
             decode_job(jid, sid)
         else:
@@ -969,7 +1017,9 @@ def stop_capture(jid):
         job['_stopped'] = True
         deferred = lease and not active and not cleanup
     if deferred:
-        return jsonify(stopped=True, deferred=True)
+        # 单窗路径只在“导出完成/解码完成”两个边界消费停止请求；解码无法中途打断。
+        return jsonify(stopped=True, deferred=True,
+                       message='停止请求已接收：将在当前导出/解码步骤结束时生效（解码不会中途打断）')
     stop_owned_la(jid)
     return jsonify(stopped=True)
 
