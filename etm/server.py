@@ -578,7 +578,6 @@ def capture_start_info(events,metadata):
                 entryRecovered=present,firstMatchesEntry=bool(first and first.get('pc')==entry))
 
 
-SLICE_MIN_SECONDS = 0.15     # 历史长窗阈值（产品已在 2026-10-18 停用分窗，见下）
 DEFAULT_SLICE_SECONDS = 0.2  # 历史长窗单片时长；仅旧的 export_slices()/离线重建工具仍用
 # 2026-10-18 产品决策：**单次采集 + 单次解码上限 200 ms**，不再走"一次采集 + 自动分窗"。
 #   · 1 s 全量解码实测要 10~30 分钟（CSV ~2.4 GB），用户判定不实用；
@@ -927,9 +926,9 @@ def start_capture():
         raise ValueError('请配置五个不同的 CH0~15 通道。')
     with lock:
         # 排他判据 = "是否还持有 LA 租约"，而不是仅看 state：
-        # 长窗分片解码期间任务叫 decoding，但它仍握着 LA 连接与本次采集缓存（审查 R05）。
+        # 解码期间任务叫 decoding，但它仍握着 LA 连接与本次采集缓存（审查 R05）。
         if any(j.get('kind','capture')=='capture' and (j['state'] in ('queued', 'starting', 'armed', 'saving', 'decoding') or j.get('_laLease') or j.get('cleanupPending')) for j in jobs.values()):
-            raise ValueError('已有采集任务进行中（含分窗解码）；等它结束再采。')
+            raise ValueError('已有采集任务进行中；等它结束再采。')
         sid = 'capture-' + uuid.uuid4().hex
         jid = new_job(sid, 'queued')
     try:

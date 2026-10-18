@@ -33,8 +33,8 @@ CLI 的 `--time-span` 可以只导一段 —— 0.2 s ≈ 481 MB CSV、解码约
 
 | 位置 | 改动 |
 |---|---|
-| `SLICE_MIN_SECONDS = 0.15` | 超过这个窗口自动走分窗（更短的单窗导出本来就是好的） |
-| `DEFAULT_SLICE_SECONDS = 0.2` | 单片时长；`/api/capture` 可用 `sliceSeconds` 覆盖（夹在 0.05 s～总时长） |
+| `SLICE_MIN_SECONDS = 0.15` | 超过这个窗口自动走分窗（更短的单窗导出本来就是好的）。**该常量已随 200 ms 单窗方案删除**，见文首 banner |
+| `DEFAULT_SLICE_SECONDS = 0.2` | 单片时长；`/api/capture` **已不再接受 `sliceSeconds`**，只剩 `export_slices()` 的默认值 |
 | `export_slices()` | 采集完成后：逐片 `do_export(time_span=(t0,t1))` → `decode_capture_stream` 解到 `slices/NN/` → 合并 → 建浏览库 |
 | `capture_job()` | `seconds > 0.15 && decode` 走 `export_slices()`，否则走原来的单窗路径 |
 | `_decode_job()` | 长窗记录**拒绝按单窗重解**（会只剩第一片），给明确提示而不是悄悄降级 |
