@@ -26,6 +26,23 @@ except ImportError:  # pragma: no cover - 只在精简环境触发
     _np = None
 
 
+def frontend_accel():
+    """报告当前进程里向量化前端是否可用（numpy + pandas 都能 import 才算 vectorized）。
+
+    便携包曾经出现"文件里带了 numpy、但冻结后 import 失败 → 静默回退纯 Python"，
+    所以要有一个可查询的口径：`/api/status` 会带上它，便携包测试据此断言加速真的生效。
+    """
+    numpy_ok = _np is not None
+    pandas_ok = False
+    if numpy_ok:
+        try:
+            import pandas  # noqa: F401  (只探测可导入性)
+            pandas_ok = True
+        except Exception:
+            pandas_ok = False
+    return dict(numpy=bool(numpy_ok), pandas=bool(pandas_ok), vectorized=bool(numpy_ok and pandas_ok))
+
+
 def read_tracks(path):
     initial, tracks = {}, {}
     start = end = None
@@ -123,8 +140,14 @@ def _header_encoding(path):
 def _filter_keep(times, limit_ns):
     """filter_pulses 的向量化等价实现：返回 keep 掩码。
 
-    与逐条实现同一套栈式规则（成对消去相邻过窄脉冲），只在"确实存在过窄脉冲"的
-    邻域内做逐元素模拟，其余整段直通，因此结果逐元素相同而没有 12 M 次解释器往返。
+    逐条实现是栈式规则：新边沿若与栈顶相距 ≤ 阈值，就成对消去（栈顶+新边沿都不保留），
+    否则入栈。等价地，只有"连续过窄"的边沿段会互相配对；跨过一段正常间隔后，栈顶
+    不可能再与后面的边沿配对。因此按 **close 的极大连续段** 独立处理每一段即可，
+    段内用逐元素栈模拟（段长通常只有几个边沿），段外整段直通。
+
+    🚨 2026-10-18 审查 F01：旧实现用 `top=[stop-2, stop-1]` 初始化，当首个过窄对出现在
+    索引 0（stop=1）时会得到 [-1,0]，负下标指向数组末尾，把后续合法边沿也删掉
+    （例：[0,2,10,22] ns、阈值 4，旧实现返回空，逐条实现保留 [10,22]）。
     """
     total = len(times)
     keep = _np.ones(total, dtype=bool)
@@ -134,30 +157,22 @@ def _filter_keep(times, limit_ns):
     close = _np.diff(times) * 1e9 <= limit
     if not close.any():
         return keep
-    candidates = _np.flatnonzero(close)
-    count = len(candidates)
-    top = []
-    index = 0
-    while index < total:
-        slot = int(_np.searchsorted(candidates, index - 1))
-        stop = total if slot >= count else int(candidates[slot]) + 1
-        if stop > total:
-            stop = total
-        if stop > index:
-            top = [stop - 2, stop - 1]
-            index = stop
-        if index >= total:
-            break
-        while index < total:
-            position = index
-            index += 1
-            if top and (times[position] - times[top[-1]]) * 1e9 <= limit:
-                keep[top[-1]] = False
+    positions = _np.flatnonzero(close)
+    previous = _np.zeros_like(close)
+    previous[1:] = close[:-1]
+    following = _np.zeros_like(close)
+    following[:-1] = close[1:]
+    # close[i] 为真表示边沿 i 与 i+1 过窄。一段极大连续 close 覆盖边沿 [start, end]。
+    starts = positions[~previous[positions]]
+    ends = positions[~following[positions]] + 1
+    for start, end in zip(starts.tolist(), ends.tolist()):
+        stack = []
+        for position in range(start, end + 1):
+            if stack and (float(times[position]) - float(times[stack[-1]])) * 1e9 <= limit:
+                keep[stack.pop()] = False
                 keep[position] = False
-                top.pop()
-                continue
-            top.append(position)
-            break
+            else:
+                stack.append(position)
     return keep
 
 
@@ -180,9 +195,10 @@ def _extract_vectorized(path, clock, data, fraction, glitch_ns):
         raise _NotVectorizable('duplicate channel')
 
     # 时间列用 round_trip 精确解析：与历史实现的 Python float() 逐位一致
-    # （pandas 默认解析器对个别小数会差 1 ULP）；通道只有 0/1，按 int8 读入，
-    # 因此 round_trip 只作用在时间列上（500 MB CSV 实测仅 +3~4 s）。
-    dtypes = {index: _np.int8 for index in range(1, len(fields))}
+    # （pandas 默认解析器对个别小数会差 1 ULP）；通道按 int16 读入 —— 不能像早期实现那样
+    # 读成 int8：256/257/-256 会被静默截成 0/1 再通过 0/1 校验（审查 F04）。
+    # int16 覆盖常见越界值，且 100 M 行 × 4 通道只比 int8 多约 400 MB。
+    dtypes = {index: _np.int16 for index in range(1, len(fields))}
     dtypes[0] = _np.float64
     try:
         frame = pd.read_csv(path, header=None, skiprows=1, dtype=dtypes,

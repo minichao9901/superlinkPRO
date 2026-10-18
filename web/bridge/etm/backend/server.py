@@ -32,6 +32,7 @@ from decode_stream import decode_capture_stream, decode_stream, export_simplifie
 from slice_merge import merge_slice_events, aggregate_slices
 from breakpoint_resolver import resolve_breakpoint
 from source_export import simplified_html
+from trace_port import frontend_accel
 
 app = Flask(__name__, static_folder='web', static_url_path='')
 # 200 ms 单窗的 capture.csv 实测约 500 MB（500 MSa/s × 0.2 s）。旧的 150 MiB 上传/解压
@@ -331,6 +332,18 @@ def shared_source_store():
     # Serve the copy committed with this project so page behavior is stable
     # regardless of which SWO checkout happens to be beside it at runtime.
     return send_file(ROOT/'web/app/shared/dbg/source.js',mimetype='text/javascript')
+
+
+@app.get('/api/health')
+def health():
+    """不依赖 LA/探针的轻量自检：解码器是否在、向量化前端是否真的可用。
+
+    便携包曾出现"包里带了 numpy 但冻结后 import 失败 → 静默回退纯 Python"，
+    这里给一个可断言的口径（便携测试会检查 frontend.vectorized）。
+    """
+    return jsonify(ok=True, captureProtocol=CAPTURE_PROTOCOL,
+                   decoder=(ROOT / 'build-native/etm_decode.exe').exists(),
+                   frontend=frontend_accel())
 
 
 @app.get('/api/status')
