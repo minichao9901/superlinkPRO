@@ -6,7 +6,9 @@ import sys
 import tempfile
 import time
 import unittest
+import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -92,6 +94,30 @@ class ServerTests(unittest.TestCase):
         missing = self.client.post(f'/api/elf/{sid}/breakpoint', json={'spec': 'b main:199'})
         self.assertEqual(missing.status_code, 400)
         self.assertIn('没有可下断点', missing.json['error'])
+
+    def test_record_import_allows_the_200ms_member_size_and_enforces_budget(self):
+        # 审查 F01：200 ms 单窗的 capture.csv 约 500 MB，旧的 150 MiB 成员上限会让
+        # “自己导出的记录包导不回来”。这里用放大的小载荷验证流式解压与预算分支。
+        elf = (ROOT/'firmware/stm32h743_cdc_trace/fw.elf').read_bytes()
+
+        def package(size):
+            buffer = io.BytesIO()
+            with zipfile.ZipFile(buffer, 'w') as archive:
+                archive.writestr('session.json', json.dumps(dict(input='capture.csv', config={})))
+                archive.writestr('firmware.elf', elf)
+                archive.writestr('capture.csv', b'x' * size)
+            buffer.seek(0)
+            return buffer
+
+        payload = b'x' * (2 * 1024 * 1024)
+        with patch.object(server, 'MAX_RECORD_MEMBER_BYTES', 3 * 1024 * 1024), \
+                patch.object(server, 'MAX_RECORD_TOTAL_BYTES', 10 * 1024 * 1024):
+            ok = self.client.post('/api/import', data={'capture': (package(len(payload)), 'r.etmrecord')})
+            self.assertEqual(ok.status_code, 200, ok.json)
+            self.assertEqual((server.directory(ok.json['record'])/'capture.csv').stat().st_size, len(payload))
+            too_big = self.client.post('/api/import', data={'capture': (package(4 * 1024 * 1024), 'r.etmrecord')})
+            self.assertEqual(too_big.status_code, 400)
+            self.assertIn('过大', too_big.json['error'])
 
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()

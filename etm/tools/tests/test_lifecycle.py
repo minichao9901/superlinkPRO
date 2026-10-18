@@ -53,6 +53,34 @@ class LifecycleTests(unittest.TestCase):
         self.assertTrue(response.json.get('deferred'))
         self.assertTrue(server.jobs[jid]['_stopped'])
         poked.assert_not_called()   # 不能用第二条连接打断正在跑的导出
+    def test_stop_during_saving_is_consumed_before_the_long_decode(self):
+        # 审查 F02：单窗路径没有分片边界；导出完成是唯一检查点，停止必须在这里生效。
+        sid='capture-stop-saving';server.save(sid,{'input':'capture.csv'});jid=server.new_job(sid,'queued')
+        class Socket:
+            def settimeout(self,_):pass
+            def sendall(self,_):pass
+            def recv(self,_):return b'ACK'
+        class Vis:
+            def __init__(self):self.sock=Socket()
+            def cmd(self,command):return '500000000' if command=='get-supported-sample-rate' else '0 0.01'
+            def close(self):pass
+        def stop_after_export(*args,**kwargs):server.jobs[jid]['_stopped']=True
+        options=dict(rate=500000000,seconds=.2,threshold=1.65,sync=True,data=[1,2,3,4],clock=0,decode=True)
+        with patch.object(server,'Vis',Vis),patch.object(server,'do_export',side_effect=stop_after_export), \
+                patch.object(server,'decode_job') as decode,patch.object(server,'stop_owned_la'):
+            server.capture_job(jid,sid,options)
+        decode.assert_not_called()
+        self.assertEqual(server.jobs[jid]['state'],'cancelled')
+        m=server.meta(sid)
+        self.assertTrue(m.get('stopRequested'))
+        self.assertEqual(m.get('captureStatus'),'stopped')
+    def test_stop_before_decode_starts_is_not_ignored(self):
+        sid='capture-stop-decode';server.save(sid,{'input':'capture.csv'});jid=server.new_job(sid,'queued',kind='decode')
+        server.jobs[jid]['_stopped']=True
+        with patch.object(server,'_decode_job') as inner:
+            server.decode_job(jid,sid)
+        inner.assert_not_called()
+        self.assertEqual(server.jobs[jid]['state'],'cancelled')
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.previous=server.RECORDS;server.RECORDS=Path(self.tmp.name)
         server.jobs.clear();self.elf='elf-'+'a'*32;server.directory(self.elf).mkdir();(server.directory(self.elf)/'firmware.elf').write_bytes(b'elf')
