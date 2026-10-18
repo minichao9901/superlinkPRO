@@ -33,6 +33,16 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      # 发布前守卫（审查 R07）：Pages 直接上传 web/，不会自己重建 bundle。
+      # 页面默认在线上走 `app/site/main.js`，源文件改了却没重建时，线上产物会静默落后。
+      - name: Verify generated web bundle is current
+        working-directory: ./web
+        run: node tools/dev/build-web.mjs --check
+
+      - name: Verify checked-in ETM page copy is current
+        working-directory: ./web
+        run: node tools/dev/sync-etm-page.mjs --check
+
       - name: Upload web/ as the site artifact
         uses: actions/upload-pages-artifact@v3
         with:

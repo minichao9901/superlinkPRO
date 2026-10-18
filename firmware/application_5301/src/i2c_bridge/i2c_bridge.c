@@ -20,7 +20,7 @@
  *
  * ── 引脚（HPM5301EVKLite）────────────────────────────────────────────────
  * I2C3 的 PA28=SDA(J3[21]) / PA29=SCL(J3[19])：这是 J3 排针上**唯一**一对
- * 引出来的硬件 I2C 脚（其它组合的另一半分别是 USER 按键 PA03、nRESET PA08、
+ * 引出来的硬件 I2C 脚（其它组合的另一半分别是 USER 按键 PA03、nTRST PA08、
  * CDC 的 UART2 PB08、USB0 的 PA24/PA25），与 SPI2(PB10~PB15)、SWD(PA04~PA08)、
  * UART0 都不冲突。⚠️ PA29 与 USB0_OC 网络共用（AP2151 的 nFAULT + R6 10k 上拉）：
  * 当开漏用没问题，但 USB 限流报故障时 nFAULT 会把 SCL 拉低 —— 遇到就 RESET 恢复。

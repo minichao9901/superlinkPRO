@@ -59,14 +59,28 @@
 #define __STATIC_FORCEINLINE static inline
 #endif
 
-/* Custom HID 0x3A changes PA27/J3.23 nRESET mode on EVKLite.
- * PA08/J5.3 is the fixed-open-drain compatibility output. */
+/* Custom HID 0x3A changes the PA27/J3.23 nRESET drive mode (open-drain or
+ * push-pull). PA08/J5.3 is the independent nTRST output: fixed open-drain and
+ * driven only by the CMSIS-DAP nTRST command (PIN_nTRST_OUT) - it is NOT a
+ * second nRESET route. */
 extern volatile uint8_t dap_nrst_open_drain;
 
 #ifndef BOARD_NRESET_ACTIVE_LOW
 #define BOARD_NRESET_ACTIVE_LOW (0)
 #endif
 
+/* 1 = the nRESET pad supports open-drain/push-pull switching at run time. */
+#ifndef BOARD_HAS_NRESET_OD
+#define BOARD_HAS_NRESET_OD (0)
+#endif
+
+/* 1 = the nTRST pad is a fixed open-drain output with a pull-up. */
+#ifndef BOARD_JTRST_OPEN_DRAIN
+#define BOARD_JTRST_OPEN_DRAIN (0)
+#endif
+
+/* nRESET pad only. TRST has its own pad configuration in DAP_SETUP() so that
+ * switching the nRESET drive mode can never disturb the TRST output. */
 __STATIC_INLINE void DAP_APPLY_RESET_PAD_CONFIG(void)
 {
     HPM_IOC->PAD[BOARD_PIN_nRESET].PAD_CTL =
@@ -78,7 +92,7 @@ __STATIC_INLINE void DAP_APPLY_RESET_PAD_CONFIG(void)
         IOC_PAD_PAD_CTL_PS_SET(0) | IOC_PAD_PAD_CTL_PE_SET(1) |
 #endif
         IOC_PAD_PAD_CTL_KE_SET(0) |
-#ifdef BOARD_PIN_nRESET2
+#if BOARD_HAS_NRESET_OD
         IOC_PAD_PAD_CTL_OD_SET(dap_nrst_open_drain ? 1U : 0U) |
 #else
         IOC_PAD_PAD_CTL_OD_SET(0) |
@@ -86,18 +100,6 @@ __STATIC_INLINE void DAP_APPLY_RESET_PAD_CONFIG(void)
         IOC_PAD_PAD_CTL_SR_SET(0) |
         IOC_PAD_PAD_CTL_SPD_SET(1) |
         IOC_PAD_PAD_CTL_DS_SET(4);
-#ifdef BOARD_PIN_nRESET2
-    HPM_IOC->PAD[BOARD_PIN_nRESET2].PAD_CTL =
-        IOC_PAD_PAD_CTL_HYS_SET(0) |
-        IOC_PAD_PAD_CTL_PRS_SET(0) |
-        IOC_PAD_PAD_CTL_PS_SET(1) |
-        IOC_PAD_PAD_CTL_PE_SET(1) |
-        IOC_PAD_PAD_CTL_KE_SET(0) |
-        IOC_PAD_PAD_CTL_OD_SET(1) |
-        IOC_PAD_PAD_CTL_SR_SET(0) |
-        IOC_PAD_PAD_CTL_SPD_SET(1) |
-        IOC_PAD_PAD_CTL_DS_SET(4);
-#endif
 }
 
 // clang-format off
@@ -375,9 +377,6 @@ __STATIC_INLINE void PORT_JTAG_SETUP(void)
     gpiom_config_pin_to_fgpio(BOARD_PIN_JTMS);
 
     gpiom_config_pin_to_gpio0(BOARD_PIN_nRESET);
-#ifdef BOARD_PIN_nRESET2
-    gpiom_config_pin_to_gpio0(BOARD_PIN_nRESET2);
-#endif
 #if BOARD_HAS_SWDIO_DIR
     gpiom_config_pin_to_gpio0(BOARD_PIN_JTMS_DIR);
 #endif
@@ -392,24 +391,14 @@ __STATIC_INLINE void PORT_JTAG_SETUP(void)
     gpio_set_pin_output(HPM_FGPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTDI), GPIO_GET_PIN_INDEX(BOARD_PIN_JTDI));
     gpio_set_pin_output(HPM_FGPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTMS), GPIO_GET_PIN_INDEX(BOARD_PIN_JTMS));
 
-#ifdef BOARD_PIN_nRESET2
-    /* A reconnect may start with reset asserted: release the fixed OD route
-     * before preloading the configurable push-pull route high. */
-    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
-#endif
     gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET), (BOARD_NRESET_ACTIVE_LOW ? 1U : 0U));
     gpio_set_pin_output(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET));
-#ifdef BOARD_PIN_nRESET2
-    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
-    gpio_set_pin_output(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2));
-#endif
 #if BOARD_HAS_SWDIO_DIR
     gpio_set_pin_output(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTMS_DIR), GPIO_GET_PIN_INDEX(BOARD_PIN_JTMS_DIR));
 #endif
 #if BOARD_HAS_JTRST
     gpio_set_pin_output(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTRST), GPIO_GET_PIN_INDEX(BOARD_PIN_JTRST));
 #endif
-
     // 设置默认输出电平
     gpio_write_pin(HPM_FGPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTCK), GPIO_GET_PIN_INDEX(BOARD_PIN_JTCK), 1);
     gpio_write_pin(HPM_FGPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTMS), GPIO_GET_PIN_INDEX(BOARD_PIN_JTMS), 1);
@@ -417,10 +406,6 @@ __STATIC_INLINE void PORT_JTAG_SETUP(void)
 
 #if BOARD_HAS_SWDIO_DIR
     gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTMS_DIR), GPIO_GET_PIN_INDEX(BOARD_PIN_JTMS_DIR), 1); // output
-#endif
-#ifdef BOARD_PIN_nRESET2
-    /* Release the always-open-drain path before PA27 can drive high push-pull. */
-    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
 #endif
     gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET), NRESET_RELEASE_LEVEL);
 #if BOARD_HAS_JTRST
@@ -437,7 +422,9 @@ __STATIC_INLINE void PORT_JTAG_SETUP(void)
 /** 设置 SWD I/O 引脚：SWCLK、SWDIO 和 nRESET。
 配置用于串行线调试 (SWD) 模式的 DAP 硬件 I/O 引脚：
  - SWCLK、SWDIO、nRESET 设置为输出模式并置为默认高电平。
- - TDI、nTRST 设置为高阻模式（在 SWD 模式下未使用这些引脚）。
+ - TDI 设置为高阻模式（在 SWD 模式下未使用）。
+ - nTRST 仍保持为独立输出并置为释放电平（高）：它只受 CMSIS-DAP nTRST
+   命令控制，与 nRESET 无关。
 */
 __STATIC_INLINE void PORT_SWD_SETUP(void)
 {
@@ -450,9 +437,6 @@ __STATIC_INLINE void PORT_SWD_SETUP(void)
 #endif
 
     gpiom_config_pin_to_gpio0(BOARD_PIN_nRESET);
-#ifdef BOARD_PIN_nRESET2
-    gpiom_config_pin_to_gpio0(BOARD_PIN_nRESET2);
-#endif
 #if BOARD_HAS_JTRST
     gpiom_config_pin_to_gpio0(BOARD_PIN_JTRST);
 #endif
@@ -471,17 +455,8 @@ __STATIC_INLINE void PORT_SWD_SETUP(void)
 #endif
     gpio_set_pin_output(HPM_FGPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTMS), GPIO_GET_PIN_INDEX(BOARD_PIN_JTMS));
 
-#ifdef BOARD_PIN_nRESET2
-    /* A reconnect may start with reset asserted: release the fixed OD route
-     * before preloading the configurable push-pull route high. */
-    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
-#endif
     gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET), (BOARD_NRESET_ACTIVE_LOW ? 1U : 0U));
     gpio_set_pin_output(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET));
-#ifdef BOARD_PIN_nRESET2
-    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
-    gpio_set_pin_output(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2));
-#endif
 #if BOARD_HAS_JTRST
     gpio_set_pin_output(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTRST), GPIO_GET_PIN_INDEX(BOARD_PIN_JTRST));
 #endif
@@ -497,10 +472,6 @@ __STATIC_INLINE void PORT_SWD_SETUP(void)
 #endif
     gpio_write_pin(HPM_FGPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTMS), GPIO_GET_PIN_INDEX(BOARD_PIN_JTMS), 1);
 
-#ifdef BOARD_PIN_nRESET2
-    /* Release the always-open-drain path before PA27 can drive high push-pull. */
-    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
-#endif
     gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET), (BOARD_NRESET_ACTIVE_LOW ? 1U : 0U));
 #if BOARD_HAS_JTRST
     gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTRST), GPIO_GET_PIN_INDEX(BOARD_PIN_JTRST), 1);
@@ -524,13 +495,13 @@ __STATIC_INLINE void PORT_OFF(void)
     // gpio_write_pin(PIN_GPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTCK), GPIO_GET_PIN_INDEX(BOARD_PIN_JTCK), 1);
     // gpio_write_pin(PIN_GPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTMS_DIR), GPIO_GET_PIN_INDEX(BOARD_PIN_JTMS_DIR), 1);
     // gpio_write_pin(PIN_GPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTMS_OUT), GPIO_GET_PIN_INDEX(BOARD_PIN_JTMS_OUT), 1);
-    /* Never leave either target reset path asserted when the DAP port closes. */
-#ifdef BOARD_PIN_nRESET2
-    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
-#endif
+    /* Never leave either target reset-class output asserted when the DAP port
+     * closes: nRESET is released to its idle level and nTRST to high. */
     gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET),
                    (BOARD_NRESET_ACTIVE_LOW ? 1U : 0U));
-    // gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTRST), GPIO_GET_PIN_INDEX(BOARD_PIN_JTRST), 1);
+#if BOARD_HAS_JTRST
+    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTRST), GPIO_GET_PIN_INDEX(BOARD_PIN_JTRST), 1);
+#endif
 
     // gpio_write_pin(PIN_GPIO, GPIO_GET_PORT_INDEX(BOARD_PIN_JTDI), GPIO_GET_PIN_INDEX(BOARD_PIN_JTDI), 1);
     // gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTDI), GPIO_GET_PIN_INDEX(BOARD_PIN_JTDI), 1);
@@ -715,29 +686,18 @@ __STATIC_FORCEINLINE uint32_t PIN_nRESET_IN(void)
 \param bit 目标设备硬件复位引脚状态：
            - 0：发起设备硬件复位。
            - 1：释放设备硬件复位。
+
+只驱动 BOARD_PIN_nRESET（PA27 / J3[23]）。nTRST 有独立的
+PIN_nTRST_OUT()，两者不再联动。
 */
 __STATIC_FORCEINLINE void PIN_nRESET_OUT(uint32_t bit)
 {
-#ifdef BOARD_PIN_nRESET2
-    if (bit & 0x01U)
-    {
-        /* Avoid push-pull-high vs open-drain-low contention on the shared NRST net. */
-        gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
-    }
-#endif
 #if BOARD_NRESET_ACTIVE_LOW
     /* Direct wire, active low: released = drive high. */
     gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET), (bit & 0x01));
 #else
     /* Inverted drive: released = drive low. */
     gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET), !(bit & 0x01));
-#endif
-#ifdef BOARD_PIN_nRESET2
-    if (!(bit & 0x01U))
-    {
-        /* Assert the open-drain route after the configurable route drives low. */
-        gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 0U);
-    }
 #endif
 }
 
@@ -889,13 +849,6 @@ __STATIC_INLINE void DAP_SETUP(void)
     /* nRESET idle level = released: direct-wire boards (active low) idle high
      * with pull-up; inverted-drive boards idle low with pull-down. */
     DAP_APPLY_RESET_PAD_CONFIG();
-#ifdef BOARD_PIN_nRESET2
-    HPM_IOC->PAD[BOARD_PIN_nRESET2].FUNC_CTL = IOC_PAD_FUNC_CTL_ALT_SELECT_SET(0);
-    gpiom_config_pin_to_gpio0(BOARD_PIN_nRESET2);
-    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
-    gpio_set_pin_output(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2));
-    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_nRESET2), GPIO_GET_PIN_INDEX(BOARD_PIN_nRESET2), 1U);
-#endif
     HPM_IOC->PAD[BOARD_PIN_JTDO].PAD_CTL =
         IOC_PAD_PAD_CTL_HYS_SET(0) | // 施密特触发器 失效
         IOC_PAD_PAD_CTL_PRS_SET(0) | // 上下拉强度 100k
@@ -917,16 +870,31 @@ __STATIC_INLINE void DAP_SETUP(void)
         IOC_PAD_PAD_CTL_SPD_SET(3) | // 最快压摆率
         IOC_PAD_PAD_CTL_DS_SET(4);   // 驱动能力 39 ohm(3.3V)
 #if BOARD_HAS_JTRST
+    /* nTRST idle = released (high). EVKLite drives PA08/J5[3] as a fixed
+     * open-drain output with the pad pull-up enabled; boards with a push-pull
+     * nTRST keep the previous push-pull / no-pull settings. */
     HPM_IOC->PAD[BOARD_PIN_JTRST].PAD_CTL =
         IOC_PAD_PAD_CTL_HYS_SET(0) | // 施密特触发器 失效
         IOC_PAD_PAD_CTL_PRS_SET(0) | // 上下拉强度 100k
         IOC_PAD_PAD_CTL_PS_SET(1) |  // 上拉
-        IOC_PAD_PAD_CTL_PE_SET(0) |  // 上拉使能
-        IOC_PAD_PAD_CTL_KE_SET(0) |  // 保持能力 失效
+#if BOARD_JTRST_OPEN_DRAIN
+        IOC_PAD_PAD_CTL_PE_SET(1) |  // 上拉使能
+        IOC_PAD_PAD_CTL_OD_SET(1) |  // 开漏输出
+#else
+        IOC_PAD_PAD_CTL_PE_SET(0) |  // 上拉关闭
         IOC_PAD_PAD_CTL_OD_SET(0) |  // 开漏输出 失效
+#endif
+        IOC_PAD_PAD_CTL_KE_SET(0) |  // 保持能力 失效
         IOC_PAD_PAD_CTL_SR_SET(1) |  // 压摆率 快速
         IOC_PAD_PAD_CTL_SPD_SET(3) | // 最快压摆率
         IOC_PAD_PAD_CTL_DS_SET(4);   // 驱动能力 39 ohm(3.3V)
+    /* Preload the released level (high) before enabling the output so that
+     * TRST never sees a low pulse at power-up. */
+    HPM_IOC->PAD[BOARD_PIN_JTRST].FUNC_CTL = IOC_PAD_FUNC_CTL_ALT_SELECT_SET(0);
+    gpiom_config_pin_to_gpio0(BOARD_PIN_JTRST);
+    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTRST), GPIO_GET_PIN_INDEX(BOARD_PIN_JTRST), 1U);
+    gpio_set_pin_output(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTRST), GPIO_GET_PIN_INDEX(BOARD_PIN_JTRST));
+    gpio_write_pin(HPM_GPIO0, GPIO_GET_PORT_INDEX(BOARD_PIN_JTRST), GPIO_GET_PIN_INDEX(BOARD_PIN_JTRST), 1U);
 #endif
 }
 

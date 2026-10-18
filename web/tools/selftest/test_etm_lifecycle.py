@@ -131,7 +131,8 @@ class MatrixTests(unittest.TestCase):
     def test_numeric_boundaries_336_requests(self):
         count=0
         for rate,seconds,fraction in itertools.product([0,1,50000000,100000000,500000000,500000001,10**10],[-1,0,.001,.01,2,2.001,float('nan'),float('inf')],[-.1,0,.25,1,float('nan'),float('inf')]):
-            expected=0<rate<=500000000 and 0<seconds<=2 and rate*seconds<=100000000 and 0<fraction<1
+            # 窗口上限 200 ms → 4 s（e5e1fac）：边界 = seconds<=4 且 rate*seconds<=2.1e9。
+            expected=0<rate<=500000000 and 0<seconds<=4 and rate*seconds<=2100000000 and 0<fraction<1
             r=self.post(rate=rate,seconds=seconds,fraction=fraction)
             self.assertEqual(r.status_code,200 if expected else 400,(rate,seconds,fraction,r.json));self.release();count+=1
         self.assertEqual(count,336)

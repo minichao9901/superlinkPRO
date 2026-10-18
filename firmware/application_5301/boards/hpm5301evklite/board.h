@@ -10,8 +10,9 @@
  *   J5.7  TMS   -> PA07 (SWDIO, single-pin bidirectional)
  *   J5.9  TCK   -> PA06 (SWCLK)
  *   J5.13 TDO   -> PA04
- *   J5.3  nTRST -> PA08 (fixed open-drain, mirrors DAP nRESET)
- *   J3.23 PA27 -> target nRESET (selectable open-drain/push-pull)
+ *   J5.3  nTRST -> PA08 (fixed open-drain, driven by CMSIS-DAP nTRST only)
+ *   J3.23 PA27 -> target nRESET (selectable open-drain/push-pull,
+ *                 driven by CMSIS-DAP nRESET only)
  *   J5.15 nSRST -> chip RESET_N (input only, cannot be driven by firmware)
  *
  * The same pins are the SoC's own JTAG port, so the board stays debuggable
@@ -118,10 +119,13 @@
 #define BOARD_PIN_JTMS          IOC_PAD_PA07
 #define BOARD_PIN_JTDI          IOC_PAD_PA05
 #define BOARD_PIN_JTDO          IOC_PAD_PA04
+/* Two independent reset-class outputs:
+ *   - BOARD_PIN_nRESET (PA27 / J3[23])  = target NRST, CMSIS-DAP nRESET
+ *   - BOARD_PIN_JTRST  (PA08 / J5[3])   = target TRST, CMSIS-DAP nTRST
+ * They must never be mirrored onto each other: PA08 wired to TRST only resets
+ * the JTAG TAP, a system reset requires PA27 wired to NRST. */
+#define BOARD_PIN_JTRST         IOC_PAD_PA08
 #define BOARD_PIN_nRESET        IOC_PAD_PA27
-/* The header label does not change the target signal: PA08 wired to target
- * TRST only resets the JTAG TAP. A system reset requires PA27 wired to NRST. */
-#define BOARD_PIN_nRESET2       IOC_PAD_PA08
 
 /* CDC VCOM bridge: UART2 on PB08 (TXD, J3.5) / PB09 (RXD, J3.3) - the pins
  * labelled I2C_SCL/I2C_SDA on the EVKLite J3 header (only R21/R22 10k pull-ups
@@ -153,10 +157,18 @@
 /* The EVKLite wires SWDIO directly to PA07: single bidirectional pin, no
  * external level shifter, no direction pin. */
 #define BOARD_HAS_SWDIO_DIR (0)
-/* No dedicated JTAG nTRST output pin (PA31 is a plain J3 header pin here). */
-#define BOARD_HAS_JTRST (0)
+/* Dedicated JTAG nTRST output on PA08/J5[3], driven only by CMSIS-DAP nTRST. */
+#define BOARD_HAS_JTRST (1)
+/* PA08 is wired as a fixed open-drain output: the pad keeps its pull-up and
+ * the GPIO only ever pulls low (release = high-Z + pull-up) when TRST is
+ * asserted. It idles driven high (TRST released). */
+#define BOARD_JTRST_OPEN_DRAIN (1)
 /* nRESET (PA27) drives the target reset line directly, active low. */
 #define BOARD_NRESET_ACTIVE_LOW (1)
+/* PA27 nRESET can switch between push-pull (**power-on default**, since PA27 has
+ * no board pull-up and open-drain release is only the internal ~100 kΩ) and
+ * open-drain through HID 0x3A; this is a capability of PA27, unrelated to TRST. */
+#define BOARD_HAS_NRESET_OD (1)
 /* No 5V level-shifter supply and no external VREF divider on this board. */
 #define BOARD_HAS_5V_EN (0)
 #define BOARD_HAS_VREF_ADC (0)
@@ -180,7 +192,7 @@
 
 /* USB→I2C 转发桥：**I2C3** 的 PA28=SDA / PA29=SCL，J3[21] / J3[19]。
  * 这是 J3 排针上唯一一对引出来的硬件 I2C 脚（I2C 的全部功能脚 × J3 交叉比对：
- * 其它组合的另一半分别是 USER 按键 PA03、nRESET PA08、CDC 的 UART2 PB08、
+ * 其它组合的另一半分别是 USER 按键 PA03、nTRST PA08、CDC 的 UART2 PB08、
  * USB0 的 PA24/PA25 —— 都占着）。与 SPI2(PB10~PB15)、SWD(PA04~PA08)、
  * UART0(PA00/PA01) 均不冲突，见 docs/web-handoff-i2c-bridge.md 的接线表。
  * ⚠️ 板丝印还停在 SPI1 时代（MISO/MOSI）；⚠️ PA29 与 USB0_OC 网络共用

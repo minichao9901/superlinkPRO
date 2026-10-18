@@ -44,7 +44,7 @@
     "app/dbg/image.js": "9e2e8f842287fbcfa4f6bdca282c91839d3ab154bea2a1e22e7b4626994a4111",
     "app/dbg/ram-fill.js": "ac366a556451f3c9eb89302c9e6e3206a445b45007ed529cd64be1eb3512f508",
     "app/dbg/regs.js": "89de3e7d1b210f997bd82469343721b4fe8e7745cec11cdc1f49ff047c33b0a0",
-    "app/dbg/riscv.js": "4e9ba402983515d6b6c9dbe640dab481ae172029ce1937aa688cf1edfe77b8b5",
+    "app/dbg/riscv.js": "1d33eb962026037d1bab6fd34755b1ab889e6e793313ce9be918953eee13f8df",
     "app/dbg/rv.js": "ee4bb316f7d813f99c32540c176f470ceb114c803a5c353529b4324ead6dd1cc",
     "app/dbg/session.js": "ba79c8c74c3d280906bcd0e8c75127e61434703b62cdfcde3372d465a3a7b1e9",
     "app/dbg/source-syntax.js": "91f2c67733931f051511371a20bb93aa9aebfd17018db5e331a4638accde197c",
@@ -91,7 +91,7 @@
     "app/hid/mock.js": "b37788033bc12dfc5febb3beaaa20f6b293bdaa83dba9898df1c693b94d832d5",
     "app/hid/probe.js": "5416330921bf987fceb3d2a447a6f69d570c14b08b9e9755577eb30b5809f8b3",
     "app/hid/stream.js": "333b66dbe4be27f45091b4cffcd57169bcf486f9d49ac979117c384820c32a4b",
-    "app/hid/view.js": "98fec1929dad5a3ff82a59f0f33cbc1aaf180863a3f23c6de0c7b123919af5dd",
+    "app/hid/view.js": "67e851367c69c9907e16bd2ab64575cbf41145a42cba4e5c54d752424ab7ffc1",
     "app/i2c/dsl.js": "c6dbe0ea012f1d33aab34d648471890712f2b518fad25cdf5f670e7a70c17f1c",
     "app/i2c/expr.js": "ea3168ff8a1bf26841545c3290b41e0f94057d095111071adad4f1eecd1e734c",
     "app/i2c/mock.js": "852a81fdca8dd4f541ceac90a97200e3bb21a112a11433332d10c62613c61888",
@@ -173,6 +173,6 @@
     "app/ui/workspace.js": "25b6ce94e5d90302a37e6cec2b7e35c975af95ce29bef1094a4493f3890fc0b7",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "208b90795270e8597de7f2cebbdeaf72f40b4ecbc74e3e4db580becb1c669e6b",
-  "outputBytes": 1333124
+  "outputSha256": "847791c1e2ac935b36b7cc51bbaf2dd435bf94417de6451bb3b2630005aa4933",
+  "outputBytes": 1333377
 }

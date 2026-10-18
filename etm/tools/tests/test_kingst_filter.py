@@ -18,6 +18,7 @@ class FilterTests(unittest.TestCase):
         self.assertTrue(result['keepOnRestart'])
         self.assertEqual([x['channel'] for x in result['channels'] if x['enabled']],[0,4])
         self.assertEqual(result['channels'][0]['widthNs'],4)
+    @unittest.skipUnless((ROOT/'records/capture-3ca5db88fbc5428c8a2ab7d8d485d0d8/capture.kvdat').exists(), '缺少真实 KV 快照（records/ 是 gitignored）')
     def test_real_snapshot_and_rate_mismatch(self):
         path=ROOT/'records/capture-3ca5db88fbc5428c8a2ab7d8d485d0d8/capture.kvdat'
         result=read_glitch_settings(path)

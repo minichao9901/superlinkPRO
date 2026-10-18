@@ -252,8 +252,10 @@ typedef enum
     SB_PAD_PA30 = 12,/* J3[37]（USB0_PWR）：被板上 Q1 常态短到地，实测拉不动，别用 */
     SB_PAD_PA31 = 13,/* J3[11]（USB0_ID 网络，可当慢速输出） */
     /* 2026-09-30 新增：J3 上原本留给 **SPI1** 显示接口的四根。桥搬到 SPI2 之后，
-     * 这份固件里它们**零引用**（SWD 走 PA06/PA07、nRESET=PA08、CDC=PB08/PB09、
-     * 控制台=PA00/PA01），板上丝印还停在 SPI1 时代 —— 实测可用，故释放成普通辅助脚。
+     * 这份固件里它们**零引用**（SWD 走 PA06/PA07、nTRST=PA08、nRESET=PA27、
+     * CDC=PB08/PB09、控制台=PA00/PA01），板上丝印还停在 SPI1 时代 —— 实测可用，
+     * 故释放成普通辅助脚。⚠️ PA27 自 2026-10-15 起是目标 nRESET 输出，桥已在
+     * sb_pad_ok()/sb_cfg_validate() 的 reserved[] 里排除它（选中会被 RANGE 拒绝）。
      * ⚠️ 若将来切到 boards/akaLinkPro 板级构建，PA26(nRESET/break)/PA27(SWCLK)/
      * PA28(SWDIO) 会被板级定义占走，届时这三项必须重新限制。 */
     SB_PAD_PA26 = 14,/* J3[24]（板上丝印 SPI_CS0） */

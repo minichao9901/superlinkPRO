@@ -10,6 +10,7 @@ from decode_trace import export_source
 
 
 class ExecutionTests(unittest.TestCase):
+    @unittest.skipUnless((ROOT / 'decoded/500m/decoded.json').exists() and (ROOT / 'decoded/100m/decoded.json').exists(), '缺少封存的 decoded/500m|100m 样本（gitignored，干净克隆里没有）')
     def test_real_samples_branch_targets_workload_calls_and_exceptions(self):
         for sample in ('500m', '100m'):
             r = json.loads((ROOT / f'decoded/{sample}/decoded.json').read_text(encoding='utf-8'))

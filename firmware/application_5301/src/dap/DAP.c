@@ -50,15 +50,24 @@
 
 DAP_Data_t DAP_Data; // DAP Data
 
-#ifdef BOARD_PIN_nRESET2
-volatile uint8_t dap_nrst_open_drain = 1U;
+/* nRESET (PA27/J3[23]) supports open-drain / push-pull switching on boards
+ * that define BOARD_HAS_NRESET_OD. This is a property of the nRESET pad only;
+ * TRST (PA08/J5[3]) is a separate fixed open-drain output.
+ *
+ * 2026-10-18: **默认改为推挽**。原因：PA27 在探针板上没有任何外部上拉
+ * （EVKLite REVB 网表里这条线还叫 SCLK，只有 U4.41 ↔ J3.23 两点），开漏释放
+ * 只靠 PA08/PA27 内部约 100 kΩ —— 长线/容性负载下上升沿很慢，示波器/逻辑
+ * 分析仪常常判不出跳变，目标也可能收不到干净的复位释放沿。推挽由固件主动
+ * 驱动高低，波形确定；需要与其他复位源线与时仍可用 HID 0x3A 切回开漏。 */
+#if BOARD_HAS_NRESET_OD
+volatile uint8_t dap_nrst_open_drain = 0U;
 #else
 volatile uint8_t dap_nrst_open_drain = 0U;
 #endif
 
 uint8_t DAP_SetResetOutputMode(uint8_t open_drain)
 {
-#ifdef BOARD_PIN_nRESET2
+#if BOARD_HAS_NRESET_OD
 	/* Preserve the output latch: changing mode must not release an asserted reset. */
 	dap_nrst_open_drain = open_drain ? 1U : 0U;
 	DAP_APPLY_RESET_PAD_CONFIG();
@@ -76,7 +85,7 @@ uint8_t DAP_GetResetOutputMode(void)
 
 uint8_t DAP_ResetOutputModeSupported(void)
 {
-#ifdef BOARD_PIN_nRESET2
+#if BOARD_HAS_NRESET_OD
 	return 1U;
 #else
 	return 0U;

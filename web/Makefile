@@ -140,6 +140,8 @@ test: test-stability test-dbg-features test-board-matrix test-random-flow test-e
 	$(NODE) tools/selftest/dbg-riscv-memory.test.mjs
 	$(NODE) tools/selftest/riscv-sba-async.test.mjs
 	$(NODE) tools/selftest/dbg-riscv-resume.test.mjs
+	$(NODE) tools/selftest/dbg-riscv-step-ack.test.mjs
+	$(NODE) tools/selftest/etm-reset-hit.test.mjs
 	$(NODE) tools/selftest/dbg-src-suggest.test.mjs
 	$(NODE) tools/selftest/i2c-proto.test.mjs
 	$(NODE) tools/selftest/i2c-dsl.test.mjs

@@ -234,7 +234,7 @@ void init_spi2_bridge_pins(uint8_t quad, uint8_t hw_cs)
  *
  * 为什么是这一对：把 HPM5301 的全部 I2C 功能脚与 J3 排针交叉比对，只有
  * I2C3 的 PA28/PA29 这一对同时引出来（其余组合的另一半分别是 USER 按键 PA03、
- * nRESET PA08、CDC 的 UART2 PB08、USB0 的 PA24/PA25 —— 都占着）。
+ * nTRST PA08、CDC 的 UART2 PB08、USB0 的 PA24/PA25 —— 都占着）。
  * 与 SPI2(PB10~PB15)、SWD(PA04~PA08)、UART0 均不冲突。
  *
  * 电气（照 SDK `init_i2c2_pins()` 的原样，换实例后结论不变）：

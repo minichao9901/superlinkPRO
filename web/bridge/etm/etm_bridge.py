@@ -23,12 +23,25 @@ def valid_demo(folder):
         return True
     except (OSError,ValueError):return False
 
+def demo_bundled(backend):
+    """构建时是否带了随包示例。
+
+    `records/` 是 gitignored：在只含跟踪文件的构建里，同步脚本会**降级跳过** demo 并打印
+    "包仍可用"。既然同步允许缺示例，启动器就不能无条件 seed —— 否则干净目录启动/`--check`
+    直接 FileNotFoundError（审查 R10）。
+    """
+    return (backend/'demo/sample.etmrecord').is_file() and (backend/'demo/decoded.json.gz').is_file()
+
 def seed_demo(backend,records):
     # Publish a complete directory only; retain any interrupted old seed outside
     # the record list instead of deleting potentially useful user evidence.
     folder=records/'demo-spi-70-35-v1'
+    if not demo_bundled(backend):
+        print('[bridge] 本包未内置示例记录（构建时源仓没有 records/ 演示数据），跳过 seed；'
+              '采集、解码、浏览不受影响',flush=True)
+        return False
     with _seed_guard:
-        if valid_demo(folder):return
+        if valid_demo(folder):return True
         with tempfile.TemporaryDirectory(prefix='.etm-demo-',dir=records.parent) as temporary:
             staging=Path(temporary)/folder.name;staging.mkdir()
             with zipfile.ZipFile(backend/'demo/sample.etmrecord') as archive:

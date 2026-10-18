@@ -103,6 +103,9 @@ class ServerTests(unittest.TestCase):
         server.RECORDS = self.original
         self.folder.cleanup()
 
+    @unittest.skipUnless((ROOT/'captures/trace-20261011-000319.csv').is_file()
+                         and (ROOT/'firmware/stm32h7b0_etm_board_v1/fw.elf').is_file(),
+                         '缺少封存的 captures/ 样例（gitignored，干净克隆里没有）')
     def test_record_package_reload_decode_and_export(self):
         elf_path=ROOT/'firmware/stm32h7b0_etm_board_v1/fw.elf'
         image=server.Image(elf_path);sources=[]
@@ -147,6 +150,9 @@ class ServerTests(unittest.TestCase):
         response = self.client.post('/api/capture', json={'seconds': 3})
         self.assertEqual(response.status_code, 400)
 
+    @unittest.skipUnless(all((ROOT/'firmware/stm32h7b0_spi_trace'/name).is_file()
+                             for name in ('fw-70.bin', 'fw-280.bin')),
+                         '缺少固件构建产物 fw-70.bin/fw-280.bin（gitignored）')
     def test_spi_profile_uses_matching_elf_and_known_capture_entry(self):
         for key in ('spi-70','spi-280'):
             response=self.client.post('/api/profiles/'+key,json={})

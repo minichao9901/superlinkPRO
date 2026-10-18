@@ -36,6 +36,23 @@ class LifecycleTests(unittest.TestCase):
             self.assertEqual(client.get('/api/browse/'+sid+'/overview').status_code,409)
             self.assertEqual(client.get('/api/jobs/'+jid).status_code,200)
         finally:release.set();thread.join()
+    def test_capture_is_rejected_while_a_slice_decoding_job_still_holds_the_la_lease(self):
+        # 审查 R05：长窗分片解码期间任务叫 decoding，但仍握着 LA 连接与本次采集缓存。
+        # 排他判据必须是"是否持有租约"，否则第二个采集会踢断第一个的 KingstVIS 连接。
+        sid='capture-lease';server.save(sid,{'input':'capture.csv'})
+        jid=server.new_job(sid,'decoding');server.jobs[jid]['_laLease']=True
+        response=self.capture()
+        self.assertEqual(response.status_code,400)
+        self.assertIn('分窗解码',response.json['error'])
+    def test_stop_during_slice_decoding_defers_instead_of_poking_the_socket(self):
+        sid='capture-lease-stop';server.save(sid,{'input':'capture.csv'})
+        jid=server.new_job(sid,'decoding');server.jobs[jid]['_laLease']=True
+        with patch.object(server,'stop_owned_la') as poked:
+            response=server.app.test_client().post('/api/stop/'+jid)
+        self.assertEqual(response.status_code,200,response.json)
+        self.assertTrue(response.json.get('deferred'))
+        self.assertTrue(server.jobs[jid]['_stopped'])
+        poked.assert_not_called()   # 不能用第二条连接打断正在跑的导出
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.previous=server.RECORDS;server.RECORDS=Path(self.tmp.name)
         server.jobs.clear();self.elf='elf-'+'a'*32;server.directory(self.elf).mkdir();(server.directory(self.elf)/'firmware.elf').write_bytes(b'elf')

@@ -41,19 +41,39 @@ capture-xxxxxxxx/
 ├── slices/00/{capture.csv, events.jsonl, decoded.json}   ← 每片原始产物，可单独复解
 ├── slices/01/...
 ├── slices.json            ← 片表（t0/t1/指令/包/周期/包问题），每解完一片就更新
-├── events.jsonl           ← 各片合并（seq 递增、cycles 累加、带 slice 字段）
-├── decoded.json           ← 合并 summary + slices[] + captureScope='sliced-window'
+├── events.jsonl           ← 各片合并（seq 按输出顺序重编、cycles 原样保留、带 slice 字段）
+├── decoded.json           ← 合并 summary/quality/**analysis** + slices[] + streamed.schema=3
 └── session.json           ← longWindow=true、slices[]、sliceSeconds
 ```
 
+**多片记录没有顶层 `capture.csv`**（这是与单窗记录最大的契约差异，2026-10-18 审查 R01 修正）：
+
+| 文件/字段 | 单窗记录（`streamed.schema=2`） | 长窗记录（`streamed.schema=3`） |
+|---|---|---|
+| 原始波形 | 顶层 `capture.csv` | `slices/NN/capture.csv`（逐片） |
+| `events.jsonl` | 顶层，全量 | 顶层，各片合并（`seq` 连续、带 `slice`） |
+| `packets.jsonl` / `elements.jsonl` | 顶层 | **只在各片目录**（字节偏移互不相通，不能直接拼） |
+| `decoded.json.capture` | 含 CSV 指纹 | **没有**（各片指纹在 `slices/NN/decoded.json`） |
+| 下载原始波形 | `GET /api/download/<sid>/raw` | `GET /api/download/<sid>/raw?slice=K` |
+| 下载整包 | `GET /api/download/<sid>/record`（.etmrecord） | 不提供（数百 MB×N 片）；会返回明确提示 |
+
+`decoded.json.analysis` 也不是"第一片的分析"：函数/热点/火焰/调用边/周期都按片合并，
+`summary.totalCycles` 取各片 `analysis.timing.totalCycles` 之和（旧实现按"每事件 cycles 最大值"
+算，1 s 记录实测只有 912，正确值约 3,600 万）。
+
+
 合并在 `etm/tools/slice_merge.py`（纯逻辑，可单测）：
 
-- `merge_slice_events(dest, slice_dir, index, seq_off, cyc_off)` —— 追加一片并把
-  `seq` 递增、`cycles` 累加、写上 `slice`；
-- `aggregate_slices(base, slices, step, la_filter)` —— 合成记录级 `decoded.json`。
+- `merge_slice_events(dest, slice_dir, index, seq_off)` —— 追加一片并把 `seq` **按输出顺序重编**、
+  写上 `slice`；`cycles` 是**每元素量**，原样保留（不再累加偏移）；
+- `aggregate_slices(base, slices, step, la_filter, parts)` —— 合成记录级 `decoded.json`：
+  summary/quality 逐片相加、`analysis`（函数/热点/火焰/调用边/timing）按片合并。
 
-单测：`python -X utf8 etm/tools/test_slices.py`（16 项，含一个抓到的真 off-by-one：
-`seq` 本身就是"第几条"，偏移不能 `+1`，否则第二片会跳号）。
+单测：`python -X utf8 etm/tools/test_slices.py`；读取契约回归：
+`python -X utf8 -m unittest discover -s etm/tools/tests -p "test_slice_contract.py"`。
+两处都曾抓出真 bug：
+① `seq` 用"片内最大 seq"推偏移会撞号（0 起的片）；② 周期按每元素最大值求和 → 912 vs 3,600 万。
+
 
 ## 页面做了什么
 
@@ -77,15 +97,16 @@ await api('capture', { seconds: captureSeconds, sliceSeconds, ... });
 2. **放行必须回读校验**：这颗探针的 PPB 写偶发不落地，`DHCSR.C_HALT` 清不掉时核会一直停着，
    15 s 后误报"未命中起点"。现在最多重写 6 次并在日志里写清哪一次没生效。
 
-## 仍未解（诚实记录）
+## 曾经的误判（已推翻，2026-10-18 复查）
 
-**H743 + 未接 NRST 的板子，`AIRCR.SYSRESETREQ` 之后核"显示在跑但一条指令都不执行"**：
-实测 `pcReset=0x080063f8`（Reset_Handler，说明复位发生了）、`DHCSR=0x01010001`（running）、
-但两次采样 PC 都是 `0x0800111a`、`g_trace.loops` 精确不变、`CFSR/HFSR=0`。
-判断是软复位只复位 CPU 核、不复位时钟/电源树（D1/D3 域），核拿不到取指时钟。
-只有 POR（断电）或拉 NRST 能恢复 —— 所以**"复位到入口"这条路在产品里不该当默认**：
+~~"H743 + 未接 NRST 的板子，`AIRCR.SYSRESETREQ` 之后核显示在跑却一条指令都不执行；
+软复位只复位 CPU 核、不复位时钟/电源树。"~~
 
-- 需要初始化段（复位→初始化→枚举→echo）：用**上电即采**（页面武装 LA → 提示上电 → 从 t=0 全程记录）；
-- 只关心业务（echo/命令）：用**不复位·运行至起点**（可反复采）。
+**真因（`7006219` 已修）**：H743 的软复位会把**调试端口本身**一起复位。复位后不重建 SWD，
+写 `DHCSR` 会"看着成功"（回读 running），但核其实没有恢复执行 —— 症状恰好是
+`PC` 与 `g_trace.loops` 一动不动、无 fault。修法是复位停住后先 `probe.recoverDebugPort()`
+重建 DP/AP，再装比较器、放行；`f9daf69` 又加了"失败自动重试一次"和"核在跑吗"自检。
 
-上电即采还没做，是下一步。
+复查记录见 `docs/handoff-2026-10-18.md` §3 与 §9（"这次会话里被证伪/纠正过的结论"）。
+真机复跑（断电后首次采集）仍待安排 —— 那是验证，不是未修代码。
+

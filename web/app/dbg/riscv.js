@@ -214,16 +214,20 @@ export class RiscvDebugSession extends DebugSession {
    *    `dpc` 是抽象命令、要求核停住，读失败不影响判断（跳过这一条）。
    *
    * @param {number|null} pc0 起步 PC（不知道就传 null）
+   * @param {number} timeoutMs 等多久
+   * @param {boolean} ackProof resumeack 能不能当"这次真的跑起来了"的证据
+   *        —— 单步前若旧 ack 清不掉（`step()` 的 staleAck），它是**上次**的残留，
+   *        必须置 false，只看 running/不停机/PC 变化（审查 R12）。
    * @returns {Promise<boolean>} 有没有观察到"真的跑起来"
    */
-  async _waitResumed(pc0 = null, timeoutMs = 300){
+  async _waitResumed(pc0 = null, timeoutMs = 300, ackProof = true){
     const t0 = Date.now();
     for (;;){
       let st = 0;
       try { st = (await this.dm.dmiRead(0x11)) >>> 0; } catch { return false; }
         // step() first clears the previous resumereq/ack. A fresh ack also
         // proves execution when a one-instruction self-loop returns to the same PC.
-        if (st & (3 << 16)) return true;
+        if (ackProof && (st & (3 << 16))) return true;
       if (((st >>> 10) & 3) !== 0) return true;                 // ① running
       if (((st >>> 8) & 3) !== 3) return true;                  // ② 已经不在"停"态
       if (pc0 != null){                                         // ③ PC 动了（单步/立刻命中）
@@ -645,7 +649,11 @@ export class RiscvDebugSession extends DebugSession {
        *    等 DM 真放开核时，它带着"断点已装回、step 已被清"重新执行同一条指令：
        *    原地再命中 → 现象就是"单步按了没反应、PC 一动不动"。
        */
-        if (!await this._waitResumed(pc, 400)) throw new Error('未确认目标执行单步，未报告完成');
+        if (!await this._waitResumed(pc, 400, !staleAck)) {
+          throw new Error(staleAck
+            ? '未确认目标执行单步：resumeack 是上次残留（无法当证据），且未观察到 running/PC 变化；请先「暂停」再重试'
+            : '未确认目标执行单步，未报告完成');
+        }
         await this.dm.waitHalted(3000);
         this.halted = true;
       } catch (e){ operationError = e; throw e; }

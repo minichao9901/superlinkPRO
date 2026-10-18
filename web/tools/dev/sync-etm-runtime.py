@@ -2,14 +2,29 @@
 import argparse,gzip,hashlib,json,shutil,subprocess,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
-FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stream.py','tools/stream_store.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py']
+FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stream.py','tools/stream_store.py','tools/slice_merge.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py']
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--etm-root',required=True,type=Path);args=parser.parse_args()
     source=args.etm_root.resolve();dest=ROOT/'bridge/etm/backend';origins={}
     paths=FILES+[p.relative_to(source).as_posix() for p in (source/'web').rglob('*') if p.is_file()]
-    paths+=['native/decoder.cpp','build-native/etm_decode.exe','vendor/OpenCSD-1.8.3/LICENSE']
+    # ⚠️ 不要在这里复制 `build-native/etm_decode.exe`：它是构建产物（gitignored），
+    #    裸克隆里没有；旧顺序会先因为缺 exe 抛异常，后面的 cmake 自动构建永远轮不到（审查 R09）。
+    #    exe 由下面最后一步 g++ 直接链接进快照。
+    paths+=['native/decoder.cpp','vendor/OpenCSD-1.8.3/LICENSE']
     for name in paths:
-        target=dest/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source/name,target)
+        target=dest/name;target.parent.mkdir(parents=True,exist_ok=True)
+        data=(source/name).read_bytes()
+        # 源树在 Windows 上按 autocrlf 检出成 CRLF；快照目录里历史文件的行尾是**混合**的
+        # （git 对 text=unset 的路径不做归一化）。copyfile 会把 60 个文件整体改行尾，diff 全是噪声。
+        # 规则：内容只差行尾 → 保留快照里的字节；快照原本是 LF 而内容真变了 → 仍写 LF。
+        if target.exists():
+            old=target.read_bytes()
+            if old.replace(b'\r\n',b'\n')==data.replace(b'\r\n',b'\n'):
+                origins[name]=hashlib.sha256(old).hexdigest()
+                continue
+            if b'\r\n' not in old:
+                data=data.replace(b'\r\n',b'\n')
+        target.write_bytes(data)
         origins[name]=hashlib.sha256(target.read_bytes()).hexdigest()
     notices=set()
     for file in (source/'vendor/OpenCSD-1.8.3/decoder').rglob('*'):

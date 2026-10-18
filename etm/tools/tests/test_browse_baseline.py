@@ -3,6 +3,7 @@ import json,sys,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT));import server
 class BaselineBrowseTests(unittest.TestCase):
+    @unittest.skipUnless((ROOT/'records/capture-8365b3adb65b4f0cb281e55aef2c89c7').is_dir(), '缺少封存基线记录（records/ 是 gitignored）')
     def test_real_long_record_summary_queries_and_symbol_table(self):
         sid='capture-8365b3adb65b4f0cb281e55aef2c89c7';c=server.app.test_client()
         overview=c.get('/api/browse/'+sid+'/overview');self.assertEqual(overview.status_code,200)

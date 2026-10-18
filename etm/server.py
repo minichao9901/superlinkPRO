@@ -510,7 +510,8 @@ def record_kind(sid,row,demo=None):
 @app.get('/api/records/<sid>')
 def get_record(sid):
     r=result(sid)
-    if r.get('streamed',{}).get('schema')==2:
+    if r.get('streamed',{}).get('schema') in (2,3):
+        # 流式记录的事件/包是 JsonLines（不能直接 jsonify）；长窗（schema 3）同理。
         r={k:v for k,v in r.items() if k not in ('events','packets','elements','sources')}
     return jsonify(r)
 
@@ -528,7 +529,7 @@ def attach_sources(sid):
             r['sources'][file] = matches[0]
     folder = directory(sid)
     save_json(folder/'sources.json',r['sources'])
-    if r.get('streamed',{}).get('schema')!=2:save_json(folder/'decoded.json',r)
+    if r.get('streamed',{}).get('schema') not in (2,3):save_json(folder/'decoded.json',r)
     return jsonify(sources=r['sources'])
 
 
@@ -589,9 +590,13 @@ def export_slices(jid, sid, v, options):
     这正是前人 long_flow.py / finalize_long500.py 的做法（一次连续采集 + 分窗解码），这里固化成产品路径：
       1) 采集完成后按 sliceSeconds 逐片 `do_export(time_span=(t0,t1))`；
       2) 每片流式解码到 slices/NN/（events.jsonl 就地保留，便于复解）；
-      3) 把各片事件拼成记录级 events.jsonl：seq 递增、cycles 累加、加 slice 字段，
-         于是所有既有视图（序列/火焰/函数/热点）无需改动就能读"整段"；
-      4) 记录级 decoded.json 给合并 summary + slices[]（t0/t1/指令/包/包问题）。
+      3) 把各片事件拼成记录级 events.jsonl：seq **按输出顺序重编**、`slice` 标注片号，
+         `cycles` 保持每元素量（不是累计时间）；既有视图（序列/火焰/函数/热点）读"整段"；
+      4) 记录级 decoded.json 给合并 summary/quality/**analysis** + slices[]，并标 `streamed.schema=3`
+         —— 多片记录没有单一 capture.csv，读取器必须按"多片"契约处理（见 stream_store.attach_streams）；
+      5) 最后才建浏览索引、才把 decodeStatus 标成 done（索引失败不再留下"看似完成"的记录）。
+
+    取消语义：任一片开始前检查任务是否被 stop；被 stop 就停下并保留已导出的片。
     """
     folder = directory(sid)
     m = meta(sid)
@@ -600,10 +605,13 @@ def export_slices(jid, sid, v, options):
     step = max(.05, min(step, seconds))
     count = max(1, int(math.ceil(seconds / step - 1e-9)))
     slices = []
+    parts = []
     seq_off = 0
-    cyc_off = 0
     merged = folder / 'events.jsonl'
     for k in range(count):
+        with lock:
+            if jobs[jid].get('_stopped'):
+                raise ValueError(f'采集已取消：分窗导出在第 {k + 1}/{count} 片前停止；已导出的片保留')
         t0, t1 = k * step, min(seconds, (k + 1) * step)
         if t1 - t0 < 1e-6:
             break
@@ -616,33 +624,50 @@ def export_slices(jid, sid, v, options):
         r = decode_capture_stream(csv, folder / 'firmware.elf', d, m['config'], None,
                                   fraction=m.get('fraction', .25), clock=m.get('clock', 0),
                                   data=m.get('data', [1, 2, 3, 4]), glitch_ns=m.get('glitchNs', 0))
+        parts.append(r)
         summary = r.get('summary') or {}
         quality = r.get('quality') or {}
-        cyc_before = cyc_off
-        seq_off, cyc_off = merge_slice_events(merged, d, k, seq_off, cyc_off)
+        timing = (r.get('analysis') or {}).get('timing') or {}
+        seq_off = merge_slice_events(merged, d, k, seq_off)
         slices.append(dict(index=k, t0=t0, t1=t1, csvBytes=csv.stat().st_size,
                            instructions=int(summary.get('instructions') or 0),
                            packets=int(summary.get('packets') or 0),
-                           cycles=cyc_off - cyc_before,
+                           cycles=int(timing.get('totalCycles') or 0),
                            packetIssues=int(quality.get('packetIssues') or 0)))
         # 每片解完就更新一次进度，页面能看到 k/N
         save_json(folder / 'slices.json', dict(sliceSeconds=step, seconds=seconds, slices=slices))
     if not slices:
         raise ValueError('分窗导出没有产生任何切片。')
+    finalize_slices(sid, folder, m, slices, step, seconds, seq_off, parts)
+
+
+def finalize_slices(sid, folder, m, slices, step, seconds, seq_off, parts):
+    """把逐片产物合成一条可读记录（合并 → 摘要 → 索引），不碰 LA，便于离线/单测。
+
+    单测（`tools/tests/test_slice_contract.py`）用假片直接驱动这里，验证：
+    `result()` 能读、事件数一致、周期按 analysis.timing 求和、下载/浏览不再 400。
+    """
     first = folder / 'slices' / '00'
     base = load_json(first / 'decoded.json') if (first / 'decoded.json').exists() else {}
-    base = aggregate_slices(base, slices, step, m.get('laFilter'))
+    base = aggregate_slices(base, slices, step, m.get('laFilter'), parts)
+    # 多片记录没有单一 capture.csv：去掉单片指纹（否则 verify_record_inputs 找不到文件就 400），
+    # 单片原始波形与指纹留在 slices/NN/ 里（各片 decoded.json.capture），由 slices[] 描述。
+    base.pop('capture', None)
+    base['streamed'] = dict(schema=3, events=seq_off, slices=len(slices),
+                            packets=sum(int(s.get('packets') or 0) for s in slices))
+    base['sliceSeconds'] = step
     save_json(folder / 'decoded.json', base)
     src_snapshot = first / 'sources.json'
     if src_snapshot.exists() and not (folder / 'sources.json').exists():
         (folder / 'sources.json').write_text(src_snapshot.read_text(encoding='utf8'), encoding='utf8')
-    m = meta(sid)
-    m.update(slices=slices, sliceSeconds=step, longWindow=True, decodeStatus='done',
-             summary=base['summary'], captureScope='sliced-window')
+    m = {**m, 'slices': slices, 'sliceSeconds': step, 'longWindow': True,
+         'decodeStatus': 'building-index', 'summary': base['summary'],
+         'captureScope': 'sliced-window', 'eventCount': seq_off}
     m.pop('error', None)
     m.pop('errorStage', None)
     save(sid, m)
     browse_store(sid).ensure()
+    save(sid, {**m, 'decodeStatus': 'done'})
 
 
 def decode_job(jid,sid):
@@ -759,6 +784,9 @@ def capture_job(jid, sid, options):
         with lock:
             if jobs[jid].get('_stopped'):return
         v = Vis()
+        # LA（KingstVIS socket）是**单客户端**资源：从连上到本任务结束（含逐片导出/解码）都算持有。
+        # 只按 state 排他会漏掉 decoding 阶段 —— 那时后续分片还要用同一条连接和缓存（审查 R05）。
+        with lock: jobs[jid]['_laLease'] = True
         rates = [int(n) for n in v.cmd('get-supported-sample-rate').split()]
         if options['rate'] not in rates:
             raise ValueError('LA 不支持所选采样率。')
@@ -861,7 +889,9 @@ def capture_job(jid, sid, options):
         try:
             if v:v.close()
         finally:
-            with lock:jobs[jid].pop('_socket',None)
+            with lock:
+                jobs[jid].pop('_socket',None)
+                jobs[jid].pop('_laLease',None)
 
 
 @app.post('/api/capture')
@@ -899,8 +929,10 @@ def start_capture():
     if len(o['data']) != 4 or len(set([o['clock']] + o['data'])) != 5 or any(n < 0 or n > 15 for n in [o['clock']] + o['data']):
         raise ValueError('请配置五个不同的 CH0~15 通道。')
     with lock:
-        if any(j.get('kind','capture')=='capture' and (j['state'] in ('queued', 'starting', 'armed', 'saving') or j.get('cleanupPending')) for j in jobs.values()):
-            raise ValueError('已有采集任务进行中。')
+        # 排他判据 = "是否还持有 LA 租约"，而不是仅看 state：
+        # 长窗分片解码期间任务叫 decoding，但它仍握着 LA 连接与本次采集缓存（审查 R05）。
+        if any(j.get('kind','capture')=='capture' and (j['state'] in ('queued', 'starting', 'armed', 'saving', 'decoding') or j.get('_laLease') or j.get('cleanupPending')) for j in jobs.values()):
+            raise ValueError('已有采集任务进行中（含分窗解码）；等它结束再采。')
         sid = 'capture-' + uuid.uuid4().hex
         jid = new_job(sid, 'queued')
     try:
@@ -930,9 +962,18 @@ def stop_capture(jid):
             return jsonify(stopped=True,cancelled=True)
         if job['state'] in ('done','cancelled','error') and not job.get('cleanupPending'):
             return jsonify(stopped=True,alreadyFinished=True)
-        if job['state'] not in ('starting', 'armed') and not job.get('cleanupPending'):
+        # 分窗导出/解码阶段（saving/decoding）也持有 LA 租约，必须允许取消；
+        # 但**不在这里立刻给 LA 发 stop** —— 那会从第二条连接打断正在跑的导出，
+        # 改为置 _stopped，让分窗循环在片边界收尾后由任务自己清理（审查 R05）。
+        active = job['state'] in ('starting', 'armed')
+        cleanup = bool(job.get('cleanupPending'))
+        lease = bool(job.get('_laLease'))
+        if not (active or cleanup or lease):
             raise ValueError('当前没有等待触发或采集中的 LA 任务。')
         job['_stopped'] = True
+        deferred = lease and not active and not cleanup
+    if deferred:
+        return jsonify(stopped=True, deferred=True)
     stop_owned_la(jid)
     return jsonify(stopped=True)
 
@@ -985,10 +1026,31 @@ def download(sid, kind):
     folder = directory(sid)
     if kind in ('raw', 'kvdat'):
         m = meta(sid)
-        file = folder / (m['input'] if kind == 'raw' else 'capture.kvdat')
+        sliced = bool(m.get('longWindow')) and (folder / 'slices').is_dir()
+        if sliced:
+            # 长窗记录没有顶层 capture.csv：原始波形按片存放（slices/NN/），逐片下载。
+            count = len(m.get('slices') or [])
+            index = request.args.get('slice')
+            if index is None:
+                raise ValueError(f'这是长窗（分窗）记录：原始波形按片保存（共 {count} 片）。'
+                                 f'请加 ?slice=0..{count - 1} 逐片下载；分析结果用 /api/download/{sid}/json。')
+            k = int(index)
+            if not 0 <= k < count:
+                raise ValueError(f'片号越界：0～{count - 1}')
+            file = folder / 'slices' / f'{k:02d}' / ('capture.csv' if kind == 'raw' else 'capture.kvdat')
+        else:
+            file = folder / (m['input'] if kind == 'raw' else 'capture.kvdat')
         return send_file(file, as_attachment=True)
     if kind == 'record':
         m = meta(sid)
+        sliced = bool(m.get('longWindow')) and (folder / 'slices').is_dir()
+        if sliced:
+            # 逐片原始 CSV 动辄数百 MB，整段打包既超内存也超过导入限额：
+            # 明确按"单片可下载"给出契约，而不是抛一个看不出原因的 400。
+            count = len(m.get('slices') or [])
+            raise ValueError(f'长窗（分窗）记录不提供整包下载：共 {count} 片、每片数百 MB。'
+                             f'逐片取原始波形用 /api/download/{sid}/raw?slice=K；'
+                             f'分析结果用 /api/download/{sid}/json。')
         if not (folder/m['input']).is_file() or not (folder/'firmware.elf').is_file():
             raise ValueError('本记录尚无本次原始波形或配套 ELF，不能导出为完整记录包。')
         buffer = io.BytesIO()
@@ -999,13 +1061,14 @@ def download(sid, kind):
         buffer.seek(0)
         return send_file(buffer, as_attachment=True, download_name=sid + '.etmrecord')
     r = result(sid)
+    streamed = r.get('streamed', {}).get('schema') in (2, 3)
     if kind in ('source','simplified','simplified-html','csv') and request.args.get('fromSeq') is not None:
         start=int(request.args['fromSeq']);end=int(request.args.get('toSeq',len(r['events'])-1))
         if start<0 or end<start:raise ValueError('导出序号区间无效')
-        if r.get('streamed',{}).get('schema')==2 and end-start>=200000:
+        if streamed and end-start>=200000:
             raise ValueError('本导出格式请选取不超过 20 万条记录的局部区间；整段可导出简化源码 .c')
         r={**r,'events':[e for e in r['events'] if start<=e['seq']<=end],'exportRange':dict(start=start,end=end)}
-    if r.get('streamed',{}).get('schema')==2 and request.args.get('fromSeq') is None:
+    if streamed and request.args.get('fromSeq') is None:
         if kind=='simplified':
             path=folder/('export-simplified-'+uuid.uuid4().hex+'.c');export_simplified_stream(folder,path)
             response=send_file(path,as_attachment=True,download_name='etm-simplified.c',mimetype='text/plain; charset=utf-8')
@@ -1019,7 +1082,7 @@ def download(sid, kind):
         text = export_source(r, kind == 'simplified')
         return send_file(io.BytesIO(text.encode('utf-8')), as_attachment=True,
                          download_name='etm-' + kind + '.c', mimetype='text/plain; charset=utf-8')
-    if kind == 'json' and r.get('streamed',{}).get('schema')==2:
+    if kind == 'json' and streamed:
         return send_file(folder/'decoded.json',as_attachment=True,download_name='decoded.json')
     if kind == 'json':
         return send_file(io.BytesIO(json.dumps(r, ensure_ascii=False).encode('utf-8')), as_attachment=True, download_name='decoded.json')

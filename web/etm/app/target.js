@@ -288,27 +288,47 @@ export class EtmTarget {
       await this.write(0xe000edfc,demcr&~1,false);             // 清 VC_CORERESET
       this.log(`已停在复位处 ${hex(resetPC)}；比较器已装好，放行至 ${hex(address)}`);
       // 这颗探针的 PPB 写偶发不落地（见 app/rtt/dap-webusb.js 的历史教训）：放行后必须
-      // 回读确认 S_HALT 真的掉了，没掉就重写，最多 6 次；否则核会一直停着，等 15 s 后误报"未命中起点"。
-      let resumed=false;
-      for(let resumeTry=0;resumeTry<6&&!resumed;resumeTry++){
+      // 回读确认 C_HALT 真的掉了，没掉就重写。
+      //
+      // 🚨 2026-10 真机定因（审查 R02，H743 + 本仓 target.js）：**"停机"不等于"放行失败"**。
+      //   初始化很快时，核在 30 ms 内就会命中业务起点而再次 halt —— 此时 S_HALT=1 正是成功结果，
+      //   旧实现却据此连写 6 次放行、再触发第二次系统复位，最后报"放行失败：C_HALT 清不掉"，
+      //   而最终 PC 恰好就是请求的入口（真机两轮：main、cdc_acm_init 都是这样）。
+      //   现在：读到停机就先看 PC —— 命中入口立刻按成功收尾；还停在复位处才当作"写没落地"重试；
+      //   停在第三处则是真的停错了，直接按 unexpectedHalt 报告（不再连写 6 次掩盖真因）。
+      let resumed=false,hit=false,stalledPC=null;
+      for(let resumeTry=0;resumeTry<6&&!resumed&&!hit;resumeTry++){
         await this.write(0xe000edf0,0xa05f0001,false);          // DBGKEY|C_DEBUGEN，C_HALT=0：放行
         await sleep(30);
         const dh=await this.read(0xe000edf0);
-        if(!(dh&(1<<17))&&(dh&1))resumed=true;
+        if(dh&(1<<17)){
+          // 停住了：可能已经命中断点（成功），也可能压根没离开复位（PPB 写没落地）。
+          const stoppedPC=await this.pc();
+          if((stoppedPC&~1)===((address)&~1)){hit=true;break;}
+          if((stoppedPC&~1)===(resetPC&~1)){
+            this.log(`放行第 ${resumeTry+1} 次后仍停在复位处（DHCSR=${hex(dh)}），重写`);
+            continue;
+          }
+          stalledPC=stoppedPC;break;   // 停在别处：是真的停错了
+        }
+        if(dh&1)resumed=true;
         else this.log(`放行第 ${resumeTry+1} 次没生效（DHCSR=${hex(dh)}），重写`);
       }
-      if(!resumed)throw Error('放行失败：DHCSR 的 C_HALT 清不掉（探针 PPB 写没有落地）；目标将暂停');
-      // 先给 200 ms 的"正常命中"窗口：正常情况下初始化很快，会直接停在业务起点。
-      const until=Date.now()+timeout,quick=Date.now()+200;
-      let halted=false;
-      while(Date.now()<quick){if((await this.read(0xe000edf0))&(1<<17)){halted=true;break;}await sleep(10);}
-      if(!halted){
-        const {ok,pc0,pc1}=await probeExecuting();
-        if(!ok)throw Error(`放行后核没有执行（PC 停在 ${hex(pc1)}；调试端口可能需要重建）`);
-        this.log(`核在运行（PC ${hex(pc0)} → ${hex(pc1)}），但还没到起点，继续等`);
-        await this.write(0xe000edf0,0xa05f0001,false);          // 自检时停过一次，继续放行
+      if(stalledPC!==null)throw await this.unexpectedHalt(stalledPC,address,'复位后');
+      if(!resumed&&!hit)throw Error('放行失败：DHCSR 的 C_HALT 清不掉（探针 PPB 写没有落地）；目标将暂停');
+      if(!hit){
+        // 先给 200 ms 的"正常命中"窗口：正常情况下初始化很快，会直接停在业务起点。
+        const until=Date.now()+timeout,quick=Date.now()+200;
+        let halted=false;
+        while(Date.now()<quick){if((await this.read(0xe000edf0))&(1<<17)){halted=true;break;}await sleep(10);}
+        if(!halted){
+          const {ok,pc0,pc1}=await probeExecuting();
+          if(!ok)throw Error(`放行后核没有执行（PC 停在 ${hex(pc1)}；调试端口可能需要重建）`);
+          this.log(`核在运行（PC ${hex(pc0)} → ${hex(pc1)}），但还没到起点，继续等`);
+          await this.write(0xe000edf0,0xa05f0001,false);          // 自检时停过一次，继续放行
+        }
+        await waitHalt(until,'复位后未命中业务起点；目标将暂停');
       }
-      await waitHalt(until,'复位后未命中业务起点；目标将暂停');
       const pc=await this.pc();if(pc!==address)throw await this.unexpectedHalt(pc,address,'复位后');
       const info=await this.inspect();info.entryPC=pc;info.resetPC=resetPC;info.resetAttempts=n;return info;
     };

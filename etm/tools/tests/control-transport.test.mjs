@@ -25,13 +25,32 @@ test('cleanup failure never replaces the primary operation failure',async()=>{
   assert.deepEqual(primary.cleanupErrors,['后续诊断 FAULT']);assert.deepEqual(messages,['后续诊断 FAULT']);
   await assert.rejects(withCleanup(async()=>42,async()=>{throw Error('清理失败');}),/清理失败/);
 });
-test('business breakpoint is armed before a single reset, without reset-vector catch',async()=>{
-  const t=new EtmTarget(),mem=new Map([[0xe0002000,0x60],[0xe000edfc,0x01000001]]),writes=[];let pc=0x08001000;
-  t.probe={isHalted:async()=>true};t.halt=async()=>{};t.stopTrace=async()=>{};t.pc=async()=>pc;t.inspect=async()=>({halted:true});
+test('reset uses VC_CORERESET and arms the business comparator only after the reset',async()=>{
+  // 2026-10-18 的定因（53f70df/7006219）：H743 的系统复位会**清空 FPB 比较器**，
+  // 且会把调试端口一起复位。所以顺序变成：置 VC_CORERESET → 复位并停在 Reset →
+  // 重建调试口 → **复位之后**才装业务比较器 → 清 VC_CORERESET → 放行。
+  const t=new EtmTarget(),mem=new Map([[0xe0002000,0x60],[0xe000edfc,0x01000001]]),writes=[];
+  let pc=0x08001000,installed=false;
+  t.probe={isHalted:async()=>true,recoverDebugPort:async()=>{}};t.halt=async()=>{};t.stopTrace=async()=>{};
+  t.pc=async()=>pc;t.inspect=async()=>({halted:true});
   t.read=async a=>a===0xe000edf0?1<<17:mem.get(a)||0;
-  t.write=async(a,v)=>{writes.push([a,v]);mem.set(a,v>>>0);if(a===0xe000ed0c){assert.ok(mem.get(0xe0002008)&1);assert.equal(mem.get(0xe000edfc)&1,0);pc=0x08002002;}};
-  try{const info=await t.reset({address:0x08002002});assert.equal(info.entryPC,pc);assert.equal(writes.filter(([a])=>a===0xe000ed0c).length,1);
-    assert.equal(mem.get(0xe0002008),0);assert.equal(mem.get(0xe000edfc),0x01000001);assert.equal(t.entryBreak,null);
+  t.write=async(a,v)=>{
+    writes.push([a,v]);mem.set(a,v>>>0);
+    if(a===0xe000ed0c){
+      assert.equal(mem.get(0xe000edfc)&1,1,'复位前必须已置 VC_CORERESET');
+      assert.equal(mem.get(0xe0002008)&1,0,'复位前不能装业务比较器（会被复位清空）');
+      pc=0x08001000;                       // 停在 Reset_Handler
+    }
+    if(a===0xe0002008&&(v&1))installed=true;
+    if(a===0xe000edf0&&!(v&2)&&installed)pc=0x08002002;   // 放行后命中业务起点
+  };
+  try{const info=await t.reset({address:0x08002002});
+    assert.equal(info.entryPC,0x08002002);
+    assert.equal(writes.filter(([a])=>a===0xe000ed0c).length,1);
+    assert.equal(installed,true,'复位之后必须真的装了业务比较器');
+    assert.equal(mem.get(0xe0002008),0);                       // 成功后一次性断点被清掉
+    assert.equal(mem.get(0xe000edfc),0x01000001);              // VC_CORERESET 恢复
+    assert.equal(t.entryBreak,null);
   }finally{t.bus.close();}
 });
 test('transport recovery does not resume or reset target',async()=>{

@@ -17,7 +17,7 @@ class RecordStore:
     def signature(self):
         p=self.folder/'decoded.json';s=p.stat()
         parts=[f'{VERSION}:{s.st_size}:{s.st_mtime_ns}']
-        for name in ('spi-validation.json','phase-validation.json','firmware.elf','capture.csv','capture.bin','etm.bin','session.json','events.jsonl','packets.jsonl','elements.jsonl','sources.json'):
+        for name in ('spi-validation.json','phase-validation.json','firmware.elf','capture.csv','capture.bin','etm.bin','session.json','slices.json','events.jsonl','packets.jsonl','elements.jsonl','sources.json'):
             side=self.folder/name
             if side.exists():t=side.stat();parts.append(f'{name}:{t.st_size}:{t.st_mtime_ns}')
         return '|'.join(parts)
@@ -83,7 +83,10 @@ class RecordStore:
                     if any(t in p.get('text','').upper() for t in ('OVERFLOW','BAD_','RESERVED','INCOMPLETE_EOT')):
                         issues.append(dict(category='packet',startSeq=None,endSeq=None,records=0,offset=start,bytes=p['size'],reason='包问题：'+p['text']))
                 input_size=q.get('inputBytes',q.get('processedBytes',0))
-                if input_size>packet_end:issues.append(dict(category='gap',startSeq=None,endSeq=None,records=0,offset=packet_end,bytes=input_size-packet_end,reason='ETM 输入尾部未被包记录覆盖'))
+                # 长窗（streamed.schema=3）记录只合并了事件流，packets 留在各片里：
+                # 拿"整段输入字节"去比"根目录 packet_end"会造出一条几十 MB 的假"尾部覆盖缺口"。
+                if r.get('streamed',{}).get('schema')!=3 and input_size>packet_end:
+                    issues.append(dict(category='gap',startSeq=None,endSeq=None,records=0,offset=packet_end,bytes=input_size-packet_end,reason='ETM 输入尾部未被包记录覆盖'))
                 if r.get('status',{}).get('lastErrorCode'):issues.append(dict(category='decoder',startSeq=None,endSeq=None,records=0,offset=r['status'].get('processed'),reason='解码器错误：'+r['status'].get('lastError','未知错误')))
                 for key,label in [('initialPhysicalBytes','TPIU 同步前物理字节'),('trailingFrameBytes','不完整的 TPIU 尾帧'),('unknownSourceBytes','未知源 ID 字节')]:
                     if q.get(key):issues.append(dict(category='physical',startSeq=None,endSeq=None,records=0,bytes=q[key],reason=label))

@@ -58,6 +58,7 @@ test-jtag-host:
 	$(PYTHON) script_test/riscv_jtag_host_test.py
 
 test-host: test-jtag-host
+	$(PYTHON) script_test/dap_reset_pins_test.py
 	$(PYTHON) script_test/service_gate_host_test.py
 	$(PYTHON) script_test/analog_host_test.py
 	$(PYTHON) script_test/adc_stream_host_test.py
