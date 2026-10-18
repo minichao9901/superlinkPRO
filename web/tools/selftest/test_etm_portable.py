@@ -99,7 +99,8 @@ class PortableTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(content).hexdigest(),metadata['sha256'])
         output=self.root/'portable-redownload.zip';output.write_bytes(content)
         with zipfile.ZipFile(output) as archive:
-            self.assertFalse(any('/data/' in name for name in archive.namelist()))
+            # 只检查顶层 data/（用户记录目录），不能把 numpy/pandas 自带的 .../data/ 测试夹具算进来
+            self.assertFalse(any(name.startswith('etm-bridge-kit/data/') for name in archive.namelist()))
             manifest=json.loads(archive.read('etm-bridge-kit/package-manifest.json'))
             for item in manifest['files']:
                 self.assertEqual(hashlib.sha256(archive.read('etm-bridge-kit/'+item['name'])).hexdigest(),item['sha256'])
