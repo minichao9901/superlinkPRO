@@ -10,8 +10,8 @@ test('real page handlers enforce prerequisites and complete a capture with resto
 });
 test('bad parameters fail before reset, halt or trace configuration',async()=>{
  const u=await ui();try{await u.upload();await u.click('connect');await u.select();
-  // 窗口上限 2026-10-18 起是 4 s（e5e1fac）；4001 ms 才是越界值，2001 ms 现在是合法的。
-  for(const [id,value]of [['duration','4001'],['rate','0'],['threshold','5'],['fraction','1'],['traceid','0'],['channels','1,2,3,4,']]){
+  // 2026-10-18 产品决策：单次采集/显示上限 200 ms；201 ms 才是越界值（200 ms 合法）。
+  for(const [id,value]of [['duration','201'],['rate','0'],['threshold','5'],['fraction','1'],['traceid','0'],['channels','1,2,3,4,']]){
    const old=u.$(id).value,before=u.events.length;u.$(id).value=value;await u.click('start');assert.equal(u.events.length,before,id);assert.equal(u.state.operation,false);u.$(id).value=old;
   }
  }finally{u.close();}

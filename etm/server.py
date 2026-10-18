@@ -578,8 +578,14 @@ def capture_start_info(events,metadata):
                 entryRecovered=present,firstMatchesEntry=bool(first and first.get('pc')==entry))
 
 
-SLICE_MIN_SECONDS = 0.15     # 超过这个窗口就走"一次采集 + 自动分窗"
-DEFAULT_SLICE_SECONDS = 0.2  # 单片时长（0.2 s ≈ 481 MB CSV、约 7 分钟解码 ≈ 3.9M 指令）
+SLICE_MIN_SECONDS = 0.15     # 历史长窗阈值（产品已在 2026-10-18 停用分窗，见下）
+DEFAULT_SLICE_SECONDS = 0.2  # 历史长窗单片时长；仅旧的 export_slices()/离线重建工具仍用
+# 2026-10-18 产品决策：**单次采集 + 单次解码上限 200 ms**，不再走"一次采集 + 自动分窗"。
+#   · 1 s 全量解码实测要 10~30 分钟（CSV ~2.4 GB），用户判定不实用；
+#   · 200 ms 仍是一段完整、可一次解码完的窗口（≈478 MB CSV / 3.9M 指令）；
+#   · 分窗代码保留，只用于**读取/离线重建旧记录**（streamed.schema=3），不再由 /api/capture 触发。
+CAPTURE_MAX_SECONDS = 0.2
+CAPTURE_MAX_SAMPLES = 100_000_000
 
 
 def export_slices(jid, sid, v, options):
@@ -855,34 +861,22 @@ def capture_job(jid, sid, options):
         v = Vis()
         change(jid, state='saving')
         folder = directory(sid)
-        if options['decode'] and options['seconds'] > SLICE_MIN_SECONDS:
-            # 长窗：一次采集 + 自动分窗（全量导出会卡死，见 export_slices 的说明）
-            export_slices(jid, sid, v, options)
-            depth = v.cmd('get-actual-sample-depth')
-            span = v.cmd('get-actual-sample-time')
-            m = meta(sid)
-            m.update(actualDepth=depth, actualTime=span, stopped=stopped, captureStatus='saved')
-            try:
-                m['laFilter'] = read_glitch_settings(folder / 'capture.kvdat', options['rate'])
-            except Exception as error:
-                m['laFilter'] = dict(basis='unknown', error=str(error))
-            save(sid, m)
-            change(jid, state='done')
+        # 2026-10-18：产品只做 ≤200 ms 的单窗采集 + 单次解码，不再自动分窗。
+        # 旧的 export_slices() 保留，仅用于读取/离线重建历史长窗记录（streamed.schema=3）。
+        do_export(v, str((folder / 'capture.csv').resolve()), [options['clock']] + options['data'])
+        depth = v.cmd('get-actual-sample-depth')
+        span = v.cmd('get-actual-sample-time')
+        m = meta(sid)
+        m.update(actualDepth=depth, actualTime=span, stopped=stopped,captureStatus='saved')
+        try:
+            m['laFilter']=read_glitch_settings(folder/'capture.kvdat',options['rate'])
+        except Exception as error:
+            m['laFilter']=dict(basis='unknown',error=str(error))
+        save(sid, m)
+        if options['decode']:
+            decode_job(jid, sid)
         else:
-            do_export(v, str((folder / 'capture.csv').resolve()), [options['clock']] + options['data'])
-            depth = v.cmd('get-actual-sample-depth')
-            span = v.cmd('get-actual-sample-time')
-            m = meta(sid)
-            m.update(actualDepth=depth, actualTime=span, stopped=stopped,captureStatus='saved')
-            try:
-                m['laFilter']=read_glitch_settings(folder/'capture.kvdat',options['rate'])
-            except Exception as error:
-                m['laFilter']=dict(basis='unknown',error=str(error))
-            save(sid, m)
-            if options['decode']:
-                decode_job(jid, sid)
-            else:
-                change(jid, state='done')
+            change(jid, state='done')
     except (Exception,SystemExit) as error:
         record_failure(sid,error,'capture')
         cleanup_error=None
@@ -917,20 +911,18 @@ def start_capture():
              config=decoder_config(o.get('config', {})), elfId=o.get('elfId'),sourceSnapshot=o.get('sourceSnapshot'),
              libraryOrigin='validation' if o.get('libraryOrigin')=='validation' else 'user',
              targetVerified=bool(o.get('targetVerified')), fraction=float(o.get('fraction', .25)),glitchNs=float(o.get('glitchNs',0)),
-             targetSnapshot=o.get('targetSnapshot'),captureScope=o.get('captureScope','unfiltered-window'),captureEntry=o.get('captureEntry'),
-             sliceSeconds=float(o.get('sliceSeconds') or DEFAULT_SLICE_SECONDS))
+             targetSnapshot=o.get('targetSnapshot'),captureScope=o.get('captureScope','unfiltered-window'),captureEntry=o.get('captureEntry'))
     if not math.isfinite(o['glitchNs']) or not 0<=o['glitchNs']<=100:
         raise ValueError('软件滤波须为 0～100 ns，0 表示关闭')
     if not 0 < o['fraction'] < 1:
         raise ValueError('取样位置必须介于 0 和 1。')
     if not math.isfinite(o['threshold']) or not -4<=o['threshold']<=4:
         raise ValueError('阈值必须是 -4～4 V 的有限数值。')
-    # 深度上限：实测这台 Kingst（MIPI16）在 500 MSa/s 下可采 1 s / 2 s / 4 s
-    # （set-sample-time 分别得到 500M / 1G / 2G 深度，实测于 2026-10-18），
-    # 所以上限放到 4 秒 / 21 亿样本。注意 >0.02 s 自动走流式解码：
-    # 200 ms ≈ 478 MB CSV / 7 分钟解码；1 s 约 2.4 GB CSV / 半小时级；2~4 s 建议分窗解码。
-    if not (0 < o['seconds'] <= 4 and 0 < o['rate'] <= 500000000 and o['seconds']*o['rate'] <= 2100000000):
-        raise ValueError('采集上限 4 秒 / 21 亿样本（500 MSa/s 下 4 秒）；更长的覆盖请多次采集后按窗口合并。')
+    # 2026-10-18 产品决策：单次采集/解码/页面显示统一上限 200 ms（一次解码完成，不分窗）。
+    # 500 MSa/s × 200 ms = 1 亿样本 ≈ 478 MB CSV；更长的覆盖请多次采集。
+    if not (0 < o['seconds'] <= CAPTURE_MAX_SECONDS and 0 < o['rate'] <= 500000000
+            and o['seconds']*o['rate'] <= CAPTURE_MAX_SAMPLES):
+        raise ValueError('单次采集上限 200 ms（500 MSa/s 下 1 亿样本）；更长的覆盖请分多次采集。')
     if len(o['data']) != 4 or len(set([o['clock']] + o['data'])) != 5 or any(n < 0 or n > 15 for n in [o['clock']] + o['data']):
         raise ValueError('请配置五个不同的 CH0~15 通道。')
     with lock:

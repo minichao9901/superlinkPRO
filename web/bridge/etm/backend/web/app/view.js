@@ -273,10 +273,8 @@ on('open-record',()=>loadRecord($('records').value));
 on('start',async()=>{const sync=$('sync').checked,tokens=$('channels').value.split(','),channels=tokens.map(s=>Number(s.trim()));if(tokens.some(t=>!t.trim())||channels.length!==5||new Set(channels).size!==5||channels.some(c=>!Number.isInteger(c)||c<0||c>15))throw Error('需要五个不同且不为空的 CH0～15 通道');
   const glitchNs=Number($('glitch-ns').value);if(!Number.isFinite(glitchNs)||glitchNs<0||glitchNs>100)throw Error('软件滤波须为 0～100 ns，0 表示关闭；尚未操作目标');
   const rate=Number($('rate').value),seconds=Number($('duration').value)/1000,threshold=Number($('threshold').value),fraction=Number($('fraction').value),requested=options();
-  // 采集窗口上限：实测这台 LA 在 500 MSa/s 下可直接采 1 s / 2 s / 4 s
-  // （set-sample-time → 500M / 1G / 2G 深度，2026-10-18 实测），所以放宽到 4 秒 / 21 亿样本。
-  // 注意 >0.02 s 会走流式解码：200 ms ≈ 478 MB CSV / 7 分钟；1 s ≈ 2.4 GB / 半小时级。
-  if(!Number.isInteger(rate)||!(rate>0&&rate<=500000000&&seconds>0&&seconds<=4&&rate*seconds<=2100000000))throw Error('采集参数无效：时间上限 4 秒、深度上限 21 亿样本；尚未操作目标');
+  // 2026-10-18 产品决策：单次采集/解码/页面显示上限 200 ms（一次解码完成，不再分窗）。
+  if(!Number.isInteger(rate)||!(rate>0&&rate<=500000000&&seconds>0&&seconds<=0.2&&rate*seconds<=100000000))throw Error('采集参数无效：单次上限 200 ms（500 MSa/s 下 1 亿样本）；更长的覆盖请分多次采集；尚未操作目标');
   if(!Number.isFinite(threshold)||threshold< -4||threshold>4||!(fraction>0&&fraction<1))throw Error('阈值或取样相位无效；尚未操作目标');
   if(!Number.isInteger(requested.traceid)||requested.traceid<1||requested.traceid>111)throw Error('Trace ID 范围为 1～111；尚未操作目标');
   log('采集步骤：检查逻辑分析仪');const available=await api('status');if(available.captureProtocol!==2)throw Error('本地 ETM 桥版本不匹配，请重启或更新完整桥包，避免新页面混用旧解码器；尚未操作目标');if(!available.rates.includes(rate))throw Error('LA 不支持所选采样率；请选择设备支持的采样率，尚未操作目标');
@@ -303,12 +301,11 @@ on('start',async()=>{const sync=$('sync').checked,tokens=$('channels').value.spl
     }
     stage='配置 ETM / TPIU';log('采集步骤：'+stage);await showTarget(await target.configure(requestedOptions));config=target.config;
   }else config=externalDecodeConfig();
-  // 长窗（>150 ms）由服务端自动"一次采集 + 分窗导出/解码"：全量导出在半秒以上会卡死，
-  // 分窗是前人 long_flow.py 的做法，这里做成产品路径，页面只发一个普通采集请求。
+  // 2026-10-18 产品决策：单次采集 + 解码 + 显示统一上限 200 ms，一次解码完成，不再分窗。
+  // 1 s 的采集解码要 10~30 分钟，实测判定不实用；200 ms 是仍能一次解完的完整窗口。
   const captureSeconds=Number($('duration').value)/1000;
-  const sliceSeconds=captureSeconds>0.15?0.2:null;
-  if(sliceSeconds)log(`长窗采集：服务端将按 ${Math.round(sliceSeconds*1000)} ms 分窗导出并逐片解码（${Math.ceil(captureSeconds/sliceSeconds)} 片）`);
-  stage='启动 LA 并采集';log('采集步骤：'+stage);const created=await api('capture',{rate:Number($('rate').value),seconds:captureSeconds,sliceSeconds,threshold:Number($('threshold').value),sync,decode:$('auto-decode').checked,clock:channels[0],data:channels.slice(1),fraction:Number($('fraction').value),glitchNs:Number($('glitch-ns').value),config,elfId:captureElfId,targetVerified:sync,targetSnapshot:sync?target.info:null,captureScope:sync?'business-unfiltered-window':'externally-configured-window',captureEntry,sourceSnapshot:captureSourceSnapshot});
+  if(!(captureSeconds>0)||captureSeconds>0.2)throw Error('单次采集上限 200 ms（一次采集 + 一次解码）；更长的覆盖请分多次采集。');
+  stage='启动 LA 并采集';log('采集步骤：'+stage);const created=await api('capture',{rate:Number($('rate').value),seconds:captureSeconds,threshold:Number($('threshold').value),sync,decode:$('auto-decode').checked,clock:channels[0],data:channels.slice(1),fraction:Number($('fraction').value),glitchNs:Number($('glitch-ns').value),config,elfId:captureElfId,targetVerified:sync,targetSnapshot:sync?target.info:null,captureScope:sync?'business-unfiltered-window':'externally-configured-window',captureEntry,sourceSnapshot:captureSourceSnapshot});
   log('联动任务创建；起点 '+(captureEntry===null?'当前暂停位置':hex(captureEntry)));await watchJob(created.job,{resume:sync,kind:'capture'});
   }catch(e){throw new Error(stage+'失败：'+e.message,{cause:e});}},async()=>{if(sync&&target.probe){target.assertTransport();await target.clearEntryBreak();await target.restore();await resumeBreakpoints(suspendedBps);await showTarget(await target.inspect());log('本次 trace 配置与断点已恢复；目标状态已刷新');}},e=>log('采集后的清理/回读失败（未覆盖首次错误）：'+e.message));
 });

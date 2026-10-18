@@ -47,6 +47,8 @@ records/
 node_modules/
 __pycache__/
 *.pyc
+# 真机验收时的独占租约目录（运行时创建，脚本退出后删除）
+.hardware-review.lock/
 .pytest_cache/
 
 # 团队状态目录（superlinkpro-merge 的任务状态；**绝不入库**）
