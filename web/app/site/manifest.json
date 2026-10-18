@@ -168,11 +168,11 @@
     "app/ui/reg-grid.js": "7bc5102a621ee5dbd1585ff52dd6f44d849ba48578563e5deb65911307ec3871",
     "app/ui/sidebar-tabs.js": "f9fb32f7d5bb54905b76b3d8dd5ad0d786867503cdac411a8911bff2bf8e4634",
     "app/ui/spark.js": "0a752a6b30f7875759749df5b7fdb5c15337c3c011b1eab61a4c8741888ec4ea",
-    "app/ui/tabs.js": "77c88cf598d75479ff884b3b980f2b0c85f2ea81000e53f9711b49cb1016cf78",
+    "app/ui/tabs.js": "371bf71e64c7e5ac3d2b5480d0d5c38cd3264c980822cd96d07ced959da4dd5e",
     "app/ui/toast.js": "4ad6d90a90cfba752b324500e14324808305b8927b32a887ddbb736a4d9d2ae2",
     "app/ui/workspace.js": "25b6ce94e5d90302a37e6cec2b7e35c975af95ce29bef1094a4493f3890fc0b7",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "4b759ba48b6c59e626e78e69b7e8e5a91234b7acd514c703f420b8c3080ec80e",
-  "outputBytes": 1333362
+  "outputSha256": "d07964918d95e7b679dfede24bab87a74b5e221f9b8a6abacc5e00ef7e99371f",
+  "outputBytes": 1333250
 }
