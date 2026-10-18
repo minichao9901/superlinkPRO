@@ -240,16 +240,30 @@ export class EtmTarget {
     const encoded=encodeComparator(address,caps.rev);
     this.entryBreak={...free,encoded,capacity:caps.numCode,enabled:caps.enabled};
     return withCleanup(async()=>{
-      // Install the business breakpoint before reset. Never halt at Reset_Handler.
-      await this.write(free.slot,encoded);await this.write(0xe0002000,3,false);
-      await this.write(0xe000edfc,demcr&~1);
-      this.log(`已预置复位后的业务起点 ${hex(address)}；正在请求一次软件复位`);
-      // AIRCR is keyed/self-clearing: no generic memory verification or rewrite.
-      await this.write(0xe000ed0c,0x05fa0004,false);await sleep(60);
+      // 🚨 2026-10-18 真机定因（STM32H743）：**系统复位会清空 FPB 比较器**。
+      //   实测：复位前 comparator[0]=0x88000b51，复位后 =0x00000000（FP_CTRL 仍使能）。
+      //   所以"先装断点再复位"在本芯片上永远停不到业务起点 —— 症状就是
+      //   「复位后未命中业务起点」（目标跑完初始化后一直在主循环里）。
+      //   正确顺序：VC_CORERESET 先停在复位处 → **停住之后**再装比较器 → 清 VC_CORERESET → 放行。
+      this.log(`复位并在 Reset 处停住，随后装业务起点 ${hex(address)}`);
+      await this.write(0xe000edfc,demcr|1,false);              // VC_CORERESET=1
+      await this.write(0xe000ed0c,0x05fa0004,false);           // SYSRESETREQ（自清，不做读回校验）
+      const resetUntil=Date.now()+timeout;
+      while(!(await this.read(0xe000edf0)&(1<<17))){
+        if(this.cancelEntry)throw Error('已取消等待复位');
+        if(Date.now()>resetUntil)throw Error('复位后没有停在 Reset（VC_CORERESET 未生效）；目标将暂停');
+        await sleep(10);
+      }
+      const resetPC=await this.pc();
+      await this.write(free.slot,encoded,false);               // 复位**之后**才装比较器
+      await this.write(0xe0002000,3,false);                    // FP_CTRL: KEY|ENABLE
+      await this.write(0xe000edfc,demcr&~1,false);             // 清 VC_CORERESET
+      this.log(`已停在复位处 ${hex(resetPC)}；比较器已装好，放行至 ${hex(address)}`);
+      await this.write(0xe000edf0,0xa05f0001,false);           // DBGKEY|C_DEBUGEN，C_HALT=0：放行
       const until=Date.now()+timeout;
-      while(!(await this.read(0xe000edf0)&(1<<17))){if(this.cancelEntry)throw Error('已取消等待起点');if(Date.now()>until)throw Error('复位后未命中业务起点；目标将暂停');await sleep(25);}
+      while(!(await this.read(0xe000edf0)&(1<<17))){if(this.cancelEntry)throw Error('已取消等待起点');if(Date.now()>until)throw Error('复位后未命中业务起点；目标将暂停');await sleep(10);}
       const pc=await this.pc();if(pc!==address)throw await this.unexpectedHalt(pc,address,'复位后');
-      const info=await this.inspect();info.entryPC=pc;return info;
+      const info=await this.inspect();info.entryPC=pc;info.resetPC=resetPC;return info;
     },async()=>{await this.clearEntryBreak();await this.write(0xe000edfc,demcr);},e=>this.log('复位后的清理失败（保留首次错误）：'+e.message));
   }
   async verifyElf(info){
