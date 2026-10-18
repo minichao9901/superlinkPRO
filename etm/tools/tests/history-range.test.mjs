@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {HistoryView} from '../../web/app/history.js';
 
+test('full record range covers the whole record without loading a window',async()=>{
+ const h=Object.create(HistoryView.prototype);
+ h.result={eventCount:100};h.timelineData=null;
+ assert.deepEqual(h.fullRange(),{start:0,end:99,totalStart:0,totalEnd:99});
+ h.timelineData={range:{totalStart:5,totalEnd:104}};
+ assert.deepEqual(h.fullRange(),{start:5,end:104,totalStart:5,totalEnd:104});
+});
 test('a slow zoom/fit does not overwrite a newer explicit cursor selection',async()=>{
  let release;const pending=new Promise(resolve=>{release=resolve;});
  const h=Object.create(HistoryView.prototype);

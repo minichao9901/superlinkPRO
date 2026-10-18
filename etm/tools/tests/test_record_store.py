@@ -110,4 +110,12 @@ class StoreTests(unittest.TestCase):
         sidecar.write_text('#etm-browse-columns 1 events=%020d rows=%010d\n0\tevent\n1\tevent\n'
                            % (stat.st_size,2),encoding='utf-8')
         self.assertFalse(store._sidecar_fresh(sidecar,source,Events()))
+    def test_window_results_are_cached_until_the_index_is_rebuilt(self):
+        # 全记录 window() 实测 3.86 M 事件 119.5 s；同一区间第二次必须立即返回（审查 P2）。
+        self.store.ensure()
+        first=self.store.window(0,8);second=self.store.window(0,8)
+        self.assertEqual(first,second);self.assertTrue(self.store._windows)
+        (self.folder/'decoded.json').write_text(json.dumps(self.data)+' ',encoding='utf8')
+        self.store.ensure()
+        self.assertEqual(self.store._windows,{})
 if __name__=='__main__':unittest.main()

@@ -79,6 +79,13 @@ export function flameView(result,onFunction,o={}){
   modes.append(timeline,aggregate,back);rangeTools.append(make('span','#'),from,make('span','～'),to,button('查看',()=>o.onRange({start:Number(from.value),end:Number(to.value)})));toolbar.append(modes,zoom.element,sourceToggle,rangeTools);
   box.zoomControls=zoom;box.append(toolbar,make('p',`#${scope.start}～#${scope.end} · 横轴为执行序号，当前没有逐指令时间戳。`,'hint'));
   if(o.mode==='aggregate'){box.append(aggregateFlameView({...result,analysis:data.analysis},onFunction,o.cursorFunction||''));return box;}
+  if(!Array.isArray(data.timeline)||!data.timeline.length){
+    // 全记录没有预计算的分桶时间轴：按调用权重显示（analysis 是解码时算好的，立即出图），
+    // 要看执行顺序需先选一个区间（审查 P2：全记录 window() 实测 119.5 s，不能阻塞首屏）。
+    box.append(make('p','全记录默认按调用权重显示；要按执行顺序查看，请先拖选轨迹图或输入一个执行序号区间。','hint'));
+    box.append(aggregateFlameView({...result,analysis:data.analysis},onFunction,o.cursorFunction||''));
+    return box;
+  }
   box.append(make('p','拖选、缩放按钮或 Ctrl＋滚轮查看局部序号区间；纵向按实际调用深度延展，可滚动查看。灰色“多段调用”表示当前显示桶含多条路径，放大后可查看细节。','hint'));
   const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
   const maxDepth=Math.max(1,...data.timeline.map(b=>b.path.length)),height=maxDepth*26+38;

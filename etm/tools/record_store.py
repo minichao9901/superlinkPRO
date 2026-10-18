@@ -67,6 +67,10 @@ def _base_search(event):
 class RecordStore:
     def __init__(self,folder,loader):
         self.folder=Path(folder);self.path=self.folder/'browse-v3.sqlite';self.loader=loader
+        # 区间统计缓存：全记录第一次 window() 要扫几百万事件（实测 3.86 M 事件 119.5 s），
+        # 前端固定超时等不起；同一区间第二次必须立即返回。索引重建后 signature 变化 → 清空。
+        self._windows={}
+        self._windows_lock=threading.Lock()
     def signature(self):
         p=self.folder/'decoded.json';s=p.stat()
         parts=[f'{VERSION}:{s.st_size}:{s.st_mtime_ns}']
@@ -118,6 +122,7 @@ class RecordStore:
                     # handle on Windows. Wait boundedly; keep the old index intact.
                     if time.monotonic()>=deadline:raise
                     time.sleep(.02)
+            with self._windows_lock:self._windows.clear()
     @staticmethod
     def _note_issue(issues,run,event,seq):
         """谓词未知区间与边界事件（与 v3 逐条同口径）。返回新的 run。"""
@@ -383,6 +388,10 @@ class RecordStore:
             hi=total_end if end is None else max(total_start,min(total_end,int(end)))
             if hi<lo:raise ValueError('区间结束序号不能小于起点')
             step=max(1,math.ceil((hi-lo+1)/bins))
+            cache_key=(lo,hi,step)
+            with self._windows_lock:
+                cached=self._windows.get(cache_key)
+            if cached is not None:return cached
             root=dict(name='所选执行区间',value=0,self=0,selfCycles=0,valueCycles=0,children={})
             buckets={};functions={};hotspots={};inclusive={};previous=None;observed=0;first=None;pending_irq=False
             cursor=db.execute('SELECT data,src FROM events WHERE seq BETWEEN ? AND ? ORDER BY seq',(lo,hi))
@@ -437,7 +446,7 @@ class RecordStore:
             cycle_functions=[dict(function=s['function'],selfCycles=s['selfCycles'],cyclePercent=s['cyclePercent'],
                                    instructions=s['instructions'],cpi=s['cpi'],calls=s['calls'])
                               for s in sorted((x for x in functions.values() if x['selfCycles']),key=lambda x:x['selfCycles'],reverse=True)]
-            return dict(range=dict(start=lo,end=hi,totalStart=total_start,totalEnd=total_end),firstSeq=first,
+            result=dict(range=dict(start=lo,end=hi,totalStart=total_start,totalEnd=total_end),firstSeq=first,
                 timing=dict(axis='execution-order',verifiedTime=False,reason='当前记录没有已验收的逐指令时间戳，执行序号不能换算为微秒'),
                 timeline=list(buckets.values()),resolution=step,
                 analysis=dict(flame=serialize(root),functions=sorted(functions.values(),key=lambda x:x['instructions'],reverse=True),
@@ -450,6 +459,10 @@ class RecordStore:
                                        else '所选区间没有周期计数数据（目标未启用或 ETMv3 不支持）')),
                     weight=('所选区间的路径记录数；周期列才是耗时' if total_cycles
                             else '所选区间的路径记录数（含未成立/未知状态），不是耗时')))
+            with self._windows_lock:
+                if len(self._windows)>=8:self._windows.pop(next(iter(self._windows)))
+                self._windows[cache_key]=result
+            return result
     def event(self,seq):
         with closing(self.connect()) as db:row=db.execute('SELECT data,src FROM events WHERE seq=?',(int(seq),)).fetchone()
         if not row:raise ValueError('记录序号不存在')
