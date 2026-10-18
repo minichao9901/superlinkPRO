@@ -208,7 +208,7 @@ export class EtmTarget {
     this.entryBreak=null;
     this.log('本次起点断点已清理');
   }
-  async runTo(address,{timeout=15000}={}){
+  async runTo(address,{timeout=180000}={}){
     this.cancelEntry=false;
     address=(Number(address)>>>0)&~1;if(address<0x08000000||address>=(this.info?.flashLimit||0x08200000))throw Error('断点须在目标内部 Flash');
     await this.clearEntryBreak();await this.stopTrace();
@@ -218,7 +218,7 @@ export class EtmTarget {
     if(!caps.enabled&&retained)throw Error('FPB 当前关闭且保留了其他比较器；拒绝启用并触发不属于本页面的断点');
     if(slot===null)throw Error('没有空闲硬件断点；请先释放一个槽位');
     const encoded=encodeComparator(address,caps.rev);this.entryBreak={slot,before,encoded,capacity:caps.numCode,enabled:caps.enabled};
-    this.log('正在使用一次性硬件断点等待函数入口');
+    this.log(`正在使用一次性硬件断点等待函数入口（最长 ${Math.round(timeout/1000)} 秒，可点「取消等待」）`);
     return withCleanup(async()=>{
       await this.write(slot,encoded);await this.write(0xe0002000,3,false);await this.probe.run();const until=Date.now()+timeout;
       while(!(await this.isHalted())){if(this.cancelEntry)throw Error('已取消运行至函数');if(Date.now()>until)throw Error('运行至函数超时；已暂停并清理本次起点断点');await sleep(25);}

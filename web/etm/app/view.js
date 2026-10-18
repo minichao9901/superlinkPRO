@@ -287,7 +287,7 @@ on('start',async()=>{const sync=$('sync').checked,tokens=$('channels').value.spl
   log('采集步骤：'+stage);
   if(sync){if(!target.probe)throw Error('请先连接探针');if(!target.info?.traceSupported)throw Error(target.info?.traceStatus||'目标 trace 未适配');await target.verifyElf(captureElf);stage='暂停本页断点';log('采集步骤：'+stage);suspendedBps=target.breakpoints.items.filter(b=>b.lease);state.pendingBreakpointRestore=suspendedBps;await target.breakpoints.suspend();renderBreakpoints();
     stage=$('entry-before').checked?$('reset-before').checked?'复位并停在业务起点':'运行至业务起点':'暂停当前目标';log('采集步骤：'+stage);
-    if($('entry-before').checked){captureEntry=selectedEntry;await showTarget($('reset-before').checked?await target.reset({address:captureEntry}):await target.runTo(captureEntry));}
+    if($('entry-before').checked){captureEntry=selectedEntry;state.waiting=true;controls();$('break-state').textContent='正在等待所选断点…最长 3 分钟，可点「取消等待」';try{await showTarget($('reset-before').checked?await target.reset({address:captureEntry}):await target.runTo(captureEntry));}finally{state.waiting=false;controls();}}
     else await target.halt();
     stage='核对实际时钟';log('采集步骤：'+stage);const before=await target.inspect(),c=before.clocks;
     if(!c?.coreHz||!c?.physicalTraceHz||Math.abs(c.coreHz-Number($('expected-cpu').value)*1e6)>100||Math.abs(c.physicalTraceHz-Number($('expected-trace').value)*1e6)>100){
