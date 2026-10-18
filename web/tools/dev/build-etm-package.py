@@ -22,7 +22,10 @@ def main():
     command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name','etm-bridge','--contents-directory','runtime','--distpath',str(work/'dist'),'--workpath',str(work/'build'),'--specpath',str(work),'--add-data',str(payload)+';backend','--add-data',str(ROOT/'tools/dev/serve-etm.py')+';.','--paths',str(snapshot),'--paths',str(snapshot/'tools'),'--paths',str(snapshot/'tools/la'),'--collect-all','capstone','--collect-all','elftools']
     for name in ['server','werkzeug.middleware.dispatcher','html.parser','decode_trace','decode_stream','stream_store','trace_port','tpiu_demux','flow_analysis','record_store','source_export','breakpoint_resolver','kingst_la']:
         command+=['--hidden-import',name]
-    for name in ['tkinter','matplotlib','numpy','scipy','IPython','pytest','PyQt6']:
+    # 便携包**随带** numpy/pandas（用户明确要求）：只有它们在，trace_port 的向量化前端才生效，
+    # 200 ms 记录端到端才是全速（~120 s）；代价是 runtime 变大（pandas 会带 pytz/PIL/lxml/zstandard）。
+    # 若不需要加速，删掉 runtime 里的 numpy/pandas 目录即可，代码会自动回退纯 Python（结果相同，约 270 s）。
+    for name in ['tkinter','matplotlib','scipy','IPython','pytest','PyQt6']:
         command+=['--exclude-module',name]
     command.append(str(ROOT/'bridge/etm/etm_bridge.py'))
     subprocess.run(command,cwd=ROOT,check=True)
