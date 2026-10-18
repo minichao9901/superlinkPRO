@@ -71,8 +71,9 @@ desktop.ini
 *.log
 *.map
 *.csv
-# ↑ 唯一的已跟踪例外在 hardware_pro/production/*.csv（KiCad 生产 BOM/坐标表）——
-#   那是 D-1 明确不迁的原板硬件目录，因此不给它单列白名单；若日后回迁硬件目录，再加 `!` 放行。
+# ↑ 例外：docs/usb-register-write-sites.csv（USB 寄存器写入站点分析清单，17 KB，随文档入库）。
+#   hardware_pro/production/*.csv（KiCad BOM/坐标表）仍不迁，故不给它白名单；日后回迁再加 `!`。
+!docs/usb-register-write-sites.csv
 
 
 # ── B. akaLinkPro → 根（firmware/ script_test/ tools/ docs/ + 根 Makefile） ────────
