@@ -163,6 +163,18 @@ class SliceRecordContract(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('记录数不一致', response.json['error'])
 
+    def test_refinalize_rebuilds_an_existing_record_without_redecoding(self):
+        slices, events = self._finalize()
+        import refinalize_slices
+        refinalize_slices.rebuild(self.root)
+        decoded = json.loads((self.root / 'decoded.json').read_text(encoding='utf8'))
+        self.assertEqual(decoded['streamed'], dict(schema=3, events=events, slices=len(slices),
+                                                   packets=70))
+        self.assertEqual(decoded['summary']['totalCycles'], 11_970_786 + 12_000_000)
+        rows = [json.loads(line) for line in (self.root / 'events.jsonl').read_text(encoding='utf8').splitlines() if line]
+        self.assertEqual([r['seq'] for r in rows], list(range(events)))
+        self.assertEqual(server.meta(self.sid)['decodeStatus'], 'done')
+
 
 if __name__ == '__main__':
     unittest.main()

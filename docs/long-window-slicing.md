@@ -74,6 +74,15 @@ capture-xxxxxxxx/
 两处都曾抓出真 bug：
 ① `seq` 用"片内最大 seq"推偏移会撞号（0 起的片）；② 周期按每元素最大值求和 → 912 vs 3,600 万。
 
+**旧记录可以离线修好**（不重新解码、不碰 LA）：各片 `slices/NN/` 仍是好的，只要重放一次合并：
+
+```powershell
+python -X utf8 etm/tools/refinalize_slices.py etm/records/capture-xxxxxxxx
+```
+
+脚本先写 `events.jsonl.rebuild`、成功后原子替换，并顺手作废旧 `browse-v3.sqlite`
+（下次浏览按新签名重建）。1 s / 5.7 GB 记录实测约 1~2 分钟。
+
 
 ## 页面做了什么
 
