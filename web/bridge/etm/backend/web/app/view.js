@@ -6,9 +6,10 @@ import {embeddedHost,runEmbedded,PROBE_ACTIONS} from './embedding.js';
 import {EtmTarget} from './target.js';
 import {traceSettings,traceSettingsText} from './trace-options.js';
 import {HistoryView} from './history.js';
+import {normalizeSliceRecord,renderSliceTimeline,sliceIndexForRange,sliceSeqRange} from './slices.js';
 import {COMMON_TARGETS,completeClocks,targetPort} from './clock.js';
 const $=id=>document.getElementById(id),hex=n=>'0x'+(n>>>0).toString(16).padStart(8,'0'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const state={records:[],current:null,job:null,operation:false,elfInfo:null,elfId:null,elfFile:null,sourceFiles:{},sourceSnapshot:null,sourceCompat:false,sources:new SourceStore(),entryAddress:null,hseValues:{stm32h7b0:25,stm32h743:25,stm32f103ze:8},hseOverride:null,lastProfile:null,symbolAddress:null,pendingBreakpointRestore:[],lastTraceConfig:null,waiting:false,traceConfigDirty:false};
+const state={records:[],current:null,job:null,operation:false,elfInfo:null,elfId:null,elfFile:null,sourceFiles:{},sourceSnapshot:null,sourceCompat:false,sources:new SourceStore(),entryAddress:null,hseValues:{stm32h7b0:25,stm32h743:25,stm32f103ze:8},hseOverride:null,lastProfile:null,symbolAddress:null,pendingBreakpointRestore:[],lastTraceConfig:null,waiting:false,traceConfigDirty:false,sliceModel:null,sliceEventCount:null};
 const host=embeddedHost(),target=new EtmTarget(log,{host});
 /**
  * API base（本地桥地址）的三级来源 + 默认值。见 web/docs/etm-online-bridge.md。
@@ -55,6 +56,8 @@ async function api(path,body){return requestJson(apiBase+path,body===undefined?{
 function log(message){$('log').textContent=new Date().toLocaleTimeString('zh-CN')+' '+message+'\n'+$('log').textContent;controls();}
 function error(e){log(e.message);$('job-state').textContent=e.message;$('job-state').classList.add('bad');}
 const history=new HistoryView(api,error);
+/** 区间变化（点分片、火焰图拖选、缩放、重置）都回写分片时间轴的选中态。 */
+history.onScopeChange=()=>syncSliceTimeline();
 function on(id,fn,{exclusive=true}={}){$(id).onclick=async()=>{if(exclusive&&state.operation)return;const button=$(id),recordAction=id==='open-record',hardware=exclusive&&(id==='connect'||PROBE_ACTIONS.has(id)&&!!target.probe||id==='start'&&$('sync').checked);if(exclusive)state.operation=true;if(hardware)state.hardwareOperation=true;if(recordAction)history.setLoading(true);button.disabled=true;controls();try{await(hardware?runEmbedded(host,fn):fn());}catch(e){error(e);}finally{if(exclusive)state.operation=false;if(hardware)state.hardwareOperation=false;if(recordAction)history.setLoading(false);button.disabled=false;controls();}};}
 function controls(){const busy=state.operation||!!state.job,connected=!!target.probe;
   for(const id of ['reset','halt','run','read-config','read-clock','apply-config','restore-config','run-to'])$(id).disabled=!connected||busy;
@@ -212,10 +215,32 @@ function renderRecordOptions(){
   $('records').replaceChildren(new Option('选择记录…',''),...groups);if(current)$('records').value=current;
 }
 async function refreshRecords(){state.records=await api('records');renderRecordOptions();}
+/**
+ * 长窗（自动分窗）记录的分片时间轴。数据来自 `/api/records` 返回的 session.json
+ * （`slices[]`，含 seqStart/seqEnd）；没有 slices / 只有 1 片 / 旧记录缺 seq 区间时
+ * `normalizeSliceRecord()` 返回 null，整条时间轴直接隐藏，不占位也不报错。
+ * 点击某段 = 复用既有浏览范围机制 `history.setRange({start,end})`（内部就是 fromSeq/toSeq）。
+ */
+function sliceEventCount(){const total=Number(history.result?.eventCount??state.sliceEventCount);return Number.isFinite(total)&&total>0?total:null;}
+function syncSliceTimeline(){
+  const box=$('slice-timeline');if(!box)return;const model=state.sliceModel;
+  if(!model){box.hidden=true;box.replaceChildren();return;}
+  const eventCount=sliceEventCount(),current=sliceIndexForRange(model.slices,history.range,eventCount);
+  renderSliceTimeline(box,model,{current,eventCount,onSelect:index=>{selectSlice(index).catch(error);}});
+}
+async function selectSlice(index){
+  const model=state.sliceModel;if(!model)return;const eventCount=sliceEventCount();
+  if(index<0){await history.setRange(null);syncSliceTimeline();return;}   // 「全部」
+  const range=sliceSeqRange(model.slices[index],eventCount);if(!range)return;   // 空片不可点
+  const current=sliceIndexForRange(model.slices,history.range,eventCount);
+  await history.setRange(current===index?null:range);   // 再点同一段 = 清除过滤
+  syncSliceTimeline();
+}
 $('show-experiments').onchange=renderRecordOptions;
 async function loadRecord(id){if(!id)throw Error('请选择记录');history.range=null;history.rangeHistory=[];history.window=null;$('scope-state').hidden=$('clear-scope').hidden=true;state.current=id;renderRecordOptions();$('records').value=id;const m=state.records.find(r=>r.id===id);
+  state.sliceEventCount=Number(m?.eventCount)||null;state.sliceModel=m&&!m.decoded?null:normalizeSliceRecord(m);syncSliceTimeline();
   if(m&&!m.decoded){history.unload(id);history.setLoading(false);$('record-description').textContent=m.name;$('metrics').textContent='原始记录';$('quality').textContent=m.error?'失败原因：'+m.error:'已保存波形，尚未解码';$('table-container').textContent='在文件页点击“单独解码”；失败记录保留原始证据';$('source-code').textContent='尚未解码，没有可信源码定位';$('source-location').textContent='';$('selected-instruction').textContent='';$('call-stack').textContent='尚未解码';return;}
-  await history.load(id,m?.name);log('已按需载入记录 '+id);controls();
+  await history.load(id,m?.name);log('已按需载入记录 '+id);controls();syncSliceTimeline();
 }
 async function watchJob(id,{resume=false,kind='decode'}={}){
   state.job=id;state.jobKind=kind;state.jobPhase='queued';state.captureCancelled=false;controls();

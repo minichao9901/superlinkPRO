@@ -205,3 +205,22 @@
 #etm-app .trace-option-checks label{justify-content:flex-start;margin:4px 0;gap:5px}
 
 #etm-app #trace-config-state{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--text-xs);line-height:16px}
+
+/* 长窗（自动分窗）记录的分片时间轴：宽度按片时长占比，点击某段过滤到该片 seqStart..seqEnd。
+   颜色全部走主题变量（--bg/--fg/--line/--acc/--fg2），深浅主题自动跟随。 */
+#etm-app .slice-timeline{flex:none;min-width:0;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--bg2);padding:3px 7px 5px}
+#etm-app .slice-timeline[hidden]{display:none}
+#etm-app .slice-timeline-head{display:flex;align-items:center;gap:8px;min-width:0;line-height:18px}
+#etm-app .slice-timeline-head strong{flex:none;font-size:11px;font-weight:600;color:var(--fg);white-space:nowrap}
+#etm-app .slice-timeline-state{flex:1;min-width:0;font:10px/1.4 var(--mono);color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#etm-app .slice-timeline-all{flex:none;font-size:10px;padding:0 6px;line-height:16px}
+#etm-app .slice-timeline-track{position:relative;height:32px;margin-top:3px;background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden}
+#etm-app .slice-segment{position:absolute;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:1px;min-width:0;padding:0 3px;margin:0;border:0;border-right:1px solid var(--bg2);border-radius:0;background:var(--bg4);color:var(--fg2);font:9px/1.25 var(--mono);text-align:left;overflow:hidden;white-space:nowrap;cursor:pointer}
+#etm-app .slice-segment:last-child{border-right:0}
+#etm-app .slice-segment:hover:enabled{background:var(--bg3);color:var(--fg)}
+#etm-app .slice-segment.selected,#etm-app .slice-segment.selected:hover:enabled{background:var(--acc);color:var(--bg);font-weight:600}
+#etm-app .slice-segment.selected .slice-segment-count{opacity:.9}
+#etm-app .slice-segment:disabled{opacity:.45;cursor:not-allowed}
+#etm-app .slice-segment-span,#etm-app .slice-segment-count{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#etm-app .slice-segment-count{opacity:.85}
+@media(max-width:780px){#etm-app .slice-timeline{padding:2px 5px 4px}#etm-app .slice-timeline-track{height:26px}#etm-app .slice-timeline-state{font-size:9px}}
