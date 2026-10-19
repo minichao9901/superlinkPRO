@@ -1,0 +1,620 @@
+{
+  "schema": "etm-perf-inputs/1",
+  "generatedAt": "2026-10-19T14:52:01.821328+00:00",
+  "generatedBy": "tools/perf/build_inputs.py",
+  "root": "仓库根（路径均相对它解析）",
+  "note": "关键文件（capture.csv/kvdat、etm.bin、firmware.elf、native-config.txt、session.json、sources.json、tpiu.bin、capture.csv.la.json）含字节数与 SHA256；派生 GB 级文件只列大小。记录目录保持只读，基准脚本只复制/硬链接副本。",
+  "records": {
+    "steady": {
+      "path": "docs/validation/20261018-ds-review-bb2f8ee-6ff02745/data/records/capture-be1e78730b7f486a9e27d5911cd4a434",
+      "role": "主性能样本 A：H743 200 ms steady（约 368 万条路径指令）",
+      "notes": "Codex 早期 steady 样本；原 CSV 与 KVDAT 都在，可做 CSV/KVDAT 同输入 A/B。",
+      "load": {
+        "name": "STM32H743 / H742 / H750 / H753 · 2026-10-18 18:07:25",
+        "protocol": "ETMv4",
+        "target": "STM32H743 / H742 / H750 / H753",
+        "core": "Cortex-M7",
+        "etmVersion": "ETMv4",
+        "windowSeconds": 0.2,
+        "sampleRateHz": 500000000,
+        "clockChannel": 0,
+        "dataChannels": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "fraction": 0.25,
+        "glitchNs": 4.0,
+        "traceId": 2,
+        "config": {
+          "idr0": 134219489,
+          "idr1": 1090581505,
+          "idr2": 4,
+          "idr8": 1,
+          "idr9": 0,
+          "idr10": 0,
+          "idr11": 0,
+          "idr12": 1,
+          "idr13": 0,
+          "config": 4113,
+          "traceid": 2
+        },
+        "decodeConfigBasis": "SWD snapshot",
+        "captureScope": "business-unfiltered-window",
+        "summary": {
+          "packets": 300066,
+          "ranges": 735326,
+          "instructions": 3675435,
+          "executed": 3124405,
+          "exceptions": 190,
+          "gaps": 1,
+          "packetIssues": 0,
+          "unknownExecution": 0
+        }
+      },
+      "files": {
+        "capture.csv": {
+          "bytes": 499842925,
+          "sha256": "be0250a82220a9843cda304699858c5cfcc5c61b3481ebcf854b649ea13672ea"
+        },
+        "capture.csv.la.json": {
+          "bytes": 1973,
+          "sha256": "c561e01820ca38739128402a9fa5fe5400238e95009c471772bed16fb00c6a74"
+        },
+        "capture.kvdat": {
+          "bytes": 92286749,
+          "sha256": "72f457dafc493cc860bcc3818bee4ac379cfbf0d300b3a627da7752e2f1327a8"
+        },
+        "etm.bin": {
+          "bytes": 365449,
+          "sha256": "8e840d8496aa5cf0809a0f83f049da50b035a136b97058136817b05b4381e07e"
+        },
+        "firmware.elf": {
+          "bytes": 2178084,
+          "sha256": "c610192ce4acbefc66d210a9b44b984c47ffdb02314cfce0d94f5b86835fdcd3"
+        },
+        "native-config.txt": {
+          "bytes": 362,
+          "sha256": "8847cdacd1ec8c5741843fa7e01aba425f6644728547ae3892879700020ade74"
+        },
+        "session.json": {
+          "bytes": 3794,
+          "sha256": "bdd990fe7eedf50923e5f3c0dca210a8829f12e68a556bf9165a06f91ffa2d2a"
+        },
+        "sources.json": {
+          "bytes": 170,
+          "sha256": "ebb2044304bf09c561807dc61c3c17ffdf2be75c7729e657905c77013266fd4b"
+        },
+        "tpiu.bin": {
+          "bytes": 6000153,
+          "sha256": "4b8f2262e988d854cb8b368b08aa623ab0ee5058c5e6f590df35ff1c2e89391a"
+        }
+      },
+      "derivedFiles": {
+        "browse-columns.tsv": {
+          "bytes": 784496450
+        },
+        "browse-v3.sqlite": {
+          "bytes": 1043554304
+        },
+        "decoded.json": {
+          "bytes": 11539
+        },
+        "elements.jsonl": {
+          "bytes": 278242519
+        },
+        "events.jsonl": {
+          "bytes": 1684745968
+        },
+        "framing.json": {
+          "bytes": 331
+        },
+        "image-0.bin": {
+          "bytes": 31484
+        },
+        "image-1.bin": {
+          "bytes": 144
+        },
+        "native.jsonl": {
+          "bytes": 284091038
+        },
+        "native.log": {
+          "bytes": 0
+        },
+        "packets.jsonl": {
+          "bytes": 32694242
+        },
+        "physical.json": {
+          "bytes": 1678
+        }
+      },
+      "directoryManifest": {
+        "files": 21,
+        "bytes": 4708549356,
+        "manifestSha256": "f4f1e72356a55b1574b3ff7d4fcc66aabf991dc53f46b978e2c7e407278d23fc"
+      }
+    },
+    "boundary": {
+      "path": "docs/validation/20261018-ds-recheck-0cd4229-a7b4f912/live-data/records/capture-36431f7c7567446e8bcd6229094d1b28",
+      "role": "主性能样本 B：H743 200 ms boundary（约 386 万条指令，含未知/边界）",
+      "notes": "原 CSV 与 KVDAT 都在；窗口/导航/未知条件的边界样本。",
+      "load": {
+        "name": "STM32H743 / H742 / H750 / H753 · 2026-10-18 19:32:32",
+        "protocol": "ETMv4",
+        "target": "STM32H743 / H742 / H750 / H753",
+        "core": "Cortex-M7",
+        "etmVersion": "ETMv4",
+        "windowSeconds": 0.2,
+        "sampleRateHz": 500000000,
+        "clockChannel": 0,
+        "dataChannels": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "fraction": 0.25,
+        "glitchNs": 4.0,
+        "traceId": 2,
+        "config": {
+          "idr0": 134219489,
+          "idr1": 1090581505,
+          "idr2": 4,
+          "idr8": 1,
+          "idr9": 0,
+          "idr10": 0,
+          "idr11": 0,
+          "idr12": 1,
+          "idr13": 0,
+          "config": 4113,
+          "traceid": 2
+        },
+        "decodeConfigBasis": "SWD snapshot",
+        "captureScope": "business-unfiltered-window",
+        "summary": {
+          "packets": 315221,
+          "ranges": 772256,
+          "instructions": 3860032,
+          "executed": 3281329,
+          "exceptions": 199,
+          "gaps": 1,
+          "packetIssues": 0,
+          "unknownExecution": 1
+        }
+      },
+      "files": {
+        "capture.csv": {
+          "bytes": 505034219,
+          "sha256": "9cbabdd0e7008edd480b66dac256bdbc222a5258bdc552f7fd7698fdf606a996"
+        },
+        "capture.csv.la.json": {
+          "bytes": 1979,
+          "sha256": "0ac3d5aa5a81a665491d0b4d4a3bc9a7e3c1e2cc016c7eaf5dd2aca9d1fbf7be"
+        },
+        "capture.kvdat": {
+          "bytes": 93182139,
+          "sha256": "0e62d773d9a8a54aca2bedcd125aecbc3b52b0c65e3b4926f061bb9f3aed0176"
+        },
+        "etm.bin": {
+          "bytes": 384518,
+          "sha256": "0baf0ce4946fd4da4c2f68046915b097721cbb632c4f1696bbdfdf63977e144f"
+        },
+        "firmware.elf": {
+          "bytes": 2178084,
+          "sha256": "c610192ce4acbefc66d210a9b44b984c47ffdb02314cfce0d94f5b86835fdcd3"
+        },
+        "native-config.txt": {
+          "bytes": 374,
+          "sha256": "22e1e6e951f66b09ae425e3df6f727c7f79da4c6faea4d5241b1fcd87cfeb56a"
+        },
+        "session.json": {
+          "bytes": 3844,
+          "sha256": "af7bee12c529bea42ce467ecd6534b7b7870aa9a2f7c2756f51025b16913cfdf"
+        },
+        "sources.json": {
+          "bytes": 352,
+          "sha256": "1a2daf6ade3dd60ed06f1b0c083427a85ad9a75755346abc20434a3577fada7d"
+        },
+        "tpiu.bin": {
+          "bytes": 6000153,
+          "sha256": "d10befff3ca8ff069f6a6300e4f7367bf6a12bc63c6ff08370c217b1dd5923d2"
+        }
+      },
+      "derivedFiles": {
+        "browse-columns.tsv": {
+          "bytes": 823953908
+        },
+        "browse-v3.sqlite": {
+          "bytes": 1096007680
+        },
+        "decoded.json": {
+          "bytes": 14841
+        },
+        "elements.jsonl": {
+          "bytes": 292232368
+        },
+        "events.jsonl": {
+          "bytes": 1769496802
+        },
+        "framing.json": {
+          "bytes": 336
+        },
+        "image-0.bin": {
+          "bytes": 31484
+        },
+        "image-1.bin": {
+          "bytes": 144
+        },
+        "native.jsonl": {
+          "bytes": 298390752
+        },
+        "native.log": {
+          "bytes": 0
+        },
+        "packets.jsonl": {
+          "bytes": 34353036
+        },
+        "physical.json": {
+          "bytes": 1683
+        }
+      },
+      "directoryManifest": {
+        "files": 21,
+        "bytes": 4921268696,
+        "manifestSha256": "041a2f931989c17f0b4a8a0eff92c61559a82f6959243bb769f911422c77b4d5"
+      }
+    },
+    "ds-rerun": {
+      "path": "etm/records/capture-de9b8e0ed24c41c68e5b374f3cb3c9c5",
+      "role": "DS 复跑样本：H743 200 ms（3,675,477 条指令）",
+      "notes": "《etm-kvdat-fastpath-rerun-2026-10-19》使用的样本；有条件加入，不替换前两者。",
+      "load": {
+        "name": "STM32H743 / H742 / H750 / H753 · 2026-10-18 13:39:57",
+        "protocol": "ETMv4",
+        "target": "STM32H743 / H742 / H750 / H753",
+        "core": "Cortex-M7",
+        "etmVersion": "ETMv4",
+        "windowSeconds": 0.2,
+        "sampleRateHz": 500000000,
+        "clockChannel": 0,
+        "dataChannels": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "fraction": 0.25,
+        "glitchNs": 4.0,
+        "traceId": 2,
+        "config": {
+          "idr0": 134219489,
+          "idr1": 1090581505,
+          "idr2": 4,
+          "idr8": 1,
+          "idr9": 0,
+          "idr10": 0,
+          "idr11": 0,
+          "idr12": 1,
+          "idr13": 0,
+          "config": 4113,
+          "traceid": 2
+        },
+        "decodeConfigBasis": "SWD snapshot",
+        "captureScope": "business-unfiltered-window",
+        "summary": {
+          "packets": 300074,
+          "ranges": 735337,
+          "instructions": 3675477,
+          "executed": 3124443,
+          "exceptions": 190,
+          "gaps": 1,
+          "packetIssues": 0,
+          "unknownExecution": 1
+        }
+      },
+      "files": {
+        "capture.csv": {
+          "bytes": 500410009,
+          "sha256": "d16673cd213f7054b8c6d8f3b81236f614c335c4724b895a2662ad84ac814abd"
+        },
+        "capture.csv.la.json": {
+          "bytes": 1917,
+          "sha256": "792c0d042816d9d1c8c58799569ff2e284dd42dcd84bedde24b55487480b0ff2"
+        },
+        "capture.kvdat": {
+          "bytes": 92316409,
+          "sha256": "af706881d489abf0ccf5f9c9c1a78289c9e8af9cbdb90a68e436bf5595448ce2"
+        },
+        "etm.bin": {
+          "bytes": 365449,
+          "sha256": "c71862df05f6c96f9bd0eebcca85b8c12817e2f6f6a9157b1e24307fac7cea9e"
+        },
+        "firmware.elf": {
+          "bytes": 2178084,
+          "sha256": "c610192ce4acbefc66d210a9b44b984c47ffdb02314cfce0d94f5b86835fdcd3"
+        },
+        "native-config.txt": {
+          "bytes": 256,
+          "sha256": "c356db0d532107ae79b74a8b546acabeeefb7d8d31f32a575617d7e743757591"
+        },
+        "session.json": {
+          "bytes": 3789,
+          "sha256": "66bbab6b962d88ca5277e91e5bbec78d4cc2c39c3327c24d1a2c4ced2a66e96e"
+        },
+        "sources.json": {
+          "bytes": 352,
+          "sha256": "1a2daf6ade3dd60ed06f1b0c083427a85ad9a75755346abc20434a3577fada7d"
+        },
+        "tpiu.bin": {
+          "bytes": 6000151,
+          "sha256": "6d76873665c80621cc82028da1485fec610d88a3570fd5f212fde5e78a643450"
+        }
+      },
+      "derivedFiles": {
+        "browse-v3.sqlite": {
+          "bytes": 2899783680
+        },
+        "decoded.json": {
+          "bytes": 14905
+        },
+        "elements.jsonl": {
+          "bytes": 278246488
+        },
+        "events.jsonl": {
+          "bytes": 1684766587
+        },
+        "framing.json": {
+          "bytes": 331
+        },
+        "image-0.bin": {
+          "bytes": 31484
+        },
+        "image-1.bin": {
+          "bytes": 144
+        },
+        "native.jsonl": {
+          "bytes": 284095201
+        },
+        "native.log": {
+          "bytes": 0
+        },
+        "packets.jsonl": {
+          "bytes": 32694849
+        },
+        "physical.json": {
+          "bytes": 1627
+        }
+      },
+      "directoryManifest": {
+        "files": 20,
+        "bytes": 5780911712,
+        "manifestSha256": "20b9c5c918bbc7ce2e098a79ee6c8a425a61c15c56a1162db30b8196caae524f"
+      }
+    },
+    "usb-init-10ms": {
+      "path": "etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5",
+      "role": "快速 sanity 样本：H743 10 ms USB 初始化（210,706 条指令）",
+      "notes": "用于校验基准工具本身可用（全链路小样本），不计入最终性能结论；也是 USB 初始化寄存器扫描的业务语义/顺序核对样本。",
+      "load": {
+        "name": "STM32H743 / H742 / H750 / H753 · 2026-10-18 01:28:09",
+        "protocol": "ETMv4",
+        "target": "STM32H743 / H742 / H750 / H753",
+        "core": "Cortex-M7",
+        "etmVersion": "ETMv4",
+        "windowSeconds": 0.01,
+        "sampleRateHz": 500000000,
+        "clockChannel": 0,
+        "dataChannels": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "fraction": 0.25,
+        "glitchNs": 0.0,
+        "traceId": 2,
+        "config": {
+          "idr0": 134219489,
+          "idr1": 1090581505,
+          "idr2": 4,
+          "idr8": 1,
+          "idr9": 0,
+          "idr10": 0,
+          "idr11": 0,
+          "idr12": 1,
+          "idr13": 0,
+          "config": 17,
+          "traceid": 2
+        },
+        "decodeConfigBasis": "SWD snapshot",
+        "captureScope": "business-unfiltered-window",
+        "summary": {
+          "packets": 17602,
+          "ranges": 46163,
+          "instructions": 210706,
+          "executed": 182183,
+          "exceptions": 11,
+          "gaps": 1,
+          "packetIssues": 1,
+          "unknownExecution": 979
+        }
+      },
+      "files": {
+        "capture.csv": {
+          "bytes": 25295479,
+          "sha256": "e81773eeb967a7b667b594358dde3e5ed739a07320936adb35accb5f461477f0"
+        },
+        "capture.csv.la.json": {
+          "bytes": 1917,
+          "sha256": "4781844f9571fceac16f42811aa5b3caf73dd25baebb7cccf3a2176a7ee835fd"
+        },
+        "capture.kvdat": {
+          "bytes": 4691722,
+          "sha256": "1748934964a0ee4255aaccf4cea8343caf0ede83f46301e3afd31b8fd3309e92"
+        },
+        "etm.bin": {
+          "bytes": 22342,
+          "sha256": "a65029e2fcbb6b81b96be3440d0e4e7deebbb6484e4fa3a6f99eb1d7f0d8ceee"
+        },
+        "firmware.elf": {
+          "bytes": 2178084,
+          "sha256": "c610192ce4acbefc66d210a9b44b984c47ffdb02314cfce0d94f5b86835fdcd3"
+        },
+        "native-config.txt": {
+          "bytes": 254,
+          "sha256": "926a33dfab4c036db8bd679da051294856b2542dac54fcbd9d169b82b3ea61a0"
+        },
+        "session.json": {
+          "bytes": 4906,
+          "sha256": "342a92fc2cbca009eb7b42003f5a0921e2cb7d13a92c35a86b90ebe4d6ca9090"
+        },
+        "sources.json": {
+          "bytes": 1305,
+          "sha256": "af0a1ce1ce789f9db07438fa55ed425b53e8bddcb06a15e7459c5391b2f4d083"
+        },
+        "tpiu.bin": {
+          "bytes": 300007,
+          "sha256": "8553d7c89c8dbecbf46af4fb544e2710462e765a47ffdb782d7c37accccd11b8"
+        }
+      },
+      "derivedFiles": {
+        "browse-v3.sqlite": {
+          "bytes": 166215680
+        },
+        "decoded.json": {
+          "bytes": 119194139
+        },
+        "image-0.bin": {
+          "bytes": 31484
+        },
+        "image-1.bin": {
+          "bytes": 144
+        },
+        "native.jsonl": {
+          "bytes": 17499640
+        },
+        "native.log": {
+          "bytes": 0
+        },
+        "physical.json": {
+          "bytes": 1554
+        }
+      },
+      "directoryManifest": {
+        "files": 16,
+        "bytes": 335438657,
+        "manifestSha256": "fabf1b7b6e4a200b04a1263ebcb21cfa3fc21a92a933154e3d046f5b871b600a"
+      }
+    },
+    "etm-v3-10ms": {
+      "path": "etm/records/capture-2d6da5829a8c4811b7c5ed2ca9e08cc3",
+      "role": "ETMv3 兼容样本：F103ZE 10 ms（172,596 条指令，ETMv3.4）",
+      "notes": "ETMv3/ETMv4 双协议冒烟；不用于 H743 性能外推。",
+      "load": {
+        "name": "STM32F103ZE / 高容量 F103（PE2～PE6） · 2026-10-18 01:03:01",
+        "protocol": "ETMv3",
+        "target": "STM32F103ZE / 高容量 F103（PE2～PE6）",
+        "core": "Cortex-M3",
+        "etmVersion": "ETMv3.4",
+        "windowSeconds": 0.01,
+        "sampleRateHz": 500000000,
+        "clockChannel": 0,
+        "dataChannels": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "fraction": 0.25,
+        "glitchNs": 0.0,
+        "traceId": 2,
+        "config": {
+          "protocol": "ETMv3",
+          "idr": 1091891777,
+          "ctrl": 2064,
+          "ccer": 100352,
+          "traceid": 2
+        },
+        "decodeConfigBasis": "SWD snapshot",
+        "captureScope": "business-unfiltered-window",
+        "summary": {
+          "packets": 35241,
+          "ranges": 172596,
+          "instructions": 172596,
+          "executed": 155349,
+          "exceptions": 12,
+          "gaps": 1,
+          "packetIssues": 0,
+          "unknownExecution": 0
+        }
+      },
+      "files": {
+        "capture.csv": {
+          "bytes": 21316405,
+          "sha256": "c3fa0d94fa63cee95fa16f1f8fcf14f5a8a6fe7a1c7b73d8ceb7f8af73f6513e"
+        },
+        "capture.csv.la.json": {
+          "bytes": 1917,
+          "sha256": "cff75a4c390cc1e25aa8fb6d75228897c7f1ae77690c225114ab11321fa3baaa"
+        },
+        "capture.kvdat": {
+          "bytes": 4304647,
+          "sha256": "080b06e70037caff7ce43acc5c2df38e71b6e448ccd6d0f5eecd5c414c900682"
+        },
+        "etm.bin": {
+          "bytes": 36600,
+          "sha256": "e873c36835e4af81671a76421fb7c85a51cca5536420fff49b76b881ce9d763c"
+        },
+        "firmware.elf": {
+          "bytes": 1216776,
+          "sha256": "63881ed9f6c1187d56924795ccad3f151a677aea0dfa201823fe44e0cb857522"
+        },
+        "native-config.txt": {
+          "bytes": 225,
+          "sha256": "290ab46c6febc6b2bc23ade29863a7ce29f271c147f613e639131e4f444b491c"
+        },
+        "session.json": {
+          "bytes": 3444,
+          "sha256": "9d43b26cf262119cfb42814e1763269b15e3cfacde2bbf5c2455f00165310349"
+        },
+        "sources.json": {
+          "bytes": 678,
+          "sha256": "756288605696d1d02e436dfe0a91fcc5bc8b92fcf4dcd380e284775607de3065"
+        },
+        "tpiu.bin": {
+          "bytes": 240013,
+          "sha256": "17c3affb7f2eca28cea78de0ad6da0e3890cd12a394eb0c0b80a3a8a787f9f98"
+        }
+      },
+      "derivedFiles": {
+        "browse-v3.sqlite": {
+          "bytes": 156139520
+        },
+        "decoded.json": {
+          "bytes": 143031514
+        },
+        "image-0.bin": {
+          "bytes": 20040
+        },
+        "image-1.bin": {
+          "bytes": 128
+        },
+        "native.jsonl": {
+          "bytes": 59192460
+        },
+        "native.log": {
+          "bytes": 0
+        },
+        "physical.json": {
+          "bytes": 1564
+        }
+      },
+      "directoryManifest": {
+        "files": 16,
+        "bytes": 385505931,
+        "manifestSha256": "2e1b07b64550776e17a1e3b5f8fb58113b41a1f40d4743df70bb3a4ff9c1aa57"
+      }
+    }
+  }
+}
