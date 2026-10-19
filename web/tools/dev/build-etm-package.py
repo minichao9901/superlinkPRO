@@ -25,7 +25,7 @@ def main():
                # 用 collect-submodules/binaries（不用 collect-all）：后者会把 numpy 测试数据也带进包。
                '--collect-submodules','numpy','--collect-binaries','numpy',
                '--collect-submodules','pandas','--collect-binaries','pandas']
-    for name in ['server','werkzeug.middleware.dispatcher','html.parser','decode_trace','decode_stream','stream_store','trace_port','tpiu_demux','flow_analysis','record_store','source_export','breakpoint_resolver','kingst_la']:
+    for name in ['server','werkzeug.middleware.dispatcher','html.parser','decode_trace','decode_stream','stream_store','trace_port','tpiu_demux','flow_analysis','record_store','source_export','breakpoint_resolver','kingst_la','kingst_record','timeline_index','native_index','fast_window']:
         command+=['--hidden-import',name]
     # 便携包**随带** numpy/pandas（用户明确要求）：只有它们在，trace_port 的向量化前端才生效，
     # 200 ms 记录端到端才是全速（~120 s）；代价是 runtime 变大（pandas 会带 pytz/PIL/lxml/zstandard）。
@@ -54,6 +54,7 @@ def main():
         (package/file['name']).write_bytes(base64.b64decode(file['data']))
     licenses=package/'licenses';licenses.mkdir();shutil.copyfile(snapshot/'vendor/OpenCSD-1.8.3/LICENSE',licenses/'OpenCSD-BSD-3-Clause.txt')
     shutil.copyfile(snapshot/'vendor/OpenCSD-1.8.3/NOTICES.txt',licenses/'OpenCSD-NOTICES.txt')
+    shutil.copyfile(snapshot/'native/SQLITE-LICENSE.txt',licenses/'SQLite-PUBLIC-DOMAIN.txt')
     shutil.copytree(snapshot/'vendor/native-runtime-licenses',licenses/'Native-MinGW-runtime')
     python_license=Path(sys.base_prefix)/'LICENSE.txt'
     if python_license.exists():shutil.copyfile(python_license,licenses/'Python-LICENSE.txt')
@@ -72,13 +73,13 @@ def main():
     shutil.copyfile(ROOT/'bridge/etm/provenance.json',package/'source-provenance.json')
     files=[dict(name=p.relative_to(package).as_posix(),bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(package.rglob('*')) if p.is_file()]
     identity=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()
-    manifest=dict(version='1.0.12',platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],python=sys.version,dependencies=distributions,files=files)
+    manifest=dict(version='1.0.13-kvdat.1',platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],python=sys.version,dependencies=distributions,files=files)
     (package/'package-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     args.output.mkdir(parents=True,exist_ok=True);archive=args.output/'etm-bridge-win64.zip'
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as zip:
         for file in sorted(package.rglob('*')):
             if file.is_file():zip.write(file,'etm-bridge-kit/'+file.relative_to(package).as_posix())
-    download=dict(version='1.0.12',platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'])
+    download=dict(version='1.0.13-kvdat.1',platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'])
     (args.output/'manifest.json').write_text(json.dumps(download,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(dict(package=str(package),archive=str(archive),**download),ensure_ascii=False))
 if __name__=='__main__':main()

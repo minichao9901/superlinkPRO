@@ -14,7 +14,7 @@ events/packets/elements 只存 JSONL；decoded.json 是小型元数据与分析�
   （unique PC 扫描 / mark_execution / analyze_calls / byte_accounting ×2 / summary 扫描），
   仅用于对照与故障回退。
 
-注意：CSV 取样仍加载跳变轨迹，ETM 输入、ELF 和派生调用树也占内存；
+注意：物理取样仍加载跳变轨迹，ETM 输入、ELF 和派生调用树也占内存；
 本模块不声称整个采集链路 O(1) 或支持无限长度。
 """
 import collections
@@ -251,6 +251,9 @@ def _is_it(ins):
 
 def _range_instructions(start, end, decoder, image, span_cache):
     """从 start 线性反汇编到 end 的指令列表（同一 start 缓存较长前缀，结果与精确长度一致）。"""
+    exact = span_cache.get((start, end))
+    if exact is not None:
+        return exact
     entry = span_cache.get(start)
     if entry is None or entry[0] < end:
         instructions = list(decoder.disasm(image.read(start, end - start), start))
@@ -268,6 +271,9 @@ def _range_instructions(start, end, decoder, image, span_cache):
         instructions = list(decoder.disasm(image.read(start, end - start), start))
         selected = [ins for ins in instructions if ins.address < end]
         span_cache[start] = (end, instructions)
+    if len(span_cache) >= CACHE_MAX:
+        span_cache.clear()
+    span_cache[(start, end)] = selected
     return selected
 
 
@@ -331,6 +337,7 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
     packet_end = 0
     pending = None
     span_cache = {}
+    range_entries = {}
     body_lines, side_lines, element_lines, packet_lines = [], [], [], []
 
     def flush_tail():
@@ -342,9 +349,9 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
         side_lines.append(str(reserved) + entry[11][0 if executed is True else (1 if executed is False else 2)])
         pending = None
         if len(body_lines) >= 8192:
-            ev_out.writelines(body_lines)
+            ev_out.write(''.join(body_lines))
             body_lines.clear()
-            side_out.writelines(side_lines)
+            side_out.write(''.join(side_lines))
             side_lines.clear()
 
     with events_jsonl.open('w', encoding='utf-8') as ev_out, \
@@ -363,7 +370,7 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
                 packet_lines.append(text_line)
                 packets_n += 1
                 if len(packet_lines) >= 8192:
-                    pk_out.writelines(packet_lines)
+                    pk_out.write(''.join(packet_lines))
                     packet_lines.clear()
                 if offset < previous_packet:
                     raise ValueError('包偏移倒序，拒绝伪造字节对账')
@@ -393,7 +400,7 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
             element_lines.append(line_out)
             elements_n += 1
             if len(element_lines) >= 8192:
-                el_out.writelines(element_lines)
+                el_out.write(''.join(element_lines))
                 element_lines.clear()
             if etype == 12:
                 counters['cycle_elements'] += 1
@@ -408,17 +415,30 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
                 flush_tail()
             if etype == 5:
                 ranges += 1
-                selected = _range_instructions(start, end, decoder, image, span_cache)
-                if (len(selected) != payload or not selected
-                        or selected[-1].address + selected[-1].size != end):
+                plan = range_entries.get((start,end))
+                if plan is None:
+                    selected = _range_instructions(start, end, decoder, image, span_cache)
+                    entries = tuple(table.info(ins) for ins in selected)
+                    groups={};begin=0
+                    while begin<len(entries)-1:
+                        entry=entries[begin];stop=begin+1
+                        if entry[4]=='linear':
+                            key=(entry[6],entry[7],entry[8],entry[9])
+                            while stop<len(entries)-1 and entries[stop][4]=='linear' and (entries[stop][6],entries[stop][7],entries[stop][8],entries[stop][9])==key:stop+=1
+                        groups[begin]=stop-begin;begin=stop
+                    plan=(entries,groups)
+                    if len(range_entries) >= CACHE_MAX:range_entries.clear()
+                    range_entries[(start,end)] = plan
+                entries,groups=plan
+                if (len(entries) != payload or not entries
+                        or entries[-1][13] + entries[-1][0] != end):
                     raise ValueError(
                         f'机器码范围核对失败：0x{start:08x}..0x{end:08x}；'
-                        f'OpenCSD={payload}，反汇编={len(selected)}。')
-                last = len(selected) - 1
-                for index in range(len(selected)):
-                    ins = selected[index]
-                    entry = table.info(ins)
-                    pc = ins.address
+                        f'OpenCSD={payload}，反汇编={len(entries)}。')
+                last = len(entries) - 1
+                tracked_until=0
+                for index,entry in enumerate(entries):
+                    pc = entry[13]
                     function, source, line_no = entry[6], entry[7], entry[8]
                     if counters['first_path_offset'] is None:
                         counters['first_path_offset'] = offset
@@ -427,24 +447,30 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
                         if entry[9]:
                             executed = None
                         pending = [entry, offset, executed, cycle_count,
-                                   (len(selected) if cycle_count else 0), seq, function, source,
-                                   line_no, len(selected), pc]
+                                   (len(entries) if cycle_count else 0), seq, function, source,
+                                   line_no, len(entries), pc]
                         if executed is None:
                             counters['unknown_execution'] += 1
                         seq += 1
                     else:
                         executed = None if entry[9] else True
-                        tracker.feed_instruction(function, source, line_no, executed, entry[4], pc,
-                                                 entry[0], 0)
+                        if index>=tracked_until:
+                            group=groups[index]
+                            if group>1:
+                                tail=entries[index+group-1]
+                                tracker.feed_linear_many(function,source,line_no,executed,pc,entry[0],tail[13],tail[0],group)
+                            else:
+                                tracker.feed_instruction(function,source,line_no,executed,entry[4],pc,entry[0],0)
+                            tracked_until=index+group
                         body_lines.append(entry[10] % (seq, offset, tracker.path_json))
                         side_lines.append(str(seq) + entry[11][0 if executed is True else (1 if executed is False else 2)])
                         if executed is None:
                             counters['unknown_execution'] += 1
                         seq += 1
                         if len(body_lines) >= 8192:
-                            ev_out.writelines(body_lines)
+                            ev_out.write(''.join(body_lines))
                             body_lines.clear()
-                            side_out.writelines(side_lines)
+                            side_out.write(''.join(side_lines))
                             side_lines.clear()
                     instruction_count += 1
                     if line_no:
@@ -469,20 +495,20 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
                 if etype in (1, 6, 7, 8) or (etype == 2 and payload):
                     gaps += 1
                 if len(body_lines) >= 8192:
-                    ev_out.writelines(body_lines)
+                    ev_out.write(''.join(body_lines))
                     body_lines.clear()
-                    side_out.writelines(side_lines)
+                    side_out.write(''.join(side_lines))
                     side_lines.clear()
         if pending is not None:
             flush_tail()
         if body_lines:
-            ev_out.writelines(body_lines)
+            ev_out.write(''.join(body_lines))
         if side_lines:
-            side_out.writelines(side_lines)
+            side_out.write(''.join(side_lines))
         if element_lines:
-            el_out.writelines(element_lines)
+            el_out.write(''.join(element_lines))
         if packet_lines:
-            pk_out.writelines(packet_lines)
+            pk_out.write(''.join(packet_lines))
 
     if not instruction_count:
         raise ValueError('没有恢复到可信指令范围；原始采集和包记录已保留。'
@@ -735,7 +761,7 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
 
 def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fraction=0.25,
                           clock=0, data=None, max_events=None, glitch_ns=0):
-    """从 LA 的 CSV 开始走完整条流式链路（取样相位 + TPIU 解复用 + 解码）。"""
+    """从 LA 的 CSV/KVDAT 走完整链路（取样 + TPIU 解复用 + 解码）。"""
     from trace_port import extract
     from tpiu_demux import demux
 

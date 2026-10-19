@@ -2,7 +2,7 @@
 import argparse,gzip,hashlib,json,shutil,subprocess,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
-FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stream.py','tools/stream_store.py','tools/slice_merge.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py']
+FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stream.py','tools/stream_store.py','tools/slice_merge.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py','tools/kingst_record.py','tools/timeline_index.py','tools/native_index.py','tools/fast_window.py']
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--etm-root',required=True,type=Path);args=parser.parse_args()
     source=args.etm_root.resolve();dest=ROOT/'bridge/etm/backend';origins={}
@@ -10,7 +10,7 @@ def main():
     # ⚠️ 不要在这里复制 `build-native/etm_decode.exe`：它是构建产物（gitignored），
     #    裸克隆里没有；旧顺序会先因为缺 exe 抛异常，后面的 cmake 自动构建永远轮不到（审查 R09）。
     #    exe 由下面最后一步 g++ 直接链接进快照。
-    paths+=['native/decoder.cpp','vendor/OpenCSD-1.8.3/LICENSE']
+    paths+=['native/decoder.cpp','native/indexer.cpp','native/SQLITE-LICENSE.txt','vendor/OpenCSD-1.8.3/LICENSE']
     for name in paths:
         target=dest/name;target.parent.mkdir(parents=True,exist_ok=True)
         data=(source/name).read_bytes()
@@ -106,7 +106,10 @@ int main(int argc,char **argv) { return decode_main(argc,argv); }
     for p in libs:
         if not p.is_file():raise SystemExit(f'[sync] 自动构建后仍缺静态库：{p}')
     subprocess.run(['C:/msys64/mingw64/bin/g++.exe','-std=c++11','-O2','-municode','-static','-static-libgcc','-static-libstdc++','-I'+str(source/'vendor/OpenCSD-1.8.3/decoder/include'),str(native),str(libs[0]),str(libs[1]),'-o',str(dest/'build-native/etm_decode.exe')],check=True)
-    provenance=dict(sourceRepository='etm',sourceRevision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip(),sourceHashes=origins,localChanges=['server.py: WEB_ETM_RECORDS redirects mutable records to portable data directory','native/decoder.cpp: UTF-16 Windows argv/file APIs for UTF-8 manifests and Unicode paths; recompiled static OpenCSD wrapper'],packagedHashes={p.relative_to(dest).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in dest.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'})
+    # Rebuild the optional native indexer against the current source as well.
+    subprocess.run(['cmake','--build',str(source/'build-native'),'--target','etm_index','--config','Release'],check=True)
+    shutil.copyfile(source/'build-native/etm_index.exe',dest/'build-native/etm_index.exe')
+    provenance=dict(sourceRepository='etm',sourceRevision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip(),sourceHashes=origins,localChanges=['server.py: WEB_ETM_RECORDS redirects mutable records to portable data directory','native/decoder.cpp: UTF-16 Windows argv/file APIs for UTF-8 manifests and Unicode paths; recompiled static OpenCSD wrapper','native/indexer.cpp: static SQLite bulk index and compact browsing metrics'],packagedHashes={p.relative_to(dest).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in dest.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'})
     (ROOT/'bridge/etm/provenance.json').write_text(json.dumps(provenance,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(f'Runtime snapshot: {len(provenance["packagedHashes"])} files; source {provenance["sourceRevision"]}')
 if __name__=='__main__':main()

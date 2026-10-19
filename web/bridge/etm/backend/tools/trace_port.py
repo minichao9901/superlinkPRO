@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Kingst 跳变 CSV → 4 位 DDR trace 字节流候选；尚不解码 ETM 指令。
+"""Kingst KVDAT / 跳变 CSV → 4 位 DDR trace 字节流候选。
 
 物理取样分两条实现，语义完全一致：
   * 向量化路径（numpy/pandas）：整块解析 CSV，用 searchsorted 取样，实测 4 ns 滤波与
@@ -7,9 +7,8 @@
   * 纯 Python 路径（csv.reader + bisect）：numpy 缺失或 CSV 形状不支持批量处理时使用。
 两条路径产出同一份 physical 报告与同一对相位字节流，切换不影响解码结果。
 
-时间列用 pandas `float_precision='round_trip'` 解析，与历史实现的 Python `float()` **逐位一致**
-（默认解析器对个别小数会差 1 ULP）；通道只有 0/1、按 int8 读入，所以 round_trip 只作用在时间列，
-500 MB CSV 实测只多 3~4 s。
+KVDAT 直接读取边沿位置与初始电平，CSV 时间列使用 round_trip。两种输入
+共用同一套滤波/DDR 取样/相位代码；本模块不执行 ETM 指令解码。
 """
 import argparse
 import bisect
@@ -40,7 +39,7 @@ def frontend_accel():
             pandas_ok = True
         except Exception:
             pandas_ok = False
-    return dict(numpy=bool(numpy_ok), pandas=bool(pandas_ok), vectorized=bool(numpy_ok and pandas_ok))
+    return dict(numpy=bool(numpy_ok), pandas=bool(pandas_ok), vectorized=bool(numpy_ok and pandas_ok),kvdat=bool(numpy_ok))
 
 
 def read_tracks(path):
@@ -226,6 +225,14 @@ def _extract_vectorized(path, clock, data, fraction, glitch_ns):
         track_times[channel] = timestamps[changed]
         track_levels[channel] = values[changed].astype(_np.int8)
 
+    return _extract_tracks(path, initial, track_times, track_levels, start, end,
+                           clock, data, fraction, glitch_ns)
+
+
+def _extract_tracks(path, initial, track_times, track_levels, start, end,
+                    clock, data, fraction, glitch_ns):
+    """Shared physical sampling; CSV and KVDAT use identical filtering/phases."""
+    path = Path(path)
     needed = [clock] + data
     if len(set(needed)) != 5 or len(data) != 4:
         raise ValueError('需要五个不同通道：时钟 + D0/D1/D2/D3。')
@@ -238,7 +245,7 @@ def _extract_vectorized(path, clock, data, fraction, glitch_ns):
     removed = {}
     if glitch_ns:
         raw_intervals = _np.diff(track_times[clock])
-        if not len(raw_intervals) or glitch_ns >= statistics.median(raw_intervals) * 1e9 / 2:
+        if not len(raw_intervals) or glitch_ns >= float(_np.median(raw_intervals)) * 1e9 / 2:
             raise ValueError('软件滤波阈值须小于典型时钟半周期的一半，避免滤掉正常 Trace；请降低阈值')
         for channel in needed:
             keep = _filter_keep(track_times[channel], glitch_ns)
@@ -252,7 +259,7 @@ def _extract_vectorized(path, clock, data, fraction, glitch_ns):
     intervals = _np.diff(edges)
     if _np.any(intervals <= 0):
         raise ValueError('同一时刻存在多个时钟跳变。')
-    half_period = statistics.median(intervals)
+    half_period = float(_np.median(intervals))
     periods = edges[2:] - edges[:-2]
     # Windowed full-cycle estimates tolerate 2 ns quantization. Keep changes
     # and clock gaps visible rather than treating a reset-to-PLL capture as one clock.
@@ -318,7 +325,7 @@ def _extract_vectorized(path, clock, data, fraction, glitch_ns):
         'stage': 'physical DDR extraction only; no TPIU demux or ETM instruction decode',
         'clock_channel': clock, 'data_channels_D0_to_D3': data,
         'window_seconds': [start, end], 'clock_edges': len(edges),
-        'clock_hz_median': 1.0 / statistics.median(periods),
+        'clock_hz_median': 1.0 / float(_np.median(periods)),
         'clock_hz_average': (len(edges) - 1) / (edges[-1] - edges[0]) / 2,
         'half_period_ns': half_period * 1e9,
         'irregular_half_periods': int(_np.sum(_np.abs(intervals / half_period - 1) > 0.25)),
@@ -426,6 +433,20 @@ def _extract_reference(path, clock, data, fraction=0.25, glitch_ns=0):
 def extract(path, clock, data, fraction=0.25, glitch_ns=0):
     if not 0 < fraction < 1:
         raise ValueError('取样位置必须介于 0 和 1 之间。')
+    if Path(path).suffix.lower() == '.kvdat':
+        if _np is None:
+            raise ValueError('KVDAT 取样需要 numpy；请安装依赖或使用完整工作台包。')
+        from kingst_record import read_tracks as read_kvdat
+        info, initial, times, levels = read_kvdat(path)
+        selected = [clock] + list(data)
+        start = -info['trigger'] / info['rate']
+        end = max([start] + [float(times[ch][-1]) for ch in selected if ch in times and len(times[ch])])
+        physical, streams = _extract_tracks(path, initial, times, levels, start, end,
+                                           clock, list(data), fraction, glitch_ns)
+        physical['input_format'] = 'Kingst KVDAT'
+        physical['sample_rate'] = info['rate']
+        physical['sample_depth'] = info['depth']
+        return physical, streams
     if _np is not None:
         try:
             return _extract_vectorized(path, clock, data, fraction, glitch_ns)

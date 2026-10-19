@@ -61,6 +61,9 @@ class PortableTests(unittest.TestCase):
         self.assertTrue(health['ok'])
         self.assertTrue(health['frontend']['numpy'],health)
         self.assertTrue(health['frontend']['pandas'],health)
+        self.assertTrue(health['frontend']['kvdat'],health)
+        self.assertTrue(health['nativeIndexer'],health)
+        self.assertIn('kvdat',health['captureFormats'])
         self.assertTrue(health['frontend']['vectorized'],health)
         self.assertEqual(self.run_exe('--check').returncode,0)
     def test_optional_firmware_and_interrupted_demo_repair_in_compiled_exe(self):
