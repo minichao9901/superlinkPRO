@@ -27,11 +27,15 @@ from decode_trace import DEFAULT_CONFIG, Image, decode_capture, export_source, d
 from flow_analysis import enrich
 from kingst_la import Vis, do_export, read_glitch_settings
 from record_store import RecordStore, record_store
+from trace_store_adapter import (BACKEND_TRACE, MANIFEST_NAME as STORE_MANIFEST_NAME,
+                                adapter as trace_store_adapter,
+                                backend_for as record_backend,
+                                capture_start_from_store, read_sources as store_read_sources)
 from stream_store import attach_streams, JsonLines
 from decode_stream import decode_capture_stream, decode_stream, export_simplified_stream
 from slice_merge import merge_slice_events, aggregate_slices
 from breakpoint_resolver import resolve_breakpoint
-from source_export import simplified_html
+from source_export import base as source_base, simplified_html
 from trace_port import frontend_accel
 
 app = Flask(__name__, static_folder='web', static_url_path='')
@@ -228,10 +232,19 @@ def result(sid):
     decoded=folder/'decoded.json'
     if decoded.stat().st_size>384*1024*1024:
         raise ValueError('旧版整段结果超过安全内存限额，请点击单独解码，重新建立流式记录；原始记录保留')
-    r = attach_streams(load_json(decoded),folder)
-    if r.get('version', 1) < 3:
-        enrich(r, Image(folder / 'firmware.elf'))
-        save_json(folder/'decoded.json',r)
+    raw = load_json(decoded)
+    if raw.get('traceStore'):
+        # 新格式记录：事件/包本体在 store.bin，没有 events.jsonl，不能走 attach_streams；
+        # 采集入口回读也从 store 计算（不依赖已删除的文本）。
+        r = raw
+        r.setdefault('sources', store_read_sources(folder))
+        if 'captureStart' not in r:
+            r['captureStart'] = capture_start_from_store(folder / 'store', meta(sid))
+    else:
+        r = attach_streams(raw, folder)
+        if r.get('version', 1) < 3:
+            enrich(r, Image(folder / 'firmware.elf'))
+            save_json(folder/'decoded.json',r)
     metadata=meta(sid)
     verify_record_inputs(sid,r,metadata)
     if (folder/'etm.bin').exists() and r.get('quality') and 'processedBytes' in r['quality']:
@@ -240,7 +253,9 @@ def result(sid):
                             unaccountedBytes=max(0,size-r['quality'].get('accountedBytes',0)))
     r.setdefault('targetSnapshot',metadata.get('targetSnapshot'))
     r.setdefault('captureScope',metadata.get('captureScope','unfiltered-window'))
-    if 'captureStart' not in r:r['captureStart']=capture_start_info(r.get('events',[]),metadata)
+    if 'captureStart' not in r:
+        r['captureStart']=(capture_start_from_store(folder / 'store',metadata)
+                           if r.get('traceStore') else capture_start_info(r.get('events',[]),metadata))
     r['laFilter']=metadata.get('laFilter')
     phase_file=folder/'phase-validation.json'
     if phase_file.exists():
@@ -262,7 +277,31 @@ def result(sid):
     return r
 
 def browse_store(sid):
-    return record_store(directory(sid),lambda:result(sid))
+    """按记录目录内容选择浏览后端：trace-store（新格式）或旧 RecordStore。
+
+    选择规则见 `trace_store_adapter.backend_for()`：有已发布 manifest 且记录声明了
+    trace-store（或没有 events.jsonl）时用适配器；旧 JSONL/内联记录保持 RecordStore。
+    声明了新格式但 store 缺失/损坏时抛错，不静默回退成“缺 events.jsonl”的坏记录。
+    """
+    folder = directory(sid)
+    if record_backend(folder) == BACKEND_TRACE:
+        return trace_store_adapter(folder, lambda: result(sid))
+    return record_store(folder,lambda:result(sid))
+
+@app.get('/api/capabilities')
+def capabilities():
+    """能力声明（前端采集时长校验的唯一来源；默认上限仍为 200 ms）。"""
+    return jsonify(captureProtocol=CAPTURE_PROTOCOL,
+                   captureMaxSeconds=CAPTURE_MAX_SECONDS,
+                   captureMaxSamples=CAPTURE_MAX_SAMPLES,
+                   captureFormats=['kvdat','csv'],
+                   traceStore=dict(supported=True, format='trace-store',
+                                   formatName='trace-store v1', schemaVersion=1,
+                                   manifest='store/manifest.json',
+                                   data='store/generations/<generation>/store.bin',
+                                   packetText=False, queryAdapter=True),
+                   legacyRecords=dict(jsonl=True, inlineEvents=True, sqliteIndex=True),
+                   notes=['traceStore 记录无需 events.jsonl/SQLite 即可浏览；包说明文本不随原生二进制保存'])
 
 @app.get('/api/browse/<sid>/overview')
 def browse_overview(sid):
@@ -750,7 +789,9 @@ def _decode_job(jid, sid):
                                fraction=m.get('fraction', .25), clock=m.get('clock', 0), data=m.get('data', [1, 2, 3, 4]),glitch_ns=m.get('glitchNs',0))
         r['targetSnapshot']=m.get('targetSnapshot')
         r['captureScope']=m.get('captureScope','unfiltered-window')
-        r['captureStart']=capture_start_info(attach_streams(dict(r),folder)['events'],m)
+        r['captureStart']=(capture_start_from_store(folder / 'store', m)
+                           if r.get('traceStore')
+                           else capture_start_info(attach_streams(dict(r),folder)['events'],m))
         r['laFilter']=m.get('laFilter')
         save_json(folder/'decoded.json',r)
 
@@ -802,9 +843,38 @@ def import_record():
                 raise ValueError('记录格式无效。')
             if m['input'] not in archive.namelist():raise ValueError('记录包缺少原始波形，不能作为完整记录导入。')
             m['config']=decoder_config(m.get('config'))
+            members = set(archive.namelist())
+            store_members = []
+            if 'store/manifest.json' in members:
+                # 新格式记录：导入 trace-store 即可直接浏览，不再要求重新解码。
+                try:
+                    store_manifest = json.loads(archive.read('store/manifest.json'))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    raise ValueError('记录包里的 trace-store manifest 不是合法 JSON。')
+                if store_manifest.get('state') != 'complete':
+                    raise ValueError('记录包里的 trace-store 未完成发布，拒绝导入。')
+                generation = store_manifest.get('generation')
+                if not isinstance(generation, str) or not generation or any(
+                        c in generation for c in ('/', '\\', '..')):
+                    raise ValueError('记录包里的 trace-store generation 无效。')
+                store_members = ['store/manifest.json',
+                                 'store/generations/%s/store.bin' % generation]
+                missing = [name for name in store_members if name not in members]
+                if missing:
+                    raise ValueError('记录包缺少 trace-store 文件：' + '、'.join(missing))
+                if 'decoded.json' not in members:
+                    raise ValueError('记录包含 trace-store 但缺少 decoded.json，导入后无法直接浏览。')
+            else:
+                for name in members:
+                    if name.startswith('store/'):
+                        raise ValueError('记录包里的 trace-store 不完整（缺少 store/manifest.json），拒绝导入。')
+            names = list(dict.fromkeys(('session.json', m['input'], 'firmware.elf', 'sources.json',
+                                        'capture.kvdat')
+                                       + (('decoded.json',) if store_members else ())
+                                       + tuple(store_members)))
             total = 0
-            for name in dict.fromkeys(('session.json', m['input'], 'firmware.elf', 'sources.json', 'capture.kvdat')):
-                if name not in archive.namelist():
+            for name in names:
+                if name not in members:
                     continue
                 info = archive.getinfo(name)
                 if info.file_size > MAX_RECORD_MEMBER_BYTES:
@@ -812,9 +882,11 @@ def import_record():
                 total += info.file_size
                 if total > MAX_RECORD_TOTAL_BYTES:
                     raise ValueError(f'记录包解压后总量过大（上限 {MAX_RECORD_TOTAL_BYTES:,} B）')
+                target = folder / name
+                target.parent.mkdir(parents=True, exist_ok=True)
                 # 流式落盘：200 ms 的 capture.csv 约 500 MB，不能整块读进内存。
-                with archive.open(name) as source, (folder / name).open('wb') as target:
-                    shutil.copyfileobj(source, target, 1024 * 1024)
+                with archive.open(name) as source, target.open('wb') as destination:
+                    shutil.copyfileobj(source, destination, 1024 * 1024)
     else:
         suffix = Path(uploaded.filename).suffix.lower()
         if suffix not in ('.csv', '.bin', '.kvdat'):
@@ -1085,6 +1157,61 @@ def stop_owned_la_locked(jid):
     # Closing the receive side wakes start even when VIS swallowed its reply.
 
 
+def export_simplified_from_store(sid, out_path):
+    """从 trace-store 流式生成「简化源码 .c」。
+
+    新格式记录没有 events.jsonl；这里逐条展开 store 事件（O(1) 内存），
+    行规则与 `decode_stream.export_simplified_stream` 相同；文件头按源码文件排序，
+    不作为可编译程序。
+    """
+    store = browse_store(sid)
+    sources = store.sources()
+    source_lines = {file: text.splitlines() for file, text in sources.items()}
+    clean = lambda text: str(text).replace('*/', '* /')          # noqa: E731
+    rows = 0
+    last = None
+    context = None
+    protocol = (store.overview() or {}).get('protocol', 'ETMv4')
+    with Path(out_path).open('w', encoding='utf-8') as out:
+        out.write('/* %s 简化源码执行流：按恢复顺序排列，不是可编译程序。 */\n' % protocol)
+        out.write('/* trace-store 流式导出（不生成 events.jsonl） */\n')
+        for file in sorted(sources):
+            out.write('/* 配套文件：' + clean(source_base(file)) + ' = ' + clean(file) + ' */\n')
+        for event in store.iter_events():
+            seq = event.get('seq', rows)
+            if event.get('kind') != 'instruction':
+                if event.get('type') in (1, 2, 3, 6, 7, 8, 9, 10):
+                    out.write('/* #' + str(seq) + ' ' + clean(event.get('text', '')) + ' */\n')
+                    rows += 1
+                    last = None
+                continue
+            file, line_no = event.get('file', ''), event.get('line')
+            function = event.get('function', '')
+            if event.get('executionState') == 'unknown' or event.get('executed') is None:
+                out.write('/* #' + str(seq) + ' 条件执行状态未知，不视为已证实执行 */\n')
+                rows += 1
+                last = context = None
+                continue
+            if not event.get('executed'):
+                continue
+            content = source_lines.get(file, [])
+            if not line_no or not 0 < line_no <= len(content):
+                out.write('/* #' + str(seq) + ' PC=0x%08x 无配套源码 */\n' % event['pc'])
+                rows += 1
+                last = None
+                continue
+            key = (function, file, line_no)
+            if key == last:
+                continue
+            if (function, file) != context:
+                out.write('/* ' + clean(function) + ' · ' + clean(source_base(file)) + ' */\n')
+                context = (function, file)
+            out.write(content[line_no - 1] + '\n')
+            rows += 1
+            last = key
+    return rows
+
+
 @app.get('/api/download/<sid>/<kind>')
 def download(sid, kind):
     folder = directory(sid)
@@ -1117,24 +1244,50 @@ def download(sid, kind):
                              f'分析结果用 /api/download/{sid}/json。')
         if not (folder/m['input']).is_file() or not (folder/'firmware.elf').is_file():
             raise ValueError('本记录尚无本次原始波形或配套 ELF，不能导出为完整记录包。')
+        names = list(dict.fromkeys(('session.json', m['input'], 'firmware.elf', 'sources.json',
+                                    'capture.kvdat')))
+        manifest_file = folder / 'store' / STORE_MANIFEST_NAME
+        if manifest_file.is_file():
+            # 新格式记录：把 trace-store 与小型 decoded.json 一起打包，导入后无需重新解码。
+            store_manifest = load_json(manifest_file)
+            generation = store_manifest.get('generation')
+            if not isinstance(generation, str) or '/' in generation or '\\' in generation:
+                raise ValueError('trace-store manifest 的 generation 无效，不能导出。')
+            names.extend(['decoded.json', 'store/manifest.json',
+                          'store/generations/%s/store.bin' % generation])
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as archive:
-            for name in dict.fromkeys(('session.json', m['input'], 'firmware.elf', 'sources.json', 'capture.kvdat')):
+            for name in names:
                 if (folder / name).exists():
                     archive.write(folder / name, name)
         buffer.seek(0)
         return send_file(buffer, as_attachment=True, download_name=sid + '.etmrecord')
     r = result(sid)
-    streamed = r.get('streamed', {}).get('schema') in (2, 3)
+    store_backed = bool(r.get('traceStore'))
+    # 新格式记录没有可枚举的 events 列表：把它按“流式记录”处理（导出走 store 流式展开）。
+    streamed = store_backed or r.get('streamed', {}).get('schema') in (2, 3)
     if kind in ('source','simplified','simplified-html','csv') and request.args.get('fromSeq') is not None:
-        start=int(request.args['fromSeq']);end=int(request.args.get('toSeq',len(r['events'])-1))
+        start=int(request.args['fromSeq'])
+        if store_backed:
+            total_end=int((browse_store(sid).overview() or {}).get('eventCount') or 1)-1
+        else:
+            total_end=len(r['events'])-1
+        end=int(request.args.get('toSeq',total_end))
         if start<0 or end<start:raise ValueError('导出序号区间无效')
         if streamed and end-start>=200000:
             raise ValueError('本导出格式请选取不超过 20 万条记录的局部区间；整段可导出简化源码 .c')
-        r={**r,'events':[e for e in r['events'] if start<=e['seq']<=end],'exportRange':dict(start=start,end=end)}
+        if store_backed:
+            events=[e for e in browse_store(sid).iter_events(start,end)]
+        else:
+            events=[e for e in r['events'] if start<=e['seq']<=end]
+        r={**r,'events':events,'exportRange':dict(start=start,end=end)}
     if streamed and request.args.get('fromSeq') is None:
         if kind=='simplified':
-            path=folder/('export-simplified-'+uuid.uuid4().hex+'.c');export_simplified_stream(folder,path)
+            path=folder/('export-simplified-'+uuid.uuid4().hex+'.c')
+            if store_backed:
+                export_simplified_from_store(sid,path)
+            else:
+                export_simplified_stream(folder,path)
             response=send_file(path,as_attachment=True,download_name='etm-simplified.c',mimetype='text/plain; charset=utf-8')
             response.call_on_close(lambda:path.unlink(missing_ok=True))
             return response
