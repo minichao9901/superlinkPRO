@@ -107,8 +107,13 @@ int main(int argc,char **argv) { return decode_main(argc,argv); }
         if not p.is_file():raise SystemExit(f'[sync] 自动构建后仍缺静态库：{p}')
     subprocess.run(['C:/msys64/mingw64/bin/g++.exe','-std=c++11','-O2','-municode','-static','-static-libgcc','-static-libstdc++','-I'+str(source/'vendor/OpenCSD-1.8.3/decoder/include'),str(native),str(libs[0]),str(libs[1]),'-o',str(dest/'build-native/etm_decode.exe')],check=True)
     # Rebuild the optional native indexer against the current source as well.
-    subprocess.run(['cmake','--build',str(source/'build-native'),'--target','etm_index','--config','Release'],check=True)
-    shutil.copyfile(source/'build-native/etm_index.exe',dest/'build-native/etm_index.exe')
+    # SQLite3 dev headers are not required for the Python fallback; a source
+    # tree without them must still be able to publish a working snapshot.
+    try:
+        subprocess.run(['cmake','--build',str(source/'build-native'),'--target','etm_index','--config','Release'],check=True)
+        shutil.copyfile(source/'build-native/etm_index.exe',dest/'build-native/etm_index.exe')
+    except (subprocess.CalledProcessError, FileNotFoundError) as error:
+        print(f'[sync] 跳过原生索引器（没有 SQLite3 开发库或 CMake 目标）：{error}')
     provenance=dict(sourceRepository='etm',sourceRevision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip(),sourceHashes=origins,localChanges=['server.py: WEB_ETM_RECORDS redirects mutable records to portable data directory','native/decoder.cpp: UTF-16 Windows argv/file APIs for UTF-8 manifests and Unicode paths; recompiled static OpenCSD wrapper','native/indexer.cpp: static SQLite bulk index and compact browsing metrics'],packagedHashes={p.relative_to(dest).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in dest.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'})
     (ROOT/'bridge/etm/provenance.json').write_text(json.dumps(provenance,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(f'Runtime snapshot: {len(provenance["packagedHashes"])} files; source {provenance["sourceRevision"]}')
