@@ -12,6 +12,22 @@ def instruction(pc, fn, code='00bf', executed=True):
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_linear_batch_preserves_calls_unknowns_and_interrupt_context(self):
+        from flow_analysis import CallTracker
+        for state in (True,False,None):
+            for interrupted in (False,True):
+                a,b=CallTracker(),CallTracker()
+                for tracker in (a,b):
+                    tracker.feed_instruction('main','main.c',1,True,'call',0x100,2,3)
+                    if interrupted:tracker.feed_event(9,64,15,0x200)
+                for pc in range(0x200,0x20a,2):a.feed_instruction('leaf','leaf.c',2,state,'linear',pc,2,0)
+                b.feed_linear_many('leaf','leaf.c',2,state,0x200,2,0x208,2,5)
+                for tracker in (a,b):
+                    tracker.feed_instruction('leaf','leaf.c',3,True,'return',0x20a,2,7)
+                    if interrupted:tracker.feed_event(10)
+                    tracker.feed_instruction('main','main.c',4,True,'linear',0x102,2,2)
+                self.assertEqual(a.finish(),b.finish())
+
     def test_it_predicate_is_unknown_even_if_generic_range_marked_true(self):
         class Image:
             functions=[(0x1000,8,'fn')]

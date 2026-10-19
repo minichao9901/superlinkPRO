@@ -118,4 +118,80 @@ class StoreTests(unittest.TestCase):
         (self.folder/'decoded.json').write_text(json.dumps(self.data)+' ',encoding='utf8')
         self.store.ensure()
         self.assertEqual(self.store._windows,{})
+    def test_precomputed_timeline_equals_full_sql_result(self):
+        import sqlite3
+        from contextlib import closing
+        self.data['events'][4].update(executed=False,executionState='not-taken')
+        (self.folder/'decoded.json').write_text(json.dumps(self.data),encoding='utf8')
+        first=self.store.function_timeline()
+        with closing(sqlite3.connect(self.store.path)) as db:
+            self.assertIsNotNone(db.execute("SELECT value FROM meta WHERE key='function-timeline'").fetchone())
+            db.execute("DELETE FROM meta WHERE key='function-timeline'");db.commit()
+        self.assertEqual(first,self.store.function_timeline())
+    def test_sparse_navigation_matches_original_query(self):
+        from contextlib import closing
+        modes={'call':"flow='call' AND state='executed'",'return':"flow='return' AND state='executed'",
+               'exception':'type IN (9,10)','issue':"state='unknown' OR type IN (1,2,6,7,8)"}
+        with closing(self.store.connect()) as db:
+            for mode,where in modes.items():
+                for seq in range(-1,10):
+                    for direction in (-1,1):
+                        op,order=('>','ASC') if direction==1 else ('<','DESC')
+                        expected=db.execute(f'SELECT seq FROM events WHERE seq {op} ? AND ({where}) ORDER BY seq {order} LIMIT 1',(seq,)).fetchone()
+                        self.assertEqual(self.store.navigate(seq,direction,mode)['seq'],expected[0] if expected else None)
+    def test_http_window_cache_survives_requests_and_invalidates(self):
+        import copy
+        from unittest.mock import patch
+        sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
+        import server
+        original=RecordStore._payload_stream;calls=[]
+        def counted(store,*args):
+            calls.append(store)
+            yield from original(store,*args)
+        with patch.object(server,'RECORDS',self.folder.parent),patch.object(server,'result',side_effect=lambda sid:copy.deepcopy(self.data)),patch.object(RecordStore,'_payload_stream',counted):
+            client=server.app.test_client();path='/api/browse/'+self.folder.name+'/window?fromSeq=0&toSeq=8'
+            first=client.get(path);second=client.get(path)
+            self.assertEqual((first.status_code,second.status_code),(200,200));self.assertEqual(first.json,second.json)
+            self.assertEqual(len(calls),1)
+            (self.folder/'decoded.json').write_text(json.dumps(self.data)+' ',encoding='utf8')
+            self.assertEqual(client.get(path).status_code,200);self.assertEqual(len(calls),2)
+    def test_native_metrics_match_json_replay_for_nested_calls_and_boundaries(self):
+        import hashlib,os
+        from unittest.mock import patch
+        from native_index import executable
+        from decode_stream import SIDECAR_HEADER
+        from record_store import _base_search
+        from stream_store import JsonLines
+        if executable() is None:self.skipTest('optional native indexer not built')
+        es=[ins(0,0x100,'main',1,'call'),ins(1,0x200,'leaf',1),
+            dict(seq=2,kind='event',type=9,payload=15,flags=64,end=0x202),
+            ins(3,0x300,'SysTick',1),dict(seq=4,kind='event',type=9,payload=16,flags=64,end=0x302),
+            ins(5,0x400,'嵌套[IRQ]"%\\',1),dict(seq=6,kind='event',type=10),ins(7,0x302,'SysTick',2),
+            dict(seq=8,kind='event',type=10),ins(9,0x202,'leaf',2,'return'),
+            ins(10,0x102,'main',2,state='not-taken'),ins(11,0x104,'main',3,state='unknown'),
+            dict(seq=12,kind='event',type=8,text='gap'),ins(13,0x106,'main',4),
+            ins(14,0x108,'main',5,'call'),ins(15,0x200,'main',5),
+            ins(16,0x202,'main',6,'return'),ins(17,0x10a,'main',7)]
+        for e in es:
+            if e['kind']=='instruction':e['cycleCount']=e['seq']%4
+        analyze_calls(es)
+        for e in es:
+            if e['kind']!='instruction':e.setdefault('text','event')
+        folder=self.folder/'原生 index';folder.mkdir();path=folder/'events.jsonl'
+        path.write_text(''.join(json.dumps(e,ensure_ascii=False)+'\n' for e in es),encoding='utf8')
+        stat=path.stat();lines=[]
+        for e in es:
+            values=[e['seq'],e['kind'],e.get('pc'),e.get('function'),e.get('file'),e.get('line'),e.get('flow'),e.get('executionState'),e.get('type'),_base_search(e)]
+            lines.append('\t'.join('' if x is None else str(x).replace('\t',' ').replace('\n',' ') for x in values)+'\n')
+        (folder/'browse-columns.tsv').write_text(SIDECAR_HEADER%(stat.st_size,len(es),stat.st_mtime_ns,hashlib.sha256(path.read_bytes()).hexdigest())+''.join(lines),encoding='utf8')
+        (folder/'decoded.json').write_text('{}',encoding='utf8')
+        def loader():return dict(events=JsonLines(path,len(es)),packets=[],elements=[],sources={},summary={},quality={},analysis={})
+        store=RecordStore(folder,loader);store.ensure()
+        from contextlib import closing
+        with closing(store.connect()) as db:self.assertIsNotNone(db.execute("SELECT value FROM meta WHERE key='metrics-v1'").fetchone())
+        for lo,hi in [(0,17),(1,9),(2,8),(3,5),(10,13),(14,17),(4,4),(12,12)]:
+            actual=store.window(lo,hi)
+            with patch.dict(os.environ,ETM_PYTHON_WINDOW='1'):
+                reference=RecordStore(folder,loader).window(lo,hi)
+            self.assertEqual(actual,reference,(lo,hi))
 if __name__=='__main__':unittest.main()

@@ -238,7 +238,7 @@ def decode_capture(path, elf, workdir, config=None, sources=None, fraction=.25, 
     path, workdir = Path(path), Path(workdir)
     config = decoder_config(config)
     physical = None
-    if path.suffix.lower() == '.csv':
+    if path.suffix.lower() in ('.csv', '.kvdat'):
         physical, candidates = extract(path, clock, data or [1, 2, 3, 4], fraction, glitch_ns)
         valid = []
         failures=[]

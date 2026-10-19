@@ -134,12 +134,18 @@ class CallTracker:
         self.unknown_restarts = 0
         self.path = []
         self.path_json = '[]'
+        self._path_nodes = None
+        self._path_stats = None
 
     def statistics(self, fn):
-        return self.stats.setdefault(fn, dict(function=fn, instructions=0, knownExecuted=0,
-                                              unknownExecution=0, notTaken=0, calls=0,
-                                              closedCalls=0, tailTransfers=0, interruptEntries=0,
-                                              selfCycles=0, totalCycles=0, cycleRanges=0))
+        value = self.stats.get(fn)
+        if value is None:
+            value = dict(function=fn, instructions=0, knownExecuted=0,
+                         unknownExecution=0, notTaken=0, calls=0,
+                         closedCalls=0, tailTransfers=0, interruptEntries=0,
+                         selfCycles=0, totalCycles=0, cycleRanges=0)
+            self.stats[fn] = value
+        return value
 
     @staticmethod
     def frame(fn, return_pc=None, origin=None):
@@ -149,6 +155,10 @@ class CallTracker:
         """调用栈变化后刷新路径列表与预序列化 JSON（展开时只在栈变化时执行）。"""
         self.path = [f['function'] for f in self.stack]
         self.path_json = json.dumps(self.path, ensure_ascii=False)
+        # Resolve tree nodes lazily on the next instruction. An interrupt with
+        # no following instruction must not create an empty branch in reports.
+        self._path_nodes = None
+        self._path_stats = None
 
     def feed_event(self, etype, flags=0, payload=0, end=None):
         """非指令事件：边界/异常/返回，按历史规则重置或压栈。"""
@@ -242,24 +252,59 @@ class CallTracker:
         if cc:
             s['selfCycles'] += cc
             s['cycleRanges'] += 1
-            for name in path:
-                self.statistics(name)['totalCycles'] += cc
+            if self._path_stats is None:
+                self._path_stats = [self.statistics(name) for name in path]
+            for ancestor in self._path_stats:
+                ancestor['totalCycles'] += cc
         node = self.root
         node['value'] += 1
-        node['valueCycles'] = node.get('valueCycles', 0) + cc
-        for name in path:
-            node = node['children'].setdefault(name, dict(name=name, self=0, value=0, selfCycles=0, valueCycles=0, children={}))
+        node['valueCycles'] += cc
+        if self._path_nodes is None:
+            nodes = []
+            for name in path:
+                child = node['children'].get(name)
+                if child is None:
+                    child = dict(name=name, self=0, value=0, selfCycles=0, valueCycles=0, children={})
+                    node['children'][name] = child
+                node = child
+                nodes.append(node)
+            self._path_nodes = nodes
+        for node in self._path_nodes:
             node['value'] += 1
-            node['valueCycles'] = node.get('valueCycles', 0) + cc
+            node['valueCycles'] += cc
+        node = self._path_nodes[-1] if self._path_nodes else self.root
         node['self'] += 1
-        node['selfCycles'] = node.get('selfCycles', 0) + cc
+        node['selfCycles'] += cc
         key = (fn, file, line)
-        hot = self.hotspots.setdefault(key, dict(function=fn, file=file, line=line, records=0, unknown=0, cycles=0, pc=pc))
+        hot = self.hotspots.get(key)
+        if hot is None:
+            hot = dict(function=fn, file=file, line=line, records=0, unknown=0, cycles=0, pc=pc)
+            self.hotspots[key] = hot
         hot['records'] += 1
         hot['cycles'] += cc
         hot['unknown'] += executed is None
         self.previous = (pc, size, flow, executed, function)
         return cc
+
+    def feed_linear_many(self,function,file,line,executed,first_pc,first_size,last_pc,last_size,count):
+        """Same source/state, consecutive linear instructions with zero cycles.
+
+        Only the first instruction can change the call context. The decoder
+        guards each group; this preserves the per-instruction replay contract.
+        """
+        self.feed_instruction(function,file,line,executed,'linear',first_pc,first_size,0)
+        extra=count-1
+        if extra:
+            fn=function or '(未知函数)';stat=self.stats[fn]
+            stat['instructions']+=extra
+            stat['knownExecuted']+=extra*(executed is True)
+            stat['unknownExecution']+=extra*(executed is None)
+            stat['notTaken']+=extra*(executed is False)
+            self.root['value']+=extra
+            for node in self._path_nodes:node['value']+=extra
+            self._path_nodes[-1]['self']+=extra
+            hot=self.hotspots[(fn,file,line)];hot['records']+=extra;hot['unknown']+=extra*(executed is None)
+            self.previous=(last_pc,last_size,'linear',executed,function)
 
     def finish(self):
         stats, hotspots, edges = self.stats, self.hotspots, self.edges

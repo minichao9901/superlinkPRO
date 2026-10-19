@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT / 'tools/la'))
 from decode_trace import DEFAULT_CONFIG, Image, decode_capture, export_source, decoder_config
 from flow_analysis import enrich
 from kingst_la import Vis, do_export, read_glitch_settings
-from record_store import RecordStore
+from record_store import RecordStore, record_store
 from stream_store import attach_streams, JsonLines
 from decode_stream import decode_capture_stream, decode_stream, export_simplified_stream
 from slice_merge import merge_slice_events, aggregate_slices
@@ -209,7 +209,7 @@ def load_json(path):
 
 def meta(sid):
     value=load_json(directory(sid)/'session.json')
-    if 'input' in value and value['input'] not in ('capture.csv','capture.bin'):
+    if 'input' in value and value['input'] not in ('capture.csv','capture.bin','capture.kvdat'):
         raise ValueError('记录输入文件名无效，不能读取记录目录之外的文件。')
     return value
 
@@ -262,7 +262,7 @@ def result(sid):
     return r
 
 def browse_store(sid):
-    return RecordStore(directory(sid),lambda:result(sid))
+    return record_store(directory(sid),lambda:result(sid))
 
 @app.get('/api/browse/<sid>/overview')
 def browse_overview(sid):
@@ -341,8 +341,10 @@ def health():
     便携包曾出现"包里带了 numpy 但冻结后 import 失败 → 静默回退纯 Python"，
     这里给一个可断言的口径（便携测试会检查 frontend.vectorized）。
     """
+    from native_index import executable
     return jsonify(ok=True, captureProtocol=CAPTURE_PROTOCOL,
                    decoder=(ROOT / 'build-native/etm_decode.exe').exists(),
+                   nativeIndexer=bool(executable()),captureFormats=['kvdat','csv'],
                    frontend=frontend_accel())
 
 
@@ -735,9 +737,9 @@ def _decode_job(jid, sid):
             raise ValueError('这是长窗（自动分窗）记录，不能按单窗重解；请重新采集，或直接用已完成的切片产物。')
         sources = load_json(folder/'sources.json') if (folder / 'sources.json').exists() else None
         raw=folder/m['input']
-        streamed=bool(raw.suffix.lower()=='.bin' or m.get('seconds',0)>.02 or raw.stat().st_size>50*1024*1024)
+        streamed=bool(raw.suffix.lower() in ('.bin','.kvdat') or m.get('seconds',0)>.02 or raw.stat().st_size>50*1024*1024)
         if streamed:
-            if raw.suffix.lower()=='.csv':
+            if raw.suffix.lower() in ('.csv','.kvdat'):
                 r=decode_capture_stream(raw,folder/'firmware.elf',folder,m['config'],sources,
                     fraction=m.get('fraction',.25),clock=m.get('clock',0),data=m.get('data',[1,2,3,4]),glitch_ns=m.get('glitchNs',0))
             else:
@@ -796,12 +798,12 @@ def import_record():
         with zipfile.ZipFile(uploaded.stream) as archive:
             if not {'session.json','firmware.elf'}.issubset(archive.namelist()):raise ValueError('记录包缺少 session.json 或配套 ELF。')
             m = json.loads(archive.read('session.json'))
-            if m['input'] not in ('capture.csv', 'capture.bin'):
+            if m['input'] not in ('capture.csv', 'capture.bin', 'capture.kvdat'):
                 raise ValueError('记录格式无效。')
             if m['input'] not in archive.namelist():raise ValueError('记录包缺少原始波形，不能作为完整记录导入。')
             m['config']=decoder_config(m.get('config'))
             total = 0
-            for name in ('session.json', m['input'], 'firmware.elf', 'sources.json', 'capture.kvdat'):
+            for name in dict.fromkeys(('session.json', m['input'], 'firmware.elf', 'sources.json', 'capture.kvdat')):
                 if name not in archive.namelist():
                     continue
                 info = archive.getinfo(name)
@@ -815,8 +817,8 @@ def import_record():
                     shutil.copyfileobj(source, target, 1024 * 1024)
     else:
         suffix = Path(uploaded.filename).suffix.lower()
-        if suffix not in ('.csv', '.bin'):
-            raise ValueError('请选择 CSV、解复用后的 ETM BIN 或 .etmrecord。')
+        if suffix not in ('.csv', '.bin', '.kvdat'):
+            raise ValueError('请选择 KVDAT、CSV、解复用后的 ETM BIN 或 .etmrecord。')
         filename = 'capture' + suffix
         uploaded.save(folder / filename)
         if 'elf' not in request.files:
@@ -825,7 +827,7 @@ def import_record():
         config = json.loads(request.form.get('config', '{}'))
         m = dict(input=filename, name=uploaded.filename, config=decoder_config(config),
                  configBasis='user-provided', fraction=float(request.form.get('fraction', .25)),
-                 glitchNs=float(request.form.get('glitchNs',0)) if suffix=='.csv' else 0)
+                 glitchNs=float(request.form.get('glitchNs',0)) if suffix in ('.csv','.kvdat') else 0)
         sources = {}
         for file in request.files.getlist('sources'):
             sources[file.filename.replace('\\', '/')] = file.read().decode('utf-8-sig', 'replace')
@@ -911,7 +913,7 @@ def capture_job(jid, sid, options):
         folder = directory(sid)
         # 2026-10-18：产品只做 ≤200 ms 的单窗采集 + 单次解码，不再自动分窗。
         # 旧的 export_slices() 保留，仅用于读取/离线重建历史长窗记录（streamed.schema=3）。
-        do_export(v, str((folder / 'capture.csv').resolve()), [options['clock']] + options['data'])
+        do_export(v, str((folder / ('capture.' + options.get('rawFormat','csv'))).resolve()), [options['clock']] + options['data'])
         depth = v.cmd('get-actual-sample-depth')
         span = v.cmd('get-actual-sample-time')
         m = meta(sid)
@@ -971,7 +973,10 @@ def start_capture():
              config=decoder_config(o.get('config', {})), elfId=o.get('elfId'),sourceSnapshot=o.get('sourceSnapshot'),
              libraryOrigin='validation' if o.get('libraryOrigin')=='validation' else 'user',
              targetVerified=bool(o.get('targetVerified')), fraction=float(o.get('fraction', .25)),glitchNs=float(o.get('glitchNs',0)),
-             targetSnapshot=o.get('targetSnapshot'),captureScope=o.get('captureScope','unfiltered-window'),captureEntry=o.get('captureEntry'))
+             targetSnapshot=o.get('targetSnapshot'),captureScope=o.get('captureScope','unfiltered-window'),captureEntry=o.get('captureEntry'),
+             rawFormat=o.get('rawFormat','csv'))
+    if o['rawFormat'] not in ('csv','kvdat'):
+        raise ValueError('原始波形格式无效。')
     if not math.isfinite(o['glitchNs']) or not 0<=o['glitchNs']<=100:
         raise ValueError('软件滤波须为 0～100 ns，0 表示关闭')
     if not 0 < o['fraction'] < 1:
@@ -1000,7 +1005,7 @@ def start_capture():
             (folder/'sources.json').write_bytes((directory(o['elfId'])/'sources.json').read_bytes())
         name=(o.get('targetSnapshot') or {}).get('name') or o['config'].get('protocol','ETMv4')
         save(sid, dict(name=name+' · '+time.strftime('%Y-%m-%d %H:%M:%S'), created=time.time(),
-                       input='capture.csv', **o, configBasis='SWD snapshot' if o['targetVerified'] else 'provided trace configuration'))
+                       input='capture.'+o['rawFormat'], **o, configBasis='SWD snapshot' if o['targetVerified'] else 'provided trace configuration'))
         threading.Thread(target=capture_job, args=(jid, sid, o), daemon=True).start()
     except Exception as error:
         change(jid,state='error',error=str(error));raise
@@ -1114,7 +1119,7 @@ def download(sid, kind):
             raise ValueError('本记录尚无本次原始波形或配套 ELF，不能导出为完整记录包。')
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as archive:
-            for name in ('session.json', m['input'], 'firmware.elf', 'sources.json', 'capture.kvdat'):
+            for name in dict.fromkeys(('session.json', m['input'], 'firmware.elf', 'sources.json', 'capture.kvdat')):
                 if (folder / name).exists():
                     archive.write(folder / name, name)
         buffer.seek(0)

@@ -16,6 +16,22 @@ import server
 
 
 class ServerTests(unittest.TestCase):
+    def test_native_record_package_round_trip_has_one_raw_member(self):
+        sid='native-package';folder=server.directory(sid);folder.mkdir()
+        raw=b'preserved-native-waveform';(folder/'capture.kvdat').write_bytes(raw)
+        (folder/'firmware.elf').write_bytes(b'fixture-elf')
+        server.save(sid,dict(input='capture.kvdat',name='native',config=server.DEFAULT_CONFIG))
+        response=self.client.get('/api/download/'+sid+'/record')
+        self.assertEqual(response.status_code,200)
+        with zipfile.ZipFile(io.BytesIO(response.data)) as archive:
+            self.assertEqual(archive.namelist().count('capture.kvdat'),1)
+        with patch.object(server,'elf_info',return_value={}):
+            imported=self.client.post('/api/import',data={'capture':(io.BytesIO(response.data),'native.etmrecord')},content_type='multipart/form-data')
+        self.assertEqual(imported.status_code,200)
+        other=server.directory(imported.json['record'])
+        self.assertEqual(server.meta(other.name)['input'],'capture.kvdat')
+        self.assertEqual((other/'capture.kvdat').read_bytes(),raw)
+
     def test_library_has_one_demo_and_preserves_user_records_separately_from_experiments(self):
         from unittest.mock import patch
         demo='demo-example'

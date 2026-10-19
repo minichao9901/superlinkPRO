@@ -601,6 +601,29 @@ def export_decoded(v, out: str, analyzer=None) -> str:
 def do_export(v, out: str, channels=None, time_span=None, kvdat=True):
     """把 VIS **当前 buffer** 导成跳变 CSV（可选 --chn-select / --time-span），
     并按需存一份 .kvdat 原始档（`save-data` 文档没写但实测可用；失败只警告）。"""
+    if str(out).lower().endswith('.kvdat'):
+        # Native capture avoids expanding edges into hundreds of MB of CSV.
+        # Validate the entire block layout because ACK precedes file completion.
+        if time_span:
+            raise ValueError('KVDAT 原始存档不裁剪时间；请保留完整采集。')
+        if os.path.exists(out):
+            raise FileExistsError('原始波形已存在，拒绝覆盖：' + str(out))
+        try:
+            from kingst_record import layout
+        except ModuleNotFoundError:
+            sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+            from kingst_record import layout
+        v.cmd(f'save-data "{out}"', timeout=120)
+        deadline = time.monotonic() + 120
+        last_error = None
+        while time.monotonic() < deadline:
+            try:
+                layout(out)
+                return out, out
+            except (OSError, ValueError) as error:
+                last_error = error
+                time.sleep(.05)
+        raise RuntimeError(f'KVDAT 原始数据未完整落盘：{out}；{last_error}')
     sel = (" --chn-select " + " ".join(str(c) for c in channels)) if channels else ""
     span = (" --time-span " + " ".join(str(x) for x in time_span)) if time_span else ""
     if os.path.exists(out):

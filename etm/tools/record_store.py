@@ -1,12 +1,10 @@
-"""可重建的 SQLite 浏览索引；原始记录/decoded.json 是证据，不改写它们。
+"""可重建的 SQLite 浏览索引；原始 JSONL/decoded.json 保持不变。
 
-v4 与 v3 的差别（查询结果等价；文件字节本来就不保证可复现）：
-  * **不再把整条事件 JSON 复制进 `data` 列**：流式记录（events/packets 有 JSONL 文件）
-    只存该行的**字节偏移** `src`，查询时按偏移读回原始行再 `json.loads`；
-  * 插入前不建二级索引，插完一次性 `CREATE INDEX`（避免 3.67 M 行逐行维护 B 树）；
-  * `journal_mode=OFF`/`synchronous=OFF`/`temp_store=MEMORY`/`locking_mode=EXCLUSIVE`/
-    `page_size=8192` + 大页缓存，只保留查询真正用到的 3 个索引。
-旧索引（v3）因签名里的版本号不同会判定为过期并重建，不存在新旧混用。
+v7 把重复的源码/搜索字段放在模板表，通过兼容视图提供原来的查询列。
+事件仍按字节偏移读取原始 JSONL。稀疏导航替代重复状态索引；默认轨迹图
+随索引一次构建。可选原生导入器额外存储紧凑统计块，供精确窗口汇总使用。
+旧版、无 sidecar 或没有原生工具时保留 Python 构建/JSONL 窗口回退路径。
+版本签名不同会原子重建派生索引，既有原始记录不会被改写。
 """
 import hashlib
 import json
@@ -14,30 +12,53 @@ import math
 import sqlite3
 import threading
 import time
+from collections import OrderedDict
 from contextlib import closing
 from pathlib import Path
+from timeline_index import TimelineIndex
 
-VERSION=4
+VERSION=7
 SIDECAR='browse-columns.tsv'
 # 与 decode_stream.SIDECAR_HEADER 对应（v2）：
 # `#etm-browse-columns 2 events=<20 位字节数> rows=<10 位行数> mtime=<20 位 ns> sha256=<64 hex>`
 SIDECAR_HEADER_PREFIX='#etm-browse-columns 2 '
-SCHEMA_SQL='''
+PRAGMA_SQL='''
     PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA page_size=8192;
     PRAGMA cache_size=-2097152; PRAGMA temp_store=MEMORY; PRAGMA locking_mode=EXCLUSIVE;
     PRAGMA threads=8;
+'''
+SCHEMA_SQL=PRAGMA_SQL+'''
     CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT);
-    CREATE TABLE events(seq INTEGER PRIMARY KEY,kind TEXT,pc INTEGER,fn TEXT,file TEXT,line INTEGER,
-       flow TEXT,state TEXT,type INTEGER,search TEXT,src INTEGER,data TEXT);
+    CREATE TABLE event_templates(id INTEGER PRIMARY KEY,kind TEXT,fn TEXT,file TEXT,
+       line INTEGER,type INTEGER,search TEXT,pc INTEGER,flow TEXT);
+    CREATE TABLE event_rows(seq INTEGER PRIMARY KEY,pc INTEGER,flow TEXT,state TEXT,
+       template INTEGER,src INTEGER,data TEXT);
+    CREATE VIEW events AS SELECT r.seq,t.kind,r.pc,t.fn,t.file,t.line,r.flow,r.state,
+       t.type,t.search,r.src,r.data FROM event_rows r JOIN event_templates t ON t.id=r.template;
+    CREATE TABLE event_navigation(mode TEXT,seq INTEGER,PRIMARY KEY(mode,seq)) WITHOUT ROWID;
+    CREATE TABLE metric_paths(id INTEGER PRIMARY KEY,path TEXT);
+    CREATE TABLE metric_blocks(first INTEGER PRIMARY KEY,last INTEGER,data BLOB);
     CREATE TABLE packets(id INTEGER PRIMARY KEY,search TEXT,src INTEGER,data TEXT);
     CREATE TABLE sources(file TEXT PRIMARY KEY,text TEXT);
     CREATE TABLE issues(id INTEGER PRIMARY KEY,startSeq INTEGER,endSeq INTEGER,data TEXT);
 '''
-INDEX_SQL=('CREATE INDEX events_pc ON events(pc,seq)',
-           'CREATE INDEX events_flow ON events(flow,seq)',
-           'CREATE INDEX events_state ON events(state,seq)')
+INDEX_SQL=('CREATE INDEX events_pc ON event_rows(pc,seq)',)
 EVENT_COLUMNS='(seq,kind,pc,fn,file,line,flow,state,type,search,src,data)'
 _guard=threading.Lock()
+_stores=OrderedDict()
+_stores_lock=threading.Lock()
+
+
+def record_store(folder,loader):
+    """Bounded per-record cache survives individual HTTP request objects."""
+    key=Path(folder).resolve()
+    with _stores_lock:
+        store=_stores.pop(key,None)
+        if store is None:store=RecordStore(key,loader)
+        else:store.loader=loader
+        _stores[key]=store
+        while len(_stores)>4:_stores.popitem(last=False)
+        return store
 def dumps(value):return json.dumps(value,ensure_ascii=False,separators=(',',':'))
 
 def _packet_fields(line):
@@ -71,10 +92,11 @@ class RecordStore:
         # 前端固定超时等不起；同一区间第二次必须立即返回。索引重建后 signature 变化 → 清空。
         self._windows={}
         self._windows_lock=threading.Lock()
+        self._window_compute_lock=threading.Lock()
     def signature(self):
         p=self.folder/'decoded.json';s=p.stat()
         parts=[f'{VERSION}:{s.st_size}:{s.st_mtime_ns}']
-        for name in ('spi-validation.json','phase-validation.json','firmware.elf','capture.csv','capture.bin','etm.bin','session.json','slices.json','events.jsonl','packets.jsonl','elements.jsonl','sources.json'):
+        for name in ('spi-validation.json','phase-validation.json','firmware.elf','capture.csv','capture.bin','capture.kvdat','etm.bin','session.json','slices.json','events.jsonl','packets.jsonl','elements.jsonl','sources.json'):
             side=self.folder/name
             if side.exists():t=side.stat();parts.append(f'{name}:{t.st_size}:{t.st_mtime_ns}')
         return '|'.join(parts)
@@ -90,15 +112,27 @@ class RecordStore:
         with _guard:
             if self.ready():return
             r=self.loader();temporary=self.path.with_suffix('.building')
+            self._templates={}
             if temporary.exists():temporary.unlink()
+            events=r['events'];packets=r['packets']
+            self._timeline=TimelineIndex(len(events))
+            accelerated=False;native_first=None
+            if not isinstance(events,list) and self._sidecar_fresh(self.folder/SIDECAR,self.folder/'events.jsonl',events):
+                from native_index import executable, build
+                if executable() is not None:
+                    with closing(sqlite3.connect(temporary)) as schema:schema.executescript(SCHEMA_SQL)
+                    native_first=build(temporary,self.folder/'events.jsonl',self.folder/SIDECAR,len(events))
+                    accelerated=True
             with closing(sqlite3.connect(temporary)) as db:
-                db.executescript(SCHEMA_SQL)
+                db.executescript(PRAGMA_SQL if accelerated else SCHEMA_SQL)
                 summary={k:v for k,v in r.items() if k not in ('events','elements','packets','sources')}
-                events=r['events'];packets=r['packets']
                 summary['eventCount']=len(events);summary['packetCount']=len(packets)
                 summary['sourceFiles']=list(r.get('sources',{}))
                 issues=[]
-                if isinstance(events,list):
+                if accelerated:
+                    summary['firstSeq']=native_first
+                    self._native_issues(db,issues)
+                elif isinstance(events,list):
                     summary['firstSeq']=self._insert_event_dicts(db,events,issues)
                 else:
                     summary['firstSeq']=self._insert_events_streamed(db,events,issues)
@@ -112,6 +146,8 @@ class RecordStore:
                 self._append_packet_issues(r,packets,issues)
                 db.executemany('INSERT INTO issues VALUES (?,?,?,?)',((i,p['startSeq'],p['endSeq'],dumps(p)) for i,p in enumerate(issues)))
                 db.executemany('INSERT INTO meta VALUES (?,?)',[('signature',self.signature()),('overview',dumps(summary))])
+                timeline=self._timeline.finish()
+                if timeline is not None:db.execute('INSERT INTO meta VALUES (?,?)',('function-timeline',dumps(timeline)))
                 for statement in INDEX_SQL:db.execute(statement)
                 db.commit()
             deadline=time.monotonic()+10
@@ -123,6 +159,12 @@ class RecordStore:
                     if time.monotonic()>=deadline:raise
                     time.sleep(.02)
             with self._windows_lock:self._windows.clear()
+    def _native_issues(self,db,issues):
+        run=None
+        rows=db.execute("SELECT e.data,e.src FROM events e JOIN event_navigation n ON n.seq=e.seq WHERE n.mode='issue' ORDER BY e.seq")
+        for event in self._payload_stream('events',rows):
+            run=self._note_issue(issues,run,event,event['seq'])
+        if run:issues.append(run)
     @staticmethod
     def _note_issue(issues,run,event,seq):
         """谓词未知区间与边界事件（与 v3 逐条同口径）。返回新的 run。"""
@@ -139,6 +181,30 @@ class RecordStore:
             issues.append(dict(category='boundary',startSeq=seq,endSeq=seq,offset=event.get('offset'),
                                reason=event.get('text','边界事件'),records=1))
         return None
+    def _insert_event_batch(self,db,rows):
+        """Intern repeated source/search strings once per instruction template.
+
+        The public SQL view retains the previous query columns. Per-event PC,
+        execution state, flow and byte offset remain directly indexed.
+        """
+        navigation=[]
+        def compact():
+            for seq,kind,pc,fn,file,line,flow,state,etype,search,src,data in rows:
+                event_type=int(etype) if etype is not None else None
+                self._timeline.feed(seq,kind,fn,state,event_type)
+                if state=='executed' and flow in ('call','return'):navigation.append((flow,seq))
+                if event_type in (9,10):navigation.append(('exception',seq))
+                if state=='unknown' or event_type in (1,2,6,7,8):navigation.append(('issue',seq))
+                if kind!='instruction':navigation.append(('event',seq))
+                key=(kind,fn,file,line,etype,search)
+                identifier=self._templates.get(key)
+                if identifier is None:
+                    identifier=len(self._templates)
+                    self._templates[key]=identifier
+                    db.execute('INSERT INTO event_templates VALUES (?,?,?,?,?,?,?,?,?)',(identifier,*key,pc,flow))
+                yield seq,pc,flow,state,identifier,src,data
+        db.executemany('INSERT INTO event_rows VALUES (?,?,?,?,?,?,?)',compact())
+        if navigation:db.executemany('INSERT INTO event_navigation VALUES (?,?)',navigation)
     def _insert_event_dicts(self,db,events,issues):
         run=None;first=None;rows=[]
         for event in events:
@@ -148,8 +214,8 @@ class RecordStore:
                          event.get('line'),event.get('flow'),event.get('executionState'),event.get('type'),
                          _base_search(event),None,dumps(event)))
             if len(rows)>=8192:
-                db.executemany(f'INSERT INTO events VALUES ({",".join("?"*12)})',rows);rows.clear()
-        if rows:db.executemany(f'INSERT INTO events VALUES ({",".join("?"*12)})',rows)
+                self._insert_event_batch(db,rows);rows.clear()
+        if rows:self._insert_event_batch(db,rows)
         if run:issues.append(run)
         return first
     def _sidecar_fresh(self,sidecar,source,events):
@@ -182,7 +248,6 @@ class RecordStore:
     def _insert_events_streamed(self,db,events,issues):
         """流式记录：列来自展开阶段的 sidecar，`data` 留空、只存 src（该行字节偏移）。"""
         source=self.folder/'events.jsonl';sidecar=self.folder/SIDECAR
-        statement=f'INSERT INTO events VALUES ({",".join("?"*12)})'
         run=None;first=None;rows=[];counted=0
         if not source.exists():
             raise ValueError('流式记录缺少 events.jsonl，无法建立浏览索引')
@@ -208,7 +273,7 @@ class RecordStore:
                                      fields[8] or None,fields[9],offset,None))
                         offset+=len(line)
                         if len(rows)>=8192:
-                            db.executemany(statement,rows);rows.clear()
+                            self._insert_event_batch(db,rows);rows.clear()
             else:
                 offset=0
                 for line in raw:
@@ -222,8 +287,8 @@ class RecordStore:
                                  offset,None))
                     offset+=len(line)
                     if len(rows)>=8192:
-                        db.executemany(statement,rows);rows.clear()
-        if rows:db.executemany(statement,rows)
+                        self._insert_event_batch(db,rows);rows.clear()
+        if rows:self._insert_event_batch(db,rows)
         if run:issues.append(run)
         # 与 JsonLines 同口径：JSONL 实际行数必须等于记录声明的条数，否则拒绝建立索引
         expected=len(events)
@@ -289,13 +354,14 @@ class RecordStore:
     def _payload_stream(self,table,rows):
         """惰性版本：窗口可能覆盖上百万条事件，逐条读回再解析，不整体驻留。"""
         path=self.folder/('events.jsonl' if table=='events' else 'packets.jsonl')
-        stream=None
+        stream=None;next_offset=None
         try:
             for data,src in rows:
                 if data is None:
                     if stream is None:stream=path.open('rb')
-                    stream.seek(src)
-                    data=stream.readline().decode('utf-8')
+                    if src!=next_offset:stream.seek(src)
+                    raw=stream.readline();next_offset=src+len(raw)
+                    data=raw.decode('utf-8')
                 yield json.loads(data)
         finally:
             if stream is not None:stream.close()
@@ -316,7 +382,8 @@ class RecordStore:
         if hide_skipped and table=='events':where.append("(state IS NULL OR state!='not-taken')")
         clause=' WHERE '+' AND '.join(where) if where else ''
         with closing(self.connect()) as db:
-            total=db.execute(f'SELECT count(*) FROM {table}'+clause,params).fetchone()[0]
+            count_table='event_rows' if table=='events' and not clause else table
+            total=db.execute(f'SELECT count(*) FROM {count_table}'+clause,params).fetchone()[0]
             offset=min(offset,max(0,((total-1)//limit)*limit))
             rows=db.execute(f'SELECT data,src FROM {table}'+clause+f' ORDER BY {order} LIMIT ? OFFSET ?',params+[limit,offset]).fetchall()
         return dict(rows=self._payloads(table,rows),total=total,offset=offset,limit=limit)
@@ -324,7 +391,10 @@ class RecordStore:
         """Compact function-lane activity indexed by execution sequence, never by inferred time."""
         bins=max(240,min(2400,int(bins)));max_functions=max(1,min(10,int(max_functions)))
         with closing(self.connect()) as db:
-            bounds=db.execute('SELECT min(seq),max(seq) FROM events').fetchone()
+            if start is None and end is None and not search and not hide_skipped and bins==1600 and max_functions==6:
+                cached=db.execute("SELECT value FROM meta WHERE key='function-timeline'").fetchone()
+                if cached is not None:return json.loads(cached[0])
+            bounds=self._bounds(db)
             total_start,total_end=bounds if bounds[0] is not None else (0,0)
             lo=total_start if start is None else max(total_start,min(total_end,int(start)))
             hi=total_end if end is None else max(total_start,min(total_end,int(end)))
@@ -379,10 +449,19 @@ class RecordStore:
                                  filteredRecords=filtered_records,markers=marker_count),
                     timing=dict(axis='execution-order',verifiedTime=False,
                                 reason='当前记录没有已验收的逐指令时间戳，横轴只表示执行序号'))
+    @staticmethod
+    def _bounds(db):
+        return db.execute('SELECT (SELECT seq FROM event_rows ORDER BY seq LIMIT 1),'
+                          '(SELECT seq FROM event_rows ORDER BY seq DESC LIMIT 1)').fetchone()
+
     def window(self,start=None,end=None,bins=1200):
+        with self._window_compute_lock:
+            return self._window(start,end,bins)
+
+    def _window(self,start=None,end=None,bins=1200):
         bins=max(100,min(2000,int(bins)))
         with closing(self.connect()) as db:
-            bounds=db.execute('SELECT min(seq),max(seq) FROM events').fetchone()
+            bounds=self._bounds(db)
             total_start,total_end=bounds if bounds[0] is not None else (0,0)
             lo=total_start if start is None else max(total_start,min(total_end,int(start)))
             hi=total_end if end is None else max(total_start,min(total_end,int(end)))
@@ -392,12 +471,26 @@ class RecordStore:
             with self._windows_lock:
                 cached=self._windows.get(cache_key)
             if cached is not None:return cached
+            from fast_window import window as fast_window
+            def event_loader():
+                rows=db.execute("SELECT e.data,e.src FROM event_navigation n JOIN event_rows e ON e.seq=n.seq WHERE n.mode='event' AND n.seq BETWEEN ? AND ? ORDER BY n.seq",(lo,hi))
+                yield from self._payload_stream('events',rows)
+            accelerated=fast_window(db,lo,hi,total_start,total_end,bins,event_loader)
+            if accelerated is not None:
+                with self._windows_lock:
+                    if len(self._windows)>=8:self._windows.pop(next(iter(self._windows)))
+                    self._windows[cache_key]=accelerated
+                return accelerated
             root=dict(name='所选执行区间',value=0,self=0,selfCycles=0,valueCycles=0,children={})
             buckets={};functions={};hotspots={};inclusive={};previous=None;observed=0;first=None;pending_irq=False
+            tree_path=None;tree_nodes=[]
             cursor=db.execute('SELECT data,src FROM events WHERE seq BETWEEN ? AND ? ORDER BY seq',(lo,hi))
             for e in self._payload_stream('events',cursor):
                 key=(e['seq']-lo)//step
-                bucket=buckets.setdefault(key,dict(startSeq=e['seq'],endSeq=e['seq'],firstSeq=e['seq'],path=None,records=0,unknown=0,notTaken=0,mixed=False,events=[]))
+                bucket=buckets.get(key)
+                if bucket is None:
+                    bucket=dict(startSeq=e['seq'],endSeq=e['seq'],firstSeq=e['seq'],path=None,records=0,unknown=0,notTaken=0,mixed=False,events=[])
+                    buckets[key]=bucket
                 bucket['endSeq']=e['seq']
                 if e['kind']!='instruction':
                     bucket['events'].append(dict(seq=e['seq'],type=e['type'],text=e.get('text','')))
@@ -416,12 +509,21 @@ class RecordStore:
                     bucket['path']=common;bucket['mixed']=True
                 bucket['records']+=1;bucket['unknown']+=e.get('executed') is None;bucket['notTaken']+=e.get('executed') is False
                 cc=int(e.get('cycleCount') or 0)
-                node=root;node['value']+=1;node['valueCycles']=node.get('valueCycles',0)+cc
-                for name in path:
-                    node=node['children'].setdefault(name,dict(name=name,value=0,self=0,selfCycles=0,valueCycles=0,children={}))
-                    node['value']+=1;node['valueCycles']=node.get('valueCycles',0)+cc
-                node['self']+=1;node['selfCycles']=node.get('selfCycles',0)+cc
-                stat=functions.setdefault(fn,dict(function=fn,instructions=0,knownExecuted=0,unknownExecution=0,notTaken=0,calls=0,interruptEntries=0,selfCycles=0))
+                node=root;node['value']+=1;node['valueCycles']+=cc
+                if path!=tree_path:
+                    tree_nodes=[]
+                    for name in path:
+                        child=node['children'].get(name)
+                        if child is None:
+                            child=dict(name=name,value=0,self=0,selfCycles=0,valueCycles=0,children={});node['children'][name]=child
+                        node=child;tree_nodes.append(node)
+                    tree_path=path
+                for node in tree_nodes:node['value']+=1;node['valueCycles']+=cc
+                node=tree_nodes[-1] if tree_nodes else root
+                node['self']+=1;node['selfCycles']+=cc
+                stat=functions.get(fn)
+                if stat is None:
+                    stat=dict(function=fn,instructions=0,knownExecuted=0,unknownExecution=0,notTaken=0,calls=0,interruptEntries=0,selfCycles=0);functions[fn]=stat
                 stat['instructions']+=1;stat['knownExecuted']+=e.get('executed') is True;stat['unknownExecution']+=e.get('executed') is None;stat['notTaken']+=e.get('executed') is False
                 if cc:
                     stat['selfCycles']+=cc
@@ -430,7 +532,9 @@ class RecordStore:
                 if pending_irq:stat['interruptEntries']+=1;pending_irq=False
                 if previous and previous.get('flow')=='call' and previous.get('executed') is True:stat['calls']+=1;observed+=1
                 hotkey=(fn,e.get('file',''),e.get('line'))
-                hot=hotspots.setdefault(hotkey,dict(function=fn,file=e.get('file',''),line=e.get('line'),records=0,unknown=0,cycles=0,pc=e['pc']))
+                hot=hotspots.get(hotkey)
+                if hot is None:
+                    hot=dict(function=fn,file=e.get('file',''),line=e.get('line'),records=0,unknown=0,cycles=0,pc=e['pc']);hotspots[hotkey]=hot
                 hot['records']+=1;hot['unknown']+=e.get('executed') is None;hot['cycles']+=cc;previous=e
             def serialize(node):return {**node,'children':[serialize(c) for c in node['children'].values()]}
             for b in buckets.values():
@@ -483,7 +587,10 @@ class RecordStore:
         if start is not None:scope+=' AND seq>=?';scope_params.append(int(start))
         if end is not None:scope+=' AND seq<=?';scope_params.append(int(end))
         with closing(self.connect()) as db:
-            row=db.execute(f'SELECT seq FROM events WHERE seq {op} ? AND ({clause})'+scope+f' ORDER BY seq {order} LIMIT 1',params+scope_params).fetchone()
+            table='events'
+            if pc is None and mode in ('call','return','exception','issue'):
+                table='event_navigation';clause='mode=?';params=[seq,mode]
+            row=db.execute(f'SELECT seq FROM {table} WHERE seq {op} ? AND ({clause})'+scope+f' ORDER BY seq {order} LIMIT 1',params+scope_params).fetchone()
             wrapped=False
             if not row and pc is not None:
                 row=db.execute('SELECT seq FROM events WHERE pc=?'+scope+' ORDER BY seq LIMIT 1',[int(pc),*scope_params]).fetchone();wrapped=bool(row)
