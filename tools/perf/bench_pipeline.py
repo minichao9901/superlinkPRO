@@ -41,7 +41,7 @@ if str(HERE) not in sys.path:
 import _common as perf  # noqa: E402
 
 ARTIFACT_FILES = (
-    'etm.bin', 'tpiu.bin', 'native.jsonl', 'native.log', 'native-config.txt',
+    'etm.bin', 'tpiu.bin', 'native.jsonl', 'native.bin', 'native.log', 'native-config.txt',
     'framing.json', 'physical.json', 'decoded.json', 'demux-errors.json',
     'events.jsonl', 'packets.jsonl', 'elements.jsonl',
     'browse-columns.tsv', 'browse-v3.sqlite',
@@ -49,6 +49,10 @@ ARTIFACT_FILES = (
 )
 # 字节内容随 run 目录/mtime 变化、不适合跨 run 做字节比较的产物。
 VOLATILE_ARTIFACTS = {'browse-v3.sqlite'}
+# `--artifact-hash key` 时仍计算 SHA256 的关键产物（其余大 JSONL 只记字节数）。
+KEY_HASH_ARTIFACTS = {'etm.bin', 'tpiu.bin', 'native.jsonl', 'native.bin', 'sources.json',
+                      'decoded.json', 'native-config.txt', 'framing.json', 'physical.json',
+                      'session.json', 'native.log'}
 
 
 # --------------------------------------------------------------------------- 日志
@@ -240,6 +244,13 @@ def _parse_args(argv=None):
                         help='输出根目录；每个样本写入 <output>/<variant>/runs/<runId>/，绝不覆盖。')
     parser.add_argument('--window', action='store_true',
                         help='除整段窗口外，再测量缓存命中的重复请求与半区间窗口。')
+    parser.add_argument('--queries', type=int, default=0, metavar='N',
+                        help='额外执行自动查询序列（N 个伪随机 page + 首末页 + 导航/搜索），报告 P95；0 关闭。')
+    parser.add_argument('--artifact-hash', choices=['full', 'key', 'none'], default='full',
+                        help='产物哈希范围：full=全部（默认）；key=只哈希小/关键产物，大 JSONL 只记字节数'
+                             '（性能批跑用）；none=都不哈希。')
+    parser.add_argument('--no-reference', action='store_true',
+                        help='跳过与源记录产物的逐字节对照（避免重复读取 GB 级 events/native）。')
     parser.add_argument('--inputs', type=Path, default=HERE / 'inputs.json',
                         help='固定输入清单 JSON；默认仓库内 tools/perf/inputs.json。')
     parser.add_argument('--sample-interval-ms', type=int, default=100,
@@ -419,6 +430,7 @@ def _install_instrumentation(modules, recorder):
     recorder.wrap_module(modules['tpiu_demux'], 'demux', 'demux')
     recorder.wrap_module(modules['decode_stream'], '_run_native', 'nativeDecode')
     recorder.wrap_module(modules['decode_stream'], '_expand_fast', 'expand')
+    recorder.wrap_module(modules['decode_stream'], '_expand_binary', 'expand')
     recorder.wrap_class_method(modules['RecordStore'], 'ensure', 'index')
     recorder.wrap_class_method(getattr(modules['decode_trace'], 'Image'), '__init__', 'elfImage')
 
@@ -491,6 +503,69 @@ def _write_api(run_dir, name, value, call_seconds):
             'bytes': len(encoded), 'sha256': perf.sha256_bytes(encoded)}
 
 
+def _write_artifact(run_dir, name, value):
+    text = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+    encoded = text.encode('utf-8')
+    relative = f'api/{name}.json'
+    path = run_dir / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(encoded)
+    return {'path': relative, 'bytes': len(encoded), 'sha256': perf.sha256_bytes(encoded)}
+
+
+def _query_battery(store, run_dir, overview, page, spec, logger) -> dict:
+    """自动查询序列：首/末/伪随机 page、导航、搜索；用于 §3.1 定位/翻页 P95。"""
+    count = max(1, int(spec.get('queries') or 0))
+    total = overview.get('eventCount') or page.get('total') or 0
+    first = overview.get('firstSeq') or 0
+    calls = []
+    if total:
+        offsets = [0, max(0, total - 1), total // 2]
+        offsets += [(index * 7919 + 13) % total for index in range(count)]
+        for offset in offsets[:count + 3]:
+            start = time.perf_counter()
+            store.page('events', offset, 150)
+            calls.append({'kind': 'page', 'offset': int(offset),
+                          'seconds': round(time.perf_counter() - start, 6)})
+        for index in range(5):
+            seq = first + ((index * 104729 + 17) % total)
+            direction = 1 if index % 2 == 0 else -1
+            start = time.perf_counter()
+            try:
+                store.navigate(seq, direction, 'instruction')
+                seconds = time.perf_counter() - start
+                calls.append({'kind': 'navigate', 'seq': int(seq), 'direction': direction,
+                              'seconds': round(seconds, 6)})
+            except Exception as error:
+                calls.append({'kind': 'navigate', 'seq': int(seq), 'direction': direction,
+                              'error': f'{type(error).__name__}: {error}'})
+        for term in ('main', 'usb', 'HAL'):
+            start = time.perf_counter()
+            store.page('events', 0, 150, term)
+            calls.append({'kind': 'search', 'term': term,
+                          'seconds': round(time.perf_counter() - start, 6)})
+    values = [item['seconds'] for item in calls if 'seconds' in item]
+    navigation = [item['seconds'] for item in calls
+                  if item.get('kind') in ('page', 'navigate') and 'seconds' in item]
+    search = [item['seconds'] for item in calls if item.get('kind') == 'search' and 'seconds' in item]
+    summary = {
+        'count': len(values),
+        'navigationCount': len(navigation),
+        'navigationP95Seconds': perf.percentile(navigation, 95),
+        'searchCount': len(search),
+        'searchP95Seconds': perf.percentile(search, 95),
+        'medianSeconds': perf.spread(values)['median'],
+        'p95Seconds': perf.percentile(values, 95),
+        'maxSeconds': max(values) if values else None,
+        'totalSeconds': round(sum(values), 6) if values else 0,
+        'seedBasis': 'offset=(i*7919+13)%eventCount, nav=(i*104729+17)%eventCount；固定可复现',
+    }
+    summary.update(_write_artifact(run_dir, 'queries', calls))
+    logger(f"queries n={summary['count']} median={summary['medianSeconds']}s "
+           f"p95={summary['p95Seconds']}s max={summary['maxSeconds']}s")
+    return summary
+
+
 def _measure_api(store, run_dir, spec, logger) -> dict:
     api = {}
     overview, seconds = _timed_call(store.overview)
@@ -501,6 +576,8 @@ def _measure_api(store, run_dir, spec, logger) -> dict:
     api['timeline'] = _write_api(run_dir, 'timeline', timeline, seconds)
     window, seconds = _timed_call(store.window)
     api['window'] = _write_api(run_dir, 'window', window, seconds)
+    api['firstDisplaySeconds'] = round(api['overview']['seconds'] + api['page']['seconds']
+                                       + api['timeline']['seconds'], 6)
     logger(f"api overview={api['overview']['seconds']:.3f}s page={api['page']['seconds']:.3f}s "
            f"timeline={api['timeline']['seconds']:.3f}s window={api['window']['seconds']:.3f}s")
     if spec.get('window'):
@@ -516,6 +593,8 @@ def _measure_api(store, run_dir, spec, logger) -> dict:
                 api['windowHalf'].update(fromSeq=start, toSeq=end)
             except Exception as error:
                 api['windowHalf'] = {'error': f'{type(error).__name__}: {error}'}
+    if int(spec.get('queries') or 0) > 0:
+        api['queries'] = _query_battery(store, run_dir, overview, page, spec, logger)
     return api
 
 
@@ -554,6 +633,7 @@ def _artifact_compare_sha(path, name, record_dir):
 
 def _collect_artifacts(run_dir, spec) -> tuple:
     folder = Path(run_dir) / 'records' / spec['sid']
+    mode = spec.get('artifactHash') or 'full'
     artifacts = {}
     total = 0
     comparable_total = 0
@@ -561,9 +641,15 @@ def _collect_artifacts(run_dir, spec) -> tuple:
         path = folder / name
         if not path.is_file():
             continue
-        entry = {'bytes': path.stat().st_size, 'sha256': perf.sha256_file(path)}
-        entry['compareSha256'] = _artifact_compare_sha(path, name, folder)
-        entry['volatile'] = entry['compareSha256'] is None
+        entry = {'bytes': path.stat().st_size}
+        hashed = mode == 'full' or (mode == 'key' and (name in KEY_HASH_ARTIFACTS))
+        if hashed:
+            entry['sha256'] = perf.sha256_file(path)
+            entry['compareSha256'] = _artifact_compare_sha(path, name, folder)
+            entry['volatile'] = entry['compareSha256'] is None
+            entry['hashed'] = True
+        else:
+            entry.update(sha256=None, compareSha256=None, volatile=None, hashed=False)
         entry['pathDependent'] = name in ('decoded.json', 'physical.json', 'native-config.txt',
                                           'browse-columns.tsv', 'framing.json')
         artifacts[name] = entry
@@ -572,9 +658,13 @@ def _collect_artifacts(run_dir, spec) -> tuple:
             comparable_total += entry['bytes']
     for path in sorted((Path(run_dir) / 'api').glob('*.json')):
         relative = f'api/{path.name}'
-        entry = {'bytes': path.stat().st_size, 'sha256': perf.sha256_file(path),
-                 'compareSha256': _json_normalized_sha256(path, folder),
-                 'volatile': False, 'pathDependent': True}
+        if mode == 'none':
+            entry = {'bytes': path.stat().st_size, 'sha256': None, 'compareSha256': None,
+                     'volatile': None, 'hashed': False, 'pathDependent': True}
+        else:
+            entry = {'bytes': path.stat().st_size, 'sha256': perf.sha256_file(path),
+                     'compareSha256': _json_normalized_sha256(path, folder),
+                     'volatile': False, 'hashed': True, 'pathDependent': True}
         artifacts[relative] = entry
         total += entry['bytes']
     return artifacts, total, comparable_total
@@ -643,6 +733,7 @@ def _run_single(spec_path) -> int:
         result['instrumentation'] = {'wrapped': ['trace_port.extract', 'tpiu_demux.demux',
                                                  'decode_stream._run_native',
                                                  'decode_stream._expand_fast',
+                                                 'decode_stream._expand_binary',
                                                  'RecordStore.ensure', 'decode_trace.Image.__init__']}
         sampler.start()
         started, cpu_started = time.perf_counter(), time.process_time()
@@ -673,7 +764,8 @@ def _run_single(spec_path) -> int:
         except Exception as error:
             result['artifactError'] = f'{type(error).__name__}: {error}'
         try:
-            result['referenceMatches'] = _reference_matches(run_dir, spec)
+            if spec.get('reference', True):
+                result['referenceMatches'] = _reference_matches(run_dir, spec)
         except Exception as error:
             result['referenceError'] = f'{type(error).__name__}: {error}'
         result['finishedAt'] = perf.iso_now()
@@ -709,6 +801,16 @@ def _summarize(runs, combos) -> dict:
                                             for run in ok]),
             'windowSeconds': perf.spread([(run.get('api') or {}).get('window', {}).get('seconds')
                                           for run in ok]),
+            'firstDisplaySeconds': perf.spread([(run.get('api') or {}).get('firstDisplaySeconds')
+                                                for run in ok]),
+            'windowCachedSeconds': perf.spread([(run.get('api') or {}).get('windowCached', {}).get('seconds')
+                                                for run in ok]),
+            'queryP95Seconds': perf.spread([(run.get('api') or {}).get('queries', {}).get('p95Seconds')
+                                            for run in ok]),
+            'queryNavigationP95Seconds': perf.spread([
+                (run.get('api') or {}).get('queries', {}).get('navigationP95Seconds') for run in ok]),
+            'querySearchP95Seconds': perf.spread([
+                (run.get('api') or {}).get('queries', {}).get('searchP95Seconds') for run in ok]),
             'peakTreeRssBytes': perf.spread([(run.get('resources') or {}).get('peakTreeRssBytes')
                                              for run in ok]),
             'treeCpuSeconds': perf.spread([(run.get('resources') or {}).get('treeCpuSeconds')
@@ -797,6 +899,9 @@ def main(argv=None) -> int:
                 'codePath': str(combo['codePath']),
                 'runDir': str(run_dir),
                 'window': bool(args.window),
+                'queries': int(args.queries),
+                'artifactHash': args.artifact_hash,
+                'reference': not args.no_reference,
                 'sampleIntervalMs': args.sample_interval_ms,
                 'inputsFile': str(args.inputs.resolve()) if args.inputs else None,
                 'inputFingerprint': input_fingerprints[key],

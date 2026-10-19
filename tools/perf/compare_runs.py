@@ -33,6 +33,11 @@ METRIC_PATHS = (
     'api.page.seconds',
     'api.timeline.seconds',
     'api.window.seconds',
+    'api.firstDisplaySeconds',
+    'api.windowCached.seconds',
+    'api.queries.p95Seconds',
+    'api.queries.navigationP95Seconds',
+    'api.queries.searchP95Seconds',
 )
 
 
@@ -138,6 +143,7 @@ def _artifact_comparison(groups, runs_by_label) -> tuple:
     comparable = matching = 0
     volatile = []
     differing = []
+    unhashed = []
     for name in sorted(names):
         per_group = {}
         values = {}
@@ -147,20 +153,30 @@ def _artifact_comparison(groups, runs_by_label) -> tuple:
             if not entries:
                 per_group[label] = {'missing': True}
                 continue
-            compare_values = sorted({entry.get('compareSha256') for entry in entries
+            hashed = [entry for entry in entries if entry.get('hashed', True) and entry.get('sha256')]
+            if not hashed:
+                per_group[label] = {'bytes': entries[0].get('bytes'), 'skipped': True,
+                                    'hashed': False}
+                continue
+            compare_values = sorted({entry.get('compareSha256') for entry in hashed
                                      if entry.get('compareSha256') is not None})
-            raw_values = sorted({entry.get('sha256') for entry in entries if entry.get('sha256')})
-            is_volatile = all(entry.get('volatile') for entry in entries)
+            raw_values = sorted({entry.get('sha256') for entry in hashed if entry.get('sha256')})
+            is_volatile = all(entry.get('volatile') for entry in hashed)
             state = 'volatile' if is_volatile else ('stable' if len(compare_values) == 1 else 'unstable')
             per_group[label] = {'bytes': entries[0].get('bytes'), 'sha256': entries[0].get('sha256'),
                                 'compareSha256': entries[0].get('compareSha256'),
                                 'uniqueCompareValues': len(compare_values),
-                                'uniqueRawValues': len(raw_values), 'state': state}
+                                'uniqueRawValues': len(raw_values), 'state': state, 'hashed': True}
             if not is_volatile:
                 values[label] = compare_values[0] if len(compare_values) == 1 else None
         if all('missing' in per_group.get(label, {}) for label in runs_by_label):
             continue
         present = [label for label in runs_by_label if not per_group.get(label, {}).get('missing')]
+        if any(per_group[label].get('skipped') for label in present if label in per_group):
+            unhashed.append(name)
+            result[name] = {'comparable': False, 'volatile': False, 'skipped': True,
+                            'match': False, 'groups': per_group}
+            continue
         is_volatile = any(per_group[label].get('state') == 'volatile' for label in present)
         match = (not is_volatile and len(present) == len(runs_by_label)
                  and len({values.get(label) for label in present}) == 1
@@ -176,7 +192,7 @@ def _artifact_comparison(groups, runs_by_label) -> tuple:
         result[name] = {'comparable': not is_volatile, 'volatile': is_volatile,
                         'match': match, 'groups': per_group}
     return result, {'comparable': comparable, 'matching': matching, 'differing': differing,
-                    'volatile': volatile, 'allMatch': matching == comparable}
+                    'volatile': volatile, 'unhashed': unhashed, 'allMatch': matching == comparable}
 
 
 def _metric_table(groups):
@@ -222,7 +238,8 @@ def _print_summary(groups, checks, artifacts, metrics):
           f"codeSourceMatch={checks['codeSourceMatch']} "
           f"decodedSummaryMatch={checks['decodedSummaryMatch']}")
     print(f"artifacts: comparable={artifacts['comparable']} match={artifacts['matching']} "
-          f"differ={artifacts['differing'] or '[]'} volatile={artifacts['volatile'] or '[]'}")
+          f"differ={artifacts['differing'] or '[]'} volatile={artifacts['volatile'] or '[]'} "
+          f"unhashed={artifacts['unhashed'] or '[]'}")
     print('metrics (median [min..max]):')
     for name, row in metrics.items():
         labels = [group['label'] for group in groups]
@@ -279,7 +296,8 @@ def main(argv=None) -> int:
                    'artifactComparable': artifact_summary['comparable'],
                    'artifactMatching': artifact_summary['matching'],
                    'artifactDiffering': artifact_summary['differing'],
-                   'artifactVolatile': artifact_summary['volatile']},
+                   'artifactVolatile': artifact_summary['volatile'],
+                   'artifactUnhashed': artifact_summary['unhashed']},
         'groups': groups,
         'artifacts': artifacts,
         'metrics': metrics,

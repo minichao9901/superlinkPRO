@@ -1,6 +1,6 @@
 # ETM 离线处理性能基准说明（口径与复现）
 
-版本：1.0｜2026-10-19｜分支 `ds/etm-1s-p0p2`｜基线 `7f6c042`
+版本：1.1｜2026-10-20｜分支 `ds/etm-1s-p0p2`｜基线 `7f6c042`（§8 为 P0-C 规范基准）
 
 本文件说明 ETM 记录在主机侧离线处理的**计时口径、固定输入、复现命令与历史数字边界**。
 所有数字都是特定机器、特定运行的结果，**不是固定加速承诺**；新增数字必须用
@@ -155,7 +155,117 @@ environment.json、sha256.json、sanity/、compare-*.json、logs/）。
 
 ## 7. 未完成 / 不在本文件范围
 
-- 200 ms 规范 A/B（交错 ≥3 次、全部样本、中位数/范围）由 P0-C 用本工具补；本文不预写数字。
+- 200 ms 规范 A/B 已由 P0-C 完成，见 §8；后续 1 s 记录与真实浏览器/EXE 口径仍不在本文范围。
 - 真实 1 s 连续记录、真实浏览器首屏绘制、独立 EXE 口径未纳入本次基准；EXE 与源码分别记录。
 - 安全软件保持开启；不提供“关闭 Defender 后”的数字作为用户正常性能前提。
 - 本轮未操作硬件、未采集新记录；全部输入为既有只读记录。
+
+## 8. P0-C 规范基准（最终快照，2026-10-20）
+
+本节数字全部由 `tools/perf/bench_pipeline.py` 实测，运行目录与原始日志见
+`docs/validation/20261019-ds-etm-p0-canonical-7f6c042/`。**这些是共享机器上的特定运行，
+不是固定加速承诺；未达标项不因改口径而变绿。**
+
+### 8.1 冻结快照与运行条件
+
+- 最终快照 `tmp/perf-final/etm`：从工作树 `etm/` 复制（排除 `records/`、`build-native/`、
+  `__pycache__/`、`*.pyc`），625 个源文件、44,514,239 B，source manifest SHA256
+  `078ff1ba6539d734…`；快照内用 `build-decoder.ps1` 构建（Ninja/Release，OpenCSD 1.8.3，
+  `-O3 -DNDEBUG`，g++ 16.1.0），`etm_decode.exe` SHA256 `ae0347def15e2f99…`。
+- 基线与最终对照用 `tmp/perf-baseline/etm`（7f6c042，`etm_decode.exe` `9b236d4396ba131c…`）。
+- 输入：`inputs.json` 的 `steady` 与 `boundary`（200 ms、500 MSa/s、H743，`capture.kvdat`），
+  记录只读、run 目录内为硬链接副本。
+- 每条记录 legacy(text) 与 binary(`ETM_NATIVE_FORMAT=binary`) 各 3 次，按轮次交错；
+  基线各 1 次（紧跟第 3 轮，尽量共享负载窗口）。
+- **主机负载**：运行窗口内 20 s 采样 65 点，CPU 负载 min 1% / 中位 18% / max 49%
+  （其他项目的 Python/Playwright/构建进程并存，不是空闲机）。因此本节的绝对秒数高于
+  历史空闲窗口的 60～62 s；逐轮交错保证 legacy/binary 在同一负载附近比较。
+
+### 8.2 交错性能（全部样本）
+
+完整处理（KVDAT → 记录+统计+索引就绪），秒：
+
+| 轮次 | steady legacy | steady binary | boundary legacy | boundary binary |
+|---|---:|---:|---:|---:|
+| 1 | 116.321 | 93.954 | 87.069 | 67.093 |
+| 2 | 91.161 | 68.052 | 87.946 | 74.705 |
+| 3 | 97.358 | 97.882 | 121.924 | 97.695 |
+| **中位数** | **97.358** | **93.954** | **87.946** | **74.705** |
+| 范围 | 91.161–116.321 | 68.052–97.882 | 87.069–121.924 | 67.093–97.695 |
+
+逐轮配对差（binary − legacy）：steady −19.3% / −25.3% / +0.5%，boundary −22.9% / −15.1% / −19.9%。
+中位数差：steady −3.5%，boundary −15.1%。第 3 轮 binary steady 遇到负载尖峰（97.9 s），
+与 legacy 同轮 97.4 s 持平；**不要只用中位数宣称整链路加速**。
+
+分阶段中位数（秒）：
+
+| 阶段 | steady legacy | steady binary | boundary legacy | boundary binary |
+|---|---:|---:|---:|---:|
+| 取样 sample | 6.606 | 6.842 | 6.171 | 6.441 |
+| 解复用 demux | 2.222 | 1.600 | 1.871 | 1.913 |
+| 原生解码 nativeDecode | 6.478 | **0.514** | 4.739 | **0.706** |
+| 展开 expand | 51.369 | 48.564 | 46.163 | 39.777 |
+| 索引 index | 37.800 | 31.742 | 29.590 | 25.494 |
+| ELF 加载 | 0.404 | 0.281 | 0.329 | 0.348 |
+
+- 原生解码阶段 steady **6.478 → 0.514 s（12.6×）**、boundary **4.739 → 0.706 s（6.7×）**；
+  原生输出 steady 284.1 MB `native.jsonl` → 54.5 MB `native.bin`（5.21×），
+  boundary 298.4 MB → 57.2 MB（5.21×）。这与 P2 交付的 10× 级解码器收益一致。
+- 整链路仍由 **expand + index** 主导（合计约 80–89 s / 65–70 s），所以 P2 之后
+  “200 ms ≤3 s”仍不达标；这是 P3/P4 的工作。
+- 进程树峰值 RSS：legacy/binary 均约 **1.055 GiB**（无显著差异）；
+  tree CPU：legacy 中位 87.7 s（steady）/78.4 s（boundary），binary 82.0 s/70.0 s。
+- 产物字节（`artifactBytes`，含 events/native/索引/列存）：steady legacy **3.133 GiB** →
+  binary **2.613 GiB**（−16.6%）；boundary 3.291 GiB → 2.745 GiB（−16.6%）。
+  其中 events.jsonl 仍各 1.57/1.65 GiB，是“派生数据 ≤512 MiB”不达标的主因。
+
+### 8.3 legacy vs binary 语义对照
+
+同输入同快照，取每组一次完整运行做全量对照（`semantic-comparison.json`）：
+
+- 七项产物：`etm.bin`、`tpiu.bin`、`events.jsonl`（1.68/1.77 GB）、`sources.json` 逐字节一致；
+  `native.jsonl`、`packets.jsonl`、`elements.jsonl` 在 binary 模式按设计不生成
+  （native 改为 `native.bin`，包/元素兼容层留 P3/P4）。
+- `decoded.json` 的 **summary / quality / analysis / status 全等**；顶层差异仅
+  `physical`（只差输入绝对路径，去掉后逐字段相同）与 `streamed`（仅 `nativeJsonl`
+  从 `native.jsonl` 变为 `native.bin`，事件/元素/包计数相同）。
+- 白名单逐项证明：`native-config.txt` 仅镜像绝对路径不同（归一化后一致）；
+  `browse-columns.tsv` 仅首行 mtime/行数签名不同（忽略首行逐字节一致）；
+  `browse-v3.sqlite` 因 binary 不建包表而略小（steady 293.5→275.4 MB、boundary 308.4→289.4 MB），
+  属预期差异，不影响事件查询。
+
+### 8.4 7f6c042 基线对照（默认 text 路径）
+
+| 记录 | 七项产物 | decoded 核心字段 | 基线完整处理 | 最终 legacy 中位 | 变化 |
+|---|---|---|---:|---:|---:|
+| steady | 全部 identical | summary/quality/analysis/status 全等 | 114.542 s | 97.358 s | −15.0% |
+| boundary | 全部 identical | 同上 | 106.694 s | 87.946 s | −17.6% |
+
+七项哈希、`decoded.json` 核心字段、`physical`（除输入路径）均一致，证明 P2 默认 text 路径
+没有改变产物语义；最终链路未回退（中位更快，最终样本范围也覆盖基线值）。
+
+### 8.5 方案 §3.1 目标逐项（200 ms 实测）
+
+| 目标 | steady legacy | steady binary | boundary legacy | boundary binary | 判定 |
+|---|---:|---:|---:|---:|---|
+| 200 ms 新输入完整处理 ≤3 s | 97.358 s | 93.954 s | 87.946 s | 74.705 s | **未达标（展开+索引主导）** |
+| 1 s 新输入完整处理 ≤10 s | — | — | — | — | **未测**（无真实 1 s 记录，P6；不线性外推） |
+| 首次打开已处理记录 ≤1 s | 0.065 s | 0.069 s | 0.052 s | 0.054 s | 通过（服务端代理，不含浏览器渲染/HTTP） |
+| 1 s 全区间首次统计 ≤1 s | 1.584 s | 1.491 s | 1.256 s | 1.195 s | **未达标**（本负载下；历史空闲约 0.97–1.02 s） |
+| 已缓存相同区间 ≤100 ms | 0.0024 s | 0.0024 s | 0.0029 s | 0.0018 s | 通过 |
+| 局部定位/翻页/导航 P95 ≤200 ms | 0.244 s | 0.200 s | 0.162 s | 0.164 s | steady 未达标/binary 压线，boundary 通过 |
+| 进程树峰值 RSS ≤2 GiB | 1.055 GiB | 1.055 GiB | 1.055 GiB | 1.055 GiB | 通过 |
+| 新派生数据 ≤512 MiB | 3.133 GiB | 2.613 GiB | 3.291 GiB | 2.745 GiB | **未达标**（events/索引/列存） |
+
+补充：3 次关键词搜索（LIKE）P95 约 2.5 s / 2.4 s（steady）与 2.1 s / 2.1 s（boundary），
+单列，不混入“翻页/导航”目标；P2 二进制模式不生成 packets/elements 兼容层，网页包视图不在本轮。
+
+### 8.6 结论
+
+1. P2 二进制输出把**原生解码阶段**缩短 6.7–12.6×、原生输出缩小 5.2×，并在默认 text 路径
+   保持七项产物与核心分析字段完全一致——可作为实验能力保留，默认仍走 text。
+2. 整链路仍被 Python 展开与 SQLite 索引主导（占比约 85–90%），200 ms ≤3 s、派生数据 ≤512 MiB
+   均未达标；P3/P4 需要改变区间存储与索引，而不是继续换原生输出格式。
+3. 首开与缓存窗口达标；全区间首次统计在本负载下 1.2–1.6 s，未达 ≤1 s；
+   1 s 目标未测，不宣称达到。
+4. 下次做 1 s 验收前，应先降低共享机器负载或固定交错顺序，并把浏览器/HTTP 与 EXE 口径分开报告。

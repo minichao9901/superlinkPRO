@@ -264,8 +264,8 @@ def environment(anchor=None) -> dict:
             'g++': _first_line(run_cmd([shutil.which('g++') or 'g++', '--version'], timeout=20)['stdout']),
         },
         'environmentVariables': {name: os.environ.get(name) for name in
-                                 ('ETM_DECODE_ENGINE', 'ETM_PYTHON_INDEX', 'PYTHONHASHSEED',
-                                  'OMP_NUM_THREADS', 'TEMP', 'TMP', 'PYTHONUTF8')},
+                                 ('ETM_DECODE_ENGINE', 'ETM_NATIVE_FORMAT', 'ETM_PYTHON_INDEX',
+                                  'PYTHONHASHSEED', 'OMP_NUM_THREADS', 'TEMP', 'TMP', 'PYTHONUTF8')},
         'defender': _defender_status(),
         'powerScheme': _power_scheme(),
         'psutilError': psutil_error,
@@ -436,3 +436,17 @@ def spread(values) -> dict:
     median = ordered[middle] if count % 2 else (ordered[middle - 1] + ordered[middle]) / 2
     return {'n': count, 'median': round(median, 6), 'min': round(ordered[0], 6),
             'max': round(ordered[-1], 6), 'mean': round(sum(ordered) / count, 6)}
+
+
+def percentile(values, percent) -> float | None:
+    """线性插值分位数（P95 等）；样本少于 2 个时返回该值本身。"""
+    ordered = sorted(float(value) for value in values if value is not None)
+    if not ordered:
+        return None
+    if len(ordered) == 1:
+        return round(ordered[0], 6)
+    rank = (len(ordered) - 1) * max(0.0, min(100.0, float(percent))) / 100.0
+    lower = int(rank)
+    upper = min(lower + 1, len(ordered) - 1)
+    weight = rank - lower
+    return round(ordered[lower] * (1 - weight) + ordered[upper] * weight, 6)
