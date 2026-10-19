@@ -1,7 +1,7 @@
 """Scan USB initialization register reads/writes and correlate them with ETM.
 
 The ETM record does not contain data values, but every decoded instruction
-event has `pc`/`file`/`line`/`mnemonic`.  This tool:
+event has `pc`/`file`/`line`/`mnemonic` and an execution state.  This tool:
 
 1. parses `USB_OTG_*` accesses in the selected init functions, classifying
    left-hand-side assignments as writes (and `|=`/`&=`/`^=` as read+write),
@@ -9,6 +9,15 @@ event has `pc`/`file`/`line`/`mnemonic`.  This tool:
 2. adds the inlined `dwc2_get_hwparams()` reads from `usb_dwc2_param.h`;
 3. streams the ETM record and attaches execution order, instruction count and
    load/store PCs to each source line.
+
+Execution-state filter (review finding 2): only instructions whose
+`executionState` is `executed` (or the older schema's `executed is True`)
+count as **confirmed accesses**.  `not-taken` predicate failures and
+`unknown` conditional results are counted separately as **candidate
+accesses**; they never enter `seq`/`etm_instructions`/`etm_loads`/`etm_stores`.
+Even for confirmed instructions this remains a per-source-line candidate
+access list: the trace has no data values, so it cannot prove the concrete
+read transaction or the value read.
 
 Usage:
 
@@ -41,6 +50,24 @@ USB_RE = re.compile(
     r'USB_OTG_(?:GLB|DEV|INEP|OUTEP|FIFO|PCGCCTL)'
     r'(?:\((?:[^()]|\([^()]*\))*\))?\s*(?:->\s*\w+|\[[^\]]*\])?')
 HEADER_READ_RE = re.compile(r'dwc2_readl\(reg_base\s*\+\s*(\w+)_OFFSET\)')
+EXECUTED = 'executed'
+NOT_TAKEN = 'not-taken'
+UNKNOWN = 'unknown'
+# 既有 CSV 列保持原位；新增列追加在末尾，供“确定访问 vs 候选覆盖”对照。
+EXTRA_COLUMNS = ('etm_not_taken', 'etm_unknown', 'etm_instructions_total', 'candidate_seq')
+
+
+def execution_state(event):
+    """指令执行状态；旧版 decoded.json 只有 `executed` 布尔值时按它归一。"""
+    state = event.get('executionState')
+    if state in (EXECUTED, NOT_TAKEN, UNKNOWN):
+        return state
+    executed = event.get('executed')
+    if executed is True:
+        return EXECUTED
+    if executed is False:
+        return NOT_TAKEN
+    return UNKNOWN
 
 
 def scan_source(path, functions):
@@ -107,17 +134,35 @@ def load_events(record):
 
 
 def correlate(rows, record):
+    """按源码行聚合 ETM 指令：确定访问只计 executed，not-taken/unknown 单独计数。
+
+    trace 不含数据值；即使指令 executed，也只能证明访问过该源码行的寄存器地址，
+    不能证明具体读事务或读到的值。候选覆盖（not-taken/unknown）单独输出。
+    """
     wanted = {(row['file'], row['line']) for row in rows}
-    info = collections.defaultdict(lambda: dict(count=0, first=None, loads=[], stores=[], function=''))
+    def empty():
+        return dict(count=0, first=None, candidate_first=None, loads=[], stores=[],
+                    not_taken=0, unknown=0, total=0, function='')
+    info = collections.defaultdict(empty)
     for event in load_events(record):
         key = (pathlib.PurePosixPath(event.get('file', '')).name, event.get('line'))
         if key not in wanted:
             continue
         item = info[key]
+        state = execution_state(event)
+        item['total'] += 1
+        if item['candidate_first'] is None:
+            item['candidate_first'] = event.get('seq')
+        item['function'] = event.get('function') or item['function']
+        if state == NOT_TAKEN:
+            item['not_taken'] += 1
+            continue
+        if state != EXECUTED:
+            item['unknown'] += 1
+            continue
         item['count'] += 1
         if item['first'] is None:
             item['first'] = event.get('seq')
-        item['function'] = event.get('function') or item['function']
         mnemonic = str(event.get('mnemonic', ''))
         if mnemonic.startswith('ldr'):
             item['loads'].append(event.get('pc'))
@@ -142,30 +187,50 @@ def main():
         row.update(seq=item['first'], etm_instructions=item['count'],
                    etm_loads=len(item['loads']), etm_stores=len(item['stores']),
                    load_pcs=' '.join(hex(pc) for pc in item['loads'][:8]),
-                   store_pcs=' '.join(hex(pc) for pc in item['stores'][:8]))
-    rows.sort(key=lambda row: (row['seq'] is None, row['seq'] if row['seq'] is not None else 0,
+                   store_pcs=' '.join(hex(pc) for pc in item['stores'][:8]),
+                   etm_not_taken=item['not_taken'], etm_unknown=item['unknown'],
+                   etm_instructions_total=item['total'], candidate_seq=item['candidate_first'])
+    rows.sort(key=lambda row: (row['seq'] is None,
+                               row['seq'] if row['seq'] is not None
+                               else (row['candidate_seq'] if row['candidate_seq'] is not None else 0),
                                row['function'], row['line']))
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open('w', newline='', encoding='utf8') as stream:
         writer = csv.writer(stream)
         writer.writerow(['seq', 'function', 'file', 'line', 'kind', 'register',
                          'etm_instructions', 'etm_loads', 'etm_stores',
-                         'load_pcs', 'store_pcs', 'source'])
+                         'load_pcs', 'store_pcs', 'source', *EXTRA_COLUMNS])
         for row in rows:
             writer.writerow([row['seq'] if row['seq'] is not None else '',
                              row['function'], row['file'], row['line'], row['kind'],
                              row['register'], row['etm_instructions'],
                              row['etm_loads'], row['etm_stores'],
-                             row['load_pcs'], row['store_pcs'], row['source']])
+                             row['load_pcs'], row['store_pcs'], row['source'],
+                             row['etm_not_taken'], row['etm_unknown'],
+                             row['etm_instructions_total'],
+                             row['candidate_seq'] if row['candidate_seq'] is not None else ''])
     executed = [row for row in rows if row['seq'] is not None]
+    candidates = [row for row in rows if row['seq'] is None and row['etm_instructions_total']]
     kinds = collections.Counter(row['kind'] for row in rows)
+    not_taken_total = sum(row['etm_not_taken'] for row in rows)
+    unknown_total = sum(row['etm_unknown'] for row in rows)
     print(f'source rows: {len(rows)} (read={kinds["read"]}, write={kinds["write"]}, rw={kinds["rw"]})')
-    print(f'executed in {args.record.name}: {len(executed)}')
+    print(f'confirmed executed accesses in {args.record.name}: {len(executed)}')
+    print(f'not-taken matches: {not_taken_total}, unknown matches: {unknown_total}, '
+          f'unconfirmed candidate rows: {len(candidates)}')
+    print('note: 按源码行聚合的候选访问；executed 只证明执行过该行，trace 不含数据值，'
+          '不能证明具体读事务/数据。')
     print(f'csv: {args.out}')
     for row in executed:
         print(f"  {row['seq']:>7} {row['function'][:24]:<24} {row['file']:<18} {row['line']:>4}"
               f" {row['kind']:<5} {row['register'][:48]:<48} instr={row['etm_instructions']:<3}"
-              f" ld={row['etm_loads']} st={row['etm_stores']}")
+              f" ld={row['etm_loads']} st={row['etm_stores']}"
+              f" (not-taken={row['etm_not_taken']} unknown={row['etm_unknown']})")
+    for row in candidates[:10]:
+        print(f"  candidate seq~{row['candidate_seq'] if row['candidate_seq'] is not None else '-'}"
+              f" {row['function'][:24]:<24} {row['file']:<18} {row['line']:>4}"
+              f" {row['kind']:<5} not-taken={row['etm_not_taken']} unknown={row['etm_unknown']}"
+              f" total={row['etm_instructions_total']}")
 
 
 if __name__ == '__main__':
