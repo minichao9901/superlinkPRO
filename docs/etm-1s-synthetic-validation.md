@@ -31,9 +31,16 @@
   **0 差异**（607,757 条 / 607,686 指令，analysis 0 差异；summary 仅多 3 个新增元数据键）；
   全段 window 10.81 s、timeline 17.37 s、缓存 1 ms 级。用于证明"100× 的读侧失败是写出器缺陷，
   不是合成数据语义问题"。
-- **方案 §3.1 逐项**：RSS（392.6 MiB ≤2 GiB）、派生体积（74.5 MiB ≤512 MiB）、首开（≈0.51 s ≤1 s）、
-  缓存（1 ms 级 ≤100 ms）**达标**；1 s 首次处理（141.25 s vs ≤10 s）、全区间首次统计
-  （阻塞/局部 2.5 s，外推全段 ≈250 s）、导航 P95（0.988 s vs ≤200 ms）**未达标**。
+- **方案 §3.1 逐项**：RSS（392.6 MiB ≤2 GiB）、派生体积（74.5 MiB ≤512 MiB）、**对象层部分请求**
+  首开（open+overview+首页 ≈0.51 s，`objectLayerPartial`）、缓存（1 ms 级 ≤100 ms）达标；
+  1 s 首次处理（141.25 s vs ≤10 s）、全区间首次统计（阻塞/局部 2.5 s，外推全段 ≈250 s）、
+  导航 P95（0.988 s vs ≤200 ms）**未达标**；**完整首屏 `firstScreenWithTimeline`（含默认轨迹图、
+  按真实加载顺序）未通过**——R0 前默认 timeline 全段 497.13 s，旧页面在请求首页行前先 await 它。
+- **首屏口径（R0 修正）**：0.51 s 只是对象层部分请求，**不能写成首屏达标**。字段定义见
+  `etm-performance-baseline.md` §1/§10；R0 已把默认轨迹图与 overview/首页行解耦（图表独立加载、
+  有进度、失败/超时不挡表格），真实浏览器 A/B 时序见
+  `docs/validation/20261020-ds-etm-r0-firstscreen-1891916/`。完整首屏要等 R1 的快速默认 timeline
+  后再按真实网页重新验收。
 - **默认能力未放开**：`CAPTURE_MAX_SECONDS=0.2`、`CAPTURE_MAX_SAMPLES=100_000_000`；
   Flask test client `GET /api/capabilities` 返回 200 且同上；前端 `view.js` 从能力读上限
   （缺失回退 0.2/1e8）；实验开关 `ETM_STORE_WRITE` 默认关闭、仅显式 `=1` 启用。
@@ -59,6 +66,8 @@ checkpoint 恰好把最后一个内部指令当段末时多算 1；读侧按 `id
 
 1. 真机 1 s 采集/保存/上传链（LA 深度、USB、save 完整性）未验证 → 见 `docs/etm-1s-hardware-checklist.md`。
 2. 浏览器/独立 EXE 端到端未验证（对象层适配器数据）；HTTP `/api/browse` 全接口 JSON 差异见 P4 证据。
+   R0 已补真实浏览器加载顺序 A/B（`docs/validation/20261020-ds-etm-r0-firstscreen-1891916/`），
+   但**完整首屏性能未通过**：R1 快速默认 timeline 之前不能宣称首屏达标。
 3. 共享机负载使 3 次波动约 29%，未做安静窗口复测；绝对秒数不固定。
 4. 全段 window/timeline 的块级预聚合未做（P4 遗留 U6），即使无缺陷也需分钟级。
 5. `schema=3` 长窗记录、Unicode/空格路径、并发/取消/磁盘满未覆盖。

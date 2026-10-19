@@ -52,6 +52,12 @@ function apiUrl(value){
   const href=(typeof location!=='undefined')?location.href:'http://127.0.0.1/';   // Node 无 location（同上）
   return new URL(value,new URL(apiBase,href)).href;
 }
+/**
+ * 请求超时按接口分档（**本值不随首屏优化调整**，R0 约定：不延长超时冒充性能修复）：
+ *   overview 300 s（大记录摘要/校验）、window 180 s、其它（含 timeline）45 s。
+ * 默认轨迹图也走这里的 45 s，但 `history.js` 已把它与 overview/首页行解耦：
+ * 图表超时只会把轨迹图自身标为失败，不影响已经渲染的首批执行流行与页面其它部分。
+ */
 async function api(path,body){return requestJson(apiBase+path,body===undefined?{}:{method:'POST',...(body instanceof FormData?{body}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})},{timeout:path.endsWith('/overview')?300000:(path.includes('/window')?180000:45000)});}
 function log(message){$('log').textContent=new Date().toLocaleTimeString('zh-CN')+' '+message+'\n'+$('log').textContent;controls();}
 function error(e){log(e.message);$('job-state').textContent=e.message;$('job-state').classList.add('bad');}

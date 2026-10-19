@@ -17,6 +17,7 @@ const cycleMetricsText=r=>{const t=r?.analysis?.timing;if(!t||!t.timeFlameAvaila
   return ` · ${n(t.totalCycles)} 周期`+(t.cpi?` · CPI ${t.cpi.toFixed(2)}`:'')+us;};
 export class HistoryView{
   constructor(api,onError){this.api=api;this.onError=onError;this.sid=null;this.result=null;this.view='instructions';this.offset=0;this.selected=null;this.selectedFunction=null;this.rows=[];this.sources=new Map();this.revision=0;this.selectRevision=0;this.range=null;this.rangeHistory=[];this.window=null;this.flameMode='timeline';this.flameSourceCollapsed=false;this.scopeBusy=false;this.timelineKey=null;this.timelineData=null;this.timelineCollapsed=false;this.flameZoomControls=null;this.onScopeChange=null;
+    this.timelineTask=null;this.timelinePending=null;this.timelinePendingKey=null;this.timelineProgressTimer=null;this.timelineStartedAt=null;
     this.timelineChart=bindFunctionTimeline($('execution-timeline-canvas'),{onRange:r=>this.setRange(r),onSelect:seq=>this.select(seq,true),onError});
     this.timelineZoom=createZoomControls({onZoomOut:()=>this.zoomRange(false).catch(onError),onZoomIn:()=>this.zoomRange(true).catch(onError),onFit:()=>this.setRange(null,true,this.selected).catch(onError)});$('execution-timeline-zoom').replaceChildren(this.timelineZoom.element);
     $('toggle-execution-timeline').onclick=()=>{this.timelineCollapsed=!this.timelineCollapsed;$('execution-timeline-body').hidden=this.timelineCollapsed;$('toggle-execution-timeline').textContent=this.timelineCollapsed?'展开轨迹图':'收起轨迹图';$('toggle-execution-timeline').setAttribute('aria-expanded',String(!this.timelineCollapsed));if(!this.timelineCollapsed)requestAnimationFrame(()=>this.timelineChart.redraw());};
@@ -41,6 +42,7 @@ export class HistoryView{
     this.sid=sid;this.result=null;this.range=null;this.rangeHistory=[];this.window=null;
     this.onScopeChange?.(null);
     this.timelineKey=null;this.timelineData=null;this.selected=null;this.selectedFunction=null;
+    this.stopTimelineProgress();this.timelineTask=null;this.timelinePending=null;this.timelinePendingKey=null;
     this.offset=0;this.view='instructions';this.sources.clear();this.sourceDomFile=null;this.scopeBusy=false;this.rows=[];
     this.timelineChart.setData(null);$('execution-timeline-panel').hidden=true;
     $('analysis-panes').classList.remove('flame-layout','flame-source-collapsed');
@@ -77,7 +79,8 @@ export class HistoryView{
   }
   async render(){if(!this.result)return;const revision=++this.revision;for(const b of document.querySelectorAll('[data-view]'))b.classList.toggle('active',b.dataset.view===this.view);$('analysis-panes').classList.toggle('flame-layout',this.view==='flame');$('analysis-panes').classList.toggle('flame-source-collapsed',this.view==='flame'&&this.flameSourceCollapsed);const search=$('search').value.trim().toLowerCase();
     $('scope-state').hidden=$('clear-scope').hidden=!this.range;$('scope-state').textContent=this.range?['packets','quality'].includes(this.view)?'包 / 完整性显示全记录':'区间 #'+this.range.start+'～#'+this.range.end:'';
-    if(!await this.renderTimeline(revision,search)||revision!==this.revision)return;
+    // R0-B：默认轨迹图独立/并发加载，**不再 await**。overview/首页行/表格先可用，慢图或超时只影响图表本身。
+    this.startTimelineLoad(revision,search);
     if((this.view==='flame'||this.range)&&!this.window){
       const weightOnly=this.view==='flame'&&!this.range&&this.flameMode==='aggregate';
       if(weightOnly){
@@ -129,11 +132,53 @@ export class HistoryView{
     }$('table-container').replaceChildren(table);$('table-container').scrollTop=0;
   }
   pagination(total,offset){this.pageTotal=total;$('filter-count').textContent=n(total)+' 条';$('page-label').textContent=total?`${Math.floor(offset/150)+1} / ${Math.ceil(total/150)}`:'—';$('prev').disabled=!!this.loading||!offset;$('next').disabled=!!this.loading||offset+150>=total;}
+  /** 默认轨迹图独立加载：`render()` 只负责发起，不等待（R0-B 首屏口径）。 */
+  startTimelineLoad(revision,search){
+    const task=this.renderTimeline(revision,search);
+    this.timelineTask=task.catch(error=>{if(revision===this.revision)this.failTimeline(error);});
+    return this.timelineTask;
+  }
+  /** 图表进度提示：只更新轨迹图的摘要行，不触碰表格/执行流/分页（文案按整秒变化）。 */
+  startTimelineProgress(){
+    this.stopTimelineProgress();
+    const started=Date.now(),summary=$('execution-timeline-summary');
+    const paint=()=>{if(started!==this.timelineStartedAt)return;const seconds=Math.floor((Date.now()-started)/1000);if(summary)summary.textContent=`正在加载默认轨迹图…${seconds} s（执行流与表格已可用）`;};
+    this.timelineStartedAt=started;paint();this.timelineProgressTimer=setInterval(paint,500);
+    return started;
+  }
+  stopTimelineProgress(){
+    if(this.timelineProgressTimer){clearInterval(this.timelineProgressTimer);this.timelineProgressTimer=null;}
+    this.timelineStartedAt=null;
+  }
+  /** 图表失败/超时：只把轨迹图自己的摘要行标为不可用；首批行、分页、源码等保持不变。 */
+  failTimeline(error){
+    this.stopTimelineProgress();
+    const message=(error&&error.message)||String(error||'未知错误');
+    const summary=$('execution-timeline-summary');
+    if(summary)summary.textContent=`轨迹图加载失败：${message}（执行流与表格不受影响；切换视图或翻页可重试）`;
+  }
+  /** 同一 key 的请求合并：翻页/重绘不重复触发慢 timeline；完成后由缓存 key 复用结果。 */
+  fetchTimeline(key){
+    if(this.timelinePendingKey===key&&this.timelinePending)return this.timelinePending;
+    const request=this.api(this.path('timeline?'+key));
+    const tracked=request.finally(()=>{if(this.timelinePending===tracked){this.timelinePending=null;this.timelinePendingKey=null;}});
+    this.timelinePending=tracked;this.timelinePendingKey=key;
+    return tracked;
+  }
   async renderTimeline(revision,search){
-    const panel=$('execution-timeline-panel'),visible=this.view==='instructions'&&!!this.result;panel.hidden=!visible;if(!visible)return true;
+    const panel=$('execution-timeline-panel'),visible=this.view==='instructions'&&!!this.result;panel.hidden=!visible;if(!visible){this.stopTimelineProgress();return true;}
     const p=new URLSearchParams({search,hideSkipped:$('hide-skipped').checked?'1':'0'});this.scopeParams(p);const key=p.toString();
-    if(key!==this.timelineKey){const data=await this.api(this.path('timeline?'+p));if(revision!==this.revision)return false;this.timelineData=data;this.timelineKey=key;}
-    const data=this.timelineData;if(!data)return true;this.timelineChart.setData(data);this.timelineChart.setCursor(this.selected);
+    if(key!==this.timelineKey){
+      if(!(this.timelinePendingKey===key&&this.timelinePending))this.startTimelineProgress();
+      let data;
+      try{data=await this.fetchTimeline(key);}
+      catch(error){if(revision===this.revision)this.failTimeline(error);return false;}
+      if(revision!==this.revision)return false;
+      this.timelineData=data;this.timelineKey=key;
+    }
+    if(revision!==this.revision)return false;
+    const data=this.timelineData;if(!data){this.stopTimelineProgress();return true;}
+    this.stopTimelineProgress();this.timelineChart.setData(data);this.timelineChart.setCursor(this.selected);
     const summary=data.summary,range=data.range;
     this.updateZoomControlState();
     $('execution-timeline-summary').textContent=`#${n(range.start)}～#${n(range.end)} · ${n(summary.executed)} 条已证实 · ${n(summary.unknown)} 条未知`+(summary.notTaken?` · ${n(summary.notTaken)} 条未成立`:'')+(summary.markers?` · ${n(summary.markers)} 个边界 / 中断${data.markers.length<summary.markers?`（图中合并为 ${n(data.markers.length)} 段）`:''}`:'');

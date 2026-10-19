@@ -1,6 +1,6 @@
 # ETM 离线处理性能基准说明（口径与复现）
 
-版本：1.1｜2026-10-20｜分支 `ds/etm-1s-p0p2`｜基线 `7f6c042`（§8 为 P0-C 规范基准）
+版本：1.2｜2026-10-20｜分支 `ds/etm-1s-r0r3`（R0 首屏口径与加载顺序）｜P0-C 基线 `7f6c042`（§8）
 
 本文件说明 ETM 记录在主机侧离线处理的**计时口径、固定输入、复现命令与历史数字边界**。
 所有数字都是特定机器、特定运行的结果，**不是固定加速承诺**；新增数字必须用
@@ -12,8 +12,9 @@
 
 | 指标 | 起止边界 | 包含 | 不包含 |
 |---|---|---|---|
-| 完整处理（首屏数据就绪） | KVDAT/CSV 完整可读 → 完整二进制记录 + 统计 + 必要索引就绪 | 取样（含原始文件读取与 SHA256）、TPIU 解复用、OpenCSD 原生解码、事件展开、浏览索引、`decoded.json`/JSONL 落盘 | LA 上传、Kingst `save-data`、浏览器绘制、可选全量文本导出、验证扫描 |
-| 首次打开已处理记录 | 请求开始 → overview/首页/默认轨迹图响应就绪 | SQLite 查询、payload 序列化 | 浏览器渲染、网络传输（本机回环） |
+| 完整处理（记录可浏览） | KVDAT/CSV 完整可读 → 完整二进制记录 + 统计 + 必要索引就绪 | 取样（含原始文件读取与 SHA256）、TPIU 解复用、OpenCSD 原生解码、事件展开、浏览索引、`decoded.json`/JSONL 落盘 | LA 上传、Kingst `save-data`、浏览器绘制、可选全量文本导出、验证扫描 |
+| `objectLayerPartial`（对象层部分请求） | 打开记录 → **overview + 首页 page（首批执行流行）**响应就绪 | store 打开/校验、SQLite 查询、payload 序列化 | **默认轨迹图 timeline**、浏览器渲染、网络传输（本机回环） |
+| `firstScreenWithTimeline`（完整首屏） | 打开记录 → **首批执行流行可用，且默认轨迹图已就绪（或明确失败/超时并有进度提示）** | 上行全部 + 默认轨迹图请求与页面绘制（真实加载顺序） | 用户后续交互（翻页/搜索/局部窗口/导航） |
 | 整段窗口 | `store.window()` 冷请求 | 区间统计与 JSON 序列化 | 第二次缓存请求（单独列为 `windowCached`） |
 | 局部/半区间窗口 | `store.window(from,to)` 冷请求 | 同上 | 重复请求 |
 
@@ -23,6 +24,11 @@
   后续完整重跑是独立进程冷启动，不把“第二次更快”当作算法提速，也不承诺固定加速。
 - **缓存状态分列**：整段窗口的冷请求与缓存命中分别记录；复用已有索引只改善重新打开/相同输入重解，
   不改善“新输入第一次处理”。
+- **首屏分两级，不得混用**：`objectLayerPartial`（overview + 首页 page）只是**对象层部分请求**；
+  `firstScreenWithTimeline`（完整首屏）必须按真实网页加载顺序测，且包含默认轨迹图。R0 修复前
+  `history.js` 在请求首页行前 `await renderTimeline()`，大样本 timeline 会把它拖到分钟级/45 s 超时，
+  因此任何只含 open+overview+page 的秒数都不能写成“首屏达标”。完整首屏在 R1 提供快速默认
+  timeline 之前判为**未通过**；定义与 R0 实测见 §10。
 - **不关闭安全软件**：不修改 Windows Defender、电源方案或任何系统设置，也不以关闭安全软件
   作为用户正常性能前提；Defender 状态只做只读查询并随运行记录。
 - **验证扫描不计入计时**：等价性/产物哈希核对在计时结束后单独执行；计时内不做额外全量重读。
@@ -382,7 +388,7 @@ t11 的独立验证（100× 15→0、四份真机记录逐事件 0 差异、内�
 |---|---|---|---:|---|
 | T1 | 200 ms 新输入完整处理 | ≤3 s | —（本任务不含 200 ms） | 不适用 |
 | T2 | **1 s 新输入完整处理** | ≤10 s，争取 5 s | **141.25 s（中位）** | **未达标**（约 14×；stream 97%） |
-| T3 | 首次打开已处理记录 | ≤1 s | open 0.376 + overview 0.004 + 首页 0.126 ≈ **0.51 s** | 达标（对象层；不含 HTTP/浏览器） |
+| T3 | 首次打开已处理记录（`objectLayerPartial`） | ≤1 s | open 0.376 + overview 0.004 + 首页 0.126 ≈ **0.51 s** | **仅对象层部分请求达标**；`firstScreenWithTimeline`（完整首屏，含默认轨迹图）**未通过**——全段 timeline 497.13 s，R0 修复前会阻塞首页行；见 §10 |
 | T4 | 1 s 全区间首次统计 | ≤1 s | 全段 window **376.23 s**、timeline **497.13 s**（修复后实测；修复前被缺陷阻塞）；局部 200k window 2.47 s | **未达标**（约 376×） |
 | T5 | 已缓存相同区间 | ≤100 ms | window/timeline 缓存 **0.9–1.4 ms**、overview 5.4 ms | 达标 |
 | T6 | 局部定位/翻页/导航 P95 | ≤200 ms | 翻页 0.005–0.013 s（达标）；**导航 P95 0.988 s**（重点：instruction 模式尖峰） | **未达标**（导航） |
@@ -398,9 +404,96 @@ t11 的独立验证（100× 15→0、四份真机记录逐事件 0 差异、内�
    原生范围少 10.3%；不能推断真机 1 s 的字节/语义行为。
 2. **无真机采集/上传/保存环节**：LA 深度、USB 稳定性、save 完整性未验证（见 checklist §1/§2）。
 3. **共享机负载**：3 次波动 123–159 s（约 29%），未做安静窗口复测；绝对秒数不是固定值。
-4. **浏览器/独立 EXE 未验证**：本节是对象层（适配器）数据，非页面/HTTP 端到端。
+4. **浏览器/完整首屏未验证**：本节是对象层（适配器）数据，非页面/HTTP 端到端。0.51 s 只是
+   `objectLayerPartial`（open+overview+首页）；含默认轨迹图的 `firstScreenWithTimeline` 在 R1
+   快速 timeline 前判为**未通过**（R0 前默认 timeline 全段 497.13 s，旧页面会先 await 它）。
+   R0 的加载顺序修复与真实浏览器 A/B 时序见 §10。
 5. **全段 window/timeline 仍 O(区间事件数)**：即使无缺陷也需分钟级（P4 遗留，块级预聚合未做）。
 6. 原始证据：`docs/validation/20261020-ds-etm-p6-scale-b2d8148/`（report.md、build.json、
    queries-full.json、queries-small.json、oracle-3x.json、capabilities.json、defect-internal-unknown.json、
    result.json、sha256.json、logs/）；复现命令见该目录报告。
+
+## 10. R0 首屏计时口径与加载顺序（2026-10-20）
+
+本节把“首屏”拆成两级，并给出 R0 在真实无头浏览器里的 A/B 时序。背景：§9.5 的 **0.51 s**
+只是 `objectLayerPartial`（open+overview+首页 page）；R0 前 `history.js` 在请求首页行前
+`await renderTimeline()`，大样本默认轨迹图（全段 497.13 s）会把首屏拖到 45 s 超时，
+所以 **0.51 s 不能写成“首屏达标”**。**`firstScreenWithTimeline`（完整首屏）在 R1 提供快速
+默认 timeline 之前判为未通过。**
+
+### 10.1 字段定义
+
+| 字段 | 起止边界 | 包含 | 不包含 |
+|---|---|---|---|
+| `objectLayerPartial` | 打开记录 → overview + 首页 page（首批执行流行）就绪 | store 打开/校验、查询、payload 序列化 | 默认轨迹图 timeline、浏览器渲染、HTTP 传输 |
+| `firstScreenWithTimeline.objectLayer` | 打开记录 → 首批执行流行可用 **且** 默认轨迹图响应就绪（或明确失败/超时） | 上行 + 默认轨迹图请求（对象层，不含 DOM 绘制） | 浏览器绘制、后续交互 |
+| `firstScreenWithTimeline.browser` | 点击“打开”→ 首批执行流行出现在 DOM **且** 默认轨迹图数据就绪（或明确显示失败） | 上行 + 真实浏览器加载/解析/渲染 | 用户后续交互（翻页/搜索/局部窗口/导航） |
+| `progressFirstVisible` | 点击“打开”→ 轨迹图摘要行出现“正在加载默认轨迹图…Ns” | R0 新增的图表进度提示（不挡表格） | 图表数据就绪 |
+| `timelineFailureVisible` | 点击“打开”→ 轨迹图摘要行出现失败提示，且首批行仍在 | R0 新增的失败隔离 | 图表可用性 |
+
+约定：任何只含 open+overview+page 的秒数只能标 **`objectLayerPartial`**；`firstScreenWithTimeline`
+必须按真实网页加载顺序（overview → 首批行 → 默认轨迹图）测，并接受“图表失败/超时但首批行可用”
+是**失败隔离**而不是**完整首屏达标**。`progressFirstVisible` 只描述可用性，不参与 ≤1 s 判定。
+
+### 10.2 R0 修复内容（可用性修复，不是性能达标）
+
+- `etm/web/app/history.js`：`render()` 不再 `await renderTimeline()`；默认轨迹图改为独立任务
+  （`startTimelineLoad`），overview/首页行/表格先渲染；同一 key 的请求合并，翻页/重绘不重复触发；
+  进度提示只更新轨迹图摘要行；timeline 失败/超时只把轨迹图标为失败（`timelineKey` 不写入缓存，
+  可重试），不影响表格、分页、源码与其它视图；折叠/展开与视图切换行为保持。
+- `etm/web/app/view.js`：**超时值保持不变**（overview 300 s / window 180 s / 其它含 timeline 45 s），
+  仅补注释说明“不延长超时冒充性能修复”。
+- `etm/web/index.html`：轨迹图摘要行加 `role="status" aria-live="polite"`，说明文字标注
+  “慢图/超时不影响执行流与表格”。
+- 未重打实验包、未改采集上限（`CAPTURE_MAX_SECONDS=0.2`、`CAPTURE_MAX_SAMPLES=1e8`）、未操作硬件。
+
+### 10.3 真实浏览器实测（无头 Edge + 真实 Flask 服务）
+
+输入：`tmp/p6b-scale/` 合成 store 的临时副本（3× = 607,757 事件；1 s 量级 = 19,863,518 事件，
+全段 timeline 此前实测 497.13 s）。每个场景独立 record id（独立 trace-store 适配器缓存，
+timeline 均为该 id 的**首次请求**）。页面：`after` = R0 工作树；`before` = HEAD `18919168`
+的 `index.html`/`view.js`/`history.js` 静态副本，经 `?api=` 访问同一 Flask。
+
+| 场景 | 页面 | store | 点击→首批行 | 点击→默认轨迹图 | 点击→图表失败 | 说明 |
+|---|---|---|---:|---:|---:|---|
+| `after-3x` | R0 工作树 | 607,757 事件 | **192 ms** | 16,650 ms | — | 进度提示 155 ms 出现；150 行先可用 |
+| `before-3x` | HEAD 页面 | 607,757 事件 | 19,916 ms | 19,876 ms | — | timeline 完成后才请求 page（page 起点≈timeline 终点） |
+| `after-1s` | R0 工作树 | 19,863,518 事件 | **954 ms** | —（497 s 量级，未完成） | 45,922 ms | 客户端 45 s 超时后图表标失败，表格仍有 150 行 |
+| `before-1s` | HEAD 页面 | 19,863,518 事件 | **60 s 内无行** | — | — | 摘要一直“等待记录”；timeline 45 s 超时后仍无行 |
+
+HTTP 资源时序（页面内 `performance.getEntriesByType('resource')`，毫秒，相对导航开始）：
+`after-3x` timeline 16,512 ms、page 26 ms（两者几乎同时发起）；`before-3x` timeline 19,774 ms、
+page 15 ms 且 page 起点 = timeline 终点；`after-1s` timeline 45,023 ms 后中止（responseStatus 0）、
+page 29 ms；`before-1s` timeline 45,012 ms 后中止、**没有 page 请求**。
+同一次 run 内同一 3× store 的两次冷 timeline 为 16.5 s（after）与 19.8 s（before），
+共享机负载会让绝对秒数波动，但“首批行是否等待轨迹图”的顺序结论不变（R0 前必等、R0 后不等）。
+
+口径与环境：单次样本；`before` 页面为跨源静态副本（localhost CORS 允许），跨源资源
+`transferSize=0`（无 `Timing-Allow-Origin`），主指标是页面内 DOM 时间戳；OS 文件缓存已被
+`prepare_records.py` 的复制预热，本次“冷”指 store/适配器首次请求，不宣称磁盘冷缓存。
+环境：Edge 155.0.4283.62 headless、Node 24.13.1、Python 3.13.5、HEAD `18919168`。
+测量时共享工作树里另有其他成员的未提交 `trace_store_adapter.py` 改动（不在本任务范围；
+before/after 两场景服务端完全相同）。
+
+原始证据：`docs/validation/20261020-ds-etm-r0-firstscreen-1891916/`
+（`measurements.json`、`browser_first_screen.mjs`、`serve_records.py`、`prepare_records.py`、
+`logs/browser-measure.log`、报告与 JS 测试日志）。
+
+### 10.4 结论
+
+- **`objectLayerPartial` ≈0.51 s 仍只是对象层部分请求，不是首屏达标。**
+- **`firstScreenWithTimeline` 未通过**：3× store 的默认轨迹图约 16.5–19.8 s（同一次 run 的两次
+  冷请求）；1 s 量级 store 触发 45 s 客户端超时（服务端全段 timeline 497.13 s 量级）。R0 只修
+  “基础页/行不被慢图挡住 + 有进度 + 失败隔离”，不改变轨迹图本身的耗时。
+- R1 提供快速默认 timeline 后，必须按本节 `firstScreenWithTimeline.browser` 重新实测；
+  在那之前不得写成完整首屏达标。
+
+### 10.5 未覆盖项
+
+1. 真机 1 s 记录（本测量用合成 store）、不同浏览器/机器、重复样本与安静窗口未覆盖。
+2. `before` 页面经静态服务器跨源 + `?api=` 访问 Flask（线上桥同路径），不是同源部署；
+   跨源资源无 `Timing-Allow-Origin`，只采用 DOM 时间戳。
+3. 1 s 量级 store 的默认轨迹图未等到完成（已知 497.13 s 量级），只验证 45 s 超时后的
+   失败隔离与表格可用性。
+4. 极端条件（并发刷新、浏览器后台节流、网络桥断开、磁盘满）未覆盖。
 
