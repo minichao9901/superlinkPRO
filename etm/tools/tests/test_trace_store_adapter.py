@@ -260,6 +260,14 @@ class AdapterCase(unittest.TestCase):
         trace = mine.pop('traceStore', None)
         self.assertIsNotNone(trace, '适配器 overview 应带 traceStore 概要键（白名单 W-P4-1）')
         self.assertEqual(trace['format'], 'trace-store v1')
+        # R0-A：traceStore 概要里带实际代与输入核验状态（正常 store 必须是“已按内容核验”）
+        self.assertEqual(trace['generation'],
+                         self.adapter.trace_store_stats()['generation'])
+        self.assertTrue(trace['inputHash']['verified'],
+                        '正常 store 的绑定输入应按内容核验通过：%r' % trace['inputHash'])
+        self.assertFalse(trace['inputHash']['skipped'])
+        self.assertEqual(trace['inputHash']['unverified'], [])
+        self.assertGreater(trace['inputHash']['hashed'], 0)
         theirs = dict(self.overview)
         if self.sample == 'steady':
             # P3 W-P3-1：融合写出器记录的事件源就是 store.bin。
@@ -269,6 +277,28 @@ class AdapterCase(unittest.TestCase):
             mine.pop('streamed')
             theirs.pop('streamed')
         _comparison(self, mine, theirs)
+
+    def test_input_verification_covers_binding_inputs(self):
+        report = self.adapter.input_verification()
+        self.assertIsNotNone(report, '打开 store 后应有输入核验报告')
+        self.assertTrue(report['verified'], report['reason'])
+        self.assertEqual(report['problems'], [])
+        self.assertEqual(report['unverified'], [])
+        self.assertGreater(report['hashed'], 0)
+        self.assertGreater(report['hashedBytes'], 0)
+        self.assertGreater(report['hashSeconds'], 0.0)
+        self.assertGreaterEqual(report['openSeconds'], report['storeCheckSeconds'])
+        self.assertEqual(report['generation'],
+                         self.adapter.overview()['traceStore']['generation'])
+        # 决定事件流的输入（etm.bin/firmware.elf）都在核验集合里，派生文本只在 excluded
+        names = {item['name'] for item in report['inputs']}
+        self.assertIn('etm.bin', names)
+        self.assertIn('firmware.elf', names)
+        self.assertNotIn('events.jsonl', names)
+        # 元数据输入（session.json/sources.json）也按内容核验，但只报告不拒绝
+        metadata = {item['name']: item['status'] for item in report['metadata']}
+        self.assertEqual(metadata, {'session.json': 'ok', 'sources.json': 'ok'})
+        self.assertEqual(report['metadataChanged'], [])
 
     def test_first_middle_last_and_search_pages(self):
         for offset in (0, (self.total // 2 // 150) * 150, (self.total // 150) * 150):
@@ -351,6 +381,27 @@ class AdapterCase(unittest.TestCase):
         etm.write_bytes(original)
         adapter.ensure()                             # 恢复后可重新打开
         adapter.close()
+        # R0-A：同长度改写 + mtime 复原（signature 完全不变）也必须被发现。旧实现只按
+        # 尺寸/体积判断，会把它当成“无问题”；再没有“大输入只比尺寸”的静默降级。
+        stat = etm.stat()
+        rewritten = bytes(byte ^ 0xFF for byte in original)
+        self.assertEqual(len(rewritten), len(original))
+        etm.unlink()
+        etm.write_bytes(rewritten)
+        os.utime(etm, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+        self.assertEqual(etm.stat().st_size, stat.st_size)
+        self.assertEqual(etm.stat().st_mtime_ns, stat.st_mtime_ns)
+        fresh = trace_store_adapter.TraceStoreAdapter(stale_dir)
+        with self.assertRaisesRegex(ValueError, '输入不一致'):
+            fresh.ensure()
+        fresh.close()
+        etm.unlink()
+        etm.write_bytes(original)
+        os.utime(etm, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+        again = trace_store_adapter.TraceStoreAdapter(stale_dir)
+        again.ensure()
+        self.assertTrue(again.input_verification()['verified'])
+        again.close()
 
     def test_missing_or_incomplete_store_is_rejected(self):
         fixture = self.fixture
