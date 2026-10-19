@@ -1218,9 +1218,13 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
         decoded_bytes = decoded_text.encode('utf-8')
         if write_decoded:
             decoded_sha256 = hashlib.sha256(decoded_bytes).hexdigest()
-        else:
+        elif hash_inputs:
             existing = record_dir / DECODED_FILE
             decoded_sha256 = trace_store._sha256_file(existing) if existing.is_file() else None
+        else:
+            # --no-hash-inputs：不读输入文件内容，已有 decoded.json 的指纹留空并由
+            # meta.verify.inputHash / manifest bindings.inputHash 显式声明。
+            decoded_sha256 = None
         meta = dict(
             format=trace_store.FORMAT_NAME, formatName=trace_store.FULL_FORMAT_NAME,
             schemaVersion=trace_store.SCHEMA_VERSION, byteOrder='little',
@@ -1269,6 +1273,15 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
             sourceSha256=dict(decoded=decoded_sha256, nativeBin=native_sha256),
             issues=len(issues),
         )
+        if not hash_inputs:
+            # 只在 --no-hash-inputs 下加标记：默认路径的 meta 字节保持不变。
+            meta['verify']['inputHash'] = dict(
+                algorithm='sha256', computed=False, skipped=True,
+                reason=('--no-hash-inputs：不读取输入文件内容、不计算 sha256；'
+                        'meta.sourceSha256 与 manifest.bindings.inputs 的大小仍记录'),
+                recordedBytes=dict(etm=etm_path.stat().st_size,
+                                   native=native_file_bytes) if etm_path.is_file() else
+                dict(native=native_file_bytes))
         stored_summary = {key: value for key, value in decoded.items()
                           if key not in ('events', 'elements', 'packets', 'sources')}
         stored_summary['eventCount'] = assembler.state['events']
@@ -1300,11 +1313,14 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
         since = mark('decoded', since)
 
         # ---- 12) manifest（原子发布） -----------------------------------------------------
-        inputs = _bindings(record_dir, native_path)
-        if not hash_inputs:
-            inputs = {name: dict(bytes=value['bytes'], sha256=None)
-                      for name, value in inputs.items()}
+        inputs = _bindings(record_dir, native_path, hash_inputs=hash_inputs)
         bindings = dict(inputs=inputs)
+        if not hash_inputs:
+            # 显式声明"大小已绑定、内容未哈希"：读取方不得把 null 当作"文件为空/未变化"。
+            bindings['inputHash'] = dict(
+                algorithm='sha256', computed=False, skipped=True,
+                reason=('--no-hash-inputs：不读取输入文件内容、不计算 sha256；'
+                        'inputs 只记录字节数'))
         bindings['record'] = dict(
             eventsSource=NATIVE_FILE, streamedSchema=2,
             decodedSha256=meta['sourceSha256']['decoded'],
@@ -1336,6 +1352,9 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
 
         elapsed = time.perf_counter() - started
         kept_native = not temporary_work or keep_native
+        if not hash_inputs:
+            warnings.append('--no-hash-inputs：未读取/哈希输入文件内容；'
+                            'manifest.bindings.inputHash.skipped=true、meta.verify.inputHash 同义')
         result = dict(ok=True, storeDir=str(store_dir), generation=generation,
                       storeBytes=info['bytes'], storeSha256=info['sha256'],
                       elapsedSeconds=round(elapsed, 3), phases=phases,
@@ -1364,16 +1383,38 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
             shutil.rmtree(work_dir, ignore_errors=True)
 
 
-def _bindings(record_dir, native_path):
-    """manifest.binding.inputs：记录目录全部输入 + 实际使用的 native.bin 指纹。"""
-    result = trace_store._binding_files(record_dir)
+def _binding_names(record_dir):
+    """与 ``trace_store._binding_files`` 相同的输入清单（只列名，不读文件内容）。
+
+    ``_binding_files`` 总是逐个读文件算 sha256；``--no-hash-inputs`` 需要在**计算前**跳过，
+    因此用同一份清单（BINDING_INPUTS + image-*.bin）按大小构造绑定，保证两边条目一致。
+    """
+    record_dir = Path(record_dir)
+    names = [name for name in trace_store.BINDING_INPUTS if (record_dir / name).is_file()]
+    names.extend(path.name for path in sorted(record_dir.glob('image-*.bin')))
+    return names
+
+
+def _bindings(record_dir, native_path, *, hash_inputs=True):
+    """manifest.binding.inputs：记录目录全部输入 + 实际使用的 native.bin 指纹。
+
+    ``hash_inputs=False``（``--no-hash-inputs``）时**不读取输入文件内容**，只记大小并把
+    ``sha256`` 置 None；manifest/binding 与 meta 里另有显式标记（``inputHash.skipped``）。
+    """
+    if hash_inputs:
+        result = trace_store._binding_files(record_dir)
+    else:
+        record_dir = Path(record_dir)
+        result = {name: dict(bytes=(record_dir / name).stat().st_size, sha256=None)
+                  for name in _binding_names(record_dir)}
     native_path = Path(native_path)
     if native_path.is_file():
         recorded = Path(record_dir) / NATIVE_FILE
         if recorded.resolve() != native_path.resolve() or NATIVE_FILE not in result:
             stat = native_path.stat()
-            result[NATIVE_FILE] = dict(bytes=stat.st_size,
-                                       sha256=trace_store._sha256_file(native_path))
+            result[NATIVE_FILE] = dict(
+                bytes=stat.st_size,
+                sha256=trace_store._sha256_file(native_path) if hash_inputs else None)
     return result
 
 
@@ -1419,7 +1460,9 @@ def _main(argv=None):
                         default=trace_store.DEFAULT_CHECKPOINT_INSTRUCTIONS,
                         help='检查点最大指令间隔（默认 4096）')
     writer.add_argument('--no-image', action='store_true', help='跳过 ELF 机器码/源码位置交叉校验')
-    writer.add_argument('--no-hash-inputs', action='store_true', help='不哈希输入文件（只记尺寸）')
+    writer.add_argument('--no-hash-inputs', action='store_true',
+                        help='不读取输入文件内容、不计算 sha256（只记尺寸；'
+                             'manifest.bindings.inputHash/meta.verify.inputHash 标记 skipped）')
     writer.add_argument('--write-decoded', action='store_true',
                         help='在记录目录写 decoded.json/sources.json（默认不覆盖既有记录）')
     writer.add_argument('--max-events', type=int, default=None, help='安全上限（超过即失败）')

@@ -502,6 +502,108 @@ class Etmv3Tests(SyntheticCase):
         self.assertEqual(store.meta['hasCycleFields'], True)
 
 
+class NoHashInputsTests(SyntheticCase):
+    """`--no-hash-inputs` 必须在读取/哈希**之前**跳过输入文件（P3 审计 F1）。"""
+
+    def record_input_files(self):
+        """记录目录里的输入文件集合（排除 store 输出目录）。"""
+        files = set()
+        for path in self.record.rglob('*'):
+            if not path.is_file():
+                continue
+            if path == self.store_dir or self.store_dir in path.parents:
+                continue
+            files.add(str(path))
+        return files
+
+    def test_no_hash_inputs_skips_input_file_hashing(self):
+        real_sha = trace_store._sha256_file
+        hashed = []
+
+        def spy(path, *args, **kwargs):
+            hashed.append(str(path))
+            return real_sha(path, *args, **kwargs)
+
+        with patch.object(trace_store, '_binding_files',
+                          side_effect=AssertionError(
+                              '--no-hash-inputs 仍调用了 _binding_files（会读取并哈希输入文件）')):
+            with patch.object(trace_store, '_sha256_file', spy):
+                result, decoded = self.write_store(hash_inputs=False)
+        self.assertTrue(result['ok'])
+        self.assertIsInstance(decoded, dict)
+        touched = [path for path in hashed if path in self.record_input_files()]
+        self.assertEqual(touched, [], '--no-hash-inputs 仍哈希了输入文件：%r' % touched)
+        manifest = json.loads((self.store_dir / trace_store.MANIFEST_NAME)
+                              .read_text(encoding='utf-8'))
+        bindings = manifest['bindings']
+        self.assertEqual(bindings['inputHash']['skipped'], True)
+        self.assertEqual(bindings['inputHash']['computed'], False)
+        self.assertGreater(len(bindings['inputs']), 0)
+        for name, item in bindings['inputs'].items():
+            self.assertIsNone(item['sha256'], name)
+            self.assertGreater(item['bytes'], 0, name)
+        self.assertIsNone(bindings['record']['nativeBinSha256'])
+        self.assertIsNone(bindings['record']['decodedSha256'])
+        store = trace_store.open_store(self.store_dir)
+        self.addCleanup(store.close)
+        self.assertEqual(store.meta['verify']['inputHash']['skipped'], True)
+        self.assertIsNone(store.meta['sourceSha256']['nativeBin'])
+        self.assertIsNone(store.meta['sourceSha256']['decoded'])
+        # store 仍可发布/打开/查询
+        self.assertGreater(store.counts['instructions'], 0)
+        self.assertEqual(len(store.page('events', 0, 5)['rows']), 5)
+        self.assertEqual(store.event(0)['event']['seq'], 0)
+        self.assertTrue(any('--no-hash-inputs' in item for item in result['warnings']))
+
+    def test_default_still_hashes_inputs(self):
+        calls = []
+        real_bindings = trace_store._binding_files
+
+        def spy(record_dir):
+            calls.append(str(record_dir))
+            return real_bindings(record_dir)
+
+        with patch.object(trace_store, '_binding_files', spy):
+            result, decoded = self.write_store()
+        self.assertTrue(result['ok'])
+        self.assertEqual(len(calls), 1)
+        self.assertFalse(any('--no-hash-inputs' in item for item in result['warnings']))
+        manifest = json.loads((self.store_dir / trace_store.MANIFEST_NAME)
+                              .read_text(encoding='utf-8'))
+        bindings = manifest['bindings']
+        self.assertNotIn('inputHash', bindings)
+        self.assertTrue(any(item['sha256'] for item in bindings['inputs'].values()),
+                        '默认路径必须计算输入哈希')
+        self.assertIsNotNone(bindings['record']['nativeBinSha256'])
+        store = trace_store.open_store(self.store_dir)
+        self.addCleanup(store.close)
+        self.assertNotIn('inputHash', store.meta['verify'])
+        self.assertIsNotNone(store.meta['sourceSha256']['nativeBin'])
+
+    def test_no_hash_inputs_content_matches_default(self):
+        """跳过哈希只影响绑定元数据，不改变事件数据块。
+
+        META/SUMMARY 两块含每次运行都会变的 `generation`/`created` 时间戳（且 META 在
+        --no-hash-inputs 下多一个 `verify.inputHash` 标记），因此只比较其余内容块。
+        """
+        def block_table(store_dir):
+            store = trace_store.open_store(store_dir)
+            try:
+                return [(block.block_type, block.length, block.count, block.flags,
+                         block.crc32) for block in store.container.blocks
+                        if block.block_type not in (trace_store.BLK_META,
+                                                    trace_store.BLK_SUMMARY)]
+            finally:
+                store.close()
+
+        self.write_store(hash_inputs=False)
+        no_hash = block_table(self.store_dir)
+        self.write_store()
+        default = block_table(self.store_dir)
+        self.assertEqual(no_hash, default)
+        self.assertTrue(no_hash)
+
+
 class SwitchTests(unittest.TestCase):
     def test_store_write_switch_matrix(self):
         with patch.dict(os.environ, {}, clear=False):
