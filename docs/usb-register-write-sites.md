@@ -7,6 +7,7 @@
 - 静态扫描 `usb_dc_dwc2.c` 的 `USB_OTG_*` 左值赋值：**147 个写入站点**。
 - 用 kit 里 `capture-e4dac69c…`（2026-10-19 00:04:28，50 ms，1,035,584 条事件）做 ETM 关联：**10 个站点实际执行**（其余是初始化/其他路径，未进入这条 50 ms 窗口）。
 - 完整 147 行清单见 [usb-register-write-sites.csv](usb-register-write-sites.csv)。
+- 初始化阶段的**读写**（含 `dwc2_get_hwparams` 内联读）已用 10 ms 启动记录补齐：[USB 初始化寄存器读写清单](usb-init-register-access.md)。
 
 ## 方法
 
@@ -60,4 +61,4 @@ python -X utf8 etm/tools/usb_write_sites.py \
 - 这是**源码级**扫描，只覆盖显式 `USB_OTG_*` 左值赋值；通过 HAL 或其他宏间接写寄存器的路径不在内。
 - 记录的行号必须与当前源码一致；本表使用 ELF `c610192c…` 对应的源码。
 - **值仍然不可知**：ETM 只给了执行位置/顺序/PC，没有给写入值；要值需要固件访问器日志。
-- 本次记录从 echo 路径中间开始，所以只命中 10 个站点；要覆盖 `usb_dc_init`/`cdc_acm_init` 的初始化站点，需要在初始化入口下断点重新抓一条记录，再跑同一脚本。
+- 本次 echo 记录从路径中间开始，所以只命中 10 个站点；初始化阶段已用 10 ms 启动记录 `capture-4395612c…` 单独扫描，见 [USB 初始化寄存器读写清单](usb-init-register-access.md)。

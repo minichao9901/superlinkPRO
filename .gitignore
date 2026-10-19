@@ -71,9 +71,10 @@ desktop.ini
 *.log
 *.map
 *.csv
-# ↑ 例外：docs/usb-register-write-sites.csv（USB 寄存器写入站点分析清单，17 KB，随文档入库）。
+# ↑ 例外：USB 寄存器分析清单（docs/*.csv，均小于 20 KB，随文档入库）。
 #   hardware_pro/production/*.csv（KiCad BOM/坐标表）仍不迁，故不给它白名单；日后回迁再加 `!`。
 !docs/usb-register-write-sites.csv
+!docs/usb-init-register-access.csv
 
 
 # ── B. akaLinkPro → 根（firmware/ script_test/ tools/ docs/ + 根 Makefile） ────────

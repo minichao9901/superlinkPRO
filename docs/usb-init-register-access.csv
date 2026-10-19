@@ -1,0 +1,77 @@
+seq,function,file,line,kind,register,etm_instructions,etm_loads,etm_stores,load_pcs,store_pcs,source
+8519,usb_dc_init,usb_dc_dwc2.c,498,read,USB_OTG_GLB->CID,8,4,0,0x8003022 0x8003028 0x800302a 0x800302c,,"USB_LOG_INFO(""CID:%08x\r\n"", (unsigned int)USB_OTG_GLB->CID);"
+9914,usb_dc_init,usb_dc_dwc2.c,499,read,USB_OTG_GLB->GSNPSID,6,3,0,0x8003038 0x800303a 0x800303c,,"USB_LOG_INFO(""GSNPSID:%08x\r\n"", (unsigned int)USB_OTG_GLB->GSNPSID);"
+11219,usb_dc_init,usb_dc_dwc2.c,500,read,USB_OTG_GLB->GHWCFG1,6,3,0,0x8003048 0x800304a 0x800304c,,"USB_LOG_INFO(""GHWCFG1:%08x\r\n"", (unsigned int)USB_OTG_GLB->GHWCFG1);"
+12781,usb_dc_init,usb_dc_dwc2.c,501,read,USB_OTG_GLB->GHWCFG2,6,3,0,0x8003058 0x800305a 0x800305c,,"USB_LOG_INFO(""GHWCFG2:%08x\r\n"", (unsigned int)USB_OTG_GLB->GHWCFG2);"
+14086,usb_dc_init,usb_dc_dwc2.c,502,read,USB_OTG_GLB->GHWCFG3,6,3,0,0x8003068 0x800306a 0x800306c,,"USB_LOG_INFO(""GHWCFG3:%08x\r\n"", (unsigned int)USB_OTG_GLB->GHWCFG3);"
+15427,usb_dc_init,usb_dc_dwc2.c,503,read,USB_OTG_GLB->GHWCFG4,6,3,0,0x8003078 0x800307a 0x800307c,,"USB_LOG_INFO(""GHWCFG4:%08x\r\n"", (unsigned int)USB_OTG_GLB->GHWCFG4);"
+16740,dwc2_get_hwparams,usb_dwc2_param.h,298,read,USB_OTG_GLB->GSNPSID,1,1,0,0x80026f6,,snpsid = dwc2_readl(reg_base + GSNPSID_OFFSET);
+16741,dwc2_get_hwparams,usb_dwc2_param.h,300,read,USB_OTG_GLB->GHWCFG1,1,1,0,0x80026f8,,hwcfg1 = dwc2_readl(reg_base + GHWCFG1_OFFSET);
+16742,dwc2_get_hwparams,usb_dwc2_param.h,301,read,USB_OTG_GLB->GHWCFG2,1,1,0,0x80026fa,,hwcfg2 = dwc2_readl(reg_base + GHWCFG2_OFFSET);
+16743,dwc2_get_hwparams,usb_dwc2_param.h,302,read,USB_OTG_GLB->GHWCFG3,1,1,0,0x80026fc,,hwcfg3 = dwc2_readl(reg_base + GHWCFG3_OFFSET);
+16744,dwc2_get_hwparams,usb_dwc2_param.h,303,read,USB_OTG_GLB->GHWCFG4,1,1,0,0x80026fe,,hwcfg4 = dwc2_readl(reg_base + GHWCFG4_OFFSET);
+19206,usb_dc_init,usb_dc_dwc2.c,519,rw,USB_OTG_GLB->GAHBCFG,6,3,1,0x80030ec 0x80030f2 0x80030f4,0x80030fa,USB_OTG_GLB->GAHBCFG &= ~USB_OTG_GAHBCFG_GINT;
+19212,usb_dc_init,usb_dc_dwc2.c,521,rw,USB_OTG_DEV->DCTL,4,2,1,0x80030fc 0x80030fe,0x8003106,USB_OTG_DEV->DCTL |= USB_OTG_DCTL_SDIS;
+19216,usb_dc_init,usb_dc_dwc2.c,524,write,USB_OTG_GLB->GCCFG,3,2,1,0x800310a 0x800310c,0x800310e,USB_OTG_GLB->GCCFG = g_dwc2_udc[busid].user_params.device_gccfg;
+19227,dwc2_core_init,usb_dc_dwc2.c,86,rw,USB_OTG_GLB->GUSBCFG,7,3,1,0x8002be6 0x8002bec 0x8002bee,0x8002bf4,USB_OTG_GLB->GUSBCFG |= USB_OTG_GUSBCFG_PHYSEL;
+19245,dwc2_reset,usb_dc_dwc2.c,51,read,USB_OTG_GLB->GRSTCTL,6,3,0,0x8002b08 0x8002b0e 0x8002b10,,} while ((USB_OTG_GLB->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0U);
+19253,dwc2_reset,usb_dc_dwc2.c,55,rw,USB_OTG_GLB->GRSTCTL,3,1,1,0x8002b1a,0x8002b20,USB_OTG_GLB->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;
+19269,dwc2_reset,usb_dc_dwc2.c,63,read,USB_OTG_GLB->GRSTCTL,6,3,0,0x8002b40 0x8002b46 0x8002b48,,} while ((USB_OTG_GLB->GRSTCTL & USB_OTG_GRSTCTL_CSRST) == USB_OTG_GRSTCTL_CSRST);
+19286,dwc2_set_mode,usb_dc_dwc2.c,124,rw,USB_OTG_GLB->GUSBCFG,6,3,1,0x8002cc2 0x8002cc8 0x8002cca,0x8002cd0,USB_OTG_GLB->GUSBCFG &= ~(USB_OTG_GUSBCFG_FHMOD | USB_OTG_GUSBCFG_FDMOD);
+19295,dwc2_set_mode,usb_dc_dwc2.c,129,rw,USB_OTG_GLB->GUSBCFG,7,3,1,0x8002cd8 0x8002cde 0x8002ce0,0x8002ce6,USB_OTG_GLB->GUSBCFG |= USB_OTG_GUSBCFG_FDMOD;
+19305,dwc2_set_mode,usb_dc_dwc2.c,133,read,USB_OTG_GLB->GINTSTS,7,3,0,0x8002d00 0x8002d06 0x8002d08,,if ((USB_OTG_GLB->GINTSTS & 0x1U) == mode) {
+19316,usb_dc_init,usb_dc_dwc2.c,533,read,USB_OTG_GLB->GRXFSIZ,8,4,0,0x8003124 0x800312a 0x800312c 0x8003130,,"USB_ASSERT_MSG((USB_OTG_GLB->GRXFSIZ & 0xffff) >= g_dwc2_udc[busid].user_params.device_rx_fifo_size,"
+19336,usb_dc_init,usb_dc_dwc2.c,538,read,USB_OTG_GLB->DIEPTXF0_HNPTXFSIZ,3,1,0,0x80031ac,,reset_txfifo_size = USB_OTG_GLB->DIEPTXF0_HNPTXFSIZ >> 16 & 0xffff;
+19359,usb_dc_init,usb_dc_dwc2.c,540,read,USB_OTG_GLB->DIEPTXF,32,8,0,0x8003174 0x8003174 0x8003174 0x8003174 0x8003174 0x8003174 0x8003174 0x8003174,,reset_txfifo_size = USB_OTG_GLB->DIEPTXF[i - 1] >> 16 & 0xffff;
+19553,usb_dc_init,usb_dc_dwc2.c,548,rw,USB_OTG_GLB->GOTGCTL,3,1,1,0x80031e8,0x80031ee,USB_OTG_GLB->GOTGCTL |= USB_OTG_GOTGCTL_BVALOEN;
+19556,usb_dc_init,usb_dc_dwc2.c,549,rw,USB_OTG_GLB->GOTGCTL,6,3,1,0x80031f0 0x80031f6 0x80031f8,0x80031fe,USB_OTG_GLB->GOTGCTL |= USB_OTG_GOTGCTL_BVALOVAL;
+19562,usb_dc_init,usb_dc_dwc2.c,552,rw,USB_OTG_GLB->GUSBCFG,6,3,1,0x8003200 0x8003206 0x8003208,0x800320e,USB_OTG_GLB->GUSBCFG |= USB_OTG_GUSBCFG_TOCAL;
+19572,usb_dc_init,usb_dc_dwc2.c,555,write,USB_OTG_GLB->DIEPTXF,105,30,15,0x8003214 0x800321a 0x8003214 0x800321a 0x8003214 0x800321a 0x8003214 0x800321a,0x8003226 0x8003226 0x8003226 0x8003226 0x8003226 0x8003226 0x8003226 0x8003226,USB_OTG_GLB->DIEPTXF[i] = 0U;
+19737,usb_dc_init,usb_dc_dwc2.c,559,write,USB_OTG_PCGCCTL,5,2,1,0x8003230 0x8003236,0x800323a,USB_OTG_PCGCCTL = 0U;
+19742,usb_dc_init,usb_dc_dwc2.c,562,rw,USB_OTG_DEV->DCFG,4,2,1,0x800323e 0x8003240,0x8003248,USB_OTG_DEV->DCFG &= ~USB_OTG_DCFG_DSPD;
+19758,usb_dc_init,usb_dc_dwc2.c,579,rw,USB_OTG_DEV->DCFG,6,3,1,0x800331c 0x8003322 0x8003324,0x800332c,USB_OTG_DEV->DCFG |= USB_OTG_SPEED_FULL;
+19764,usb_dc_init,usb_dc_dwc2.c,586,write,USB_OTG_DEV->DIEPMSK,6,2,1,0x8003330 0x8003336,0x800333e,USB_OTG_DEV->DIEPMSK = 0U;
+19770,usb_dc_init,usb_dc_dwc2.c,587,write,USB_OTG_DEV->DOEPMSK,2,1,1,0x8003340,0x8003342,USB_OTG_DEV->DOEPMSK = 0U;
+19772,usb_dc_init,usb_dc_dwc2.c,588,write,USB_OTG_DEV->DAINTMSK,2,1,1,0x8003346,0x8003348,USB_OTG_DEV->DAINTMSK = 0U;
+19774,usb_dc_init,usb_dc_dwc2.c,591,write,USB_OTG_GLB->GINTMSK,2,1,1,0x800334c,0x800334e,USB_OTG_GLB->GINTMSK = 0U;
+19776,usb_dc_init,usb_dc_dwc2.c,593,write,USB_OTG_GLB->GINTSTS,3,1,1,0x8003350,0x8003356,USB_OTG_GLB->GINTSTS = 0xBFFFFFFFU;
+19779,usb_dc_init,usb_dc_dwc2.c,596,write,USB_OTG_GLB->GINTMSK,3,2,1,0x8003358 0x800335a,0x800335c,USB_OTG_GLB->GINTMSK = USB_OTG_GINTMSK_USBRST | USB_OTG_GINTMSK_ENUMDNEM |
+19788,usb_dc_init,usb_dc_dwc2.c,607,rw,USB_OTG_GLB->GINTMSK,6,3,1,0x80033ea 0x80033f0 0x80033f2,0x80033f8,USB_OTG_GLB->GINTMSK |= USB_OTG_GINTMSK_RXFLVLM;
+19794,usb_dc_init,usb_dc_dwc2.c,614,write,USB_OTG_GLB->GRXFSIZ,8,4,1,0x80033fa 0x8003400 0x8003406 0x800340c,0x8003410,USB_OTG_GLB->GRXFSIZ = g_dwc2_udc[busid].user_params.device_rx_fifo_size;
+19823,dwc2_set_txfifo,usb_dc_dwc2.c,258,read,USB_OTG_GLB->GRXFSIZ,36,27,0,0x8002c54 0x8002c5a 0x8002c5c 0x8002c54 0x8002c5a 0x8002c5c 0x8002c54 0x8002c5a,,tx_offset = USB_OTG_GLB->GRXFSIZ;
+19829,dwc2_set_txfifo,usb_dc_dwc2.c,261,write,USB_OTG_GLB->DIEPTXF0_HNPTXFSIZ,2,0,1,,0x8002c66,USB_OTG_GLB->DIEPTXF0_HNPTXFSIZ = ((uint32_t)size << 16) | tx_offset;
+22371,dwc2_set_txfifo,usb_dc_dwc2.c,263,read,USB_OTG_GLB->DIEPTXF0_HNPTXFSIZ,16,8,0,0x8002c7c 0x8002c7c 0x8002c7c 0x8002c7c 0x8002c7c 0x8002c7c 0x8002c7c 0x8002c7c,,tx_offset += (USB_OTG_GLB->DIEPTXF0_HNPTXFSIZ) >> 16;
+22378,dwc2_set_txfifo,usb_dc_dwc2.c,269,write,USB_OTG_GLB->DIEPTXF,40,0,8,,0x8002caa 0x8002caa 0x8002caa 0x8002caa 0x8002caa 0x8002caa 0x8002caa 0x8002caa,USB_OTG_GLB->DIEPTXF[fifo - 1U] = ((uint32_t)size << 16) | tx_offset;
+24880,dwc2_set_txfifo,usb_dc_dwc2.c,265,read,USB_OTG_GLB->DIEPTXF,112,28,0,0x8002c8e 0x8002c8e 0x8002c8e 0x8002c8e 0x8002c8e 0x8002c8e 0x8002c8e 0x8002c8e,,tx_offset += (USB_OTG_GLB->DIEPTXF[i] >> 16);
+42767,dwc2_flush_txfifo,usb_dc_dwc2.c,174,read,USB_OTG_GLB->GRSTCTL,6,3,0,0x80028b6 0x80028bc 0x80028be,,} while ((USB_OTG_GLB->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0U);
+42775,dwc2_flush_txfifo,usb_dc_dwc2.c,177,write,USB_OTG_GLB->GRSTCTL,3,0,1,,0x80028ce,USB_OTG_GLB->GRSTCTL = (USB_OTG_GRSTCTL_TXFFLSH | (num << 6));
+42784,dwc2_flush_txfifo,usb_dc_dwc2.c,183,read,USB_OTG_GLB->GRSTCTL,6,3,0,0x80028dc 0x80028e2 0x80028e4,,} while ((USB_OTG_GLB->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH) == USB_OTG_GRSTCTL_TXFFLSH);
+42805,dwc2_flush_rxfifo,usb_dc_dwc2.c,151,read,USB_OTG_GLB->GRSTCTL,6,3,0,0x8002856 0x800285c 0x800285e,,} while ((USB_OTG_GLB->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL) == 0U);
+42813,dwc2_flush_rxfifo,usb_dc_dwc2.c,154,write,USB_OTG_GLB->GRSTCTL,2,0,1,,0x800286a,USB_OTG_GLB->GRSTCTL = USB_OTG_GRSTCTL_RXFFLSH;
+42821,dwc2_flush_rxfifo,usb_dc_dwc2.c,160,read,USB_OTG_GLB->GRSTCTL,6,3,0,0x8002878 0x800287e 0x8002880,,} while ((USB_OTG_GLB->GRSTCTL & USB_OTG_GRSTCTL_RXFFLSH) == USB_OTG_GRSTCTL_RXFFLSH);
+42831,usb_dc_init,usb_dc_dwc2.c,633,rw,USB_OTG_GLB->GAHBCFG,6,3,1,0x80034b0 0x80034b6 0x80034b8,0x80034be,USB_OTG_GLB->GAHBCFG |= USB_OTG_GAHBCFG_GINT;
+42837,usb_dc_init,usb_dc_dwc2.c,634,rw,USB_OTG_DEV->DCTL,4,2,1,0x80034c0 0x80034c2,0x80034ca,USB_OTG_DEV->DCTL &= ~USB_OTG_DCTL_SDIS;
+,dwc2_core_init,usb_dc_dwc2.c,88,read,USB_OTG_GLB->GUSBCFG,0,0,0,,,regval = USB_OTG_GLB->GUSBCFG;
+,dwc2_core_init,usb_dc_dwc2.c,114,write,USB_OTG_GLB->GUSBCFG,0,0,0,,,USB_OTG_GLB->GUSBCFG = regval;
+,dwc2_reset,usb_dc_dwc2.c,70,read,USB_OTG_GLB->GRSTCTL,0,0,0,,,} while ((USB_OTG_GLB->GRSTCTL & USB_OTG_GRSTCTL_CSRSTDONE) != USB_OTG_GRSTCTL_CSRSTDONE);
+,dwc2_reset,usb_dc_dwc2.c,72,rw,USB_OTG_GLB->GRSTCTL,0,0,0,,,USB_OTG_GLB->GRSTCTL &= ~USB_OTG_GRSTCTL_CSRST;
+,dwc2_reset,usb_dc_dwc2.c,73,rw,USB_OTG_GLB->GRSTCTL,0,0,0,,,USB_OTG_GLB->GRSTCTL |= USB_OTG_GRSTCTL_CSRSTDONE;
+,dwc2_set_mode,usb_dc_dwc2.c,127,rw,USB_OTG_GLB->GUSBCFG,0,0,0,,,USB_OTG_GLB->GUSBCFG |= USB_OTG_GUSBCFG_FHMOD;
+,dwc2_set_turnaroundtime,usb_dc_dwc2.c,239,rw,USB_OTG_GLB->GUSBCFG,0,0,0,,,USB_OTG_GLB->GUSBCFG &= ~USB_OTG_GUSBCFG_TRDT;
+,dwc2_set_turnaroundtime,usb_dc_dwc2.c,240,rw,USB_OTG_GLB->GUSBCFG,0,0,0,,,USB_OTG_GLB->GUSBCFG |= (uint32_t)((UsbTrd << USB_OTG_GUSBCFG_TRDT_Pos) & USB_OTG_GUSBCFG_TRDT);
+,usb_dc_deinit,usb_dc_dwc2.c,641,rw,USB_OTG_GLB->GAHBCFG,0,0,0,,,USB_OTG_GLB->GAHBCFG &= ~USB_OTG_GAHBCFG_GINT;
+,usb_dc_deinit,usb_dc_dwc2.c,642,rw,USB_OTG_DEV->DCTL,0,0,0,,,USB_OTG_DEV->DCTL |= USB_OTG_DCTL_SDIS;
+,usb_dc_deinit,usb_dc_dwc2.c,646,write,USB_OTG_INEP(i)->DIEPINT,0,0,0,,,USB_OTG_INEP(i)->DIEPINT = 0xFB7FU;
+,usb_dc_deinit,usb_dc_dwc2.c,647,write,USB_OTG_OUTEP(i)->DOEPINT,0,0,0,,,USB_OTG_OUTEP(i)->DOEPINT = 0xFB7FU;
+,usb_dc_deinit,usb_dc_dwc2.c,651,write,USB_OTG_DEV->DIEPMSK,0,0,0,,,USB_OTG_DEV->DIEPMSK = 0U;
+,usb_dc_deinit,usb_dc_dwc2.c,652,write,USB_OTG_DEV->DOEPMSK,0,0,0,,,USB_OTG_DEV->DOEPMSK = 0U;
+,usb_dc_deinit,usb_dc_dwc2.c,653,write,USB_OTG_DEV->DAINTMSK,0,0,0,,,USB_OTG_DEV->DAINTMSK = 0U;
+,usb_dc_deinit,usb_dc_dwc2.c,656,write,USB_OTG_GLB->GINTMSK,0,0,0,,,USB_OTG_GLB->GINTMSK = 0U;
+,usb_dc_deinit,usb_dc_dwc2.c,658,write,USB_OTG_GLB->GINTSTS,0,0,0,,,USB_OTG_GLB->GINTSTS = 0xBFFFFFFFU;
+,usb_dc_init,usb_dc_dwc2.c,534,read,USB_OTG_GLB->GRXFSIZ,0,0,0,,,"""device_rx_fifo_size cannot be larger than power_on_value %u"", (unsigned int)(USB_OTG_GLB->GRXFSIZ & 0xffff));"
+,usb_dc_init,usb_dc_dwc2.c,566,rw,USB_OTG_DEV->DCFG,0,0,0,,,USB_OTG_DEV->DCFG |= USB_OTG_SPEED_HIGH;
+,usb_dc_init,usb_dc_dwc2.c,581,rw,USB_OTG_DEV->DCFG,0,0,0,,,USB_OTG_DEV->DCFG |= USB_OTG_SPEED_HIGH_IN_FULL;
+,usb_dc_init,usb_dc_dwc2.c,603,rw,USB_OTG_DEV->DCFG,0,0,0,,,USB_OTG_DEV->DCFG &= ~USB_OTG_DCFG_DESCDMA;
+,usb_dc_init,usb_dc_dwc2.c,604,rw,USB_OTG_GLB->GAHBCFG,0,0,0,,,USB_OTG_GLB->GAHBCFG &= ~USB_OTG_GAHBCFG_HBSTLEN;
+,usb_dc_init,usb_dc_dwc2.c,605,rw,USB_OTG_GLB->GAHBCFG,0,0,0,,,USB_OTG_GLB->GAHBCFG |= (USB_OTG_GAHBCFG_DMAEN | USB_OTG_GAHBCFG_HBSTLEN_4);
+,usb_dc_init,usb_dc_dwc2.c,611,rw,USB_OTG_GLB->GINTMSK,0,0,0,,,USB_OTG_GLB->GINTMSK |= USB_OTG_GINTMSK_SOFM;
