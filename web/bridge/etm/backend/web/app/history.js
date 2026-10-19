@@ -32,6 +32,9 @@ export class HistoryView{
     $('toggle-summary').onclick=()=>{const hidden=!$('summary-panel').hidden;$('summary-panel').hidden=hidden;$('toggle-summary').setAttribute('aria-expanded',String(!hidden));};
   }
   path(suffix){return 'browse/'+this.sid+'/'+suffix;}
+  /** 后端能力提示：采集时长上限由 /api/capabilities 决定；本页只显示提示，不做采集校验。 */
+  setCapability(capabilities){this.capabilities=capabilities||null;const hint=$('browse-capability');if(!hint)return;const seconds=Number(capabilities?.captureMaxSeconds);hint.textContent=Number.isFinite(seconds)&&seconds>0?`后端能力：单次采集上限 ${Math.round(seconds*1000)} ms`:'';
+    if(Number.isFinite(seconds)&&seconds>0)hint.title='采集与解码上限由本地服务能力声明；本页只读浏览历史记录';}
   setLoading(loading){this.loading=loading;for(const id of ['history-prev','history-next','jump','nav-mode','search','hide-skipped','toggle-summary'])$(id).disabled=loading||!this.result;for(const b of document.querySelectorAll('[data-view]'))b.disabled=loading||!this.result;this.pagination(this.result?this.pageTotal||0:0,this.offset);}
   unload(sid=null){
     this.recordRevision=(this.recordRevision||0)+1;this.revision++;this.selectRevision++;

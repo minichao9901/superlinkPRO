@@ -14,10 +14,29 @@ events/packets/elements 只存 JSONL；decoded.json 是小型元数据与分析�
   （unique PC 扫描 / mark_execution / analyze_calls / byte_accounting ×2 / summary 扫描），
   仅用于对照与故障回退。
 
+原生输出有两种格式（`ETM_NATIVE_FORMAT`）：
+
+* **text（默认）**：etm_decode 写 native.jsonl 文本（每个元素/包带 `ocsd_gen_elem_str()`/
+  `ocsd_pkt_str()` 的说明文字），Python 逐行解析；产物与改动前逐字节一致。
+* **binary（P2 实验能力）**：etm_decode 写带 magic/版本/记录类型的结构化记录流
+  （`native.bin`，见 `native_binary.py`），正常路径不生成说明文字；fast 展开只换记录来源，
+  events.jsonl/browse-columns.tsv/decoded.json 的分析口径不变。该模式不生成
+  packets.jsonl/elements.jsonl（兼容层留 P3/P4），也不支持 legacy 展开引擎。
+
+融合写出（P3 实验能力，`ETM_STORE_WRITE=1`，默认关闭）：
+
+* 该开关强制二进制原生输出并跳过 `_expand_binary` 的文本展开，改为调用
+  `trace_store_write.write()`：单遍消费 `native.bin`，直接写 trace-store v1
+  （静态字典/展开段/检查点/包块/索引/摘要）+ 小型 `decoded.json`；
+  **不生成** `events.jsonl`/`packets.jsonl`/`elements.jsonl`/`browse-v3.sqlite`，
+  也不建立 SQLite 行。关闭时以上旧路径逐字节不变。
+* 该模式不生成 `browse-columns.tsv`；浏览后端由 P4 的 TraceStore 适配器提供。
+
 注意：物理取样仍加载跳变轨迹，ETM 输入、ELF 和派生调用树也占内存；
 本模块不声称整个采集链路 O(1) 或支持无限长度。
 """
 import collections
+import contextlib
 import hashlib
 import json
 import os
@@ -27,6 +46,7 @@ from pathlib import Path
 from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_MCLASS
 
 import decode_trace as decoder_runtime
+import native_binary
 from decode_trace import DEFAULT_CONFIG, REG_ORDER, V3_REG_ORDER, Image, decoder_config
 
 from flow_analysis import (possible_predicates, mark_execution, analyze_calls, byte_accounting,
@@ -46,6 +66,41 @@ SIDECAR_HEADER = '#etm-browse-columns 2 events=%020d rows=%010d mtime=%020d sha2
 def expansion_engine():
     """展开引擎选择：默认 fast；`ETM_DECODE_ENGINE=legacy` 回退到历史多遍实现。"""
     return 'legacy' if os.environ.get('ETM_DECODE_ENGINE', '').strip().lower() == 'legacy' else 'fast'
+
+
+STORE_WRITE_ENV = 'ETM_STORE_WRITE'
+
+
+def store_write_enabled():
+    """P3 融合写出开关：`ETM_STORE_WRITE=1` 启用（默认关闭，旧路径逐字节不变）。"""
+    value = os.environ.get(STORE_WRITE_ENV, '').strip().lower()
+    if value in ('', '0', 'false', 'no', 'off'):
+        return False
+    if value in ('1', 'true', 'yes', 'on'):
+        return True
+    raise ValueError('ETM_STORE_WRITE 只支持 0/1：' + value)
+
+
+def native_format():
+    """原生输出格式：默认 text（旧行为）；`ETM_NATIVE_FORMAT=binary` 启用结构化二进制。
+
+    二进制模式（P2 实验能力，默认关闭）把 OpenCSD 回调写成带 magic/版本/记录类型的记录流，
+    正常路径不再生成包/元素的说明文字；读取端见 `native_binary.py`。默认路径逐字节不变。
+
+    `ETM_STORE_WRITE=1`（P3 融合写出）需要 `native.bin` 作为唯一事件源，因此强制二进制输出；
+    显式要求 text 且同时打开融合写出属于矛盾配置，直接报错而不是静默降级。
+    """
+    value = os.environ.get('ETM_NATIVE_FORMAT', '').strip().lower()
+    if store_write_enabled():
+        if value not in ('', 'binary'):
+            raise ValueError('ETM_STORE_WRITE=1 需要二进制原生输出（native.bin），'
+                             '不能与 ETM_NATIVE_FORMAT=%s 同时使用' % value)
+        return 'binary'
+    if value in ('', 'text'):
+        return 'text'
+    if value == 'binary':
+        return 'binary'
+    raise ValueError('ETM_NATIVE_FORMAT 只支持 text 或 binary：' + value)
 
 
 def _native():
@@ -72,7 +127,7 @@ def _write_array(handle, source, key):
 
 
 def _run_native(id_stream, image, workdir, config):
-    """写 etm.bin/镜像段/manifest，跑一次 OpenCSD，返回 native.jsonl 与协议名。"""
+    """写 etm.bin/镜像段/manifest，跑一次 OpenCSD，返回原生产物路径、协议名与格式。"""
     protocol = 'ETMv3' if str(config.get('protocol', 'ETMv4')) == 'ETMv3' else 'ETMv4'
     (workdir / 'etm.bin').write_bytes(id_stream)
     order = V3_REG_ORDER if protocol == 'ETMv3' else REG_ORDER
@@ -85,14 +140,22 @@ def _run_native(id_stream, image, workdir, config):
     manifest_file = workdir / 'native-config.txt'
     manifest_file.write_text(manifest, encoding='utf-8')
 
-    native_jsonl = workdir / 'native.jsonl'
-    with native_jsonl.open('wb') as out:
-        process = subprocess.run([str(_native()), str(workdir / 'etm.bin'), str(manifest_file)],
-                                 stdout=out, stderr=subprocess.PIPE, timeout=900)
+    fmt = native_format()
+    if fmt == 'binary':
+        native_path = workdir / 'native.bin'
+        command = [str(_native()), '--binary', str(native_path), str(workdir / 'etm.bin'),
+                   str(manifest_file)]
+        process = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                 timeout=900)
+    else:
+        native_path = workdir / 'native.jsonl'
+        with native_path.open('wb') as out:
+            process = subprocess.run([str(_native()), str(workdir / 'etm.bin'), str(manifest_file)],
+                                     stdout=out, stderr=subprocess.PIPE, timeout=900)
     (workdir / 'native.log').write_bytes(process.stderr or b'')
     if process.returncode:
         raise ValueError('OpenCSD 解码失败：' + (process.stderr or b'').decode('utf-8', 'replace')[-3000:])
-    return native_jsonl, protocol
+    return native_path, protocol, fmt
 
 
 def quality_from_counters(status, input_bytes, counters, framing=None):
@@ -311,9 +374,65 @@ def _parse_packet(line):
     return (_spaced(head) + ', "text": ' + tail, _number(parts[1]), _number(parts[2]), quoted[1:-2])
 
 
-def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, max_events=None,
-                 progress_every=500000):
-    """单遍展开 native.jsonl，返回与历史实现相同的 result 结构。"""
+def _text_records(native_jsonl):
+    """native.jsonl → 与二进制记录同形的元组流（文本参考路径，逐行解析口径不变）。
+
+    元组形状：
+      (2, 包文本行, offset, size, 包文本, 故障分类位)
+      (1, type, offset, start, end, cycleCount, lastExecuted, payload, flags, 文本, 元素文本行)
+      (3, status 字典)
+    只有 events.jsonl 真正使用的稀有元素类型（1/2/3/6/7/8/9/10）在这里解出说明文字。
+    """
+    with native_jsonl.open(encoding='utf-8', errors='replace') as src:
+        for line in src:
+            if not line.startswith('{'):
+                continue
+            if line.startswith('{"kind":"packet"'):
+                text_line, offset, size, text = _parse_packet(line)
+                yield (2, text_line, offset, size, text,
+                       native_binary.classify_packet_text(text))
+                continue
+            if line.startswith('{"kind":"status"'):
+                yield (3, json.loads(line))
+                continue
+            if not line.startswith('{"kind":"element"'):
+                continue
+            etype, offset, start, end, cycle_count, last_executed, payload, flags, line_out = \
+                _parse_element(line)
+            text = ''
+            if etype in (1, 2, 3, 6, 7, 8, 9, 10):
+                quoted = line.partition(',"text":')[2].rstrip()
+                text = json.loads(quoted[:-1])
+            yield (1, etype, offset, start, end, cycle_count, last_executed, payload, flags,
+                   text, line_out)
+
+
+def _binary_records(native):
+    """原生二进制记录 → 与文本路径同形的元组流（字段已按同一规则归一化）。"""
+    for record in native.records():
+        kind = record[0]
+        if kind == native_binary.RECORD_ELEMENT:
+            (_, etype, offset, _id, start, end, _isa, flags, cycle_count, _has_cc, _timestamp,
+             _has_ts, last_executed, _last_cond, _last_type, _last_subtype, payload,
+             text) = record
+            yield (1, etype, offset, start, end, cycle_count, last_executed, payload, flags,
+                   text, None)
+        elif kind == native_binary.RECORD_PACKET:
+            _, offset, size, type_code = record
+            yield (2, None, offset, size, '',
+                   native_binary.classify_packet(type_code, native.protocol))
+        else:
+            yield (3, record[1])
+
+
+def _expand_records(workdir, image, records, protocol, config, input_bytes, max_events=None,
+                    progress_every=500000, write_packets=True, write_elements=True,
+                    native_name='native.jsonl'):
+    """单遍展开记录流，返回与历史实现相同的 result 结构。
+
+    文本与二进制只差“记录来源”与是否落 packets.jsonl/elements.jsonl；events.jsonl、
+    browse-columns.tsv、sources.json 与 decoded.json 的计数/质量/分析口径完全相同。
+    """
     known = set()
     probe = Cs(CS_ARCH_ARM, CS_MODE_THUMB | CS_MODE_MCLASS)
     for start, size, _ in image.functions:
@@ -354,24 +473,27 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
             side_out.write(''.join(side_lines))
             side_lines.clear()
 
-    with events_jsonl.open('w', encoding='utf-8') as ev_out, \
-            packets_jsonl.open('w', encoding='utf-8') as pk_out, \
-            elements_jsonl.open('w', encoding='utf-8') as el_out, \
-            sidecar_path.open('w', encoding='utf-8', newline='\n') as side_out, \
-            native_jsonl.open(encoding='utf-8', errors='replace') as src:
+    with contextlib.ExitStack() as stack:
+        ev_out = stack.enter_context(events_jsonl.open('w', encoding='utf-8'))
+        side_out = stack.enter_context(sidecar_path.open('w', encoding='utf-8', newline='\n'))
+        # 包/元素 JSONL 是文本模式的历史产物；二进制模式不再生成（兼容层留 P3/P4）。
+        pk_out = (stack.enter_context(packets_jsonl.open('w', encoding='utf-8'))
+                  if write_packets else None)
+        el_out = (stack.enter_context(elements_jsonl.open('w', encoding='utf-8'))
+                  if write_elements else None)
         # 头部先写占位（定宽），展开成功后回填 events.jsonl 的 size/行数/mtime/sha256 指纹；
         # 索引端据此判断 sidecar 是否对得上（展开中断则保持占位=视为过期）。
         side_out.write(SIDECAR_HEADER % (0, 0, 0, '0' * 64))
-        for line in src:
-            if not line.startswith('{'):
-                continue
-            if line.startswith('{"kind":"packet"'):
-                text_line, offset, size, text = _parse_packet(line)
-                packet_lines.append(text_line)
+        for record in records:
+            kind = record[0]
+            if kind == 2:
+                _, text_line, offset, size, _text, packet_flags = record
+                if pk_out is not None:
+                    packet_lines.append(text_line)
+                    if len(packet_lines) >= 8192:
+                        pk_out.write(''.join(packet_lines))
+                        packet_lines.clear()
                 packets_n += 1
-                if len(packet_lines) >= 8192:
-                    pk_out.write(''.join(packet_lines))
-                    packet_lines.clear()
                 if offset < previous_packet:
                     raise ValueError('包偏移倒序，拒绝伪造字节对账')
                 previous_packet = offset
@@ -380,28 +502,28 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
                     counters['overlap'] += max(0, min(packet_end, stop) - offset)
                 counters['covered'] += max(0, stop - max(offset, packet_end))
                 packet_end = max(packet_end, stop)
-                if text.startswith(('I_NOT_SYNC', 'NOTSYNC')):
+                if packet_flags & native_binary.PACKET_UNSYNC:
                     counters['unknown'] += size
                     counters['unsync_records'] += 1
-                upper = text.upper()
-                if ('BAD_' in upper or 'RESERVED' in upper or 'OVERFLOW' in upper
-                        or 'INCOMPLETE_EOT' in upper):
+                if packet_flags & native_binary.PACKET_INVALID:
                     counters['invalid'] += 1
-                    if 'OVERFLOW' in upper:
+                    if packet_flags & native_binary.PACKET_OVERFLOW:
                         counters['overflow'] += 1
                 counters['packet_count'] += 1
                 continue
-            if line.startswith('{"kind":"status"'):
-                status = json.loads(line)
+            if kind == 3:
+                status = record[1]
                 continue
-            if not line.startswith('{"kind":"element"'):
+            if kind != 1:
                 continue
-            etype, offset, start, end, cycle_count, last_executed, payload, flags, line_out = _parse_element(line)
-            element_lines.append(line_out)
+            (_, etype, offset, start, end, cycle_count, last_executed, payload, flags, text,
+             line_out) = record
+            if el_out is not None:
+                element_lines.append(line_out)
+                if len(element_lines) >= 8192:
+                    el_out.write(''.join(element_lines))
+                    element_lines.clear()
             elements_n += 1
-            if len(element_lines) >= 8192:
-                el_out.write(''.join(element_lines))
-                element_lines.clear()
             if etype == 12:
                 counters['cycle_elements'] += 1
                 if pending is not None:
@@ -480,8 +602,6 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
                     if progress_every and instruction_count % progress_every == 0:
                         print(f'  流式解码：已展开 {instruction_count} 条指令（seq={seq}）', flush=True)
             elif etype in (1, 2, 3, 6, 7, 8, 9, 10):
-                quoted = line.partition(',"text":')[2].rstrip()
-                text = json.loads(quoted[:-1])
                 event = dict(kind='event', seq=seq, type=etype, offset=offset, text=text,
                              payload=payload, start=start, end=end, flags=flags)
                 body_lines.append(json.dumps(event, ensure_ascii=False) + '\n')
@@ -505,9 +625,9 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
             ev_out.write(''.join(body_lines))
         if side_lines:
             side_out.write(''.join(side_lines))
-        if element_lines:
+        if el_out is not None and element_lines:
             el_out.write(''.join(element_lines))
-        if packet_lines:
+        if pk_out is not None and packet_lines:
             pk_out.write(''.join(packet_lines))
 
     if not instruction_count:
@@ -536,7 +656,7 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
                      gaps=gaps, packetIssues=counters['invalid']),
         status=status, timeBasis='execution order; no per-instruction timestamp',
         streamed=dict(eventsFile='events.jsonl', events=seq, elements=elements_n,
-                      packets=packets_n, nativeJsonl='native.jsonl'),
+                      packets=packets_n, nativeJsonl=native_name),
         quality=dict(inputBytes=input_bytes, processedBytes=processed,
                      unprocessedBytes=max(0, input_bytes - processed),
                      overlapBytes=0, unaccountedBytes=max(0, input_bytes - processed)))
@@ -552,6 +672,50 @@ def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, ma
     result['streamed']['schema'] = 2
     (workdir / 'decoded.json').write_text(json.dumps(result, ensure_ascii=False), encoding='utf-8')
     return result
+
+
+def _expand_fast(workdir, image, native_jsonl, protocol, config, input_bytes, max_events=None,
+                 progress_every=500000):
+    """单遍展开 native.jsonl（文本参考路径），返回与历史实现相同的 result 结构。"""
+    return _expand_records(workdir, image, _text_records(native_jsonl), protocol, config,
+                           input_bytes, max_events, progress_every,
+                           write_packets=True, write_elements=True, native_name='native.jsonl')
+
+
+def _expand_binary(workdir, image, native_bin, protocol, config, input_bytes, max_events=None,
+                   progress_every=500000):
+    """单遍展开原生二进制记录（`ETM_NATIVE_FORMAT=binary`）。
+
+    与 fast 引擎同口径；区别是不再生成 packets.jsonl / elements.jsonl（兼容层留 P3/P4），
+    decoded.json 的 streamed.nativeJsonl 记 native.bin。
+    """
+    native = native_binary.NativeFile(native_bin)
+    if native.protocol != protocol:
+        raise ValueError(f'原生二进制协议与配置不符：{native.protocol} != {protocol}')
+    return _expand_records(workdir, image, _binary_records(native), protocol, config,
+                           input_bytes, max_events, progress_every,
+                           write_packets=False, write_elements=False, native_name='native.bin')
+
+
+def _store_write(workdir, image, native_bin, protocol, config, input_bytes, max_events=None,
+                 progress_every=500000, framing=None, physical=None, capture=None):
+    """P3 融合写出：native.bin → trace-store v1 + decoded.json（不写 events.jsonl）。
+
+    返回与 ``_expand_records`` 同形的 decoded 字典；store 目录为 ``workdir/store``，
+    ``decoded.json`` 由融合写出器在发布前写定（含 ``traceStore`` 标记）。
+    说明文本类产物（packets/elements JSONL、browse-columns.tsv）不会生成。
+    """
+    import trace_store_write
+
+    def progress(message):
+        print(message, flush=True)
+
+    _result, decoded = trace_store_write.write(
+        workdir, workdir / trace_store_write.STORE_DIR_NAME, native_bin=native_bin,
+        elf=str(image.path), config=config, input_bytes=input_bytes, image=image,
+        max_events=max_events, write_decoded=True, framing=framing, physical=physical,
+        capture=capture, progress=progress, progress_every=progress_every)
+    return decoded
 
 
 # ---------------------------------------------------------------------------------------------
@@ -747,15 +911,32 @@ def _expand_legacy(workdir, image, native_jsonl, protocol, config, input_bytes, 
 
 
 def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events=None,
-                  progress_every=500000):
-    """流式解码；返回精简结果（不含 events/packets/elements 本体）。"""
+                  progress_every=500000, *, framing=None, physical=None, capture=None):
+    """流式解码；返回精简结果（不含 events/packets/elements 本体）。
+
+    原生输出格式由 `ETM_NATIVE_FORMAT` 选择：默认 `text`（旧路径，逐字节不变）；
+    `binary` 走结构化二进制记录（P2 实验能力，只支持 fast 展开引擎）。
+
+    `ETM_STORE_WRITE=1`（P3 实验能力）走融合写出：`native.bin` 一步写成 trace-store v1，
+    不生成 events/packets/elements JSONL。`framing/physical/capture` 是可选的采集元数据，
+    只在融合写出时并入记录摘要（text/binary 旧路径仍由 `decode_capture_stream` 事后补齐）。
+    """
     workdir = Path(workdir).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
     config = decoder_config(config)
     image = Image(elf, sources)
-    native_jsonl, protocol = _run_native(id_stream, image, workdir, config)
-    expand = _expand_legacy if expansion_engine() == 'legacy' else _expand_fast
-    return expand(workdir, image, native_jsonl, protocol, config, len(id_stream), max_events,
+    native_path, protocol, fmt = _run_native(id_stream, image, workdir, config)
+    engine = expansion_engine()
+    if fmt == 'binary':
+        if engine == 'legacy':
+            raise ValueError('原生二进制输出只支持 fast 展开引擎，请设置 ETM_DECODE_ENGINE=fast。')
+        if store_write_enabled():
+            return _store_write(workdir, image, native_path, protocol, config, len(id_stream),
+                                max_events, progress_every, framing, physical, capture)
+        return _expand_binary(workdir, image, native_path, protocol, config, len(id_stream),
+                              max_events, progress_every)
+    expand = _expand_legacy if engine == 'legacy' else _expand_fast
+    return expand(workdir, image, native_path, protocol, config, len(id_stream), max_events,
                   progress_every)
 
 
@@ -788,14 +969,17 @@ def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fra
     framing = {**frames, 'phase': phase}
     (workdir / 'framing.json').write_text(json.dumps(framing, ensure_ascii=False), encoding='utf-8')
     (workdir / 'physical.json').write_text(json.dumps(physical, ensure_ascii=False), encoding='utf-8')
+    # extract() 已对整份 CSV 做过 sha256，直接复用（同一文件、同一算法），不再重读 500 MB。
+    capture = {'name': csv_path.name, 'sha256': physical.get('input_sha256')}
     result = decode_stream(streams[int(config['traceid'])], elf, workdir, config, sources,
-                           max_events=max_events)
+                           max_events=max_events, framing=framing, physical=physical,
+                           capture=capture)
     result['physical'] = physical
     result['framing'] = framing
-    # extract() 已对整份 CSV 做过 sha256，直接复用（同一文件、同一算法），不再重读 500 MB。
-    result['capture'] = {'name': csv_path.name, 'sha256': physical.get('input_sha256')}
+    result['capture'] = capture
     # 字节核算的边界字段依赖 framing：fast 引擎已在单遍里算好与 framing 无关的全部字段，
     # 这里只补 5 个依赖 framing 的字段，不再为了几个标量重新遍历 3.67 M 条事件。
+    # （融合写出已在写入时带上 framing，这里重填同一组值，保持 decoded.json 键序/字节不变。）
     if expansion_engine() == 'legacy':
         streams_result = {**result, 'events': JsonLines(workdir / 'events.jsonl', result['streamed']['events']),
                           'packets': JsonLines(workdir / 'packets.jsonl', result['streamed']['packets']),
