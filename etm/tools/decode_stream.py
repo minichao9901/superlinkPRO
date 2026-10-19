@@ -23,6 +23,15 @@ events/packets/elements 只存 JSONL；decoded.json 是小型元数据与分析�
   events.jsonl/browse-columns.tsv/decoded.json 的分析口径不变。该模式不生成
   packets.jsonl/elements.jsonl（兼容层留 P3/P4），也不支持 legacy 展开引擎。
 
+融合写出（P3 实验能力，`ETM_STORE_WRITE=1`，默认关闭）：
+
+* 该开关强制二进制原生输出并跳过 `_expand_binary` 的文本展开，改为调用
+  `trace_store_write.write()`：单遍消费 `native.bin`，直接写 trace-store v1
+  （静态字典/展开段/检查点/包块/索引/摘要）+ 小型 `decoded.json`；
+  **不生成** `events.jsonl`/`packets.jsonl`/`elements.jsonl`/`browse-v3.sqlite`，
+  也不建立 SQLite 行。关闭时以上旧路径逐字节不变。
+* 该模式不生成 `browse-columns.tsv`；浏览后端由 P4 的 TraceStore 适配器提供。
+
 注意：物理取样仍加载跳变轨迹，ETM 输入、ELF 和派生调用树也占内存；
 本模块不声称整个采集链路 O(1) 或支持无限长度。
 """
@@ -59,13 +68,34 @@ def expansion_engine():
     return 'legacy' if os.environ.get('ETM_DECODE_ENGINE', '').strip().lower() == 'legacy' else 'fast'
 
 
+STORE_WRITE_ENV = 'ETM_STORE_WRITE'
+
+
+def store_write_enabled():
+    """P3 融合写出开关：`ETM_STORE_WRITE=1` 启用（默认关闭，旧路径逐字节不变）。"""
+    value = os.environ.get(STORE_WRITE_ENV, '').strip().lower()
+    if value in ('', '0', 'false', 'no', 'off'):
+        return False
+    if value in ('1', 'true', 'yes', 'on'):
+        return True
+    raise ValueError('ETM_STORE_WRITE 只支持 0/1：' + value)
+
+
 def native_format():
     """原生输出格式：默认 text（旧行为）；`ETM_NATIVE_FORMAT=binary` 启用结构化二进制。
 
     二进制模式（P2 实验能力，默认关闭）把 OpenCSD 回调写成带 magic/版本/记录类型的记录流，
     正常路径不再生成包/元素的说明文字；读取端见 `native_binary.py`。默认路径逐字节不变。
+
+    `ETM_STORE_WRITE=1`（P3 融合写出）需要 `native.bin` 作为唯一事件源，因此强制二进制输出；
+    显式要求 text 且同时打开融合写出属于矛盾配置，直接报错而不是静默降级。
     """
     value = os.environ.get('ETM_NATIVE_FORMAT', '').strip().lower()
+    if store_write_enabled():
+        if value not in ('', 'binary'):
+            raise ValueError('ETM_STORE_WRITE=1 需要二进制原生输出（native.bin），'
+                             '不能与 ETM_NATIVE_FORMAT=%s 同时使用' % value)
+        return 'binary'
     if value in ('', 'text'):
         return 'text'
     if value == 'binary':
@@ -667,6 +697,27 @@ def _expand_binary(workdir, image, native_bin, protocol, config, input_bytes, ma
                            write_packets=False, write_elements=False, native_name='native.bin')
 
 
+def _store_write(workdir, image, native_bin, protocol, config, input_bytes, max_events=None,
+                 progress_every=500000, framing=None, physical=None, capture=None):
+    """P3 融合写出：native.bin → trace-store v1 + decoded.json（不写 events.jsonl）。
+
+    返回与 ``_expand_records`` 同形的 decoded 字典；store 目录为 ``workdir/store``，
+    ``decoded.json`` 由融合写出器在发布前写定（含 ``traceStore`` 标记）。
+    说明文本类产物（packets/elements JSONL、browse-columns.tsv）不会生成。
+    """
+    import trace_store_write
+
+    def progress(message):
+        print(message, flush=True)
+
+    _result, decoded = trace_store_write.write(
+        workdir, workdir / trace_store_write.STORE_DIR_NAME, native_bin=native_bin,
+        elf=str(image.path), config=config, input_bytes=input_bytes, image=image,
+        max_events=max_events, write_decoded=True, framing=framing, physical=physical,
+        capture=capture, progress=progress, progress_every=progress_every)
+    return decoded
+
+
 # ---------------------------------------------------------------------------------------------
 # legacy 引擎：历史多遍实现（对照/回退）
 # ---------------------------------------------------------------------------------------------
@@ -860,11 +911,15 @@ def _expand_legacy(workdir, image, native_jsonl, protocol, config, input_bytes, 
 
 
 def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events=None,
-                  progress_every=500000):
+                  progress_every=500000, *, framing=None, physical=None, capture=None):
     """流式解码；返回精简结果（不含 events/packets/elements 本体）。
 
     原生输出格式由 `ETM_NATIVE_FORMAT` 选择：默认 `text`（旧路径，逐字节不变）；
     `binary` 走结构化二进制记录（P2 实验能力，只支持 fast 展开引擎）。
+
+    `ETM_STORE_WRITE=1`（P3 实验能力）走融合写出：`native.bin` 一步写成 trace-store v1，
+    不生成 events/packets/elements JSONL。`framing/physical/capture` 是可选的采集元数据，
+    只在融合写出时并入记录摘要（text/binary 旧路径仍由 `decode_capture_stream` 事后补齐）。
     """
     workdir = Path(workdir).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
@@ -875,6 +930,9 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
     if fmt == 'binary':
         if engine == 'legacy':
             raise ValueError('原生二进制输出只支持 fast 展开引擎，请设置 ETM_DECODE_ENGINE=fast。')
+        if store_write_enabled():
+            return _store_write(workdir, image, native_path, protocol, config, len(id_stream),
+                                max_events, progress_every, framing, physical, capture)
         return _expand_binary(workdir, image, native_path, protocol, config, len(id_stream),
                               max_events, progress_every)
     expand = _expand_legacy if engine == 'legacy' else _expand_fast
@@ -911,14 +969,17 @@ def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fra
     framing = {**frames, 'phase': phase}
     (workdir / 'framing.json').write_text(json.dumps(framing, ensure_ascii=False), encoding='utf-8')
     (workdir / 'physical.json').write_text(json.dumps(physical, ensure_ascii=False), encoding='utf-8')
+    # extract() 已对整份 CSV 做过 sha256，直接复用（同一文件、同一算法），不再重读 500 MB。
+    capture = {'name': csv_path.name, 'sha256': physical.get('input_sha256')}
     result = decode_stream(streams[int(config['traceid'])], elf, workdir, config, sources,
-                           max_events=max_events)
+                           max_events=max_events, framing=framing, physical=physical,
+                           capture=capture)
     result['physical'] = physical
     result['framing'] = framing
-    # extract() 已对整份 CSV 做过 sha256，直接复用（同一文件、同一算法），不再重读 500 MB。
-    result['capture'] = {'name': csv_path.name, 'sha256': physical.get('input_sha256')}
+    result['capture'] = capture
     # 字节核算的边界字段依赖 framing：fast 引擎已在单遍里算好与 framing 无关的全部字段，
     # 这里只补 5 个依赖 framing 的字段，不再为了几个标量重新遍历 3.67 M 条事件。
+    # （融合写出已在写入时带上 framing，这里重填同一组值，保持 decoded.json 键序/字节不变。）
     if expansion_engine() == 'legacy':
         streams_result = {**result, 'events': JsonLines(workdir / 'events.jsonl', result['streamed']['events']),
                           'packets': JsonLines(workdir / 'packets.jsonl', result['streamed']['packets']),

@@ -824,7 +824,8 @@ def _range_descriptor(element, cycles):
 BINDING_INPUTS = ('etm.bin', 'native-config.txt', 'firmware.elf', 'session.json', 'sources.json',
                   'physical.json', 'framing.json', 'capture.csv', 'capture.bin', 'capture.kvdat',
                   'capture.csv.la.json', 'spi-validation.json', 'phase-validation.json',
-                  'native.jsonl', 'elements.jsonl', 'packets.jsonl', 'events.jsonl')
+                  'native.bin', 'native.log', 'native.jsonl', 'elements.jsonl', 'packets.jsonl',
+                  'events.jsonl')
 
 
 def _binding_files(record_dir):
