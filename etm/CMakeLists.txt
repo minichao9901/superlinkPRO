@@ -11,6 +11,17 @@ if(MINGW)
   target_link_options(etm_decode PRIVATE -static -static-libgcc -static-libstdc++)
 endif()
 
+# P5b 原生物理前端（KVDAT 分块读取 → 滤波/DDR → TPIU 解复用）。不依赖 OpenCSD：
+# 它是 `etm/tools/trace_frontend.py` 参考实现的原生加速版本，语义由该参考实现定义。
+# 显式关闭浮点收缩（-ffp-contract=off）：参考实现的取样点算法是“先乘后加”，若编译器
+# 合成 FMA，最后一位可能不同，会破坏与参考实现逐字节等价的前提。
+add_executable(etm_frontend native/frontend.cpp)
+set_property(TARGET etm_frontend PROPERTY CXX_STANDARD 17)
+target_compile_options(etm_frontend PRIVATE -ffp-contract=off)
+if(MINGW)
+  target_link_options(etm_frontend PRIVATE -municode -static -static-libgcc -static-libstdc++)
+endif()
+
 # Optional bulk indexer. The Python implementation remains the portable fallback.
 if(MINGW)
   get_filename_component(_compiler_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
