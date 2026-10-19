@@ -360,6 +360,83 @@ class PredicateUnknownTests(unittest.TestCase):
                 store.close()
 
 
+class CheckpointFlushPredicatedTailTests(unittest.TestCase):
+    """检查点 flush 把“谓词未知的内部指令”当段末时，internal_unknown 不能多算它。
+
+    复现 t6 在 100× 合成 1 s 数据上发现的缺陷：`_feed_internals` 批量追加内部指令后，
+    `hold_tail` 的 `checkpoint()` 若恰好到期，会调用 `flush_pending_run()`，把最后一条
+    内部指令当作展开段 tail；此时写侧若仍按“所有内部指令”累加 internal_unknown，
+    读侧按 ``identifiers[:-1]`` 校验就会报“展开段内部谓词未知计数不符”。
+
+    合成输入：85 个普通 3 指令范围把 ``since_checkpoint`` 推到 255（同一 offset，展开段
+    连续），再跟一个 ``IT + 受保护指令 + 尾指令`` 范围；检查点在第二条内部指令前到期，
+    该指令（谓词未知）成为被 flush 的段末。修复前 ``store.events()`` 抛错，修复后全量
+    展开通过。
+    """
+
+    @staticmethod
+    def _windows(image):
+        from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_MCLASS
+        decoder = Cs(CS_ARCH_ARM, CS_MODE_THUMB | CS_MODE_MCLASS)
+        predicates = predicate_addresses(image)     # 返回“受谓词控制”的指令地址
+        plain = None
+        guarded = None
+        for start, size, _name in image.functions:
+            instructions = list(decoder.disasm(image.read(start, size), start))
+            for index in range(1, len(instructions) - 2):
+                window = instructions[index - 1:index + 2]
+                if (guarded is None and instructions[index].address in predicates
+                        and instructions[index - 1].mnemonic.startswith('it')):
+                    guarded = window
+                if (plain is None
+                        and not any(item.address in predicates or item.mnemonic.startswith('it')
+                                    for item in window)):
+                    plain = window
+                if plain and guarded:
+                    return image, plain, guarded
+        return image, plain, guarded
+
+    def test_checkpoint_flush_with_predicated_last_internal(self):
+        if not ELF_H743.is_file():
+            self.skipTest('缺少固件 ELF')
+        image, plain, guarded = self._windows(Image(ELF_H743))
+        if plain is None or guarded is None:
+            self.skipTest('固件 ELF 里找不到所需指令窗口')
+
+        def range_record(window, offset):
+            return element_record(5, offset, window[0].address,
+                                  window[-1].address + window[-1].size,
+                                  payload=len(window), last_executed=1)
+
+        head = [range_record(plain, 10) for _ in range(84)]
+        head.append(range_record(plain[:2], 10))
+        final = range_record(guarded, 10)
+        total = 84 * 3 + 2 + 3
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+            root = Path(directory)
+            records = head + [final, status_record(10, len(head) + 1, 0)]
+            native = build_native(root / 'native.bin', records, len(head) + 1, 0)
+            config = decoder_config(None)
+            store_dir = root / 'store'
+            result, _decoded = trace_store_write.write(
+                root, store_dir, native_bin=native, elf=str(image.path), config=config,
+                input_bytes=16, checkpoint_instructions=256)
+            self.assertTrue(result['ok'])
+            store = trace_store.open_store(store_dir)
+            self.addCleanup(store.close)
+            # 修复前：这里抛 TraceStoreError('展开段内部谓词未知计数不符')
+            events = list(store.events())
+            instructions = [event for event in events if event['kind'] == 'instruction']
+            self.assertEqual(len(instructions), total)
+            self.assertEqual(sum(1 for item in instructions if item['executed'] is None), 1)
+            unknown = [item['seq'] for item in instructions if item['executed'] is None]
+            self.assertEqual(unknown, [84 * 3 + 2 + 1])   # IT 保护的第 2 条内部指令
+            self.assertIs(instructions[-1]['executed'], True)
+            self.assertEqual(store.counts['unknownExecution'], 1)
+            self.assertGreaterEqual(len(store.checkpoints), 2)
+            self.assertTrue(store.stats()['aggregateMatches'])
+
+
 class RobustnessTests(SyntheticCase):
     def test_missing_elf_is_rejected(self):
         with self.assertRaisesRegex(trace_store.TraceStoreError, '缺少固件 ELF'):

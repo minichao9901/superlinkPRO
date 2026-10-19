@@ -220,7 +220,6 @@ class _Assembler:
         self.run_ids = []
         self.run_start = None
         self.run_offset = None
-        self.run_predicated = 0
         self.pending_stats = [0, 0, 0, 0, 0]
         self.totals = [0, 0, 0, 0, 0]
         self.state = dict(events=0, instructions=0, rareEvents=0, runs=0, executed=0,
@@ -350,7 +349,12 @@ class _Assembler:
         identifiers = self.run_ids
         if not identifiers:
             return
-        internal_unknown = self.run_predicated
+        # 段末指令不计入“内部谓词未知”（与 trace_store.write() 及读侧 identifiers[:-1]
+        # 的口径一致）。不能用增量计数器：checkpoint flush 会把最后一条内部指令变成
+        # 段末 tail，计数器会把它多算一次（100× 合成 1 s 数据上曾触发 15 条展开段校验失败）。
+        static_entries = self.static_entries
+        internal_unknown = sum(1 for identifier in identifiers[:-1]
+                               if static_entries[identifier].predicated)
         self._emit_run(self.run_start, len(identifiers), identifiers, tail_executed,
                        self.run_offset, cycles, span, internal_unknown)
         totals = self.totals
@@ -362,7 +366,6 @@ class _Assembler:
         self.run_ids = []
         self.run_start = None
         self.run_offset = None
-        self.run_predicated = 0
 
     def flush_pending_run(self):
         """把挂起的展开段按末指令真实状态落盘：末指令可能是谓词未知的内部指令。"""
@@ -393,7 +396,7 @@ class _Assembler:
             self._close_issue_run()
 
     # -- 指令/事件 ----------------------------------------------------------------------------
-    def _apply_instruction(self, seq, offset, entry, executed, cycles, span, internal=False):
+    def _apply_instruction(self, seq, offset, entry, executed, cycles, span):
         if seq != self.expected_seq:
             raise trace_store.TraceStoreError('seq 不连续：期望 %d，实际 %d（本实现要求逻辑 '
                                               'seq 从 0 连续）' % (self.expected_seq, seq))
@@ -411,8 +414,6 @@ class _Assembler:
             self.run_start = seq
             self.run_offset = offset
         self.run_ids.append(entry.identifier)
-        if internal and entry.predicated:
-            self.run_predicated += 1
         if not internal_ok:
             self.flush_run(executed, cycles, span)
         self.tracker.feed_instruction(entry.function, entry.file, entry.line, executed, entry.flow,
@@ -591,7 +592,7 @@ class _Assembler:
                     self.checkpoint(self.expected_seq)
                 entry = entries[position]
                 self._apply_instruction(self.expected_seq, offset, entry,
-                                        None if entry.predicated else True, 0, 0, internal=True)
+                                        None if entry.predicated else True, 0, 0)
             return
         self._feed_internal_fast(offset, plan)
 
@@ -610,7 +611,6 @@ class _Assembler:
             self.run_start = seq
             self.run_offset = offset
         run_ids.extend(plan['internal_ids'])
-        self.run_predicated += plan['internal_predicated']
         self.expected_seq = seq + count
         self.state['events'] += count
         self.instruction_count += count
