@@ -3,6 +3,129 @@ import argparse,gzip,hashlib,json,shutil,subprocess,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stream.py','tools/stream_store.py','tools/slice_merge.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py','tools/kingst_record.py','tools/timeline_index.py','tools/native_index.py','tools/fast_window.py']
+# 可选原生索引器：只有配置时找到 SQLite3，CMakeLists 才会生成 etm_index 目标（否则 Python 回退）。
+# FindSQLite3 模块在缓存里写的是单数 INCLUDE_DIR/LIBRARY；config 模式才可能有 SQLite3_DIR。
+SQLITE_CACHE_KEYS=('SQLite3_INCLUDE_DIR','SQLite3_LIBRARY')
+INDEXER_TARGET='etm_index'
+TARGET_MISSING_MARKERS=('unknown target','no rule to make target','msb4057',
+                        "target 'etm_index' does not exist",'target "etm_index" does not exist',
+                        'does not exist in the project')
+
+
+def native_indexer_cache_state(build_dir):
+    """读取 CMakeCache，判断配置阶段是否找到 SQLite3；返回 (available, reason)。
+
+    返回 None 表示配置本身缺失（不是可降级的可选依赖问题），调用方必须失败。
+    """
+    cache=Path(build_dir)/'CMakeCache.txt'
+    if not cache.is_file():
+        return None,f'尚未配置原生构建目录（缺 {cache}）'
+    values={}
+    for line in cache.read_text(encoding='utf8',errors='replace').splitlines():
+        if line.startswith('//') or '=' not in line:continue
+        key,_,value=line.partition('=')
+        base=key.split(':',1)[0]
+        if base in SQLITE_CACHE_KEYS:values[base]=value.strip()
+    missing=[key for key in SQLITE_CACHE_KEYS if not values.get(key) or values[key].endswith('-NOTFOUND')]
+    if values.get('SQLite3_DIR','').endswith('-NOTFOUND'):
+        missing.append('SQLite3_DIR')
+    if missing:
+        return False,'未找到 SQLite3 开发库（'+', '.join(missing)+' 缺失或 NOTFOUND）'
+    return True,''
+
+
+def native_indexer_target_missing(output):
+    """只有“报错里点名 etm_index 目标不存在”才算可降级的可选依赖缺失。
+
+    防止把依赖/对象文件缺失的 “No rule to make target 'sqlite3.lib'” 误判成目标不存在。
+    """
+    text=(output or '').lower()
+    return INDEXER_TARGET in text and any(marker in text for marker in TARGET_MISSING_MARKERS)
+
+
+def _last_line(text):
+    lines=[line.strip() for line in (text or '').splitlines() if line.strip()]
+    return lines[-1][:240] if lines else ''
+
+
+def drop_stale_indexer(target):
+    """降级/失败时移除快照里的旧派生产物，避免 provenance 继续宣称拥有它。"""
+    target=Path(target)
+    if target.exists():
+        target.unlink()
+        print(f'[sync] 已移除快照旧派生产物：{target}')
+
+
+def ensure_native_indexer(source,dest,runner=subprocess.run):
+    """构建并发布可选原生索引器；返回 {'available','reason','path'}。
+
+    只在“明确缺 SQLite3 开发库（CMake 不生成目标）”或“CMake 目标不存在”时降级：
+    删除目标快照旧的 etm_index.exe 并打印 Python 回退提示。真实 CMake/编译错误、
+    构建成功却没有产物，一律 SystemExit（不降级、不写 provenance）。
+    """
+    source,dest=Path(source),Path(dest)
+    build_dir=source/'build-native';source_exe=build_dir/'etm_index.exe'
+    target=dest/'build-native/etm_index.exe'
+    available,reason=native_indexer_cache_state(build_dir)
+    if available is None:
+        # 配置缺失属于树/环境损坏，不是“可选依赖缺失”，不能静默降级。
+        raise SystemExit('[sync] 无法构建原生索引器：'+reason)
+    if available:
+        try:
+            runner(['cmake','--build',str(build_dir),'--target',INDEXER_TARGET,'--config','Release'],
+                   check=True,capture_output=True,text=True)
+        except subprocess.CalledProcessError as error:
+            output='\n'.join(part for part in (getattr(error,'stdout',None),getattr(error,'stderr',None),str(error)) if part)
+            if native_indexer_target_missing(output):
+                available,reason=False,f'CMake 目标 {INDEXER_TARGET} 不存在（未启用 SQLite3）：{_last_line(output)}'
+            else:
+                drop_stale_indexer(target)
+                raise SystemExit('[sync] 原生索引器构建失败（真实 CMake/编译错误，不降级、不发布 provenance）：\n'+output[-4000:])
+        else:
+            if not source_exe.is_file():
+                drop_stale_indexer(target)
+                raise SystemExit(f'[sync] 原生索引器构建返回成功但缺少产物：{source_exe}')
+            target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copyfile(source_exe,target)
+            return dict(available=True,reason='',path='build-native/etm_index.exe')
+    drop_stale_indexer(target)
+    print(f'[sync] 本次快照无原生索引器，走 Python 回退：{reason}')
+    return dict(available=False,reason=reason,path=None)
+
+
+def packaged_hashes(dest):
+    dest=Path(dest)
+    return {p.relative_to(dest).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in dest.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'}
+
+
+def build_provenance(source,dest,origins,indexer,revision=None):
+    source,dest=Path(source),Path(dest)
+    revision=revision or subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip()
+    local_changes=['server.py: WEB_ETM_RECORDS redirects mutable records to portable data directory',
+                   'native/decoder.cpp: UTF-16 Windows argv/file APIs for UTF-8 manifests and Unicode paths; recompiled static OpenCSD wrapper']
+    if indexer.get('available'):
+        local_changes.append('native/indexer.cpp: static SQLite bulk index and compact browsing metrics')
+    else:
+        local_changes.append('native/indexer.cpp: 本次快照未构建原生索引器（'+str(indexer.get('reason') or '缺 SQLite3 开发库')+'）；使用 Python 回退，provenance 不含 build-native/etm_index.exe')
+    return dict(sourceRepository='etm',sourceRevision=revision,sourceHashes=origins,
+                localChanges=local_changes,
+                nativeIndexer=dict(available=bool(indexer.get('available')),reason=indexer.get('reason') or None),
+                packagedHashes=packaged_hashes(dest))
+
+
+def write_provenance(root,provenance):
+    path=Path(root)/'bridge/etm/provenance.json';path.parent.mkdir(parents=True,exist_ok=True)
+    path.write_text(json.dumps(provenance,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+
+
+def publish_native_assets(source,dest,root,origins,runner=subprocess.run,revision=None):
+    """索引器构建 + provenance 发布；任一真实错误都在写 provenance 之前中止。"""
+    indexer=ensure_native_indexer(source,dest,runner=runner)
+    provenance=build_provenance(source,dest,origins,indexer,revision=revision)
+    write_provenance(root,provenance)
+    return indexer,provenance
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--etm-root',required=True,type=Path);args=parser.parse_args()
     source=args.etm_root.resolve();dest=ROOT/'bridge/etm/backend';origins={}
@@ -109,12 +232,9 @@ int main(int argc,char **argv) { return decode_main(argc,argv); }
     # Rebuild the optional native indexer against the current source as well.
     # SQLite3 dev headers are not required for the Python fallback; a source
     # tree without them must still be able to publish a working snapshot.
-    try:
-        subprocess.run(['cmake','--build',str(source/'build-native'),'--target','etm_index','--config','Release'],check=True)
-        shutil.copyfile(source/'build-native/etm_index.exe',dest/'build-native/etm_index.exe')
-    except (subprocess.CalledProcessError, FileNotFoundError) as error:
-        print(f'[sync] 跳过原生索引器（没有 SQLite3 开发库或 CMake 目标）：{error}')
-    provenance=dict(sourceRepository='etm',sourceRevision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip(),sourceHashes=origins,localChanges=['server.py: WEB_ETM_RECORDS redirects mutable records to portable data directory','native/decoder.cpp: UTF-16 Windows argv/file APIs for UTF-8 manifests and Unicode paths; recompiled static OpenCSD wrapper','native/indexer.cpp: static SQLite bulk index and compact browsing metrics'],packagedHashes={p.relative_to(dest).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in dest.rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix!='.pyc'})
-    (ROOT/'bridge/etm/provenance.json').write_text(json.dumps(provenance,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
-    print(f'Runtime snapshot: {len(provenance["packagedHashes"])} files; source {provenance["sourceRevision"]}')
+    # 审查发现 1：只有明确缺 SQLite3/目标不存在才降级，且降级时删除旧 EXE；
+    # 真实 CMake/编译错误必须失败，不能留下旧派生产物再生成新 provenance。
+    indexer,provenance=publish_native_assets(source,dest,ROOT,origins)
+    suffix='' if indexer['available'] else '；无原生索引器（Python 回退）'
+    print(f'Runtime snapshot: {len(provenance["packagedHashes"])} files; source {provenance["sourceRevision"]}{suffix}')
 if __name__=='__main__':main()
