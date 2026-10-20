@@ -251,6 +251,84 @@ class IndexCase(unittest.TestCase):
                          _dumps(self.slow.source(files[0])))
         self.assertEqual(_dumps(self.fast.issues(0, 50)), _dumps(self.slow.issues(0, 50)))
 
+    # -- 冷打开优化（t10）：惰性 nav/issues + 并行整份 sha256 ------------------------------
+    def test_nav_and_issues_are_parsed_lazily(self):
+        """打开时不解析块 5（nav）与块 10（issues）；首次访问才解析，结果不变。"""
+        store = trace_store.TraceStore(self.store_dir, verify='full')
+        try:
+            self.assertIsNone(store._nav, '打开时不应解析 nav 块')
+            self.assertIsNone(store._issues, '打开时不应解析 issues 块')
+            self.assertEqual(store.stats()['queryIndex']['available'], True)
+            events = list(store.nav[trace_store.NAV_EVENT])
+            self.assertTrue(events, '首次访问 nav 时必须解析出稀疏表')
+            self.assertIsNotNone(store._nav)
+            self.assertIsInstance(store.issues(0, 50), dict)
+            self.assertIsNotNone(store._issues)
+            self.assertEqual(_dumps(store.issues(0, 50)),
+                             _dumps(self.slow.issues(0, 50)))
+            self.assertEqual(_dumps(store.navigate(0, 1, 'exception')),
+                             _dumps(self.slow.navigate(0, 1, 'exception')))
+        finally:
+            store.close()
+
+    def test_eager_load_env_restores_old_open_timing(self):
+        """TRACE_STORE_EAGER_LOAD=1（诊断）恢复“打开即解析”的旧时序，语义不变。"""
+        os.environ['TRACE_STORE_EAGER_LOAD'] = '1'
+        try:
+            store = trace_store.TraceStore(self.store_dir, verify='full')
+        finally:
+            os.environ.pop('TRACE_STORE_EAGER_LOAD', None)
+        try:
+            self.assertIsNotNone(store._nav)
+            self.assertIsNotNone(store._issues)
+            self.assertEqual(_dumps(store.window()), _dumps(self.slow.window()))
+        finally:
+            store.close()
+
+    def test_tampered_store_bin_rejected_by_whole_file_sha256(self):
+        """整份 sha256 仍生效：改 store.bin 任意一个字节（不更新 manifest）→ 打开被拒。"""
+        copy = self.root / 'tampered-record'
+        shutil.copytree(self.record, copy)
+        manifest = json.loads((copy / 'store' / 'manifest.json').read_text(encoding='utf-8'))
+        store_bin = (copy / 'store' / 'generations' / manifest['generation'] / 'store.bin')
+        data = bytearray(store_bin.read_bytes())
+        data[len(data) // 2] ^= 0xFF
+        store_bin.write_bytes(bytes(data))
+        with self.assertRaises(trace_store.TraceStoreError) as caught:
+            trace_store.TraceStore(copy / 'store', verify='full')
+        self.assertIn('sha256', str(caught.exception))
+
+    def test_lazy_block_corruption_is_detected_on_first_use(self):
+        """惰性块的损坏检测：manifest sha 被同步改写时，打开不解析 nav/issues；
+        首次访问该块时按块 CRC 拒绝（整份 sha256 仍是打开时的第一道门）。"""
+        copy = self.root / 'nav-corrupt-record'
+        shutil.copytree(self.record, copy)
+        store_dir = copy / 'store'
+        manifest_path = store_dir / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        generation_dir = store_dir / 'generations' / manifest['generation']
+        store_bin = generation_dir / 'store.bin'
+        probe = trace_store.TraceStore(store_dir, verify='sizes')
+        try:
+            ordinal = probe.container.of_type(trace_store.BLK_NAV)[0]
+            offset = probe.container.blocks[ordinal].offset
+        finally:
+            probe.close()
+        data = bytearray(store_bin.read_bytes())
+        data[offset + 8] ^= 0xFF
+        store_bin.write_bytes(bytes(data))
+        import hashlib
+        manifest['files'][0]['sha256'] = hashlib.sha256(bytes(data)).hexdigest()
+        manifest['files'][0]['bytes'] = len(data)
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding='utf-8')
+        store = trace_store.TraceStore(store_dir, verify='full')      # 整份 sha 匹配 → 可打开
+        try:
+            with self.assertRaises(trace_store.TraceStoreError) as caught:
+                _ = store.nav
+            self.assertIn('校验和', str(caught.exception))
+        finally:
+            store.close()
+
     # -- 回退路径 ---------------------------------------------------------------------------
     def test_slow_env_forces_slow_path(self):
         self.assertIsNone(self.slow.query_index)

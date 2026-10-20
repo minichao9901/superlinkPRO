@@ -58,6 +58,9 @@ MAX_STRING_BYTES = 1 << 20
 MAX_RECORD_BYTES = 256 << 10
 MAX_RUN_INSTRUCTIONS = 4096         # 单条展开段最多指令数：保证检查点间隔与块内可解码
 DEFAULT_CHECKPOINT_INSTRUCTIONS = 4096
+# 诊断开关（t10 前后对比/复现用）：=1 时恢复“打开即解析 nav/issues、顺序整份 sha256”的旧行为。
+# 只改变加载时序，不改变任何校验内容与查询结果。
+EAGER_LOAD_ENV = 'TRACE_STORE_EAGER_LOAD'
 MAX_CALL_DEPTH = 128                # 与 flow_analysis.CallTracker 的限制一致
 FILE_TRACE = 1
 MANIFEST_NAME = 'manifest.json'
@@ -266,6 +269,11 @@ def peak_rss_bytes():
         return int(usage.ru_maxrss * (1024 if sys.platform != 'darwin' else 1))
     except Exception:
         return 0
+
+
+def eager_load_mode():
+    """``TRACE_STORE_EAGER_LOAD=1``：恢复 t10 之前的打开时序（诊断/对照专用）。"""
+    return os.environ.get(EAGER_LOAD_ENV, '').strip().lower() in ('1', 'true', 'yes', 'on')
 
 
 def _json_bytes(value):
@@ -1661,6 +1669,32 @@ class _Static:
             setattr(self, key, value)
 
 
+class _ManifestVerifier(threading.Thread):
+    """后台整份 sha256 校验（`verify='full'`）：与块加载/索引解析重叠，不降低完整性。
+
+    manifest 声明的每个文件仍**整份**计算 sha256 并与声明比对（不抽样、不按体积放宽）；
+    只是把它从“阻塞在打开前”改为“与后续块加载并行”，打开返回前 join 并抛出同样的错误。
+    """
+
+    def __init__(self, generation_dir, entries):
+        super().__init__(daemon=True, name='trace-store-verify')
+        self.generation_dir = Path(generation_dir)
+        self.entries = list(entries)
+        self.error = None
+
+    def run(self):
+        try:
+            for entry in self.entries:
+                path = self.generation_dir / str(entry.get('name'))
+                if _sha256_file(path) != entry.get('sha256'):
+                    self.error = TraceStoreError(
+                        '文件 sha256 与 manifest 不符：%s（输入或存储被改动）'
+                        % entry.get('name'))
+                    return
+        except BaseException as error:          # noqa: BLE001 - 打开线程内错误需在主线程重抛
+            self.error = error
+
+
 class TraceStore:
     """trace-store v1 只读视图：按页/窗口/任意 seq 无损展开旧事件。"""
 
@@ -1703,8 +1737,17 @@ class TraceStore:
             if stat.st_size != entry.get('bytes'):
                 raise TraceStoreError('文件长度与 manifest 不符：%s（%d≠%s）'
                                       % (name, stat.st_size, entry.get('bytes')))
-            if verify == 'full' and _sha256_file(path) != entry.get('sha256'):
-                raise TraceStoreError('文件 sha256 与 manifest 不符：%s（输入或存储被改动）' % name)
+        verifier = None
+        if verify == 'full' and eager_load_mode():
+            for entry in files:
+                if _sha256_file(generation_dir / str(entry.get('name'))) \
+                        != entry.get('sha256'):
+                    raise TraceStoreError('文件 sha256 与 manifest 不符：%s（输入或存储被改动）'
+                                          % entry.get('name'))
+        elif verify == 'full':
+            # 整份 sha256 仍校验，只是与块加载/索引解析并行；返回前 join 并抛出同样的错误。
+            verifier = _ManifestVerifier(generation_dir, files)
+            verifier.start()
         tag = manifest.get('generationTag')
         try:
             generation_tag = int(str(tag), 16) if str(tag).lower().startswith('0x') else int(tag)
@@ -1718,7 +1761,11 @@ class TraceStore:
             self.meta = self._json_block(BLK_META, required=True)
             self.summary = self._json_block(BLK_SUMMARY, required=True)
             self.sources = self._json_block(BLK_SOURCES, required=True)
-            self.issues_list = self._json_block(BLK_ISSUES, required=False, default=[])
+            # 块 10（issues）与块 5（nav）惰性解析：打开时不付 json/varint 解析成本；
+            # 首次访问时才解析（块首次读取仍做 CRC 校验，manifest sha256 已在上面整份校验）。
+            self._issues = None
+            self._extra_issues = []
+            self._nav = None
             if self.meta.get('schemaVersion') != SCHEMA_VERSION:
                 raise TraceStoreError('meta.schemaVersion 不受支持')
             self.field_presence = self.meta.get('fieldPresence') or {}
@@ -1750,12 +1797,47 @@ class TraceStore:
                 raise TraceStoreError('块级 seq 范围与 meta 声明不符')
             if int(counts.get('events') or 0) != self.last_seq - self.first_seq + 1:
                 raise TraceStoreError('seq 有效范围与事件条数不符')
-            self._load_nav()
             self._load_checkpoints()
             self._load_query_index()
+            if eager_load_mode():
+                # 旧行为：打开时即解析 nav 与 issues（含其结构校验）。
+                _ = self.nav
+                _ = self.issues_list
+            if verifier is not None:
+                verifier.join()
+                if verifier.error is not None:
+                    raise verifier.error
         except Exception:
             self.container.close()
             raise
+
+    # -- 惰性块（nav / issues）---------------------------------------------------------------
+    @property
+    def nav(self):
+        """稀疏导航 seq 表（块 5）：首次访问时解析（含严格递增/范围校验）。"""
+        if self._nav is None:
+            self._load_nav()
+        return self._nav
+
+    @nav.setter
+    def nav(self, value):
+        self._nav = value
+
+    @property
+    def issues_list(self):
+        """issues（块 10）：首次访问时解析；打开期间产生的 query-index issue 一并合并。"""
+        if self._issues is None:
+            loaded = self._json_block(BLK_ISSUES, required=False, default=[])
+            self._issues = list(loaded) + list(self._extra_issues)
+            self._extra_issues = []
+        elif self._extra_issues:
+            self._issues.extend(self._extra_issues)
+            self._extra_issues = []
+        return self._issues
+
+    @issues_list.setter
+    def issues_list(self, value):
+        self._issues = value
 
     # -- 基础加载 ----------------------------------------------------------------------------
     def _json_block(self, block_type, required, default=None):
@@ -1870,7 +1952,7 @@ class TraceStore:
         self.packet_count = total
 
     def _load_nav(self):
-        self.nav = {mode: [] for mode in NAV_NAMES}
+        self._nav = {mode: [] for mode in NAV_NAMES}
         for index in self.container.of_type(BLK_NAV):
             payload = self.container.block(index)
             if len(payload) < 2:
@@ -1883,7 +1965,7 @@ class TraceStore:
             count, position = _dvar(payload, position)
             if count > (1 << 32):
                 raise TraceStoreError('导航计数无效：%d' % count)
-            target = self.nav[mode]
+            target = self._nav[mode]
             if count:
                 value, position = _dvar(payload, position)
                 target.append(value)
@@ -1893,7 +1975,7 @@ class TraceStore:
                     target.append(value)
             if position != len(payload):
                 raise TraceStoreError('导航块有多余数据')
-        for values in self.nav.values():
+        for values in self._nav.values():
             if any(a >= b for a, b in zip(values, values[1:])):
                 raise TraceStoreError('导航索引未严格递增')
             if any(not 0 <= value <= self.last_seq for value in values):
@@ -1943,12 +2025,13 @@ class TraceStore:
             self._record_index_issue(error)
 
     def _record_index_issue(self, error):
-        issues = getattr(self, 'issues_list', None)
-        if not isinstance(issues, list):
-            return
-        issues.append(dict(category='query-index', startSeq=self.first_seq,
-                           endSeq=self.first_seq, offset=0, records=0,
-                           reason='查询索引不可用，已回退慢路径：%s' % error))
+        entry = dict(category='query-index', startSeq=self.first_seq,
+                     endSeq=self.first_seq, offset=0, records=0,
+                     reason='查询索引不可用，已回退慢路径：%s' % error)
+        if self._issues is not None:
+            self._issues.append(entry)
+        else:
+            self._extra_issues.append(entry)
 
     def _disable_query_index(self, what, error):
         self.query_index = None
