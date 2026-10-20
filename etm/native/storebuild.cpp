@@ -2236,6 +2236,20 @@ std::vector<uint8_t> zlib_compress(const std::vector<uint8_t>& input, int level 
     return output;
 }
 
+std::vector<uint8_t> read_binary_file(const fs::path& path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) fail(kExitIo, "打不开 v2 index payload：" + path.string());
+    file.seekg(0, std::ios::end);
+    const std::streamoff size = file.tellg();
+    if (size < 0) fail(kExitIo, "v2 index payload 长度无效");
+    file.seekg(0, std::ios::beg);
+    std::vector<uint8_t> bytes(static_cast<size_t>(size));
+    if (size && !read_exact(file, bytes.data(), bytes.size())) {
+        fail(kExitIo, "读 v2 index payload 失败");
+    }
+    return bytes;
+}
+
 void add_json_block(BuildOutput& output, uint16_t type, const std::string& json) {
     BuildBlock block;
     block.type = type;
@@ -2560,6 +2574,7 @@ int main(int argc, char** argv) {
             std::string out_dir;
             std::string generation;
             std::string result_path;
+            std::string index_payload_path;
             bool force_analysis = false;
             uint64_t generation_tag = 0;
             for (int index = 2; index < argc; ++index) {
@@ -2575,6 +2590,7 @@ int main(int argc, char** argv) {
                 else if (arg == "--generation-tag") generation_tag = std::stoull(next("--generation-tag"), nullptr, 0);
                 else if (arg == "--result" || arg == "--json") result_path = next("--result");
                 else if (arg == "--analysis") force_analysis = true;
+                else if (arg == "--index-payload") index_payload_path = next("--index-payload");
                 else fail(kExitUsage, "未知参数：" + arg);
             }
             if (native_path.empty()) fail(kExitUsage, "build 需要 --native");
@@ -2627,6 +2643,14 @@ int main(int argc, char** argv) {
             add_json_block(output, 8, summary.str());
             add_json_block(output, 9, "{}");
             add_json_block(output, 10, "[]");
+            if (!index_payload_path.empty()) {
+                BuildBlock query;
+                query.type = 12;
+                query.payload = read_binary_file(index_payload_path);
+                query.count = query.payload.size() >= 16
+                    ? read_u32(query.payload.data() + 12) : 0;
+                output.blocks.push_back(std::move(query));
+            }
             const auto write_started = std::chrono::steady_clock::now();
             fs::path directory(out_dir);
             std::error_code error;
