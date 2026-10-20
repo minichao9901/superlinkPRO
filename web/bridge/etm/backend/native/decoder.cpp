@@ -158,36 +158,40 @@ public:
         if (v.has_ts) flags |= 1u << 1;
         if (v.excep_ret) flags |= 1u << 2;
         if (text_bytes) flags |= 1u << 3;
-        put8(kRecordElement);
-        put32((uint32_t)(61 + text_bytes));
-        put8((uint8_t)v.etype);
-        put8((uint8_t)v.isa);
-        put8(v.id);
-        put8((uint8_t)(v.last_exec ? 1 : 0));
-        put8((uint8_t)(v.last_cond ? 1 : 0));
-        put8(flags);
-        put32(v.flags);
-        put32(v.cycle);
-        put32(v.payload);
-        put16((uint16_t)v.last_type);
-        put16((uint16_t)v.last_subtype);
-        put64(v.offset);
-        put64(v.start);
-        put64(v.end);
-        put64(v.timestamp);
-        put16((uint16_t)text_bytes);
+        char record[61];
+        record[0] = kRecordElement;
+        store_little(record + 1, (uint32_t)(61 + text_bytes));
+        record[5] = (char)v.etype;
+        record[6] = (char)v.isa;
+        record[7] = (char)v.id;
+        record[8] = v.last_exec ? 1 : 0;
+        record[9] = v.last_cond ? 1 : 0;
+        record[10] = (char)flags;
+        store_little(record + 11, (uint32_t)v.flags);
+        store_little(record + 15, (uint32_t)v.cycle);
+        store_little(record + 19, (uint32_t)v.payload);
+        store_little(record + 23, (uint16_t)v.last_type);
+        store_little(record + 25, (uint16_t)v.last_subtype);
+        store_little(record + 27, v.offset);
+        store_little(record + 35, v.start);
+        store_little(record + 43, v.end);
+        store_little(record + 51, v.timestamp);
+        store_little(record + 59, (uint16_t)text_bytes);
+        put_bytes(record, sizeof(record));
         if (text_bytes) put_bytes(text, text_bytes);
         elements_++;
         maybe_flush();
     }
 
     void add_packet(ocsd_trc_index_t index, uint32_t type_code, uint32_t size, const uint8_t *data) {
-        put8(kRecordPacket);
-        put32(22 + size);
-        put32(type_code);
-        put8(0);              // flags：当前没有包文字（分类由类型码 + 名称表复现）
-        put64((uint64_t)index);
-        put32(size);
+        char record[22];
+        record[0] = kRecordPacket;
+        store_little(record + 1, (uint32_t)(22 + size));
+        store_little(record + 5, type_code);
+        record[9] = 0;        // flags：无包文字，分类由类型码 + 名称表复现。
+        store_little(record + 10, (uint64_t)index);
+        store_little(record + 18, size);
+        put_bytes(record, sizeof(record));
         if (size) put_bytes(data, size);
         packets_++;
         maybe_flush();
@@ -232,9 +236,23 @@ private:
     bool opened_ = false;
 
     void put8(uint8_t v) { buf_.push_back((char)v); }
-    void put16(uint16_t v) { put8((uint8_t)(v & 0xFF)); put8((uint8_t)((v >> 8) & 0xFF)); }
-    void put32(uint32_t v) { for (int i = 0; i < 4; i++) put8((uint8_t)((v >> (8 * i)) & 0xFF)); }
-    void put64(uint64_t v) { for (int i = 0; i < 8; i++) put8((uint8_t)((v >> (8 * i)) & 0xFF)); }
+    template <typename T> static void store_little(char* out, T value) {
+#if defined(_WIN32) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+        std::memcpy(out, &value, sizeof(value));
+#else
+        for (size_t i = 0; i < sizeof(value); ++i) out[i] = (char)(value >> (8 * i));
+#endif
+    }
+    template <typename T> void put_little(T value) {
+#if defined(_WIN32) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+        buf_.append(reinterpret_cast<const char*>(&value), sizeof(value));
+#else
+        for (size_t i = 0; i < sizeof(value); ++i) put8((uint8_t)(value >> (8 * i)));
+#endif
+    }
+    void put16(uint16_t v) { put_little(v); }
+    void put32(uint32_t v) { put_little(v); }
+    void put64(uint64_t v) { put_little(v); }
     void put_bytes(const void *data, size_t size) { buf_.append((const char *)data, size); }
     void maybe_flush() { if (buf_.size() >= kFlushBytes) flush(); }
     void flush() {
@@ -256,7 +274,8 @@ static ocsd_datapath_resp_t element(const void *, ocsd_trc_index_t index, uint8_
         // 正常路径不调用 ocsd_gen_elem_str：只有 events.jsonl 的 text 字段确实需要的
         // 稀有元素类型（NO_SYNC/TRACE_ON/EO_TRACE/I_RANGE_NOPATH/ADDR_NACC/ADDR_UNKNOWN/
         // EXCEPTION/EXCEPTION_RET）才生成说明文字。
-        char text[2048] = {0};
+        char text[2048];
+        text[0] = 0;
         if (view.needs_text) ocsd_gen_elem_str(e, text, sizeof(text));
         binary_writer.add_element(view, text);
         return OCSD_RESP_CONT;

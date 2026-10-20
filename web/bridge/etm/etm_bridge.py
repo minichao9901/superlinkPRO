@@ -5,7 +5,7 @@ from urllib.request import urlopen
 from flask import send_file
 from werkzeug.serving import make_server
 
-VERSION='1.0.13'
+VERSION='1.0.14-native.1'
 HERE=Path(__file__).resolve().parent
 for stream in (sys.stdout,sys.stderr):
     if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf8',errors='replace')
@@ -80,7 +80,12 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port',type=int);parser.add_argument('--config',type=Path,default=home/'etm.config.json')
     parser.add_argument('--data-dir',type=Path,default=home/'data');parser.add_argument('--check',action='store_true');parser.add_argument('--no-browser',action='store_true')
+    parser.add_argument('--engine',choices=['python','native','auto'],help='显式选择解码引擎；native 为待真机验收的实验路径')
     args=parser.parse_args();config=json.loads(args.config.read_text(encoding='utf-8-sig')) if args.config.exists() else {}
+    engine=args.engine or config.get('engine')
+    if engine is not None:
+        if engine not in ('python','native','auto'):raise ValueError('engine 必须为 python、native 或 auto')
+        os.environ.update(ETM_STORE_WRITE='1',ETM_STORE_ENGINE=engine)
     port=args.port if args.port is not None else int(config.get('port',8878))
     if not 1024<=port<=65535:raise ValueError('端口必须在 1024～65535 之间')
     data=args.data_dir.resolve();backend=runtime/'backend';toolbox=home/'toolbox'

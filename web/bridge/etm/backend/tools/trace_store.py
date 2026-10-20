@@ -58,6 +58,9 @@ MAX_STRING_BYTES = 1 << 20
 MAX_RECORD_BYTES = 256 << 10
 MAX_RUN_INSTRUCTIONS = 4096         # 单条展开段最多指令数：保证检查点间隔与块内可解码
 DEFAULT_CHECKPOINT_INSTRUCTIONS = 4096
+# 诊断开关（t10 前后对比/复现用）：=1 时恢复“打开即解析 nav/issues、顺序整份 sha256”的旧行为。
+# 只改变加载时序，不改变任何校验内容与查询结果。
+EAGER_LOAD_ENV = 'TRACE_STORE_EAGER_LOAD'
 MAX_CALL_DEPTH = 128                # 与 flow_analysis.CallTracker 的限制一致
 FILE_TRACE = 1
 MANIFEST_NAME = 'manifest.json'
@@ -75,12 +78,17 @@ BLK_SUMMARY = 8
 BLK_SOURCES = 9
 BLK_ISSUES = 10
 BLK_CHECKPOINTS = 11
+BLK_QUERY = 12                      # R1 持久化查询索引（可选块；旧记录没有它）
 BLOCK_NAMES = {BLK_STRINGS: 'strings', BLK_STATIC: 'static', BLK_SEQUENCE: 'sequence',
                BLK_PACKETS: 'packets', BLK_NAV: 'nav', BLK_AGG: 'agg', BLK_META: 'meta',
                BLK_SUMMARY: 'summary', BLK_SOURCES: 'sources', BLK_ISSUES: 'issues',
-               BLK_CHECKPOINTS: 'checkpoints'}
+               BLK_CHECKPOINTS: 'checkpoints', BLK_QUERY: 'query'}
 NAV_BLOCK_TYPES = {BLK_STRINGS, BLK_STATIC, BLK_SEQUENCE, BLK_PACKETS, BLK_NAV, BLK_AGG,
-                   BLK_META, BLK_SUMMARY, BLK_SOURCES, BLK_ISSUES, BLK_CHECKPOINTS}
+                   BLK_META, BLK_SUMMARY, BLK_SOURCES, BLK_ISSUES, BLK_CHECKPOINTS,
+                   BLK_QUERY}
+# 文件头 optional_features 位：存在 12 号查询索引块（required_features 恒为 0，
+# 旧读取器读到未知块类型会明确报错而不是错读；见 docs/etm-r1-query-design.md §3.1）。
+QUERY_INDEX_FEATURE = 0x0001
 
 # 序列记录类型
 REC_RUN = 1
@@ -263,6 +271,11 @@ def peak_rss_bytes():
         return 0
 
 
+def eager_load_mode():
+    """``TRACE_STORE_EAGER_LOAD=1``：恢复 t10 之前的打开时序（诊断/对照专用）。"""
+    return os.environ.get(EAGER_LOAD_ENV, '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
 def _json_bytes(value):
     return json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
 
@@ -395,6 +408,21 @@ class _Container:
         return [index for index, entry in enumerate(self.blocks)
                 if entry.block_type == block_type]
 
+    def raw_block(self, index):
+        """原始块字节（保留压缩标志，不解压、不写缓存）；索引重建时按块复制用。"""
+        if not 0 <= index < len(self.blocks):
+            raise TraceStoreError('块索引越界：%d' % index)
+        entry = self.blocks[index]
+        with self._lock:
+            self._handle.seek(entry.offset)
+            payload = self._handle.read(entry.length)
+        if len(payload) != entry.length:
+            raise TraceStoreError('块 %d 被截断' % index)
+        if self.verify_crc and _crc32(payload) != entry.crc32:
+            raise TraceStoreError('块 %d 校验和错误（%s 块）'
+                                  % (index, BLOCK_NAMES.get(entry.block_type, '?')))
+        return payload
+
     def close(self):
         with self._lock:
             self._cache.clear()
@@ -428,6 +456,32 @@ class _BlockSink:
         self.handle.write(payload)
         self.total += len(payload)
 
+    def add_raw(self, block_type, payload, count, flags=0):
+        """按已有块的原始字节/标志复制（索引重建复制 store.bin 用；CRC 重新计算）。"""
+        if not isinstance(payload, (bytes, bytearray)):
+            payload = bytes(payload)
+        if len(payload) > MAX_BLOCK_BYTES:
+            raise TraceStoreError('块长度 %d 超过上限 %d' % (len(payload), MAX_BLOCK_BYTES))
+        if int(flags) & ~0x1:
+            raise TraceStoreError('块标志位未知：0x%04x' % int(flags))
+        self.entries.append((self.total, len(payload), int(count), int(block_type),
+                             int(flags), _crc32(payload)))
+        self.handle.write(payload)
+        self.total += len(payload)
+
+    def payload(self, index):
+        """读取已写入 sink 的第 index 块原始字节（不关闭/不移动文件指针）。"""
+        if not 0 <= index < len(self.entries):
+            raise TraceStoreError('块索引越界：%d' % index)
+        offset, length = self.entries[index][0], self.entries[index][1]
+        position = self.handle.tell()
+        self.handle.seek(offset)
+        data = self.handle.read(length)
+        self.handle.seek(position)
+        if len(data) != length:
+            raise TraceStoreError('块 %d 被截断' % index)
+        return data
+
     def add_compressed_json(self, block_type, value):
         raw = _json_bytes(value)
         compressed = zlib.compress(raw, 6)
@@ -439,7 +493,7 @@ class _BlockSink:
         else:
             self.add(block_type, raw, len(raw))
 
-    def assemble(self, path, generation_tag):
+    def assemble(self, path, generation_tag, optional_features=0):
         """把临时 payload 拼成最终文件；边写边算 sha256。"""
         blocks = len(self.entries)
         if blocks <= 0 or blocks > MAX_BLOCKS:
@@ -456,7 +510,7 @@ class _BlockSink:
         header[0:8] = MAGIC
         struct.pack_into('<HHI', header, 8, SCHEMA_VERSION, FILE_TRACE, BYTE_ORDER_MARK)
         struct.pack_into('<QIIQQII', header, 16, generation_tag, blocks, 0,
-                         payload_bytes, file_bytes, 0, 0)
+                         payload_bytes, file_bytes, 0, int(optional_features))
         struct.pack_into('<I', header, 48, _crc32(bytes(header[:48])))
         digest = hashlib.sha256()
         with open(path, 'wb') as output:
@@ -1615,11 +1669,40 @@ class _Static:
             setattr(self, key, value)
 
 
+class _ManifestVerifier(threading.Thread):
+    """后台整份 sha256 校验（`verify='full'`）：与块加载/索引解析重叠，不降低完整性。
+
+    manifest 声明的每个文件仍**整份**计算 sha256 并与声明比对（不抽样、不按体积放宽）；
+    只是把它从“阻塞在打开前”改为“与后续块加载并行”，打开返回前 join 并抛出同样的错误。
+    """
+
+    def __init__(self, generation_dir, entries):
+        super().__init__(daemon=True, name='trace-store-verify')
+        self.generation_dir = Path(generation_dir)
+        self.entries = list(entries)
+        self.error = None
+
+    def run(self):
+        try:
+            for entry in self.entries:
+                path = self.generation_dir / str(entry.get('name'))
+                if _sha256_file(path) != entry.get('sha256'):
+                    self.error = TraceStoreError(
+                        '文件 sha256 与 manifest 不符：%s（输入或存储被改动）'
+                        % entry.get('name'))
+                    return
+        except BaseException as error:          # noqa: BLE001 - 打开线程内错误需在主线程重抛
+            self.error = error
+
+
 class TraceStore:
     """trace-store v1 只读视图：按页/窗口/任意 seq 无损展开旧事件。"""
 
     def __init__(self, folder, verify='full', verify_crc=True):
         self.folder = Path(folder).resolve()
+        # R1 查询索引（可选块 12）：缺失/损坏时为 None，window/timeline 走原慢路径。
+        self.query_index = None
+        self.query_index_error = None
         manifest_path = self.folder / MANIFEST_NAME
         if not manifest_path.is_file():
             raise TraceStoreError('不是已发布的 trace-store：缺少 %s（可能只写入了未完成的 '
@@ -1654,8 +1737,17 @@ class TraceStore:
             if stat.st_size != entry.get('bytes'):
                 raise TraceStoreError('文件长度与 manifest 不符：%s（%d≠%s）'
                                       % (name, stat.st_size, entry.get('bytes')))
-            if verify == 'full' and _sha256_file(path) != entry.get('sha256'):
-                raise TraceStoreError('文件 sha256 与 manifest 不符：%s（输入或存储被改动）' % name)
+        verifier = None
+        if verify == 'full' and eager_load_mode():
+            for entry in files:
+                if _sha256_file(generation_dir / str(entry.get('name'))) \
+                        != entry.get('sha256'):
+                    raise TraceStoreError('文件 sha256 与 manifest 不符：%s（输入或存储被改动）'
+                                          % entry.get('name'))
+        elif verify == 'full':
+            # 整份 sha256 仍校验，只是与块加载/索引解析并行；返回前 join 并抛出同样的错误。
+            verifier = _ManifestVerifier(generation_dir, files)
+            verifier.start()
         tag = manifest.get('generationTag')
         try:
             generation_tag = int(str(tag), 16) if str(tag).lower().startswith('0x') else int(tag)
@@ -1669,7 +1761,11 @@ class TraceStore:
             self.meta = self._json_block(BLK_META, required=True)
             self.summary = self._json_block(BLK_SUMMARY, required=True)
             self.sources = self._json_block(BLK_SOURCES, required=True)
-            self.issues_list = self._json_block(BLK_ISSUES, required=False, default=[])
+            # 块 10（issues）与块 5（nav）惰性解析：打开时不付 json/varint 解析成本；
+            # 首次访问时才解析（块首次读取仍做 CRC 校验，manifest sha256 已在上面整份校验）。
+            self._issues = None
+            self._extra_issues = []
+            self._nav = None
             if self.meta.get('schemaVersion') != SCHEMA_VERSION:
                 raise TraceStoreError('meta.schemaVersion 不受支持')
             self.field_presence = self.meta.get('fieldPresence') or {}
@@ -1701,11 +1797,47 @@ class TraceStore:
                 raise TraceStoreError('块级 seq 范围与 meta 声明不符')
             if int(counts.get('events') or 0) != self.last_seq - self.first_seq + 1:
                 raise TraceStoreError('seq 有效范围与事件条数不符')
-            self._load_nav()
             self._load_checkpoints()
+            self._load_query_index()
+            if eager_load_mode():
+                # 旧行为：打开时即解析 nav 与 issues（含其结构校验）。
+                _ = self.nav
+                _ = self.issues_list
+            if verifier is not None:
+                verifier.join()
+                if verifier.error is not None:
+                    raise verifier.error
         except Exception:
             self.container.close()
             raise
+
+    # -- 惰性块（nav / issues）---------------------------------------------------------------
+    @property
+    def nav(self):
+        """稀疏导航 seq 表（块 5）：首次访问时解析（含严格递增/范围校验）。"""
+        if self._nav is None:
+            self._load_nav()
+        return self._nav
+
+    @nav.setter
+    def nav(self, value):
+        self._nav = value
+
+    @property
+    def issues_list(self):
+        """issues（块 10）：首次访问时解析；打开期间产生的 query-index issue 一并合并。"""
+        if self._issues is None:
+            loaded = self._json_block(BLK_ISSUES, required=False, default=[])
+            self._issues = list(loaded) + list(self._extra_issues)
+            self._extra_issues = []
+        elif self._extra_issues:
+            self._issues.extend(self._extra_issues)
+            self._extra_issues = []
+        return self._issues
+
+    @issues_list.setter
+    def issues_list(self, value):
+        self._issues = value
 
     # -- 基础加载 ----------------------------------------------------------------------------
     def _json_block(self, block_type, required, default=None):
@@ -1820,7 +1952,7 @@ class TraceStore:
         self.packet_count = total
 
     def _load_nav(self):
-        self.nav = {mode: [] for mode in NAV_NAMES}
+        self._nav = {mode: [] for mode in NAV_NAMES}
         for index in self.container.of_type(BLK_NAV):
             payload = self.container.block(index)
             if len(payload) < 2:
@@ -1833,7 +1965,7 @@ class TraceStore:
             count, position = _dvar(payload, position)
             if count > (1 << 32):
                 raise TraceStoreError('导航计数无效：%d' % count)
-            target = self.nav[mode]
+            target = self._nav[mode]
             if count:
                 value, position = _dvar(payload, position)
                 target.append(value)
@@ -1843,7 +1975,7 @@ class TraceStore:
                     target.append(value)
             if position != len(payload):
                 raise TraceStoreError('导航块有多余数据')
-        for values in self.nav.values():
+        for values in self._nav.values():
             if any(a >= b for a, b in zip(values, values[1:])):
                 raise TraceStoreError('导航索引未严格递增')
             if any(not 0 <= value <= self.last_seq for value in values):
@@ -1873,6 +2005,38 @@ class TraceStore:
             raise TraceStoreError('首个检查点 seq 与记录起点不符')
         if any(a >= b for a, b in zip(self._checkpoint_seqs, self._checkpoint_seqs[1:])):
             raise TraceStoreError('检查点 seq 未严格递增')
+
+    # -- 查询索引（R1）-----------------------------------------------------------------------
+    def _load_query_index(self):
+        """加载 12 号查询索引块：缺失 → None（旧记录慢路径）；损坏 → issue + None。
+
+        与 `docs/etm-r1-query-design.md` §3.1 一致：版本/自洽校验失败时**回退慢路径**并记录
+        `query-index` 问题，绝不返回拼凑结果；`TRACE_STORE_SLOW=1` 强制走慢路径做 oracle。
+        """
+        try:
+            import trace_store_index
+        except ImportError:                     # 裁剪安装：没有索引模块就按旧记录处理
+            return
+        try:
+            self.query_index = trace_store_index.load_query_index(self)
+        except Exception as error:              # noqa: BLE001 - 任何索引错误都回退慢路径
+            self.query_index = None
+            self.query_index_error = str(error)
+            self._record_index_issue(error)
+
+    def _record_index_issue(self, error):
+        entry = dict(category='query-index', startSeq=self.first_seq,
+                     endSeq=self.first_seq, offset=0, records=0,
+                     reason='查询索引不可用，已回退慢路径：%s' % error)
+        if self._issues is not None:
+            self._issues.append(entry)
+        else:
+            self._extra_issues.append(entry)
+
+    def _disable_query_index(self, what, error):
+        self.query_index = None
+        self.query_index_error = '%s：%s' % (what, error)
+        self._record_index_issue(error)
 
     # -- 展开 --------------------------------------------------------------------------------
     def _decode_tracker(self, payload, position, end):
@@ -2191,7 +2355,27 @@ class TraceStore:
                                       == self.counts.get('executed')
                                       and sum(entry['rareEvents'] for entry in spans)
                                       == self.counts.get('rareEvents')),
-                    seqRange=[self.first_seq, self.last_seq])
+                    seqRange=[self.first_seq, self.last_seq],
+                    queryIndex=self._query_index_summary())
+
+    def _query_index_summary(self):
+        index = self.query_index
+        if index is None:
+            return dict(available=False, error=self.query_index_error)
+        meta = index.meta
+        nav = meta.get('nav') or None
+        return dict(available=True, version=int(meta.get('version') or 0),
+                    container=(meta.get('container') or 'v1'),
+                    cellSize=int(meta.get('cellSize') or 0),
+                    cells=int(meta.get('cells') or 0),
+                    segmentCount=int(meta.get('segmentCount') or 0),
+                    functionSegments=int(meta.get('functionSegments') or 0),
+                    defaultViews=sorted((meta.get('defaultViews') or {})),
+                    # 块 12 导航表（t14）：旧索引无此表（None）→ nav 回退 sidecar
+                    nav=(None if nav is None else dict(
+                        cellSize=int(nav.get('cellSize') or 0),
+                        pcCellPairs=int(nav.get('pcCellPairs') or 0),
+                        lineRuns=int(nav.get('lineRuns') or 0))))
 
     # -- page ---------------------------------------------------------------------------------
     def page(self, view='events', offset=0, limit=150, search='', hide_skipped=False,
@@ -2306,6 +2490,19 @@ class TraceStore:
 
     # -- window ------------------------------------------------------------------------------
     def window(self, start=None, end=None, bins=1200):
+        """全段/任意区间窗口：有查询索引时走快路径，失败明确回退慢路径。
+
+        快路径与 `_window`（JSONL oracle）逐字段同义；`TRACE_STORE_SLOW=1` 时
+        `query_index=None`，这里直接走 `_window`，供 50+ 区间对照。
+        """
+        index = self.query_index
+        if index is not None:
+            try:
+                return index.window(start, end, bins)
+            except TraceStoreError:
+                raise                            # 区间参数错误：与参考实现同类型
+            except Exception as error:           # noqa: BLE001 - 索引内部错误一律回退
+                self._disable_query_index('window', error)
         return self._window(start, end, bins)
 
     def _window(self, start=None, end=None, bins=1200):
@@ -2464,7 +2661,20 @@ class TraceStore:
 
     def function_timeline(self, start=None, end=None, search='', hide_skipped=False,
                           bins=1600, max_functions=6):
-        """与 record_store.RecordStore.function_timeline 同义的兼容实现。"""
+        """与 record_store.RecordStore.function_timeline 同义的兼容实现。
+
+        无筛选（`search`/`hide_skipped` 为空）时优先走查询索引快路径；筛选口径仍走慢路径
+        （首条指令、隐藏未成立与搜索文本必须与参考逐字段一致，R1 不冒进）。
+        """
+        index = self.query_index
+        if index is not None and not search and not hide_skipped:
+            try:
+                return index.function_timeline(start, end, search, hide_skipped,
+                                               bins, max_functions)
+            except TraceStoreError:
+                raise
+            except Exception as error:           # noqa: BLE001 - 索引内部错误一律回退
+                self._disable_query_index('function_timeline', error)
         bins = max(240, min(2400, int(bins)))
         max_functions = max(1, min(10, int(max_functions)))
         total_start, total_end = self.first_seq, self.last_seq
@@ -2559,6 +2769,20 @@ class TraceStore:
     # -- 导航/源码/问题 ----------------------------------------------------------------------
     def navigate(self, seq=0, direction=1, mode='instruction', pc=None, start=None, end=None):
         """与 record_store.RecordStore.navigate 同名同义。"""
+        # R1 导航快路径由 trace_store_nav 提供（p2/t5）；这里只做一行分派 + 异常回退，
+        # 不内联导航逻辑。模块缺失/返回 None/抛异常 → 保持下面原有的 _scan 慢路径。
+        if self.query_index is not None:
+            try:
+                from trace_store_nav import navigate_fast
+            except ImportError:
+                navigate_fast = None
+            if navigate_fast is not None:
+                try:
+                    fast = navigate_fast(self, seq, direction, mode, pc, start, end)
+                except Exception:            # noqa: BLE001 - 快路径失败不改语义，回退慢路径
+                    fast = None
+                if fast is not None:
+                    return fast
         seq = int(seq)
         forward = int(direction) > 0
         if mode not in ('instruction', 'call', 'return', 'exception', 'issue', 'source'):

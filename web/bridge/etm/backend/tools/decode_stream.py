@@ -948,6 +948,34 @@ def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fra
 
     csv_path, workdir = Path(csv_path).resolve(), Path(workdir).resolve()
     config = decoder_config(config)
+    if (csv_path.suffix.lower() == '.kvdat' and store_write_enabled()
+            and os.environ.get('ETM_STORE_ENGINE') == 'native'):
+        import native_frontend
+        workdir.mkdir(parents=True, exist_ok=True)
+        prefix = workdir / '_wave'
+        frontend = native_frontend.run(csv_path,
+            config=dict(clock=clock, data=data or [1, 2, 3, 4], fraction=fraction,
+                        glitch_ns=glitch_ns, traceid=int(config['traceid'])),
+            out_prefix=prefix)
+        framing = frontend.get('framing')
+        stream_path = Path(str(prefix) + '.id%d.bin' % int(config['traceid']))
+        if not framing or not stream_path.is_file():
+            raise ValueError('原生前端没有输出所选 Trace ID 的有效 TPIU 流')
+        framing = dict(framing, phase=frontend['phase'])
+        physical = frontend['physical']
+        Path(str(prefix) + '.tpiu.bin').replace(workdir / 'tpiu.bin')
+        stream_path.replace(workdir / 'etm.bin')
+        for key, value in [('framing', framing), ('physical', physical)]:
+            (workdir / (key + '.json')).write_text(json.dumps(value, ensure_ascii=False), encoding='utf8')
+        capture = dict(name=csv_path.name, sha256=frontend['inputSha256'])
+        result = decode_stream((workdir / 'etm.bin').read_bytes(), elf, workdir, config, sources,
+                              max_events=max_events, framing=framing, physical=physical, capture=capture)
+        result['processing'] = dict(frontend='native', frontendSeconds=frontend['wallSeconds'],
+                                    frontendTiming=frontend.get('timing'))
+        (workdir / 'decoded.json').write_text(json.dumps(result, ensure_ascii=False), encoding='utf8')
+        for path in workdir.glob('_wave.*'):
+            path.unlink()
+        return result
     physical, candidates = extract(csv_path, clock, data or [1, 2, 3, 4], fraction, glitch_ns)
     valid = []
     failures=[]

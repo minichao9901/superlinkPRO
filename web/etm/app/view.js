@@ -9,7 +9,7 @@ import {HistoryView} from './history.js';
 import {normalizeSliceRecord,renderSliceTimeline,sliceIndexForRange,sliceSeqRange} from './slices.js';
 import {COMMON_TARGETS,completeClocks,targetPort} from './clock.js';
 const $=id=>document.getElementById(id),hex=n=>'0x'+(n>>>0).toString(16).padStart(8,'0'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const state={records:[],current:null,job:null,operation:false,elfInfo:null,elfId:null,elfFile:null,sourceFiles:{},sourceSnapshot:null,sourceCompat:false,sources:new SourceStore(),entryAddress:null,hseValues:{stm32h7b0:25,stm32h743:25,stm32f103ze:8},hseOverride:null,lastProfile:null,symbolAddress:null,pendingBreakpointRestore:[],lastTraceConfig:null,waiting:false,traceConfigDirty:false,sliceModel:null,sliceEventCount:null};
+const state={records:[],current:null,job:null,operation:false,elfInfo:null,elfId:null,elfFile:null,sourceFiles:{},sourceSnapshot:null,sourceCompat:false,sources:new SourceStore(),entryAddress:null,hseValues:{stm32h7b0:25,stm32h743:25,stm32f103ze:8},hseOverride:null,lastProfile:null,symbolAddress:null,pendingBreakpointRestore:[],lastTraceConfig:null,waiting:false,traceConfigDirty:false,sliceModel:null,sliceEventCount:null,capabilities:null,captureMaxSeconds:0.2,captureMaxSamples:1e8};
 const host=embeddedHost(),target=new EtmTarget(log,{host});
 /**
  * API base（本地桥地址）的三级来源 + 默认值。见 web/docs/etm-online-bridge.md。
@@ -52,10 +52,21 @@ function apiUrl(value){
   const href=(typeof location!=='undefined')?location.href:'http://127.0.0.1/';   // Node 无 location（同上）
   return new URL(value,new URL(apiBase,href)).href;
 }
+/**
+ * 请求超时按接口分档（**本值不随首屏优化调整**，R0 约定：不延长超时冒充性能修复）：
+ *   overview 300 s（大记录摘要/校验）、window 180 s、其它（含 timeline）45 s。
+ * 默认轨迹图也走这里的 45 s，但 `history.js` 已把它与 overview/首页行解耦：
+ * 图表超时只会把轨迹图自身标为失败，不影响已经渲染的首批执行流行与页面其它部分。
+ */
 async function api(path,body){return requestJson(apiBase+path,body===undefined?{}:{method:'POST',...(body instanceof FormData?{body}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})},{timeout:path.endsWith('/overview')?300000:(path.includes('/window')?180000:45000)});}
 function log(message){$('log').textContent=new Date().toLocaleTimeString('zh-CN')+' '+message+'\n'+$('log').textContent;controls();}
 function error(e){log(e.message);$('job-state').textContent=e.message;$('job-state').classList.add('bad');}
 const history=new HistoryView(api,error);
+/** 后端能力：采集时长上限以 `/api/capabilities` 为准（默认 200 ms，前端不自行放开）。
+ *  旧后端没有该接口时静默保持 200 ms；能力值只用于校验与提示，不暴露处理引擎细节。 */
+function captureLimitText(){const ms=Math.round(state.captureMaxSeconds*1000);return `单次采集上限 ${ms} ms：一次采集 + 一次解码`;}
+function applyCaptureCapability(){const ms=Math.max(1,Math.round(state.captureMaxSeconds*1000)),input=$('duration');if(!input)return;input.max=String(ms);input.title=captureLimitText();const hint=$('capture-capability-hint');if(hint)hint.textContent=captureLimitText();if(Number(input.value)>ms)input.value=String(ms);history.setCapability?.(state.capabilities);}
+async function loadCapabilities(){try{const value=await api('capabilities');if(!value||typeof value!=='object')return;const seconds=Number(value.captureMaxSeconds),samples=Number(value.captureMaxSamples);if(Number.isFinite(seconds)&&seconds>0)state.captureMaxSeconds=seconds;if(Number.isFinite(samples)&&samples>0)state.captureMaxSamples=samples;state.capabilities=value;applyCaptureCapability();}catch(e){/* 旧后端没有 /api/capabilities：保持 200 ms 默认上限 */}}
 /** 区间变化（点分片、火焰图拖选、缩放、重置）都回写分片时间轴的选中态。 */
 history.onScopeChange=()=>syncSliceTimeline();
 function on(id,fn,{exclusive=true}={}){$(id).onclick=async()=>{if(exclusive&&state.operation)return;const button=$(id),recordAction=id==='open-record',hardware=exclusive&&(id==='connect'||PROBE_ACTIONS.has(id)&&!!target.probe||id==='start'&&$('sync').checked);if(exclusive)state.operation=true;if(hardware)state.hardwareOperation=true;if(recordAction)history.setLoading(true);button.disabled=true;controls();try{await(hardware?runEmbedded(host,fn):fn());}catch(e){error(e);}finally{if(exclusive)state.operation=false;if(hardware)state.hardwareOperation=false;if(recordAction)history.setLoading(false);button.disabled=false;controls();}};}
@@ -274,7 +285,7 @@ on('start',async()=>{const sync=$('sync').checked,tokens=$('channels').value.spl
   const glitchNs=Number($('glitch-ns').value);if(!Number.isFinite(glitchNs)||glitchNs<0||glitchNs>100)throw Error('软件滤波须为 0～100 ns，0 表示关闭；尚未操作目标');
   const rate=Number($('rate').value),seconds=Number($('duration').value)/1000,threshold=Number($('threshold').value),fraction=Number($('fraction').value),requested=options();
   // 2026-10-18 产品决策：单次采集/解码/页面显示上限 200 ms（一次解码完成，不再分窗）。
-  if(!Number.isInteger(rate)||!(rate>0&&rate<=500000000&&seconds>0&&seconds<=0.2&&rate*seconds<=100000000))throw Error('采集参数无效：单次上限 200 ms（500 MSa/s 下 1 亿样本）；更长的覆盖请分多次采集；尚未操作目标');
+  if(!Number.isInteger(rate)||!(rate>0&&rate<=500000000&&seconds>0&&seconds<=state.captureMaxSeconds&&rate*seconds<=state.captureMaxSamples))throw Error(`采集参数无效：单次上限 ${Math.round(state.captureMaxSeconds*1000)} ms（能力上限 ${Number(state.captureMaxSamples).toLocaleString('zh-CN')} 样本）；更长的覆盖请分多次采集；尚未操作目标`);
   if(!Number.isFinite(threshold)||threshold< -4||threshold>4||!(fraction>0&&fraction<1))throw Error('阈值或取样相位无效；尚未操作目标');
   if(!Number.isInteger(requested.traceid)||requested.traceid<1||requested.traceid>111)throw Error('Trace ID 范围为 1～111；尚未操作目标');
   log('采集步骤：检查逻辑分析仪');const available=await api('status');if(available.captureProtocol!==2)throw Error('本地 ETM 桥版本不匹配，请重启或更新完整桥包，避免新页面混用旧解码器；尚未操作目标');if(!available.rates.includes(rate))throw Error('LA 不支持所选采样率；请选择设备支持的采样率，尚未操作目标');
@@ -304,7 +315,7 @@ on('start',async()=>{const sync=$('sync').checked,tokens=$('channels').value.spl
   // 2026-10-18 产品决策：单次采集 + 解码 + 显示统一上限 200 ms，一次解码完成，不再分窗。
   // 1 s 的采集解码要 10~30 分钟，实测判定不实用；200 ms 是仍能一次解完的完整窗口。
   const captureSeconds=Number($('duration').value)/1000;
-  if(!(captureSeconds>0)||captureSeconds>0.2)throw Error('单次采集上限 200 ms（一次采集 + 一次解码）；更长的覆盖请分多次采集。');
+  if(!(captureSeconds>0)||captureSeconds>state.captureMaxSeconds)throw Error(`单次采集上限 ${Math.round(state.captureMaxSeconds*1000)} ms（一次采集 + 一次解码）；更长的覆盖请分多次采集。`);
   stage='启动 LA 并采集';log('采集步骤：'+stage);const created=await api('capture',{rate:Number($('rate').value),seconds:captureSeconds,threshold:Number($('threshold').value),sync,decode:$('auto-decode').checked,clock:channels[0],data:channels.slice(1),fraction:Number($('fraction').value),glitchNs:Number($('glitch-ns').value),rawFormat:'kvdat',config,elfId:captureElfId,targetVerified:sync,targetSnapshot:sync?target.info:null,captureScope:sync?'business-unfiltered-window':'externally-configured-window',captureEntry,sourceSnapshot:captureSourceSnapshot});
   log('联动任务创建；起点 '+(captureEntry===null?'当前暂停位置':hex(captureEntry)));await watchJob(created.job,{resume:sync,kind:'capture'});
   }catch(e){throw new Error(stage+'失败：'+e.message,{cause:e});}},async()=>{if(sync&&target.probe){target.assertTransport();await target.clearEntryBreak();await target.restore();await resumeBreakpoints(suspendedBps);await showTarget(await target.inspect());log('本次 trace 配置与断点已恢复；目标状态已刷新');}},e=>log('采集后的清理/回读失败（未覆盖首次错误）：'+e.message));
@@ -359,7 +370,7 @@ $('help').onclick=()=>$('help-dialog').showModal();$('close-help').onclick=()=>$
 $('toggle-source').onclick=()=>{const open=document.body.classList.toggle('source-open');$('toggle-source').textContent=open?'轨迹':'源码';$('toggle-source').setAttribute('aria-expanded',String(open));};
 const divider=document.querySelector('.pane-divider');function setRatio(percent){const value=Math.max(25,Math.min(75,percent));$('analysis-panes').style.setProperty('--trace-width',value+'%');divider.setAttribute('aria-valuenow',String(Math.round(value)));}
 divider.onpointerdown=e=>{divider.setPointerCapture(e.pointerId);divider.onpointermove=v=>{if(divider.hasPointerCapture(v.pointerId)){const box=$('analysis-panes').getBoundingClientRect();setRatio((v.clientX-box.left)/box.width*100);}};divider.onpointerup=v=>divider.releasePointerCapture(v.pointerId);};divider.onkeydown=e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const value=parseFloat($('analysis-panes').style.getPropertyValue('--trace-width'))||52;setRatio(value+(e.key==='ArrowLeft'?-3:3));}};
-async function init(){state.operation=true;controls();history.setLoading(true);renderSymbols();renderBreakpoints();try{await refreshRecords();$('service-state').textContent='本地服务在线';$('service-state').className='status good';showClocks();}catch(e){error(e);}finally{state.operation=false;history.setLoading(false);controls();}}
+async function init(){state.operation=true;controls();history.setLoading(true);renderSymbols();renderBreakpoints();try{await loadCapabilities();await refreshRecords();$('service-state').textContent='本地服务在线';$('service-state').className='status good';showClocks();}catch(e){error(e);}finally{state.operation=false;history.setLoading(false);controls();}}
 const embeddedBridge={probe:()=>target.probe,busy:()=>!!(state.hardwareOperation||state.jobKind==='capture'||target.probe&&(state.job||state.waiting)),
   requestStop:async()=>{
     target.cancelEntry=true;state.captureCancelled=true;

@@ -3,6 +3,9 @@ import argparse,gzip,hashlib,json,shutil,subprocess,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stream.py','tools/stream_store.py','tools/slice_merge.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py','tools/kingst_record.py','tools/timeline_index.py','tools/native_index.py','tools/fast_window.py','tools/trace_store.py','tools/trace_store_write.py','tools/trace_store_adapter.py','tools/native_binary.py']
+FILES += ['tools/trace_store_index.py','tools/trace_store_nav.py','tools/native_facts_index.py',
+          'tools/native_pipeline.py','tools/static_dict.py','tools/native_frontend.py',
+          'tools/native_storebuild.py','tools/trace_frontend.py']
 # 可选原生索引器：只有配置时找到 SQLite3，CMakeLists 才会生成 etm_index 目标（否则 Python 回退）。
 # FindSQLite3 模块在缓存里写的是单数 INCLUDE_DIR/LIBRARY；config 模式才可能有 SQLite3_DIR。
 SQLITE_CACHE_KEYS=('SQLite3_INCLUDE_DIR','SQLite3_LIBRARY')
@@ -127,13 +130,16 @@ def publish_native_assets(source,dest,root,origins,runner=subprocess.run,revisio
     return indexer,provenance
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--etm-root',required=True,type=Path);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--etm-root',required=True,type=Path)
+    parser.add_argument('--compiler-prefix',type=Path,help='可选的本地 GCC 内部程序目录（-B）')
+    args=parser.parse_args()
     source=args.etm_root.resolve();dest=ROOT/'bridge/etm/backend';origins={}
     paths=FILES+[p.relative_to(source).as_posix() for p in (source/'web').rglob('*') if p.is_file()]
     # ⚠️ 不要在这里复制 `build-native/etm_decode.exe`：它是构建产物（gitignored），
     #    裸克隆里没有；旧顺序会先因为缺 exe 抛异常，后面的 cmake 自动构建永远轮不到（审查 R09）。
     #    exe 由下面最后一步 g++ 直接链接进快照。
-    paths+=['native/decoder.cpp','native/indexer.cpp','native/SQLITE-LICENSE.txt','vendor/OpenCSD-1.8.3/LICENSE']
+    paths+=['native/decoder.cpp','native/indexer.cpp','native/frontend.cpp','native/storebuild.cpp',
+            'native/SQLITE-LICENSE.txt','vendor/OpenCSD-1.8.3/LICENSE']
     for name in paths:
         target=dest/name;target.parent.mkdir(parents=True,exist_ok=True)
         data=(source/name).read_bytes()
@@ -155,7 +161,7 @@ def main():
             for line in file.read_text(encoding='utf8',errors='replace').splitlines():
                 if 'copyright' in line.lower() and ('20' in line or '19' in line):notices.add(line.strip().lstrip('/* ').rstrip('*/ '))
     (dest/'vendor/OpenCSD-1.8.3/NOTICES.txt').write_text('\n'.join(sorted(notices))+'\n',encoding='utf8')
-    for name in ['gcc-libs','headers','libwinpthread','winpthreads']:
+    for name in ['gcc-libs','headers','libwinpthread','winpthreads','openssl','zlib']:
         directory=Path('C:/msys64/mingw64/share/licenses')/name
         for file in directory.iterdir():
             if file.is_file():
@@ -231,7 +237,14 @@ int main(int argc,char **argv) { return decode_main(argc,argv); }
         subprocess.run(['cmake','--build',str(source/'build-native'),'--config','Release'],check=True)
     for p in libs:
         if not p.is_file():raise SystemExit(f'[sync] 自动构建后仍缺静态库：{p}')
-    subprocess.run(['C:/msys64/mingw64/bin/g++.exe','-std=c++11','-O2','-municode','-static','-static-libgcc','-static-libstdc++','-I'+str(source/'vendor/OpenCSD-1.8.3/decoder/include'),str(native),str(libs[0]),str(libs[1]),'-o',str(dest/'build-native/etm_decode.exe')],check=True)
+    compiler_options=['-B'+args.compiler_prefix.resolve().as_posix()+'/'] if args.compiler_prefix else []
+    subprocess.run(['C:/msys64/mingw64/bin/g++.exe',*compiler_options,'-std=c++11','-O2','-municode','-static','-static-libgcc','-static-libstdc++','-I'+str(source/'vendor/OpenCSD-1.8.3/decoder/include'),str(native),str(libs[0]),str(libs[1]),'-o',str(dest/'build-native/etm_decode.exe')],check=True)
+    # These helpers are required by the explicit native engine, so build errors
+    # must stop publication instead of silently shipping an older executable.
+    subprocess.run(['cmake','--build',str(source/'build-native'),'--target',
+                    'etm_frontend','etm_storebuild','--config','Release'],check=True)
+    for name in ('etm_frontend.exe','etm_storebuild.exe'):
+        shutil.copyfile(source/'build-native'/name,dest/'build-native'/name)
     # Rebuild the optional native indexer against the current source as well.
     # SQLite3 dev headers are not required for the Python fallback; a source
     # tree without them must still be able to publish a working snapshot.
