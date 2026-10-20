@@ -6,6 +6,10 @@
 * static-dict v1 读取（完整文本槽 + t8 空池两种）、PC 升序/哈希/数量校验；
 * diagnose：合成 native.bin 的元素/包/状态记录 → 与预期计数一致（instructions/
   events/ranges/executed/notTaken/exceptions/gaps/typeCounts）；
+* build：blocks 1-11 可被 TraceStore 打开；
+* **facts v2（ETMFACT2）**：header/段长自洽、RUNS 显式 runSkip、EVENTS
+  nextFunc/prevFunc/depth/prevEventSeq/textId、PATH_RUNS+NODES+LABELS 覆盖、
+  事件文本池、同输入两次字节一致、失败不留 .tmp./manifest；
 * 失败路径：坏 magic/截断/静态字典缺 PC → 非零退出与可读原因；
 * C++ 自检入口（--self-test）可用。
 
@@ -70,6 +74,27 @@ def build_native(path, *, bad_range=False):
     return path
 
 
+def build_native_nested(path):
+    """两层嵌套 IRQ（9,9,10,10）+ 单 RUN：验证 facts depth/prevFunc/路径区间。"""
+    records = [
+        _element(1, offset=0, payload=1),                       # NO_SYNC
+        _element(9, offset=10, payload=15, flags=0x40),         # EXCEPTION 外层
+        _element(9, offset=20, payload=5, flags=0x40),          # EXCEPTION 内层
+        _element(5, offset=30, start=0x100, end=0x106, payload=3,
+                 last_executed=1),
+        _element(10, offset=40, payload=0),                     # 内层返回
+        _element(10, offset=50, payload=0),                     # 外层返回
+        _element(5, offset=60, start=0x110, end=0x114, payload=2,
+                 last_executed=0),
+        _status(7, 0),
+    ]
+    header = struct.pack('<8sHHIIIQQQQQ', b'ETMNAT01', 1, 64, 0x01020304,
+                         1, 0, 7, 7, 0,
+                         sum(len(record) for record in records), 0)
+    path.write_bytes(header + b''.join(records))
+    return path
+
+
 def build_static(path, *, with_strings=True, with_extension=False):
     entries = [
         # pc, size, id, pred, flow, function,file,mnemonic,operands
@@ -113,6 +138,85 @@ def build_static(path, *, with_strings=True, with_extension=False):
             raw += row
     path.write_bytes(bytes(raw))
     return path
+
+
+FACT_V2_HEADER = struct.Struct('<8sIIQQQQQQ')     # 64 B
+FACT_V2_RUN = struct.Struct('<QQIIIBBBBII')       # 40 B
+FACT_V2_CYCLE = struct.Struct('<QQQII')           # 32 B
+FACT_V2_EVENT = struct.Struct('<QQIBBhhhiII')     # 40 B
+FACT_V2_PATH = struct.Struct('<QII')              # 16 B
+FACT_V2_NODE = struct.Struct('<iI')               # 8 B
+
+
+def read_facts_v2(path):
+    """读 facts v2（ETMFACT2）并做结构自洽校验；坏文件直接抛 AssertionError。"""
+    raw = Path(path).read_bytes()
+    (magic, version, header_bytes, instructions, runs, cycles, path_runs,
+     events, nodes) = FACT_V2_HEADER.unpack_from(raw, 0)
+    assert magic == b'ETMFACT2', magic
+    assert version == 2, version
+    assert header_bytes == FACT_V2_HEADER.size, header_bytes
+    position = header_bytes
+    run_rows = []
+    for _ in range(runs):
+        (ordinal, seq, count, block, offset, tail, _r1, _r2, _r3, skip,
+         _reserved) = FACT_V2_RUN.unpack_from(raw, position)
+        run_rows.append(dict(ordinal=ordinal, seq=seq, count=count, block=block,
+                             offset=offset, tail=tail, runSkip=skip))
+        position += FACT_V2_RUN.size
+    ids = list(struct.unpack_from('<%dI' % instructions, raw, position))
+    position += instructions * 4
+    states = list(raw[position:position + instructions])
+    position += instructions
+    cycle_rows = []
+    for _ in range(cycles):
+        ordinal, seq, count, span, _reserved = FACT_V2_CYCLE.unpack_from(raw, position)
+        cycle_rows.append(dict(ordinal=ordinal, seq=seq, cycles=count, span=span))
+        position += FACT_V2_CYCLE.size
+    event_rows = []
+    for _ in range(events):
+        (seq, payload, flags, etype, _pad, next_func, prev_func, depth, prev_seq,
+         text_id, _reserved) = FACT_V2_EVENT.unpack_from(raw, position)
+        event_rows.append(dict(seq=seq, payload=payload, flags=flags, type=etype,
+                               nextFunc=next_func, prevFunc=prev_func, depth=depth,
+                               prevSeq=prev_seq, textId=text_id))
+        position += FACT_V2_EVENT.size
+    path_rows = []
+    for _ in range(path_runs):
+        start, count, leaf = FACT_V2_PATH.unpack_from(raw, position)
+        path_rows.append(dict(start=start, count=count, leaf=leaf))
+        position += FACT_V2_PATH.size
+    node_rows = []
+    for _ in range(nodes):
+        parent, label = FACT_V2_NODE.unpack_from(raw, position)
+        node_rows.append(dict(parent=parent, label=label))
+        position += FACT_V2_NODE.size
+
+    def read_strings():
+        nonlocal position
+        count, = struct.unpack_from('<Q', raw, position)
+        position += 8
+        values = []
+        for _ in range(count):
+            length = 0
+            shift = 0
+            while True:
+                byte = raw[position]
+                position += 1
+                length |= (byte & 0x7F) << shift
+                if not byte & 0x80:
+                    break
+                shift += 7
+            values.append(raw[position:position + length].decode('utf-8'))
+            position += length
+        return values
+
+    labels = read_strings()
+    texts = read_strings()
+    assert position == len(raw), (position, len(raw))
+    return dict(instructions=instructions, runs=run_rows, ids=ids, states=states,
+                cycles=cycle_rows, events=event_rows, pathRuns=path_rows,
+                nodes=node_rows, labels=labels, texts=texts)
 
 
 class NativeStorebuildCase(unittest.TestCase):
@@ -244,6 +348,107 @@ class NativeStorebuildCase(unittest.TestCase):
             self.assertTrue(store.nav)
         finally:
             store.close()
+
+    def test_build_facts_v2_structure(self):
+        store_root = self.root / 'facts-store'
+        facts = store_root / 'facts.bin'
+        # 用带扩展文本槽的静态字典（函数名/文件/行），facts 的 LABELS/nextFunc 才有语义。
+        result = nsb.build(self.native, self.static_ext, store_root,
+                           generation='g-facts', generation_tag=0x11,
+                           facts_out=facts, native_index=True)
+        self.assertEqual(result['facts']['format'], 'ETMFACT2')
+        self.assertEqual(result['facts']['version'], 2)
+        self.assertEqual(result['facts']['bytes'], facts.stat().st_size)
+        # 不写 manifest；不留临时文件
+        self.assertFalse((store_root / 'manifest.json').exists())
+        self.assertEqual(list(store_root.glob('*.tmp.*')), [])
+        info = read_facts_v2(facts)
+        self.assertEqual(info['instructions'], 5)
+        self.assertEqual(len(info['ids']), 5)
+        self.assertEqual(len(info['states']), 5)
+        self.assertEqual(len(info['cycles']), 1)
+        self.assertEqual([event['type'] for event in info['events']], [1, 9, 10])
+        # RUNS：连续覆盖 + 显式 runSkip（原生在记录边界分块 → 0）
+        covered = 0
+        for run in info['runs']:
+            self.assertEqual(run['ordinal'], covered)
+            self.assertEqual(run['runSkip'], 0)
+            covered += run['count']
+        self.assertEqual(covered, 5)
+        # PATH_RUNS：连续覆盖；NODES：根/父链/标签池
+        covered = 0
+        for run in info['pathRuns']:
+            self.assertEqual(run['start'], covered)
+            self.assertLess(run['leaf'], len(info['nodes']))
+            covered += run['count']
+        self.assertEqual(covered, 5)
+        self.assertGreaterEqual(len(info['pathRuns']), 2)
+        self.assertEqual(info['nodes'][0]['parent'], -1)
+        for index, node in enumerate(info['nodes']):
+            self.assertTrue(-1 <= node['parent'] < index)
+            self.assertLess(node['label'], len(info['labels']))
+        self.assertEqual(info['labels'][0], '')
+        self.assertIn('main', info['labels'])
+        self.assertIn('中断 15', info['labels'])
+        # EVENTS v2：nextFunc（type-9 且下一条指令 seq 紧邻）/prevFunc/depth/prevSeq
+        by_type = {event['type']: event for event in info['events']}
+        main_label = info['labels'].index('main')
+        self.assertEqual(by_type[9]['nextFunc'], main_label)
+        self.assertEqual(by_type[1]['prevFunc'], -1)
+        self.assertEqual(by_type[1]['depth'], 0)
+        self.assertEqual(by_type[9]['depth'], 1)
+        self.assertEqual(by_type[10]['depth'], 0)
+        self.assertEqual(by_type[10]['prevFunc'], main_label)
+        self.assertEqual([event['prevSeq'] for event in info['events']], [-1, 0, 1])
+        self.assertTrue(all(event['textId'] < len(info['texts'])
+                            for event in info['events']))
+        self.assertEqual(info['texts'][0], '')
+        # 确定性：同输入两次 facts 字节一致
+        again = store_root / 'again' / 'facts.bin'
+        nsb.build(self.native, self.static_ext, store_root / 'again',
+                  generation='g-facts', generation_tag=0x11,
+                  facts_out=again, native_index=True)
+        self.assertEqual(facts.read_bytes(), again.read_bytes())
+        # 原生块 12 存在，但默认视图/块 12 的查询能力不在此任务声明
+        self.assertTrue((store_root / 'store.bin').is_file())
+
+    def test_facts_v2_nested_irq_depth(self):
+        """异常嵌套（9/9/10/10）→ depth 0/1/2/1/0，prevFunc/路径区间覆盖跨嵌套。"""
+        nested = build_native_nested(self.root / 'nested-native.bin')
+        out = self.root / 'nested-store'
+        nsb.build(nested, self.static_ext, out, generation='g-nested',
+                  generation_tag=0x12, facts_out=out / 'facts.bin')
+        info = read_facts_v2(out / 'facts.bin')
+        self.assertEqual(info['instructions'], 5)
+        self.assertEqual([event['type'] for event in info['events']],
+                         [1, 9, 9, 10, 10])
+        self.assertEqual([event['depth'] for event in info['events']],
+                         [0, 1, 2, 1, 0])
+        main_label = info['labels'].index('main')
+        # 内层 IRQ 事件后的首条指令（seq 紧邻）→ nextFunc=main；外层事件后是事件 → -1
+        self.assertEqual(info['events'][2]['nextFunc'], main_label)
+        self.assertEqual(info['events'][1]['nextFunc'], -1)
+        # 事件前最后一条指令：第一个 9/10 之前没有指令；第二个 10 之前是 main
+        self.assertEqual(info['events'][0]['prevFunc'], -1)
+        self.assertEqual(info['events'][1]['prevFunc'], -1)
+        self.assertEqual(info['events'][3]['prevFunc'], main_label)
+        self.assertEqual(info['events'][4]['prevFunc'], main_label)
+        # 路径区间连续覆盖且包含嵌套链（中断 5 在 中断 15 之下）
+        covered = 0
+        chains = []
+        for run in info['pathRuns']:
+            self.assertEqual(run['start'], covered)
+            covered += run['count']
+            chain = []
+            node = run['leaf']
+            while node > 0:
+                chain.append(info['labels'][info['nodes'][node]['label']])
+                node = info['nodes'][node]['parent']
+            chains.append(tuple(reversed(chain)))
+        self.assertEqual(covered, 5)
+        # 参考 _PathTracker 语义：IRQ 入口替换当前栈（外层保存在 contexts），
+        # 因此内层 IRQ 下的指令路径链是 ('中断 5','main')；嵌套深度由 depth 表达。
+        self.assertIn(('中断 5', 'main'), chains)
 
     def test_bad_native_fails_readably(self):
         broken = self.root / 'broken-native.bin'

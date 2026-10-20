@@ -1243,6 +1243,11 @@ struct BuildOutput {
     double index_seconds = 0.0;
     double facts_seconds = 0.0;
     uint64_t facts_bytes = 0;
+    uint64_t facts_path_runs = 0;
+    uint64_t facts_nodes = 0;
+    uint64_t facts_labels = 0;
+    uint64_t facts_events = 0;
+    uint64_t facts_texts = 0;
 };
 
 
@@ -1719,6 +1724,294 @@ std::string Tracker::analysis_json() const {
     return out.str();
 }
 
+// ── C1d facts v2：执行路径事实（trace_store_index._PathTracker 等价）──────────
+//
+// 参考实现：etm/tools/trace_store_index.py 的 `_PathTracker` + `build_tables()` 的
+// `ps_start/ps_count/ps_leaf` 与 `node_parent/node_label`。facts v2 只输出路径编号
+// 结果（区间 + 共享节点树 + 标签池），Python 侧不再重放 tracker。
+
+struct FactsLabelTable {
+    std::vector<std::string> values;
+    std::unordered_map<std::string, uint32_t> ids;
+    uint32_t intern(const std::string& value) {
+        auto found = ids.find(value);
+        if (found != ids.end()) return found->second;
+        if (values.size() >= 0x7FFFFFFFu) fail(kExitConsistency, "facts 标签数量越界");
+        const uint32_t identifier = static_cast<uint32_t>(values.size());
+        values.push_back(value);
+        ids.emplace(value, identifier);
+        return identifier;
+    }
+    uint32_t find(const std::string& value) const {
+        auto found = ids.find(value);
+        return found == ids.end() ? 0xFFFFFFFFu : found->second;
+    }
+};
+
+// `_PathTracker` 的逐行等价移植（事件/指令喂入、sync 变化时切路径区间）。
+class PathTracker {
+  public:
+    struct Frame {
+        std::string function;
+        bool has_return = false;
+        uint64_t return_pc = 0;
+        bool has_origin = false;
+        std::string origin;
+    };
+    struct Previous {
+        bool valid = false;
+        uint64_t pc = 0;
+        uint32_t size = 0;
+        uint8_t flow = 0;
+        uint8_t executed = 0;
+        std::string function;
+    };
+    struct Context {
+        std::vector<Frame> stack;
+        Previous previous;
+        bool has_expected = false;
+        uint64_t expected = 0;
+    };
+    explicit PathTracker(FactsLabelTable& labels) : labels_(labels) {
+        nodes_.push_back(std::make_pair(-1, labels_.intern(std::string())));
+    }
+    bool dirty() const { return dirty_; }
+    void clear_dirty() { dirty_ = false; }
+    uint32_t leaf() const { return leaf_; }
+    size_t context_depth() const { return contexts_.size(); }
+    uint64_t unknown_restarts() const { return unknown_restarts_; }
+    const std::vector<std::pair<int32_t, uint32_t>>& nodes() const { return nodes_; }
+    void feed_event(uint16_t etype, uint32_t flags, uint64_t payload, uint64_t end) {
+        if (etype == 1 || etype == 2 || etype == 6 || etype == 7 || etype == 8) {
+            stack_.clear();
+            contexts_.clear();
+            previous_ = Previous();
+            has_expected_ = false;
+            ++unknown_restarts_;
+        } else if (etype == 9) {
+            if (flags & (1u << 12)) {
+                stack_.clear();
+                contexts_.clear();
+                previous_ = Previous();
+                ++unknown_restarts_;
+            }
+            Context context;
+            context.stack = stack_;
+            context.previous = previous_;
+            context.has_expected = (flags & (1u << 6)) != 0;
+            context.expected = end;
+            contexts_.push_back(std::move(context));
+            stack_.clear();
+            stack_.push_back(Frame{std::string("中断 ") + std::to_string(payload)});
+            previous_ = Previous();
+        } else if (etype == 10) {
+            if (!contexts_.empty()) {
+                Context context = std::move(contexts_.back());
+                contexts_.pop_back();
+                stack_ = std::move(context.stack);
+                previous_ = context.previous;
+                has_expected_ = context.has_expected;
+                expected_ = context.expected;
+            } else {
+                stack_.clear();
+                previous_ = Previous();
+                ++unknown_restarts_;
+            }
+        } else {
+            return;
+        }
+        sync();
+    }
+    void feed_instruction(const std::string& function, uint8_t executed, uint8_t flow,
+                          uint64_t pc, uint32_t size) {
+        const std::string fn = function.empty() ? "(未知函数)" : function;
+        if (has_expected_) {
+            if (pc != (expected_ & ~1ull)) {
+                stack_.clear();
+                previous_ = Previous();
+                ++unknown_restarts_;
+            }
+            has_expected_ = false;
+        }
+        if (stack_.empty()) {
+            stack_.clear();
+            stack_.push_back(Frame{"采集前调用栈未知"});
+            stack_.push_back(Frame{fn});
+            sync();
+        }
+        if (stack_.back().function.rfind("中断 ", 0) == 0) {
+            stack_.push_back(Frame{fn});
+            sync();
+        }
+        if (previous_.valid && previous_.executed == 0) {
+            const std::string old_fn = previous_.function.empty() ? "(未知函数)"
+                                                                 : previous_.function;
+            if (previous_.flow == kFlowCall) {
+                Frame frame;
+                frame.function = fn;
+                frame.has_return = true;
+                frame.return_pc = previous_.pc + previous_.size;
+                frame.has_origin = true;
+                frame.origin = fn;
+                stack_.push_back(std::move(frame));
+                sync();
+            } else if (previous_.flow == kFlowReturn || previous_.flow == kFlowBranch) {
+                int match = -1;
+                for (int index = static_cast<int>(stack_.size()) - 1; index >= 0; --index) {
+                    if (stack_[index].has_return && stack_[index].return_pc == pc) {
+                        match = index;
+                        break;
+                    }
+                }
+                if (match >= 0) {
+                    stack_.resize(static_cast<size_t>(match));
+                    sync();
+                } else if (old_fn != fn && previous_.flow == kFlowBranch) {
+                    stack_.back().function = fn;
+                    sync();
+                } else if (old_fn != fn) {
+                    stack_.clear();
+                    stack_.push_back(Frame{"采集前调用栈未知"});
+                    stack_.push_back(Frame{fn});
+                    ++unknown_restarts_;
+                    sync();
+                }
+            }
+        }
+        if (stack_.empty() || stack_.back().function != fn) {
+            stack_.clear();
+            stack_.push_back(Frame{"调用关系未证实"});
+            stack_.push_back(Frame{fn});
+            ++unknown_restarts_;
+            sync();
+        }
+        if (stack_.size() > 128) {
+            fail(kExitConsistency, "调用层级超过 128，拒绝生成可能失真的调用图");
+        }
+        previous_ = Previous();
+        previous_.valid = true;
+        previous_.pc = pc;
+        previous_.size = size;
+        previous_.flow = flow;
+        previous_.executed = executed;
+        previous_.function = function;
+    }
+
+  private:
+    void sync() {
+        uint32_t node = 0;
+        for (const Frame& frame : stack_) {
+            const uint32_t label = labels_.intern(frame.function);
+            const uint64_t key = (static_cast<uint64_t>(node) << 32) | label;
+            auto found = children_.find(key);
+            uint32_t next;
+            if (found == children_.end()) {
+                next = static_cast<uint32_t>(nodes_.size());
+                nodes_.push_back(std::make_pair(static_cast<int32_t>(node), label));
+                children_.emplace(key, next);
+            } else {
+                next = found->second;
+            }
+            node = next;
+        }
+        leaf_ = node;
+        dirty_ = true;
+        ++sync_count_;
+    }
+    FactsLabelTable& labels_;
+    std::vector<Frame> stack_;
+    std::vector<Context> contexts_;
+    Previous previous_;
+    bool has_expected_ = false;
+    uint64_t expected_ = 0;
+    uint64_t unknown_restarts_ = 0;
+    std::vector<std::pair<int32_t, uint32_t>> nodes_;
+    std::unordered_map<uint64_t, uint32_t> children_;
+    uint32_t leaf_ = 0;
+    bool dirty_ = false;
+    uint64_t sync_count_ = 0;
+};
+
+// facts 落盘：4 MiB 缓冲 + 临时文件 rename（失败删除半成品）。
+class FactsSink {
+  public:
+    explicit FactsSink(const std::string& path) : final_path_(path) {
+        temp_path_ = path + ".tmp." + std::to_string(GetCurrentProcessId());
+        file_ = std::fopen(temp_path_.c_str(), "wb");
+        if (!file_) fail(kExitIo, "打不开 facts 输出");
+    }
+    ~FactsSink() { cleanup(); }
+    void put_bytes(const void* data, size_t size) {
+        const uint8_t* bytes = static_cast<const uint8_t*>(data);
+        while (size) {
+            if (buffer_.size() >= kBufferSize) flush();
+            const size_t take = std::min(size, kBufferSize - buffer_.size());
+            buffer_.insert(buffer_.end(), bytes, bytes + take);
+            bytes += take;
+            size -= take;
+        }
+    }
+    void put_u8(uint8_t value) { put_bytes(&value, 1); }
+    void put_u32(uint32_t value) {
+        uint8_t bytes[4];
+        for (int index = 0; index < 4; ++index) bytes[index] = static_cast<uint8_t>(value >> (8 * index));
+        put_bytes(bytes, 4);
+    }
+    void put_i32(int32_t value) { put_u32(static_cast<uint32_t>(value)); }
+    void put_u64(uint64_t value) {
+        uint8_t bytes[8];
+        for (int index = 0; index < 8; ++index) bytes[index] = static_cast<uint8_t>(value >> (8 * index));
+        put_bytes(bytes, 8);
+    }
+    void put_varint(uint64_t value) {
+        while (value >= 0x80) {
+            put_u8(static_cast<uint8_t>(value) | 0x80);
+            value >>= 7;
+        }
+        put_u8(static_cast<uint8_t>(value));
+    }
+    void commit() {
+        flush();
+        if (std::fflush(file_) != 0) fail(kExitIo, "写 facts 失败");
+        std::fclose(file_);
+        file_ = nullptr;
+        std::error_code error;
+        fs::rename(temp_path_, final_path_, error);
+        if (error) {
+            std::error_code ignored;
+            fs::remove(temp_path_, ignored);
+            fail(kExitIo, "重命名 facts 输出失败：" + error.message());
+        }
+        committed_ = true;
+    }
+    uint64_t bytes() const { return bytes_; }
+
+  private:
+    static constexpr size_t kBufferSize = 4u << 20;
+    void flush() {
+        if (buffer_.empty()) return;
+        if (std::fwrite(buffer_.data(), 1, buffer_.size(), file_) != buffer_.size()) {
+            fail(kExitIo, "写 facts 失败");
+        }
+        bytes_ += buffer_.size();
+        buffer_.clear();
+    }
+    void cleanup() {
+        if (!file_) return;
+        std::fclose(file_);
+        file_ = nullptr;
+        if (!committed_) {
+            std::error_code ignored;
+            fs::remove(temp_path_, ignored);
+        }
+    }
+    std::string final_path_;
+    std::string temp_path_;
+    std::FILE* file_ = nullptr;
+    std::vector<uint8_t> buffer_;
+    uint64_t bytes_ = 0;
+    bool committed_ = false;
+};
 
 struct V2Table {
     std::string name;
@@ -1990,14 +2283,67 @@ class BuildVisitor : public NativeVisitor {
         std::vector<int32_t> cell_unknown(cell_count, 0), cell_not_taken(cell_count, 0);
         std::vector<int64_t> cell_cycles(cell_count, 0), cell_first_seq(cell_count, -1);
         std::vector<int32_t> cell_cycle_runs(cell_count, 0);
-        struct FactRun { uint64_t ordinal, seq; uint32_t count, block, offset; uint8_t tail; };
+        struct FactRun { uint64_t ordinal, seq; uint32_t count, block, offset, skip; uint8_t tail; };
         struct FactCycle { uint64_t ordinal, seq, cycles; uint32_t span; };
-        struct FactEvent { uint64_t seq, payload; uint32_t flags; uint8_t type; };
+        struct FactEvent { uint64_t seq, payload; uint32_t flags; uint8_t type;
+                           int16_t next_func; int16_t prev_func; int16_t depth;
+                           int32_t prev_seq; uint32_t text_id; };
+        struct FactPathRun { uint64_t start; uint32_t count, leaf; };
         std::vector<FactRun> fact_runs;
         std::vector<FactCycle> fact_cycles;
         std::vector<uint32_t> fact_ids;
         std::vector<uint8_t> fact_states;
         std::vector<FactEvent> fact_events;
+        std::vector<FactPathRun> fact_path_runs;
+        FactsLabelTable fact_labels;
+        std::vector<std::string> fact_event_texts;
+        std::unordered_map<std::string, uint32_t> fact_event_text_ids;
+        std::unique_ptr<PathTracker> fact_path;
+        std::vector<std::string> fact_function_text(static_count);
+        std::vector<uint32_t> fact_function_label(static_count, 0);
+        if (!facts_out_.empty()) {
+            fact_labels.intern(std::string());
+            fact_event_texts.push_back(std::string());
+            fact_event_text_ids.emplace(std::string(), 0);
+            for (size_t id = 0; id < static_count; ++id) {
+                const StaticEntry* entry = static_entries_[id];
+                std::string function = entry ? entry_text(*entry, 0) : std::string();
+                if (function.empty()) function = "(未知函数)";
+                fact_function_text[id] = function;
+                fact_function_label[id] = fact_labels.intern(function);
+                if (fact_function_label[id] >= 0x7FFFu) {
+                    fail(kExitConsistency, "facts 函数标签 id 超出 i16");
+                }
+            }
+            fact_path.reset(new PathTracker(fact_labels));
+        }
+        uint64_t fact_segment_start = 0;
+        uint32_t fact_segment_leaf = 0;
+        uint32_t fact_last_function = 0xFFFFFFFFu;
+        int64_t fact_pending_event = -1;
+        uint64_t fact_pending_seq = 0;
+        int32_t fact_previous_event_seq = -1;
+        auto close_fact_segment = [&](uint64_t end_ordinal) {
+            const uint64_t count = end_ordinal - fact_segment_start;
+            if (count > 0) {
+                if (count > 0xFFFFFFFFull) fail(kExitConsistency, "facts 路径区间过长");
+                fact_path_runs.push_back(FactPathRun{fact_segment_start,
+                    static_cast<uint32_t>(count), fact_segment_leaf});
+            }
+            fact_segment_start = end_ordinal;
+            fact_segment_leaf = fact_path->leaf();
+        };
+        auto intern_fact_text = [&](const std::string& text) -> uint32_t {
+            auto found = fact_event_text_ids.find(text);
+            if (found != fact_event_text_ids.end()) return found->second;
+            if (fact_event_texts.size() >= 0xFFFFFFFFu) {
+                fail(kExitConsistency, "facts 事件文本数量越界");
+            }
+            const uint32_t identifier = static_cast<uint32_t>(fact_event_texts.size());
+            fact_event_texts.push_back(text);
+            fact_event_text_ids.emplace(text, identifier);
+            return identifier;
+        };
         std::vector<int16_t> anchor_block(cell_count, -1);
         std::vector<int32_t> anchor_offset(cell_count, -1);
         std::vector<int16_t> anchor_skip(cell_count, 0);
@@ -2028,12 +2374,58 @@ class BuildVisitor : public NativeVisitor {
                     const uint64_t event_payload = read_uv(block.data() + offset,
                                                            static_cast<size_t>(length), cursor);
                     (void)read_uv(block.data() + offset, static_cast<size_t>(length), cursor);
-                    (void)read_uv(block.data() + offset, static_cast<size_t>(length), cursor);
+                    const uint64_t event_end = read_uv(block.data() + offset,
+                                                       static_cast<size_t>(length), cursor);
                     const uint64_t event_flags = read_uv(block.data() + offset,
                                                          static_cast<size_t>(length), cursor);
+                    const uint64_t event_text_id = read_uv(block.data() + offset,
+                                                           static_cast<size_t>(length), cursor);
                     event_seqs.push_back(static_cast<uint32_t>(event_seq));
-                    fact_events.push_back(FactEvent{event_seq, event_payload,
-                        static_cast<uint32_t>(event_flags), static_cast<uint8_t>(event_type)});
+                    FactEvent fact_event;
+                    fact_event.seq = event_seq;
+                    fact_event.payload = event_payload;
+                    fact_event.flags = static_cast<uint32_t>(event_flags);
+                    fact_event.type = static_cast<uint8_t>(event_type);
+                    fact_event.next_func = -1;
+                    fact_event.prev_func = -1;
+                    fact_event.depth = 0;
+                    fact_event.prev_seq = fact_previous_event_seq;
+                    fact_event.text_id = 0;
+                    if (!facts_out_.empty()) {
+                        if (event_flags > 0xFFFFFFFFull) {
+                            fail(kExitConsistency, "facts 事件 flags 超出 u32");
+                        }
+                        std::string text;
+                        if (event_text_id < strings_.values.size()) {
+                            text = strings_.values[static_cast<size_t>(event_text_id)];
+                        }
+                        fact_event.text_id = intern_fact_text(text);
+                        fact_path->feed_event(static_cast<uint16_t>(event_type),
+                                              static_cast<uint32_t>(event_flags),
+                                              event_payload, event_end);
+                        if (fact_path->dirty()) {
+                            close_fact_segment(instruction_index);
+                            fact_path->clear_dirty();
+                        }
+                        if (fact_path->context_depth() > 0x7FFFu) {
+                            fail(kExitConsistency, "facts 事件嵌套深度超出 i16");
+                        }
+                        fact_event.depth = static_cast<int16_t>(fact_path->context_depth());
+                        if (fact_last_function != 0xFFFFFFFFu) {
+                            fact_event.prev_func = static_cast<int16_t>(fact_last_function);
+                        }
+                        if (event_type == 9) {
+                            fact_pending_event = static_cast<int64_t>(fact_events.size());
+                            fact_pending_seq = event_seq;
+                        } else {
+                            fact_pending_event = -1;
+                        }
+                        if (event_seq > 0x7FFFFFFFull) {
+                            fail(kExitConsistency, "facts 事件 seq 超出 i32");
+                        }
+                        fact_previous_event_seq = static_cast<int32_t>(event_seq);
+                    }
+                    fact_events.push_back(fact_event);
                 }
                 if (type == 1) {
                     const uint8_t* data = block.data() + offset;
@@ -2049,7 +2441,7 @@ class BuildVisitor : public NativeVisitor {
                         read_uv(data, static_cast<size_t>(length), cursor));
                     fact_runs.push_back(FactRun{instruction_index, run_start,
                         static_cast<uint32_t>(count), static_cast<uint32_t>(block_index),
-                        static_cast<uint32_t>(record_start), tail_code});
+                        static_cast<uint32_t>(record_start), 0u, tail_code});
                     if (run_cycles) {
                         fact_cycles.push_back(FactCycle{instruction_index + count - 1,
                             run_start + count - 1, run_cycles,
@@ -2097,6 +2489,23 @@ class BuildVisitor : public NativeVisitor {
                             line_start.push_back(static_cast<uint32_t>(instruction_index));
                             line_id.push_back(id);
                         }
+                        if (!facts_out_.empty()) {
+                            fact_path->feed_instruction(fact_function_text[id], executed,
+                                                        entry->flow, entry->pc, entry->size);
+                            if (fact_path->dirty()) {
+                                close_fact_segment(instruction_index);
+                                fact_path->clear_dirty();
+                            }
+                            fact_last_function = fact_function_label[id];
+                            if (fact_pending_event >= 0) {
+                                if (fact_pending_seq == run_start + position - 1) {
+                                    fact_events[static_cast<size_t>(fact_pending_event)]
+                                        .next_func = static_cast<int16_t>(
+                                            fact_function_label[id]);
+                                }
+                                fact_pending_event = -1;
+                            }
+                        }
                         ++instruction_index;
                     }
                 }
@@ -2104,6 +2513,15 @@ class BuildVisitor : public NativeVisitor {
             }
         }
         if (instruction_index != output_.instructions) fail(kExitConsistency, "v2 index 指令数不符");
+        if (!facts_out_.empty()) {
+            close_fact_segment(instruction_index);
+            uint64_t covered = 0;
+            for (const FactPathRun& run : fact_path_runs) {
+                if (run.start != covered) fail(kExitConsistency, "facts 路径区间不连续");
+                covered += run.count;
+            }
+            if (covered != instruction_index) fail(kExitConsistency, "facts 路径区间未覆盖全部指令");
+        }
         // p1 v1 参考 store 的 cell_insn/executed/unknown/not_taken/cycles/cycle_runs 为 0
         // （这些聚合在 v1 未填充）；为表级一致先写 0，cell_first_seq 保留真实值。
         std::fill(cell_insn.begin(), cell_insn.end(), 0);
@@ -2231,59 +2649,97 @@ class BuildVisitor : public NativeVisitor {
             const std::string path = facts_out_;
             std::error_code dir_error;
             fs::create_directories(fs::path(path).parent_path(), dir_error);
-            std::FILE* out = std::fopen(path.c_str(), "wb");
-            if (!out) fail(kExitIo, "打不开 facts 输出");
-            uint8_t header[64] = {};
-            std::memcpy(header, "ETMFACT1", 8);
-            const uint32_t version = 1, header_bytes = 64;
-            std::memcpy(header + 8, &version, 4);
-            std::memcpy(header + 12, &header_bytes, 4);
+            FactsSink sink(path);
             const uint64_t instruction_count = fact_ids.size();
             const uint64_t run_count = fact_runs.size();
             const uint64_t cycle_count = fact_cycles.size();
+            const uint64_t path_run_count = fact_path_runs.size();
+            const uint64_t event_count = fact_events.size();
+            const auto& nodes = fact_path->nodes();
+            const uint64_t node_count = nodes.size();
+            const uint64_t label_count = fact_labels.values.size();
+            const uint64_t text_count = fact_event_texts.size();
+            if (label_count > 0xFFFFFFFFull || text_count > 0xFFFFFFFFull
+                    || node_count > 0x7FFFFFFFull || path_run_count > 0xFFFFFFFFull) {
+                fail(kExitConsistency, "facts v2 计数超出可表示范围");
+            }
+            uint8_t header[64] = {};
+            std::memcpy(header, "ETMFACT2", 8);
+            const uint32_t version = 2, header_bytes = 64;
+            std::memcpy(header + 8, &version, 4);
+            std::memcpy(header + 12, &header_bytes, 4);
             std::memcpy(header + 16, &instruction_count, 8);
             std::memcpy(header + 24, &run_count, 8);
             std::memcpy(header + 32, &cycle_count, 8);
-            const uint64_t event_count = fact_events.size();
+            std::memcpy(header + 40, &path_run_count, 8);
             std::memcpy(header + 48, &event_count, 8);
-            std::fwrite(header, 1, 64, out);
+            std::memcpy(header + 56, &node_count, 8);
+            sink.put_bytes(header, 64);
             for (const FactRun& run : fact_runs) {
-                uint8_t row[32] = {};
-                std::memcpy(row + 0, &run.ordinal, 8);
-                std::memcpy(row + 8, &run.seq, 8);
-                std::memcpy(row + 16, &run.count, 4);
-                std::memcpy(row + 20, &run.block, 4);
-                std::memcpy(row + 24, &run.offset, 4);
-                row[28] = run.tail;
-                std::fwrite(row, 1, 32, out);
+                sink.put_u64(run.ordinal);
+                sink.put_u64(run.seq);
+                sink.put_u32(run.count);
+                sink.put_u32(run.block);
+                sink.put_u32(run.offset);
+                sink.put_u8(run.tail);          // v1 前 32B 的 tailState 位置
+                sink.put_u8(0);
+                sink.put_u8(0);
+                sink.put_u8(0);
+                sink.put_u32(run.skip);         // v2 显式 runSkip
+                sink.put_u32(0);
             }
-            std::fwrite(fact_ids.data(), 4, fact_ids.size(), out);
-            std::fwrite(fact_states.data(), 1, fact_states.size(), out);
+            for (uint32_t identifier : fact_ids) sink.put_u32(identifier);
+            sink.put_bytes(fact_states.data(), fact_states.size());
             for (const FactCycle& cycle : fact_cycles) {
-                uint8_t row[32] = {};
-                std::memcpy(row + 0, &cycle.ordinal, 8);
-                std::memcpy(row + 8, &cycle.seq, 8);
-                std::memcpy(row + 16, &cycle.cycles, 8);
-                std::memcpy(row + 24, &cycle.span, 4);
-                std::fwrite(row, 1, 32, out);
+                sink.put_u64(cycle.ordinal);
+                sink.put_u64(cycle.seq);
+                sink.put_u64(cycle.cycles);
+                sink.put_u32(cycle.span);
+                sink.put_u32(0);
             }
             for (const FactEvent& event : fact_events) {
-                uint8_t row[32] = {};
-                std::memcpy(row + 0, &event.seq, 8);
-                std::memcpy(row + 8, &event.payload, 8);
-                std::memcpy(row + 16, &event.flags, 4);
-                row[20] = event.type;
-                const int16_t next_func = -1;
-                std::memcpy(row + 22, &next_func, 2);
-                std::fwrite(row, 1, 32, out);
+                sink.put_u64(event.seq);
+                sink.put_u64(event.payload);
+                sink.put_u32(event.flags);
+                sink.put_u8(event.type);
+                sink.put_u8(0);
+                sink.put_bytes(&event.next_func, 2);
+                sink.put_bytes(&event.prev_func, 2);
+                sink.put_bytes(&event.depth, 2);
+                sink.put_i32(event.prev_seq);
+                sink.put_u32(event.text_id);
+                sink.put_u32(0);
             }
-            std::fflush(out);
-            out_bytes_ = 64 + fact_runs.size() * 32 + fact_ids.size() * 4
-                + fact_states.size() + fact_cycles.size() * 32
-                + fact_events.size() * 32;
-            std::fclose(out);
+            for (const FactPathRun& run : fact_path_runs) {
+                sink.put_u64(run.start);
+                sink.put_u32(run.count);
+                sink.put_u32(run.leaf);
+            }
+            for (const auto& node : nodes) {
+                sink.put_i32(node.first);
+                sink.put_u32(node.second);
+            }
+            sink.put_u64(label_count);
+            for (const std::string& label : fact_labels.values) {
+                sink.put_varint(label.size());
+                sink.put_bytes(label.data(), label.size());
+            }
+            sink.put_u64(text_count);
+            for (const std::string& text : fact_event_texts) {
+                sink.put_varint(text.size());
+                sink.put_bytes(text.data(), text.size());
+            }
+            sink.commit();
+            out_bytes_ = sink.bytes();
             output_.facts_bytes = out_bytes_;
             output_.facts_seconds = chrono_seconds(started);
+            output_.facts_path_runs = path_run_count;
+            output_.facts_nodes = node_count;
+            output_.facts_labels = label_count;
+            output_.facts_events = event_count;
+            output_.facts_texts = text_count;
+            const uint64_t peak_after_facts = peak_rss_bytes();
+            if (peak_after_facts > output_.peak_rss) output_.peak_rss = peak_after_facts;
         }
         return encode_v2_payload(tables);
     }
@@ -3135,7 +3591,12 @@ int main(int argc, char** argv) {
                    << output.write_seconds << ",\"assembleFile\":"
                    << output.write_seconds << ",\"hashFile\":0.0},\n";
             result << " \"peakRssBytes\":" << output.peak_rss
-                   << ",\"facts\":{\"bytes\":" << output.facts_bytes << "},\n";
+                   << ",\"facts\":{\"format\":\"ETMFACT2\",\"version\":2,\"bytes\":"
+                   << output.facts_bytes << ",\"pathRuns\":" << output.facts_path_runs
+                   << ",\"nodes\":" << output.facts_nodes
+                   << ",\"labels\":" << output.facts_labels
+                   << ",\"events\":" << output.facts_events
+                   << ",\"texts\":" << output.facts_texts << "},\n";
             result << " \"inputs\":{\"nativeSha256\":" << quote(output.native_sha256)
                    << ",\"nativeBytes\":" << counters.native_bytes
                    << ",\"elfSha256\":" << quote(output.elf_sha256)

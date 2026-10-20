@@ -250,8 +250,13 @@ def build_local_index(store_dir, build_result):
 
 
 def build(native, static, out_dir, generation=None, generation_tag=None, result=None,
-          timeout=DEFAULT_TIMEOUT, binary=None, analysis=False, local_index=False):
-    """调用原生 build（blocks 1-11；块 12/默认视图留给 t21）。"""
+          timeout=DEFAULT_TIMEOUT, binary=None, analysis=False, local_index=False,
+          facts_out=None, native_index=False):
+    """调用原生 build（blocks 1-11；块 12/默认视图留给 t21）。
+
+    ``facts_out`` 触发 facts v2（ETMFACT2）写出；``native_index`` 同时把原生块 12
+    payload 写进 store（用于 anchor/PC/line 对照，不影响默认视图）。
+    """
     native = Path(native)
     static = Path(static)
     if not native.is_file():
@@ -266,6 +271,10 @@ def build(native, static, out_dir, generation=None, generation_tag=None, result=
         args.extend(['--generation-tag', hex(int(generation_tag))])
     if analysis:
         args.append('--analysis')
+    if facts_out is not None:
+        args.extend(['--facts-out', str(facts_out)])
+    if native_index:
+        args.append('--native-index')
     if not local_index:
         return _run_json_command(args, result, timeout, binary=binary)
     first = _run_json_command(args, result, timeout, binary=binary)
@@ -319,6 +328,9 @@ def main(argv=None):
     build_parser.add_argument('--result', default=None)
     build_parser.add_argument('--analysis', action='store_true')
     build_parser.add_argument('--local-index', action='store_true')
+    build_parser.add_argument('--facts-out', default=None, help='facts v2（ETMFACT2）输出路径')
+    build_parser.add_argument('--native-index', action='store_true',
+                              help='把原生块 12 payload 一并写进 store（对照用）')
     static_parser = sub.add_parser('static-info', help='读取/校验 static-dict.bin')
     static_parser.add_argument('--static', required=True)
     static_parser.add_argument('--json', default=None)
@@ -348,7 +360,9 @@ def main(argv=None):
                            generation=args.generation,
                            generation_tag=args.generation_tag,
                            result=args.result, binary=args.binary,
-                           analysis=args.analysis, local_index=args.local_index)
+                           analysis=args.analysis, local_index=args.local_index,
+                           facts_out=args.facts_out,
+                           native_index=args.native_index)
             if args.result is None:
                 _write_json_or_print(result, None)
             return 0
