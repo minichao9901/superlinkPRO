@@ -1,0 +1,612 @@
+"""C2：NumPy 批量消费 C1 执行事实流，派生 cell/hotspot 索引表（v2 编码）。
+
+路线依据：`docs/etm-r2-unblock-20261020.md` §4（原生执行事实 + NumPy 批量派生）。
+本模块是 t37 小原型的产品化实现，约束：
+
+* 只消费 C1 facts（`ETMFACT1`：RUNS/IDS/STATES/CYCLES；EVENTS 本批未用）；
+* 不读 sequence 块、不跑 Python CallTracker、不读/挂载参考表；
+* 热路径只有 NumPy 批量归约；Python 循环次数 = 批次数 + 唯一静态项数 + 有限常数，
+  由 `Counters` 显式记录；
+* 目前只派生 static→function/hotspot 映射与 cell 计数/未知/周期/首次出现
+  （含 `cell_hotspot_*`）；其余表列在 `COMPAT_PENDING` 并标注“未派生”，
+  **不填零冒充完成**；编码复用 `trace_store_index.encode_payload_v2`，不改其语义。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import struct
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+
+import trace_store
+import trace_store_index
+
+
+import struct
+from pathlib import Path
+
+MAGIC = b'ETMFACT1'
+VERSION = 1
+HEADER = struct.Struct('<8sIIQQQQQQ')          # 64 B
+RUN = struct.Struct('<QQIIIB3s')               # 32 B
+CYCLE = struct.Struct('<QQQII')                # 32 B
+EVENT = struct.Struct('<QBIQi1s')              # 24 B（读侧预留）
+STATE_EXECUTED, STATE_NOT_TAKEN, STATE_UNKNOWN = 0, 1, 2
+TAIL_TRUE, TAIL_FALSE, TAIL_UNKNOWN = 0, 1, 2
+
+
+class FactsError(ValueError):
+    """事实流文件格式/内容错误（明确拒绝，不猜测）。"""
+
+
+def write_facts(path, runs, ids, states, cycles, events=()):
+    """写 facts v1（只有前四段 + 可选 EVENTS；path 段写 0 计数）。
+
+    runs: list[dict(startOrdinal,startSeq,count,blockOrdinal,recordOffset,tailState)]
+    ids/states: 序列或 numpy 数组（长度=instructionCount）
+    cycles: list[dict(ordinal,seq,cycles,span)]
+    """
+    instruction_count = len(ids)
+    if len(states) != instruction_count:
+        raise FactsError('ids/states 长度不一致')
+    run_blob = b''.join(
+        RUN.pack(int(item['startOrdinal']), int(item['startSeq']), int(item['count']),
+                 int(item.get('blockOrdinal', 0)), int(item.get('recordOffset', 0)),
+                 int(item.get('tailState', TAIL_UNKNOWN)), b'\x00' * 3) for item in runs)
+    cycle_blob = b''.join(
+        CYCLE.pack(int(item['ordinal']), int(item.get('seq', 0)), int(item['cycles']),
+                   int(item.get('span', 0)), 0) for item in cycles)
+    array_ids = np.asarray(ids, np.uint32)
+    array_states = np.asarray(states, np.uint8)
+    event_blob = b''.join(
+        EVENT.pack(int(item['seq']), int(item['type']), int(item.get('flags', 0)),
+                   int(item['payload']), int(item.get('nextFunc', -1)), b'\x00')
+        for item in events)
+    header = HEADER.pack(MAGIC, VERSION, HEADER.size, instruction_count, len(runs),
+                         len(cycles), 0, len(events), 0)
+    with open(path, 'wb') as handle:
+        handle.write(header)
+        handle.write(run_blob)
+        handle.write(array_ids.tobytes())
+        handle.write(array_states.tobytes())
+        handle.write(cycle_blob)
+        handle.write(event_blob)
+    return dict(path=str(path), bytes=Path(path).stat().st_size,
+                instructionCount=instruction_count, runCount=len(runs),
+                cycleCount=len(cycles), eventCount=len(events))
+
+
+def read_facts(path, with_paths=False):
+    """读 facts v1；返回 dict（runs 为结构化 numpy，ids/states/cycles 为数组）。
+
+    ``with_paths=False`` 时只解析到 CYCLES（本原型只用四段），忽略后面的 path/event；
+    置 True 时按 t36 README 尝试解析（nodeCount 缺失 → 明确报不支持）。
+    """
+    raw = Path(path).read_bytes()
+    if len(raw) < HEADER.size:
+        raise FactsError('facts 文件被截断（<64B）')
+    (magic, version, header_bytes, instruction_count, run_count, cycle_count,
+     path_run_count, event_count, reserved) = HEADER.unpack_from(raw, 0)
+    if magic != MAGIC:
+        raise FactsError('facts magic 不符：%r' % (magic,))
+    if version != VERSION:
+        raise FactsError('facts 版本不支持：%d' % version)
+    if header_bytes != HEADER.size or reserved != 0:
+        raise FactsError('facts headerBytes/reserved 非法')
+    position = HEADER.size
+    runs_bytes = run_count * RUN.size
+    ids_bytes = instruction_count * 4
+    states_bytes = instruction_count
+    cycles_bytes = cycle_count * CYCLE.size
+    required = position + runs_bytes + ids_bytes + states_bytes + cycles_bytes
+    if len(raw) < required:
+        raise FactsError('facts 四段被截断：需要 %d，实际 %d' % (required, len(raw)))
+    runs = np.frombuffer(raw, dtype=np.dtype([('startOrdinal', '<u8'), ('startSeq', '<u8'),
+                                              ('count', '<u4'), ('blockOrdinal', '<u4'),
+                                              ('recordOffset', '<u4'), ('tailState', 'u1'),
+                                              ('pad', 'V3')]),
+                         count=run_count, offset=position)
+    position += runs_bytes
+    ids = np.frombuffer(raw, np.uint32, instruction_count, position)
+    position += ids_bytes
+    states = np.frombuffer(raw, np.uint8, instruction_count, position)
+    position += states_bytes
+    cycles = np.frombuffer(raw, dtype=np.dtype([('ordinal', '<u8'), ('seq', '<u8'),
+                                                ('cycles', '<u8'), ('span', '<u4'),
+                                                ('reserved', '<u4')]),
+                           count=cycle_count, offset=position)
+    position += cycles_bytes
+    if position != len(raw) and with_paths:
+        raise FactsError('PATH_RUNS/NODES/EVENTS 解析未实现（t36 README header 缺 nodeCount）')
+    # 基本自洽：RUNS 覆盖 [0, instructionCount) 且不重叠
+    if run_count:
+        starts = np.sort(runs['startOrdinal'])
+        ends = np.sort(runs['startOrdinal'] + runs['count'])
+        if int(starts[0]) != 0 or int(ends[-1]) != instruction_count:
+            raise FactsError('RUNS 未覆盖全部指令：%d..%d / %d'
+                             % (starts[0], ends[-1], instruction_count))
+        if np.any(starts[1:] < ends[:-1]):
+            raise FactsError('RUNS 相互重叠')
+    return dict(header=dict(version=version, instructionCount=instruction_count,
+                            runCount=run_count, cycleCount=cycle_count,
+                            pathRunCount=path_run_count, eventCount=event_count),
+                runs=runs, ids=ids, states=states, cycles=cycles)
+
+
+def cell_ordinals(instruction_count, cell_size):
+    """每条指令的 cell 下标（不超过 20M 个整数，一次向量化）。"""
+    return (np.arange(instruction_count, dtype=np.int64) // int(cell_size))
+
+
+
+import time
+
+import numpy as np
+
+STATE_EXECUTED, STATE_NOT_TAKEN, STATE_UNKNOWN = 0, 1, 2
+
+
+class Counters:
+    """结构性计数：证明热路径只有 NumPy 批量操作 + 与 cell/static/批次同阶的 Python 循环。"""
+
+    def __init__(self):
+        self.instructions = 0
+        self.batches = 0
+        self.python_loops = 0          # 显式 for 循环轮数（不含 NumPy 内部 C 循环）
+        self.numpy_calls = 0
+        self.static_items = 0
+        self.cells = 0
+        self.cycle_anchors = 0
+        self.runs = 0
+
+    def as_dict(self):
+        return dict(instructions=self.instructions, batches=self.batches,
+                    pythonLoops=self.python_loops, numpyCalls=self.numpy_calls,
+                    staticItems=self.static_items, cells=self.cells,
+                    cycleAnchors=self.cycle_anchors, runs=self.runs,
+                    pythonLoopsPerMillion=(round(self.python_loops * 1e6 / self.instructions, 3)
+                                           if self.instructions else None))
+
+
+def instance():
+    return Counters()
+
+
+def _nc(counters):
+    counters.numpy_calls += 1
+
+
+def static_maps(static_entries, counters=None):
+    """static_id → function/hotspot 映射（唯一静态项各处理一次）。"""
+    counters = counters or instance()
+    counters.static_items = len(static_entries)
+    function_names = ['(未知函数)']
+    function_index = {'(未知函数)': 0}
+    hotspot_index = {}
+    hotspot_func, hotspot_file, hotspot_line = [], [], []
+    func_of_id = np.empty(len(static_entries), np.int16)
+    hotspot_of_id = np.empty(len(static_entries), np.int32)
+    for identifier, entry in enumerate(static_entries):
+        counters.python_loops += 1
+        name = entry.get('function') or '(未知函数)'
+        func_id = function_index.get(name)
+        if func_id is None:
+            func_id = len(function_names)
+            function_index[name] = func_id
+            function_names.append(name)
+        func_of_id[identifier] = func_id
+        key = (name, entry.get('file'), entry.get('line'))
+        hotspot_id = hotspot_index.get(key)
+        if hotspot_id is None:
+            hotspot_id = len(hotspot_func)
+            hotspot_index[key] = hotspot_id
+            hotspot_func.append(func_id)
+            hotspot_file.append(entry.get('file'))
+            hotspot_line.append(entry.get('line'))
+        hotspot_of_id[identifier] = hotspot_id
+    predicated = np.asarray([bool(entry.get('predicated')) for entry in static_entries],
+                            dtype=bool)
+    flow_of_id = np.asarray([trace_store.FLOW_CODES[str(entry.get('flow'))]
+                             for entry in static_entries], dtype=np.int8)
+    pc_of_id = np.asarray([int(entry.get('pc')) for entry in static_entries], np.uint32)
+    size_of_id = np.asarray([int(entry.get('size')) for entry in static_entries], np.uint8)
+    _nc(counters)
+    return dict(functionNames=function_names,
+                funcOfId=func_of_id,
+                hotspotOfId=hotspot_of_id,
+                predicatedOfId=predicated,
+                flowOfId=flow_of_id, pcOfId=pc_of_id, sizeOfId=size_of_id,
+                hotspotFunc=np.asarray(hotspot_func, np.int16),
+                hotspotFile=np.asarray(hotspot_file, dtype=object),
+                hotspotLine=np.asarray([-1 if value is None else int(value)
+                                        for value in hotspot_line], np.int64),
+                functionIndex=function_index, hotspotIndex=hotspot_index)
+
+
+RUN_DTYPE = np.dtype([('startOrdinal', '<u8'), ('startSeq', '<u8'),
+                     ('count', '<u4'), ('blockOrdinal', '<u4'),
+                     ('recordOffset', '<u4'), ('tailState', 'u1'), ('pad', 'V3')])
+
+
+CYCLE_DTYPE = np.dtype([('ordinal', '<u8'), ('seq', '<u8'), ('cycles', '<u8'),
+                       ('span', '<u4'), ('reserved', '<u4')])
+
+
+def cycles_array(cycles):
+    """把 facts 的 CYCLES 统一成结构化数组（list[dict] 或已读数组都接受）。"""
+    if isinstance(cycles, np.ndarray):
+        return cycles
+    return np.asarray([(int(item['ordinal']), int(item.get('seq', 0)),
+                        int(item['cycles']), int(item.get('span', 0)), 0)
+                       for item in cycles], dtype=CYCLE_DTYPE)
+
+
+def runs_array(runs):
+    """把 facts 的 RUNS 统一成结构化数组（list[dict] 或已读数组都接受）。"""
+    if isinstance(runs, np.ndarray):
+        return runs
+    return np.asarray([(int(item['startOrdinal']), int(item['startSeq']),
+                        int(item['count']), int(item.get('blockOrdinal', 0)),
+                        int(item.get('recordOffset', 0)), int(item.get('tailState', 2)),
+                        b'\x00' * 3) for item in runs], dtype=RUN_DTYPE)
+
+
+def _first_seq_per_cell(runs, cells, cell_size, counters):
+    """每个非空 cell 的首条指令 seq：ordinal → 所在 RUN（向量化 searchsorted）。"""
+    run_starts = np.sort(np.asarray(runs['startOrdinal'], np.int64))
+    order = np.argsort(np.asarray(runs['startOrdinal'], np.int64))
+    starts = np.asarray(runs['startOrdinal'], np.int64)[order]
+    start_seqs = np.asarray(runs['startSeq'], np.int64)[order]
+    counts = np.asarray(runs['count'], np.int64)[order]
+    ordinal = np.arange(cells, dtype=np.int64) * int(cell_size)
+    run_index = np.searchsorted(starts, ordinal, side='right') - 1
+    _nc(counters)
+    counters.python_loops += 1
+    valid = (run_index >= 0) & (run_index < len(starts))
+    result = np.full(cells, -1, np.int64)
+    if np.any(valid):
+        chosen = run_index[valid]
+        inside = ordinal[valid] - starts[chosen]
+        if np.any(inside >= counts[chosen]):
+            raise ValueError('cell 起始 ordinal 落在 RUN 之外（facts 不一致）')
+        result[valid] = start_seqs[chosen] + inside
+    return result, run_starts
+
+
+def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counters=None):
+    """从事实流派生 cell 表 + 静态映射（分批、全 NumPy 归约）。"""
+    counters = counters or instance()
+    started = time.perf_counter()
+    ids = np.asarray(facts['ids'])
+    states = np.asarray(facts['states'])
+    cycles = cycles_array(facts['cycles'])
+    runs = runs_array(facts['runs'])
+    total = int(ids.size)
+    counters.instructions = total
+    counters.runs = int(runs.size)
+    counters.cycle_anchors = int(cycles.size)
+    cells = (total + int(cell_size) - 1) // int(cell_size) if total else 0
+    counters.cells = cells
+    cell_insn = np.zeros(cells, np.int64)
+    cell_executed = np.zeros(cells, np.int64)
+    cell_unknown = np.zeros(cells, np.int64)
+    cell_not_taken = np.zeros(cells, np.int64)
+    cell_cycles = np.zeros(cells, np.int64)
+    cell_cycle_runs = np.zeros(cells, np.int64)
+    timings = {}
+    phase = time.perf_counter()
+    mapping = static_maps(static_entries, counters)
+    static_count = len(static_entries)
+    hotspot_count = max(1, len(mapping['hotspotFunc']))
+    hotspot_span = cells * hotspot_count
+    cell_hotspot_count = np.zeros(hotspot_span, np.int64)
+    cell_hotspot_unknown = np.zeros(hotspot_span, np.int64)
+    hotspot_first = np.full(hotspot_span, np.iinfo(np.uint64).max, np.uint64)
+    predicated_of_id = mapping['predicatedOfId']
+    hotspot_of_id = mapping['hotspotOfId']
+    timings['staticMaps'] = round(time.perf_counter() - phase, 4)
+    for start in range(0, total, int(batch)):
+        counters.batches += 1
+        counters.python_loops += 1
+        stop = min(total, start + int(batch))
+        ordinal = np.arange(start, stop, dtype=np.int64)
+        cell = ordinal // int(cell_size)
+        cell_insn += np.bincount(cell, minlength=cells)[:cells]
+        chunk_states = states[start:stop]
+        cell_executed += np.bincount(cell[chunk_states == STATE_EXECUTED],
+                                     minlength=cells)[:cells]
+        cell_not_taken += np.bincount(cell[chunk_states == STATE_NOT_TAKEN],
+                                      minlength=cells)[:cells]
+        cell_unknown += np.bincount(cell[chunk_states == STATE_UNKNOWN],
+                                    minlength=cells)[:cells]
+        _nc(counters)
+        # 静态 id 也按批消费（原型先只校验范围；映射在 static_maps 里一次完成）
+        chunk_ids = ids[start:stop]
+        if chunk_ids.size and int(chunk_ids.max()) >= len(static_entries):
+            raise ValueError('facts 的 static_id 超出静态表范围')
+        hotspot = hotspot_of_id[chunk_ids]
+        key = cell * hotspot_count + hotspot
+        cell_hotspot_count += np.bincount(key, minlength=hotspot_span)[:hotspot_span]
+        predicated_mask = predicated_of_id[chunk_ids]
+        if np.any(predicated_mask):
+            cell_hotspot_unknown += np.bincount(key[predicated_mask],
+                                                minlength=hotspot_span)[:hotspot_span]
+        # 每个 (cell, hotspot) 的最小 cell 内偏移 + 对应 static_id（打包成 uint64 取 min）
+        unique_keys, first_index = np.unique(key, return_index=True)
+        offsets = (ordinal[first_index] % int(cell_size)).astype(np.uint64)
+        packed = (offsets << np.uint64(32)) | chunk_ids[first_index].astype(np.uint64)
+        np.minimum.at(hotspot_first, unique_keys, packed)
+        _nc(counters)
+    timings['counts'] = round(time.perf_counter() - phase, 4)
+
+    phase = time.perf_counter()
+    if counters.cycle_anchors:
+        anchor_ordinal = np.asarray(cycles['ordinal'], np.int64)
+        anchor_cycles = np.asarray(cycles['cycles'], np.int64)
+        anchor_cell = anchor_ordinal // int(cell_size)
+        np.add.at(cell_cycles, anchor_cell, anchor_cycles)
+        for chunk_start in range(0, len(anchor_cell), int(batch)):
+            counters.python_loops += 1
+            chunk = anchor_cell[chunk_start:chunk_start + int(batch)]
+            cell_cycle_runs += np.bincount(chunk, minlength=cells)[:cells]
+        _nc(counters)
+        if np.any(cell_cycles < 0):
+            raise ValueError('周期累加出现负值（uint64→int64 溢出）')
+    timings['cycles'] = round(time.perf_counter() - phase, 4)
+
+    phase = time.perf_counter()
+    cell_first_seq, _ = _first_seq_per_cell(runs, cells, cell_size, counters)
+    timings['firstSeq'] = round(time.perf_counter() - phase, 4)
+
+    phase = time.perf_counter()
+    valid = hotspot_first != np.iinfo(np.uint64).max
+    first_offset = np.zeros(hotspot_span, np.uint64)
+    first_id = np.zeros(hotspot_span, np.uint64)
+    first_offset[valid] = hotspot_first[valid] >> np.uint64(32)
+    first_id[valid] = hotspot_first[valid] & np.uint64(0xFFFFFFFF)
+    cell_hotspot_first = np.zeros(hotspot_span, np.uint32)
+    cell_hotspot_first[valid] = ((first_id[valid].astype(np.uint32) << 12)
+                                 | first_offset[valid].astype(np.uint32))
+    _nc(counters)
+    timings['hotspotFinalize'] = round(time.perf_counter() - phase, 4)
+    shape = (cells, hotspot_count)
+    elapsed = round(time.perf_counter() - started, 4)
+    return dict(cellSize=int(cell_size), cells=cells, instructions=total,
+                cell_insn=cell_insn, cell_executed=cell_executed,
+                cell_unknown=cell_unknown, cell_not_taken=cell_not_taken,
+                cell_cycles=cell_cycles, cell_cycle_runs=cell_cycle_runs,
+                cell_first_seq=cell_first_seq,
+                cell_hotspot_count=cell_hotspot_count.reshape(shape).astype(np.uint16),
+                cell_hotspot_unknown=cell_hotspot_unknown.reshape(shape).astype(np.uint16),
+                cell_hotspot_first=cell_hotspot_first.reshape(shape),
+                mapping=mapping, timings=timings, elapsedSeconds=elapsed,
+                counters=counters.as_dict())
+
+
+def derive_cell(facts, static_entries, cell, cell_size=4096, counters=None):
+    """只派生单个 cell（原型验证用）：返回该 cell 的 7 个计数 + 首条指令 seq。
+
+    ordinal/seq 都是**绝对**的（与全量派生同一口径），便于跨 cell 边界对照。
+    """
+    counters = counters or instance()
+    states_all = np.asarray(facts['states'])
+    total = int(states_all.size)
+    lo = int(cell) * int(cell_size)
+    hi = min(total, lo + int(cell_size))
+    if lo >= total:
+        raise ValueError('cell 超出指令范围：%d' % cell)
+    states = states_all[lo:hi]
+    counters.instructions += int(states.size)
+    counters.python_loops += 1
+    counts = np.bincount(states, minlength=3)
+    _nc(counters)
+    cycles = cycles_array(facts['cycles'])
+    ordinal = np.asarray(cycles['ordinal'], np.int64)
+    mask = (ordinal >= lo) & (ordinal < hi)
+    _nc(counters)
+    cell_cycles = int(np.sum(np.asarray(cycles['cycles'], np.int64)[mask])) if mask.any() else 0
+    cycle_runs = int(np.count_nonzero(mask))
+    runs = runs_array(facts['runs'])
+    starts = np.asarray(runs['startOrdinal'], np.int64)
+    order = np.argsort(starts)
+    start_seqs = np.asarray(runs['startSeq'], np.int64)[order]
+    counts_run = np.asarray(runs['count'], np.int64)[order]
+    index = int(np.searchsorted(starts[order], lo, side='right') - 1)
+    if index < 0 or lo >= starts[order][index] + counts_run[index]:
+        raise ValueError('cell 起始 ordinal 不在任何 RUN 内')
+    first_seq = int(start_seqs[index] + (lo - starts[order][index]))
+    return dict(cell=int(cell), cell_insn=int(states.size),
+                cell_executed=int(counts[0]), cell_unknown=int(counts[2]),
+                cell_not_taken=int(counts[1]), cell_cycles=cell_cycles,
+                cell_cycle_runs=cycle_runs, cell_first_seq=first_seq)
+
+
+# ---------------------------------------------------------------------------------------------
+# v2 编码（复用 trace_store_index 的容器，不改语义）
+# ---------------------------------------------------------------------------------------------
+COMPAT_PENDING = [
+    'fs_start', 'fs_func', 'fs_count',            # 函数区间：下一批（需路径/函数事实）
+    'ps_start', 'ps_count', 'ps_leaf',            # 路径区间：等 PATH_RUNS/NODES（t44）
+    'node_parent', 'node_label', 'node_self_*',   # 路径树：等 PATH_RUNS/NODES
+    'cell_node_value', 'cell_node_value_cycles',  # 节点 include/self：等路径事实
+    'cell_anchor_block', 'cell_anchor_offset', 'cell_anchor_skip',   # anchor：等 t42b
+    'ev_seq', 'ev_type', 'ev_text', 'ev_flags', 'ev_payload', 'ev_next_func',  # 本批未用
+    'default_window_json', 'default_timeline_json',  # 默认视图：下一批用 QueryIndex 算法
+    'pc_cell_offsets', 'pc_cells', 'line_start', 'line_id',          # nav 表：等 anchor/PC 事实
+]
+
+
+def derived_arrays(derived):
+    """派生结果 → 可编码数组表（只含真正派生出的表，其余不填零）。"""
+    tables = {name: np.asarray(derived[name]) for name in
+              ('cell_insn', 'cell_executed', 'cell_unknown', 'cell_not_taken',
+               'cell_cycles', 'cell_cycle_runs', 'cell_first_seq',
+               'cell_hotspot_count', 'cell_hotspot_unknown', 'cell_hotspot_first')}
+    mapping = derived['mapping']
+    tables['st_func'] = mapping['funcOfId'].astype(np.int16)
+    tables['st_hotspot'] = mapping['hotspotOfId'].astype(np.int32)
+    tables['st_flow'] = mapping['flowOfId'].astype(np.int8)
+    tables['st_pc'] = mapping['pcOfId'].astype(np.uint32)
+    tables['st_size'] = mapping['sizeOfId'].astype(np.uint8)
+    tables['st_pred'] = mapping['predicatedOfId'].astype(np.uint8)
+    tables['h_func'] = mapping['hotspotFunc'].astype(np.int16)
+    tables['h_line'] = mapping['hotspotLine'].astype(np.int32)
+    # h_file 在 v1 里是 meta.strings 的下标；本批不写 strings 池 → 不生成 h_file，
+    # 在 meta.compatPending 标注（不能用占位值冒充）。
+    return tables
+
+
+def encode_tables(derived, extra_meta=None):
+    """把派生表编码成块 12 v2 payload（复用 trace_store_index.encode_payload_v2）。"""
+    arrays = derived_arrays(derived)
+    meta = dict(cellSize=int(derived['cellSize']), instructions=int(derived['instructions']),
+                cells=int(derived['cells']),
+                staticCount=len(derived['mapping']['funcOfId']),
+                hotspotCount=int(np.asarray(derived['cell_hotspot_count']).shape[1]),
+                format='etm-trace-store-query-index', version=1, container='v2',
+                source='native-facts-numpy', tables=sorted(arrays),
+                functionNames=list(derived['mapping']['functionNames']),
+                compatPending=list(COMPAT_PENDING),
+                note='仅派生 static 映射与 cell/hotspot 聚合；其余表未派生，不填零冒充')
+    if extra_meta:
+        meta.update(extra_meta)
+    payload = trace_store_index.encode_payload_v2(arrays, meta)
+    return payload, meta
+
+
+def decode_tables(payload):
+    """读回 v2 payload（用 trace_store_index 的读取分支），用于 round-trip 校验。"""
+    archive = trace_store_index.decode_payload(payload)
+    return {name: np.asarray(archive[name]) for name in archive.files}, archive
+
+
+def compare_with_v1(derived, store):
+    """与 v1 store 的块 12 做**规范化**对照（数组逐项 + 静态热点按 (function,file,line)）。
+
+    v1 的 h_file 是 meta.strings 下标、h_func 是函数 id；这里全部还原成文本/名称再比较，
+    不要求内部 ID 相同。返回 dict(problems, ok)。
+    """
+    index = store.query_index
+    if index is None:
+        return dict(problems=[dict(kind='no-query-index')], ok=False)
+    arrays = index.arrays
+    tables = derived_arrays(derived)
+    problems = []
+    # st_hotspot 只按 (function,file,line) 键规范化比较（v1 的 hotspot id 按指令首现、
+    # 本实现按静态项首现，编号不同是允许的），不做数值比较。
+    for name in ('cell_insn', 'cell_executed', 'cell_unknown', 'cell_not_taken',
+                 'cell_cycles', 'cell_cycle_runs', 'cell_first_seq',
+                 'cell_hotspot_count', 'cell_hotspot_unknown', 'cell_hotspot_first',
+                 'st_func', 'st_flow', 'st_pc', 'st_size', 'st_pred'):
+        reference = np.asarray(arrays[name]).astype(np.int64)
+        got = np.asarray(tables[name]).astype(np.int64)
+        if reference.shape != got.shape:
+            problems.append(dict(array=name, shape=[list(reference.shape), list(got.shape)]))
+            continue
+        if reference.ndim == 2:
+            bad = np.argwhere(reference != got)
+            if bad.size:
+                problems.append(dict(array=name, count=int(bad.shape[0]),
+                                     examples=[[int(row), int(col), int(reference[row, col]),
+                                                int(got[row, col])] for row, col in bad[:5]]))
+        else:
+            bad = np.flatnonzero(reference != got)
+            if bad.size:
+                problems.append(dict(array=name, count=int(bad.size),
+                                     examples=[[int(i), int(reference[i]), int(got[i])]
+                                               for i in bad[:5]]))
+    if len(store.static) != len(derived['mapping']['funcOfId']):
+        problems.append(dict(kind='staticCount', reference=len(store.static),
+                             facts=len(derived['mapping']['funcOfId'])))
+        return dict(problems=problems, ok=False)
+    reference_names = [index.function_names[int(np.asarray(arrays['h_func'])[
+        int(np.asarray(arrays['st_hotspot'])[identifier])])] for identifier in
+        range(len(store.static))]
+    reference_keys = []
+    for identifier, entry in enumerate(store.static):
+        hotspot = int(np.asarray(arrays['st_hotspot'])[identifier])
+        file_id = int(np.asarray(arrays['h_file'])[hotspot])
+        file_name = None if file_id < 0 else index.strings[file_id]
+        line = int(np.asarray(arrays['h_line'])[hotspot])
+        reference_keys.append([reference_names[identifier], file_name,
+                               None if line < 0 else line])
+    mapping = derived['mapping']
+    got_keys = [[str(mapping['functionNames'][int(mapping['hotspotFunc'][hid])]),
+                 None if mapping['hotspotFile'][hid] is None
+                 else str(mapping['hotspotFile'][hid]),
+                 None if int(mapping['hotspotLine'][hid]) < 0
+                 else int(mapping['hotspotLine'][hid])]
+                for hid in range(len(mapping['hotspotFunc']))]
+    got_keys_per_static = [got_keys[int(value)] for value in mapping['hotspotOfId']]
+    bad = [position for position, (left, right) in
+           enumerate(zip(reference_keys, got_keys_per_static)) if left != right]
+    if bad:
+        problems.append(dict(kind='staticHotspotKeys', count=len(bad),
+                             examples=[[int(i), reference_keys[i],
+                                        got_keys_per_static[i]] for i in bad[:5]]))
+    return dict(problems=problems, ok=not problems)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        prog='native_facts_index.py',
+        description='C2：NumPy 消费 C1 facts → cell/hotspot 表（v2 编码，不改容器语义）')
+    sub = parser.add_subparsers(dest='command', required=True)
+    derive = sub.add_parser('derive', help='派生 cell/hotspot 表并报告计时/RSS/计数')
+    derive.add_argument('--facts', required=True)
+    derive.add_argument('--static-json', required=True)
+    derive.add_argument('--reference-store', default=None)
+    derive.add_argument('--cell-size', type=int, default=4096)
+    derive.add_argument('--batch', type=int, default=1 << 20)
+    derive.add_argument('--encode', action='store_true')
+    derive.add_argument('--out', default=None)
+    args = parser.parse_args(argv)
+    if args.command != 'derive':
+        return 2
+    facts = read_facts(args.facts)
+    static_entries = json.loads(Path(args.static_json).read_text(encoding='utf-8'))
+    counters = Counters()
+    started = time.perf_counter()
+    derived = derive_tables(facts, static_entries, cell_size=args.cell_size,
+                            batch=args.batch, counters=counters)
+    seconds = round(time.perf_counter() - started, 4)
+    result = dict(facts=args.facts, seconds=seconds,
+                  secondsPerMillion=round(seconds * 1e6 / int(derived['instructions']), 4),
+                  timings=derived['timings'], counters=counters.as_dict(),
+                  cells=derived['cells'], instructions=derived['instructions'])
+    try:
+        import psutil
+        result['peakRssBytes'] = int(psutil.Process().memory_info().rss)
+    except Exception:
+        result['peakRssBytes'] = 0
+    if args.reference_store:
+        import trace_store
+        store = trace_store.TraceStore(Path(args.reference_store), verify='sizes')
+        try:
+            result['reference'] = compare_with_v1(derived, store)
+        finally:
+            store.close()
+    if args.encode:
+        payload, meta = encode_tables(derived)
+        arrays, _archive = decode_tables(payload)
+        result['encode'] = dict(
+            payloadBytes=len(payload), tables=sorted(arrays),
+            compatPending=meta['compatPending'],
+            roundtripEqual=all(
+                np.array_equal(np.asarray(arrays[name]), np.asarray(derived[name]))
+                for name in ('cell_insn', 'cell_hotspot_count', 'cell_first_seq')))
+    result['ok'] = (result.get('reference', {}).get('ok', True)
+                    and result.get('encode', {}).get('roundtripEqual', True))
+    if args.out:
+        Path(args.out).write_text(json.dumps(result, ensure_ascii=False, indent=1),
+                                  encoding='utf-8')
+    print(json.dumps(result, ensure_ascii=False, indent=1))
+    return 0 if result['ok'] else 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

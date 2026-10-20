@@ -718,13 +718,15 @@ def build_tables(view, cell_size=4096, progress=True, with_nav=True):
             packed[mask] = (first_id_of_hotspot[mask].astype(np.uint32) << 12) | \
                 first_of_hotspot[mask].astype(np.uint32)
             cell_hotspot_first[cell_index] = packed
-            buffers.reset()
+        # 注意：必须先拷贝标量计数再 reset()（旧实现 reset 在前，导致 6 张 cell 标量表恒为 0；
+        # t37 与 C2 NumPy 派生对照时发现，t31 曾误以为是“零占位”）。
         cell_insn[cell_index] = buffers.insn
         cell_executed[cell_index] = buffers.executed
         cell_unknown[cell_index] = buffers.unknown
         cell_not_taken[cell_index] = buffers.notTaken
         cell_cycles[cell_index] = buffers.cycles
         cell_cycle_runs[cell_index] = buffers.cycleRuns
+        buffers.reset()
 
     phase = time.perf_counter()
     for block_ordinal, block_number in enumerate(store.sequence_blocks):
