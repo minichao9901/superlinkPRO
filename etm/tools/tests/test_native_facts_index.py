@@ -216,5 +216,119 @@ class NativeFactsIndexTests(unittest.TestCase):
             self.assertIn(name, tables)
 
 
+# ---------------------------------------------------------------------------------------------
+# facts v2（t45 布局）：版本分派、PATH_RUNS/NODES/LABELS/EVTEXTS、派生 fs_*/ps_*/anchor/ev_*
+# ---------------------------------------------------------------------------------------------
+import struct
+
+
+def write_facts_v2(path):
+    """写一个最小 facts v2（10,000 指令 / 2 RUN / 3 PATH_RUNS / 4 NODES / 3 EVENTS / 2 texts）。"""
+    n = 10000
+    ids = ((np.arange(n, dtype=np.int64) * 3 + 1) % len(STATIC)).astype(np.uint32)
+    raw = (np.arange(n, dtype=np.int64) * 7 + 3) % 11
+    states = np.where(raw < 7, 0, np.where(raw < 9, 1, 2)).astype(np.uint8)
+    runs = [(0, 0, 6000, 0, 0, 0, 0), (6000, 6001, 4000, 1, 64, 2, 3)]
+    cycles = [(0, 0, 1000, 0), (4096, 4096, 2 ** 40 + 1, 0), (8192, 8193, 7, 0)]
+    events = [(6000, 1, 0, 9, 1, 2, 1, -1, 1),
+              (8192, 0, 3, 2, 2, -1, 0, 6000, 2),
+              (9999, 0, 0, 5, 0, -1, 0, 8192, 0)]
+    path_runs = [(0, 4096, 1), (4096, 4096, 2), (8192, n - 8192, 1)]
+    nodes = [(-1, 0), (0, 1), (1, 2), (1, 3)]
+    labels = ['', 'F1', 'F2', 'F3']
+    evtexts = ['', 'irq-enter', 'cycle']
+    header = facts_module.HEADER.pack(facts_module.MAGIC_V2, 2, facts_module.HEADER.size,
+                                      n, len(runs), len(cycles), len(path_runs),
+                                      len(events), len(nodes))
+    blob = bytearray(header)
+    for start, seq, count, block, offset, tail, skip in runs:
+        blob += facts_module.RUN_V2.pack(start, seq, count, block, offset, tail,
+                                         b'\x00' * 3, skip, 0)
+    blob += ids.tobytes() + states.tobytes()
+    for ordinal, seq, value, span in cycles:
+        blob += facts_module.CYCLE.pack(ordinal, seq, value, span, 0)
+    for seq, payload, flags, etype, text, next_func, prev_func, prev_seq, depth in events:
+        blob += facts_module.EVENT_V2.pack(seq, payload, flags, etype, 0, next_func,
+                                           prev_func, depth, prev_seq, text, 0)
+    for start, count, leaf in path_runs:
+        blob += facts_module.PATH_RUN_V2.pack(start, count, leaf)
+    for parent, label in nodes:
+        blob += facts_module.NODE_V2.pack(parent, label)
+    for table in (labels, evtexts):
+        blob += struct.pack('<Q', len(table))
+        for text in table:
+            encoded = text.encode('utf-8')
+            blob += bytes([len(encoded)]) + encoded
+    Path(path).write_bytes(bytes(blob))
+    return dict(instructions=n, ids=ids, states=states, runs=runs, cycles=cycles,
+                events=events, path_runs=path_runs, nodes=nodes, labels=labels,
+                evtexts=evtexts)
+
+
+class FactsV2Tests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.root = Path(self.tmp.name)
+        self.fixture = write_facts_v2(self.root / 'facts-v2.bin')
+        self.facts = facts_module.read_facts_any(self.root / 'facts-v2.bin')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_version_dispatch_v1_and_v2(self):
+        self.assertEqual(self.facts['version'], 2)
+        self.assertEqual(int(self.facts['header']['pathRunCount']), 3)
+        v1_path = self.root / 'facts-v1.bin'
+        fixture = build_facts()
+        facts_module.write_facts(v1_path, fixture['runs'], fixture['ids'],
+                                 fixture['states'], fixture['cycles'])
+        v1 = facts_module.read_facts_any(v1_path)
+        self.assertEqual(v1['version'], 1)
+        self.assertIsNone(v1['path_runs'])
+
+    def test_v2_derived_tables(self):
+        derived = facts_module.derive_tables(self.facts, STATIC, cell_size=CELL_SIZE)
+        mapping = derived['mapping']
+        # fs_*：相邻函数 id 变化切段，连续覆盖
+        self.assertEqual(int(derived['fs_start'][0]), 0)
+        self.assertEqual(int(derived['fs_start'][-1]) + int(derived['fs_count'][-1]), 10000)
+        self.assertGreater(len(derived['fs_start']), 1)
+        # ps_*：采用 PATH_RUNS
+        self.assertEqual([int(v) for v in derived['ps_start']], [0, 4096, 8192])
+        self.assertEqual([int(v) for v in derived['ps_count']], [4096, 4096, 1808])
+        self.assertEqual([int(v) for v in derived['ps_leaf']], [1, 2, 1])
+        # node_parent/node_label（label 是本地 strings 下标）
+        self.assertEqual([int(v) for v in derived['node_parent']], [-1, 0, 1, 1])
+        strings = derived['strings']
+        self.assertEqual([strings[int(value)] for value in derived['node_label']],
+                         ['', 'F1', 'F2', 'F3'])
+        # cell anchor：cell2 从 run1 的 runSkip=3 起算
+        self.assertEqual([int(v) for v in derived['cell_anchor_block']], [0, 0, 1])
+        self.assertEqual([int(v) for v in derived['cell_anchor_offset']], [0, 0, 64])
+        self.assertEqual([int(v) for v in derived['cell_anchor_skip']], [0, 4096, 2195])
+        # events：seq/nextFunc(LABELS id)/text
+        self.assertEqual([int(v) for v in derived['ev_seq']], [6000, 8192, 9999])
+        self.assertEqual([int(v) for v in derived['ev_next_func']], [2, -1, -1])
+        self.assertEqual([strings[int(value)] for value in derived['ev_text']],
+                         ['irq-enter', 'cycle', ''])
+        self.assertIn('h_file', derived)
+        del mapping
+
+    def test_v2_encode_includes_new_tables(self):
+        derived = facts_module.derive_tables(self.facts, STATIC, cell_size=CELL_SIZE)
+        payload, meta = facts_module.encode_tables(derived)
+        arrays, _archive = facts_module.decode_tables(payload)
+        for name in ('fs_start', 'ps_start', 'node_parent', 'cell_anchor_block',
+                     'ev_seq', 'ev_text', 'h_file'):
+            self.assertIn(name, arrays)
+            self.assertIn(name, meta['tables'])
+        for name in ('fs_start', 'ps_start', 'node_parent', 'cell_anchor_block',
+                     'ev_seq', 'ev_text', 'h_file'):
+            self.assertNotIn(name, meta['compatPending'])
+        self.assertTrue(np.array_equal(np.asarray(arrays['ev_text']),
+                                       np.asarray(derived['ev_text'])))
+        self.assertEqual(len(meta['strings']), len(derived['strings']))
+
+
 if __name__ == '__main__':
     unittest.main()

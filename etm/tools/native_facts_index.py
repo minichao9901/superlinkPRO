@@ -30,7 +30,13 @@ import struct
 from pathlib import Path
 
 MAGIC = b'ETMFACT1'
+MAGIC_V2 = b'ETMFACT2'
 VERSION = 1
+VERSION_V2 = 2
+RUN_V2 = struct.Struct('<QQIIIB3sII')            # 40B（第 32B 起 runSkip/reserved）
+EVENT_V2 = struct.Struct('<QQIBBhhhiII')        # 40B（textId @32）
+PATH_RUN_V2 = struct.Struct('<QII')             # 16B startOrdinal/count/leafNode
+NODE_V2 = struct.Struct('<iI')                  # 8B parent/label
 HEADER = struct.Struct('<8sIIQQQQQQ')          # 64 B
 RUN = struct.Struct('<QQIIIB3s')               # 32 B
 CYCLE = struct.Struct('<QQQII')                # 32 B
@@ -135,6 +141,105 @@ def read_facts(path, with_paths=False):
                             runCount=run_count, cycleCount=cycle_count,
                             pathRunCount=path_run_count, eventCount=event_count),
                 runs=runs, ids=ids, states=states, cycles=cycles)
+
+
+def _read_varint(raw, position):
+    value = 0
+    shift = 0
+    while True:
+        byte = raw[position]
+        position += 1
+        value |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            return value, position
+        shift += 7
+
+
+def _read_string_table(raw, position, count):
+    strings = []
+    for _ in range(count):
+        length, position = _read_varint(raw, position)
+        strings.append(raw[position:position + length].decode('utf-8'))
+        position += length
+    return strings, position
+
+
+def read_facts_v2(path):
+    """读 facts v2（ETMFACT2）：RUNS40/IDS/STATES/CYCLES/EVENTS40/PATH_RUNS/NODES/LABELS/EVTEXTS。"""
+    raw = Path(path).read_bytes()
+    if len(raw) < HEADER.size or raw[:8] != MAGIC_V2:
+        raise FactsError('facts v2 magic/长度不符')
+    (magic, version, header_bytes, instructions, runs, cycles, path_runs, events,
+     nodes) = HEADER.unpack_from(raw, 0)
+    if version != VERSION_V2 or header_bytes != HEADER.size:
+        raise FactsError('facts v2 version/headerBytes 非法')
+    position = HEADER.size
+
+    def take(size, count, name):
+        nonlocal position
+        need = int(count) * int(size)
+        if position + need > len(raw):
+            raise FactsError('facts v2 %s 段被截断' % name)
+        start = position
+        position += need
+        return start
+
+    run_start = take(RUN_V2.size, runs, 'RUNS')
+    ids_start = take(4, instructions, 'IDS')
+    states_start = take(1, instructions, 'STATES')
+    cycle_start = take(CYCLE.size, cycles, 'CYCLES')
+    event_start = take(EVENT_V2.size, events, 'EVENTS')
+    path_start = take(PATH_RUN_V2.size, path_runs, 'PATH_RUNS')
+    node_start = take(NODE_V2.size, nodes, 'NODES')
+    if position + 8 > len(raw):
+        raise FactsError('facts v2 LABELS 计数被截断')
+    label_count = struct.unpack_from('<Q', raw, position)[0]
+    position += 8
+    labels, position = _read_string_table(raw, position, int(label_count))
+    evtexts = []
+    if position < len(raw):
+        count = struct.unpack_from('<Q', raw, position)[0]
+        position += 8
+        evtexts, position = _read_string_table(raw, position, int(count))
+    run_dtype = np.dtype([('startOrdinal', '<u8'), ('startSeq', '<u8'),
+                          ('count', '<u4'), ('blockOrdinal', '<u4'),
+                          ('recordOffset', '<u4'), ('tailState', 'u1'),
+                          ('pad', 'V3'), ('runSkip', '<u4'), ('reserved', '<u4')])
+    cycle_dtype = np.dtype([('ordinal', '<u8'), ('seq', '<u8'), ('cycles', '<u8'),
+                            ('span', '<u4'), ('reserved', '<u4')])
+    event_dtype = np.dtype([('seq', '<u8'), ('payload', '<u8'), ('flags', '<u4'),
+                            ('type', 'u1'), ('pad', 'u1'), ('nextFunc', '<i2'),
+                            ('prevFunc', '<i2'), ('depth', '<i2'),
+                            ('prevEventSeq', '<i4'), ('textId', '<u4'),
+                            ('reserved', '<u4')])
+    path_dtype = np.dtype([('startOrdinal', '<u8'), ('count', '<u4'), ('leafNode', '<u4')])
+    node_dtype = np.dtype([('parent', '<i4'), ('label', '<u4')])
+    return dict(version=VERSION_V2, labels=labels, evtexts=evtexts,
+                header=dict(instructionCount=int(instructions), runCount=int(runs),
+                            cycleCount=int(cycles), pathRunCount=int(path_runs),
+                            eventCount=int(events), nodeCount=int(nodes)),
+                runs=np.frombuffer(raw, run_dtype, int(runs), run_start),
+                ids=np.frombuffer(raw, np.uint32, int(instructions), ids_start),
+                states=np.frombuffer(raw, np.uint8, int(instructions), states_start),
+                cycles=np.frombuffer(raw, cycle_dtype, int(cycles), cycle_start),
+                events=np.frombuffer(raw, event_dtype, int(events), event_start),
+                path_runs=np.frombuffer(raw, path_dtype, int(path_runs), path_start),
+                nodes=np.frombuffer(raw, node_dtype, int(nodes), node_start))
+
+
+def read_facts_any(path):
+    """按 magic 分派 v1/v2（v1 文件保持原样可读）。"""
+    raw = Path(path).read_bytes()
+    if raw[:8] == MAGIC_V2:
+        return read_facts_v2(path)
+    data = read_facts(path)
+    data['version'] = VERSION
+    data['labels'] = []
+    data['evtexts'] = []
+    data['path_runs'] = None
+    data['nodes'] = None
+    data['events'] = None
+    return data
 
 
 def cell_ordinals(instruction_count, cell_size):
@@ -277,6 +382,76 @@ def _first_seq_per_cell(runs, cells, cell_size, counters):
     return result, run_starts
 
 
+def derive_function_segments(ids, function_of_id):
+    """函数区间：相邻指令的 function id 变化处切段（连续覆盖 [0,n)）。"""
+    func = np.asarray(function_of_id)[np.asarray(ids)]
+    if func.size == 0:
+        empty = np.empty(0, np.int64)
+        return empty, empty.astype(np.int32), empty.astype(np.int16)
+    change = np.flatnonzero(func[1:] != func[:-1]) + 1
+    starts = np.concatenate(([0], change))
+    counts = np.diff(np.concatenate((starts, [func.size])))
+    return starts.astype(np.int64), counts.astype(np.int32), func[starts].astype(np.int16)
+
+
+def derive_path_segments(path_runs):
+    """路径区间：采用 PATH_RUNS（startOrdinal/count/leafNode），校验连续分区。"""
+    start = np.asarray(path_runs['startOrdinal'], np.int64)
+    count = np.asarray(path_runs['count'], np.int64)
+    leaf = np.asarray(path_runs['leafNode'], np.int64)
+    if len(start):
+        if int(start[0]) != 0 or np.any(start[1:] != start[:-1] + count[:-1]):
+            raise FactsError('PATH_RUNS 不是连续分区')
+    return start, count, leaf
+
+
+def derive_cell_anchors(runs, cells, cell_size):
+    """cell 首指令 anchor：RUNS block/recordOffset + skip=runSkip+(cellStart-runStart)。"""
+    starts = np.asarray(runs['startOrdinal'], np.int64)
+    order = np.argsort(starts)
+    starts = starts[order]
+    counts = np.asarray(runs['count'], np.int64)[order]
+    block = np.asarray(runs['blockOrdinal'], np.int32)[order]
+    offset = np.asarray(runs['recordOffset'], np.int64)[order]
+    skip_base = np.asarray(runs['runSkip'], np.int64)[order]
+    cell_start = np.arange(int(cells), dtype=np.int64) * int(cell_size)
+    index = np.searchsorted(starts, cell_start, side='right') - 1
+    if np.any(index < 0):
+        raise FactsError('cell 起始 ordinal 不在任何 RUN 内')
+    inside = cell_start - starts[index]
+    if np.any(inside >= counts[index]):
+        raise FactsError('cell 起始 ordinal 超出 RUN 范围')
+    return (block[index], offset[index], (skip_base[index] + inside).astype(np.int64))
+
+
+def derive_events(events, labels, evtexts=(), with_text=True):
+    """事件表：ev_seq/type/flags/payload/next_func（LABELS id）+ 文本 id（EVTEXTS）。"""
+    seq = np.asarray(events['seq'], np.int64)
+    result = {
+        'ev_seq': seq,
+        'ev_type': np.asarray(events['type'], np.uint8),
+        'ev_flags': np.asarray(events['flags'], np.int64),
+        'ev_payload': np.asarray(events['payload'], np.int64),
+        'ev_next_func': np.asarray(events['nextFunc'], np.int64),
+        'ev_text_ids': np.asarray(events['textId'], np.int64),
+    }
+    del labels, evtexts, with_text
+    return result
+
+
+def node_chain_texts(node, nodes, labels):
+    """从节点回溯到根的 LABELS 文本链（根 label 允许为 ''）。"""
+    chain = []
+    guard = 0
+    while node >= 0:
+        chain.append(str(labels[int(nodes['label'][node])]))
+        node = int(nodes['parent'][node])
+        guard += 1
+        if guard > 10_000:
+            raise FactsError('节点父链异常')
+    return list(reversed(chain))
+
+
 def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counters=None):
     """从事实流派生 cell 表 + 静态映射（分批、全 NumPy 归约）。"""
     counters = counters or instance()
@@ -374,6 +549,56 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
     _nc(counters)
     timings['hotspotFinalize'] = round(time.perf_counter() - phase, 4)
     shape = (cells, hotspot_count)
+    extra = {}
+    if facts.get('version') == VERSION_V2 and facts.get('path_runs') is not None:
+        phase = time.perf_counter()
+        labels = list(facts.get('labels') or [''])
+        evtexts = list(facts.get('evtexts') or [''])
+        strings = ['']
+        string_index = {'': 0}
+
+        def string_id(text):
+            text = '' if text is None else str(text)
+            identifier = string_index.get(text)
+            if identifier is None:
+                identifier = len(strings)
+                string_index[text] = identifier
+                strings.append(text)
+            return identifier
+
+        counters.python_loops += 1
+        fs_start, fs_count, fs_func = derive_function_segments(ids, mapping['funcOfId'])
+        ps_start, ps_count, ps_leaf = derive_path_segments(facts['path_runs'])
+        anchor_block, anchor_offset, anchor_skip = derive_cell_anchors(runs, cells,
+                                                                       cell_size)
+        nodes = facts['nodes']
+        node_parent = np.asarray(nodes['parent'], np.int32)
+        node_label = np.asarray([string_id(labels[int(value)]) for value in nodes['label']],
+                                np.int32)
+        counters.python_loops += 1
+        events = derive_events(facts['events'], labels, evtexts)
+        ev_text = np.asarray([string_id(evtexts[int(value)])
+                              if int(value) < len(evtexts) else 0
+                              for value in events['ev_text_ids']], np.int32)
+        h_file = np.asarray([-1 if entry.get('file') is None
+                             else string_id(entry.get('file'))
+                             for entry in static_entries], np.int32)
+        extra = dict(fs_start=fs_start, fs_count=fs_count, fs_func=fs_func,
+                     ps_start=ps_start, ps_count=ps_count, ps_leaf=ps_leaf,
+                     cell_anchor_block=anchor_block, cell_anchor_offset=anchor_offset,
+                     cell_anchor_skip=anchor_skip,
+                     node_parent=node_parent, node_label=node_label,
+                     ev_seq=events['ev_seq'], ev_type=events['ev_type'],
+                     ev_flags=events['ev_flags'], ev_payload=events['ev_payload'],
+                     ev_next_func=events['ev_next_func'], ev_text=ev_text,
+                     h_file=h_file, strings=strings, version=VERSION_V2,
+                     nodes_raw=facts['nodes'], labels_raw=labels,
+                     event_details=dict(prevFunc=np.asarray(facts['events']['prevFunc'],
+                                                            np.int64),
+                                        depth=np.asarray(facts['events']['depth'], np.int64),
+                                        prevEventSeq=np.asarray(
+                                            facts['events']['prevEventSeq'], np.int64)))
+        timings['v2Tables'] = round(time.perf_counter() - phase, 4)
     elapsed = round(time.perf_counter() - started, 4)
     return dict(cellSize=int(cell_size), cells=cells, instructions=total,
                 cell_insn=cell_insn, cell_executed=cell_executed,
@@ -384,7 +609,7 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
                 cell_hotspot_unknown=cell_hotspot_unknown.reshape(shape).astype(np.uint16),
                 cell_hotspot_first=cell_hotspot_first.reshape(shape),
                 mapping=mapping, timings=timings, elapsedSeconds=elapsed,
-                counters=counters.as_dict())
+                counters=counters.as_dict(), **extra)
 
 
 def derive_cell(facts, static_entries, cell, cell_size=4096, counters=None):
@@ -440,6 +665,31 @@ COMPAT_PENDING = [
 ]
 
 
+def _node_chain_texts(node, nodes, strings):
+    chain = []
+    guard = 0
+    while node >= 0:
+        chain.append(strings[int(nodes['label'][node])])
+        node = int(nodes['parent'][node])
+        guard += 1
+        if guard > 10_000:
+            raise FactsError('节点父链异常')
+    return list(reversed(chain))
+
+
+def _v1_chain_texts(node, parent, label, index):
+    chain = []
+    guard = 0
+    while node >= 0:
+        value = int(label[node])
+        chain.append('' if value < 0 else index.strings[value])
+        node = int(parent[node])
+        guard += 1
+        if guard > 10_000:
+            raise FactsError('v1 节点父链异常')
+    return list(reversed(chain))
+
+
 def derived_arrays(derived):
     """派生结果 → 可编码数组表（只含真正派生出的表，其余不填零）。"""
     tables = {name: np.asarray(derived[name]) for name in
@@ -455,8 +705,14 @@ def derived_arrays(derived):
     tables['st_pred'] = mapping['predicatedOfId'].astype(np.uint8)
     tables['h_func'] = mapping['hotspotFunc'].astype(np.int16)
     tables['h_line'] = mapping['hotspotLine'].astype(np.int32)
-    # h_file 在 v1 里是 meta.strings 的下标；本批不写 strings 池 → 不生成 h_file，
-    # 在 meta.compatPending 标注（不能用占位值冒充）。
+    if 'h_file' in derived:
+        tables['h_file'] = np.asarray(derived['h_file']).astype(np.int32)
+    for name in ('fs_start', 'fs_count', 'fs_func', 'ps_start', 'ps_count', 'ps_leaf',
+                 'cell_anchor_block', 'cell_anchor_offset', 'cell_anchor_skip',
+                 'node_parent', 'node_label', 'ev_seq', 'ev_type', 'ev_flags',
+                 'ev_payload', 'ev_next_func', 'ev_text'):
+        if name in derived:
+            tables[name] = np.asarray(derived[name])
     return tables
 
 
@@ -470,7 +726,8 @@ def encode_tables(derived, extra_meta=None):
                 format='etm-trace-store-query-index', version=1, container='v2',
                 source='native-facts-numpy', tables=sorted(arrays),
                 functionNames=list(derived['mapping']['functionNames']),
-                compatPending=list(COMPAT_PENDING),
+                strings=derived.get('strings'),
+                compatPending=[name for name in COMPAT_PENDING if name not in arrays],
                 note='仅派生 static 映射与 cell/hotspot 聚合；其余表未派生，不填零冒充')
     if extra_meta:
         meta.update(extra_meta)
@@ -519,6 +776,77 @@ def compare_with_v1(derived, store):
                 problems.append(dict(array=name, count=int(bad.size),
                                      examples=[[int(i), int(reference[i]), int(got[i])]
                                                for i in bad[:5]]))
+    # fs_*：区间直接比较，函数 id 按名称归一化
+    if 'fs_start' in tables:
+        for name in ('fs_start', 'fs_count'):
+            reference = np.asarray(arrays[name]).astype(np.int64)
+            got = np.asarray(tables[name]).astype(np.int64)
+            if reference.shape != got.shape or not np.array_equal(reference, got):
+                problems.append(dict(array=name, shape=[list(reference.shape),
+                                                        list(got.shape)]))
+        if np.array_equal(np.asarray(tables['fs_start']).astype(np.int64),
+                          np.asarray(arrays['fs_start']).astype(np.int64)):
+            got_names = [derived['mapping']['functionNames'][int(value)]
+                         for value in tables['fs_func']]
+            ref_names = [index.function_names[int(value)]
+                         for value in np.asarray(arrays['fs_func'])]
+            bad = [i for i, (left, right) in enumerate(zip(got_names, ref_names))
+                   if left != right]
+            if bad:
+                problems.append(dict(kind='fs_func_text', count=len(bad),
+                                     examples=bad[:5]))
+    # ps_*：区间直接比较；leaf 用「根到叶的标签文本链」规范化
+    if 'ps_start' in tables:
+        for name in ('ps_start', 'ps_count'):
+            reference = np.asarray(arrays[name]).astype(np.int64)
+            got = np.asarray(tables[name]).astype(np.int64)
+            if reference.shape != got.shape or not np.array_equal(reference, got):
+                problems.append(dict(array=name, shape=[list(reference.shape),
+                                                        list(got.shape)]))
+        if np.array_equal(np.asarray(tables['ps_start']).astype(np.int64),
+                          np.asarray(arrays['ps_start']).astype(np.int64)):
+            # 用派生表的 node_parent/node_label（label 已是本实现 strings 池下标）；
+            # 注意不能用 facts 原始 NODES（其 label 是 LABELS id，与本池编号不同）。
+            nodes = dict(parent=np.asarray(tables['node_parent']),
+                         label=np.asarray(tables['node_label']))
+            ref_parent = np.asarray(arrays['node_parent'])
+            ref_label = np.asarray(arrays['node_label'])
+            got_chains = [_node_chain_texts(int(leaf), nodes, derived.get('strings') or [])
+                          for leaf in np.asarray(tables['ps_leaf'])]
+            ref_chains = [_v1_chain_texts(int(leaf), ref_parent, ref_label, index)
+                          for leaf in np.asarray(arrays['ps_leaf'])]
+            bad = [i for i, (left, right) in enumerate(zip(got_chains, ref_chains))
+                   if left != right]
+            if bad:
+                problems.append(dict(kind='ps_leaf_text', count=len(bad),
+                                     examples=[[i, got_chains[i], ref_chains[i]]
+                                               for i in bad[:3]]))
+    # events：seq/type/flags/payload 直接比较，文本/nextFunc 按文本归一化
+    if 'ev_seq' in tables:
+        for name in ('ev_seq', 'ev_type', 'ev_flags', 'ev_payload'):
+            reference = np.asarray(arrays[name]).astype(np.int64)
+            got = np.asarray(tables[name]).astype(np.int64)
+            if reference.shape != got.shape or not np.array_equal(reference, got):
+                problems.append(dict(array=name, shape=[list(reference.shape),
+                                                        list(got.shape)]))
+        strings = derived.get('strings') or ['']
+        got_texts = [strings[int(value)] for value in tables['ev_text']]
+        ref_texts = [index.strings[int(value)] for value in np.asarray(arrays['ev_text'])]
+        bad = [i for i, (left, right) in enumerate(zip(got_texts, ref_texts))
+               if left != right]
+        if bad:
+            problems.append(dict(kind='ev_text', count=len(bad),
+                                 examples=[[i, got_texts[i], ref_texts[i]] for i in bad[:3]]))
+        labels = derived.get('labels_raw') or []
+        got_next = [None if int(value) < 0 else labels[int(value)]
+                    for value in tables['ev_next_func']]
+        ref_next = [None if int(value) < 0 else index.function_names[int(value)]
+                    for value in np.asarray(arrays['ev_next_func'], np.int64)]
+        bad = [i for i, (left, right) in enumerate(zip(got_next, ref_next))
+               if left != right]
+        if bad:
+            problems.append(dict(kind='ev_next_func_text', count=len(bad),
+                                 examples=[[i, got_next[i], ref_next[i]] for i in bad[:3]]))
     if len(store.static) != len(derived['mapping']['funcOfId']):
         problems.append(dict(kind='staticCount', reference=len(store.static),
                              facts=len(derived['mapping']['funcOfId'])))
@@ -567,14 +895,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.command != 'derive':
         return 2
-    facts = read_facts(args.facts)
+    facts = read_facts_any(args.facts)
     static_entries = json.loads(Path(args.static_json).read_text(encoding='utf-8'))
     counters = Counters()
     started = time.perf_counter()
     derived = derive_tables(facts, static_entries, cell_size=args.cell_size,
                             batch=args.batch, counters=counters)
     seconds = round(time.perf_counter() - started, 4)
-    result = dict(facts=args.facts, seconds=seconds,
+    result = dict(facts=args.facts, factsVersion=int(facts.get('version') or 1),
+                  seconds=seconds,
                   secondsPerMillion=round(seconds * 1e6 / int(derived['instructions']), 4),
                   timings=derived['timings'], counters=counters.as_dict(),
                   cells=derived['cells'], instructions=derived['instructions'])
