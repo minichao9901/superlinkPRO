@@ -875,11 +875,7 @@ def _validate_native_build_result(build_result, *, inputs, static_dict_sha256):
 
 
 def _write_native(record_dir, store_dir, **kwargs):
-    """native 引擎入口（t17 骨架；完整 build 等 t20/t21 的能力握手后接入）。
-
-    当前 p2 的 `etm_storebuild` 只声明 prescan/diagnose（无 build）→ 明确
-    `NativeStorebuildUnavailable`，除非显式允许回退；不会静默用旧产物。
-    """
+    """原生核心 + facts-v3 + NumPy 完整索引；旧二进制必须明确拒绝。"""
     info = native_capabilities()
     capabilities = {str(item) for item in (info.get('capabilities') or ())}
     if 'build' not in capabilities:
@@ -887,8 +883,8 @@ def _write_native(record_dir, store_dir, **kwargs):
             'etm_storebuild 尚未提供 build 能力（capabilities=%s）：R2 原生 build 由 '
             't20/t21 交付；请显式允许回退（ETM_STORE_ENGINE_FALLBACK=1）或改用 python 引擎'
             % sorted(capabilities))
-    if not {'facts-v2', 'quality-diagnostics'}.issubset(capabilities):
-        raise NativeStorebuildUnavailable('原生 build 缺少 facts-v2/quality-diagnostics，请重新构建')
+    if not {'facts-v3', 'quality-diagnostics'}.issubset(capabilities):
+        raise NativeStorebuildUnavailable('原生 build 缺少 facts-v3/quality-diagnostics，请重新构建')
     from native_pipeline import write as native_write
     return native_write(record_dir, store_dir, **kwargs)
 

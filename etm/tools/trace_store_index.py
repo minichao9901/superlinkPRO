@@ -1947,51 +1947,30 @@ class QueryIndex:
                                 reason='当前记录没有已验收的逐指令时间戳，横轴只表示执行序号'))
 
     def _distribute_function_segments(self, lo, hi, bins, span, i_lo, i_hi, target):
-        start = self.fs_start
-        count = self.fs_count
-        functions = self.fs_func
-        start_seq_array = self.fs_start_seq
-        end_seq_array = self.fs_end_seq
-        length = len(start)
-        position = int(np.searchsorted(start, i_lo, side='right')) - 1
-        if position < 0:
-            position = 0
-        events = self.event_seqs
-        event_position = 0
-        while position < length and start[position] <= i_hi:
-            seg_start = int(start[position])
-            seg_end = seg_start + int(count[position])
-            low = max(seg_start, i_lo)
-            high = min(seg_end, i_hi + 1)
-            if high <= low:
-                position += 1
-                continue
-            seq_start = int(start_seq_array[position]) if low == seg_start \
-                else int(self.seq_of_insn(low))
-            seq_end = int(end_seq_array[position]) if high == seg_end \
-                else int(self.seq_of_insn(high - 1))
-            while event_position < len(events) and int(events[event_position]) < seq_start:
-                event_position += 1
-            first_bin = min(bins - 1, max(0, (seq_start - lo) * bins // span))
-            last_bin = min(bins - 1, max(0, (seq_end - lo) * bins // span))
-            function = int(functions[position])
-            for bucket in range(first_bin, last_bin + 1):
-                bucket_start = lo + -(-bucket * span // bins)
-                bucket_end = lo + -(-(bucket + 1) * span // bins) - 1
-                low_seq = max(seq_start, bucket_start)
-                high_seq = min(seq_end, bucket_end)
-                if high_seq < low_seq:
-                    continue
-                while event_position < len(events) and int(events[event_position]) < low_seq:
-                    event_position += 1
-                event_count = 0
-                probe = event_position
-                while probe < len(events) and int(events[probe]) <= high_seq:
-                    event_count += 1
-                    probe += 1
-                event_position = probe
-                target[bucket, function] += high_seq - low_seq + 1 - event_count
-            position += 1
+        # Convert sequence-bin boundaries into instruction ordinals once. Events
+        # occupy sequence numbers but contribute no instruction count.
+        bounds = lo + (np.arange(bins + 1, dtype=np.int64) * span + bins - 1) // bins
+        ordinals = bounds - np.searchsorted(self.event_seqs, bounds, side='left')
+        ordinals = np.clip(ordinals, i_lo, i_hi + 1)
+        first = max(0, int(np.searchsorted(self.fs_start, i_lo, side='right')) - 1)
+        last = int(np.searchsorted(self.fs_start, i_hi, side='right'))
+        starts = self.fs_start[first:last]
+        counts = self.fs_count[first:last]
+        functions = self.fs_func[first:last]
+        # Integral of the disjoint intervals for each function at every bin
+        # boundary. Difference adjacent integrals to count partial segments
+        # exactly, without a Python loop per dynamic function segment.
+        for function in np.unique(functions):
+            selected = functions == function
+            begin = starts[selected]
+            length = counts[selected]
+            prefix = np.concatenate(([0], np.cumsum(length, dtype=np.int64)))
+            position = np.searchsorted(begin, ordinals, side='left')
+            cumulative = prefix[position]
+            present = position > 0
+            previous = position[present] - 1
+            cumulative[present] -= np.maximum(0, begin[previous] + length[previous] - ordinals[present])
+            target[:, int(function)] += np.diff(cumulative)
 
 
     # -- 默认视图（构建期持久化的全段结果）--------------------------------------------------

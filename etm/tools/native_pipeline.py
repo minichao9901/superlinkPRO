@@ -31,7 +31,13 @@ def _issues(core, facts, quality, diagnostics):
             seq = int(event['seq'])
             result.append(dict(category='boundary', startSeq=seq, endSeq=seq,
                                offset=offsets[seq], reason=facts['evtexts'][int(event['textId'])], records=1))
-    unknown = np.flatnonzero(facts['states'] == 2)
+    if 'predicateIssues' in diagnostics:
+        result.extend(dict(category='predicate',startSeq=lo,endSeq=hi,records=hi-lo+1,
+                           offset=offset,reason=ts.IT_REASON)
+                      for lo,hi,offset in diagnostics['predicateIssues'])
+        unknown = np.empty(0, np.int64)
+    else:
+        unknown = np.flatnonzero(facts['states'] == 2)
     if len(unknown):
         runs = facts['runs']
         run_indexes = np.searchsorted(runs['startOrdinal'], unknown, side='right') - 1
@@ -98,6 +104,8 @@ def write(record_dir, store_dir, **options):
         since = now
 
     core = None
+    published = False
+    metadata_before = {}
     try:
         etm = Path(options.get('etm') or record_dir / 'etm.bin')
         native_path = Path(options.get('native_bin') or record_dir / 'native.bin')
@@ -155,7 +163,8 @@ def write(record_dir, store_dir, **options):
         core = ts.TraceStore(private)
         facts = native_facts_index.read_facts_any(facts_path)
         entries = _entries(core)  # facts IDs use core order, not the PC-sorted transport dictionary.
-        full = native_facts_index.build_full_index(facts, entries, core.first_seq, core.last_seq, view=core)
+        full = native_facts_index.build_full_index(facts, entries, core.first_seq, core.last_seq,
+                                                   view=core, static_first_seen=True)
         if full['meta']['compatPending']:
             raise ts.TraceStoreError('查询索引尚不完整')
         index_meta = query._index_meta(full['meta'], dict(payloadBytes=len(full['payload']),
@@ -231,10 +240,23 @@ def write(record_dir, store_dir, **options):
         manifest=dict(initial,files=[dict(name='store.bin',**info)],counts=counts,
                       fieldPresence=meta['fieldPresence'],bindings=bindings,queryIndex=index_meta,engine=engine)
         if options.get('write_decoded'):
-            (record_dir/'decoded.json').write_text(json.dumps(decoded,ensure_ascii=False),encoding='utf8')
-            (record_dir/'sources.json').write_text(json.dumps(source_data,ensure_ascii=False),encoding='utf8')
+            for name, value in (('decoded.json', decoded), ('sources.json', source_data)):
+                destination = record_dir / name
+                metadata_before[destination] = destination.read_bytes() if destination.exists() else None
+                staged = work / name
+                staged.write_text(json.dumps(value, ensure_ascii=False), encoding='utf8')
+                os.replace(staged, destination)
         ts._publish_manifest(store_dir,manifest)
+        published = True
         mark('publish')
+        if decode_info is not None and options.get('keep_native'):
+            kept = directory / 'native.bin'
+            os.replace(native_path, kept)
+            native_path = kept
+        warnings = []
+        writer._compare_declared(metadata, summary, quality, warnings)
+        if not hash_inputs:
+            warnings.append('--no-hash-inputs：发布绑定未计算输入哈希')
         # All persisted arrays are now in store.bin; scratch facts/native output
         # must not become a second permanent copy of the capture.
         del full, facts
@@ -243,8 +265,24 @@ def write(record_dir, store_dir, **options):
         ts._remove_tree(work)
         return dict(ok=True,storeDir=str(store_dir),generation=generation,counts=counts,
                     elapsedSeconds=time.perf_counter()-started,phases=phases,queryIndex=index_meta,
-                    storeBytes=info['bytes'],storeSha256=info['sha256'],engine=engine),decoded
+                    storeBytes=info['bytes'],storeSha256=info['sha256'],engine=engine,
+                    inputBytes=input_bytes, nativePath=str(native_path) if native_path.is_file() else None,
+                    nativeGenerated=decode_info is not None, decodeInfo=decode_info,
+                    peakRssBytes=ts.peak_rss_bytes(), nativePeakRssBytes=built.get('peakRssBytes'),
+                    elementsVerified=counts['ranges'],staticPcs=counts['staticPcs'],
+                    runs=counts['runs'],events=counts['events'],instructions=counts['instructions'],
+                    packetText=False, decodedWritten=bool(options.get('write_decoded')),
+                    decodedPath=str(record_dir/'decoded.json') if options.get('write_decoded') else None,
+                    warnings=warnings),decoded
     except Exception:
         if core is not None:core.close()
-        ts._remove_tree(directory)
+        if not published:
+            for destination, payload in metadata_before.items():
+                if payload is None:
+                    destination.unlink(missing_ok=True)
+                else:
+                    staged = work / (destination.name + '.restore')
+                    staged.write_bytes(payload)
+                    os.replace(staged, destination)
+            ts._remove_tree(directory)
         raise

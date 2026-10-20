@@ -19,6 +19,8 @@ add_executable(etm_frontend native/frontend.cpp)
 set_property(TARGET etm_frontend PROPERTY CXX_STANDARD 17)
 target_compile_options(etm_frontend PRIVATE -ffp-contract=off)
 if(MINGW)
+  target_link_libraries(etm_frontend PRIVATE crypto)
+  target_compile_definitions(etm_frontend PRIVATE ETM_FRONTEND_OPENSSL=1)
   target_link_options(etm_frontend PRIVATE -municode -static -static-libgcc -static-libstdc++)
 endif()
 

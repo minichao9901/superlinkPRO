@@ -51,6 +51,17 @@ class NativePipelineTests(SyntheticCase):
         self.assertEqual([(p['offset'],p['size'],p['hex']) for p in actual],
                          [(p['offset'],p['size'],p['hex']) for p in expected])
 
+    def test_manifest_failure_restores_metadata_and_previous_store(self):
+        self.write_store(engine='native', write_decoded=True)
+        paths = [self.store_dir/'manifest.json', self.record/'decoded.json', self.record/'sources.json']
+        before = [path.read_bytes() for path in paths]
+        with patch('trace_store._publish_manifest', side_effect=OSError('publish failed')):
+            with self.assertRaisesRegex(OSError, 'publish failed'):
+                self.write_store(engine='native', write_decoded=True)
+        self.assertEqual([path.read_bytes() for path in paths], before)
+        with trace_store.TraceStore(self.store_dir) as store:
+            self.assertIsNotNone(store.query_index)
+
     def test_folded_cycle_count_keeps_more_than_32_bits(self):
         blob=bytearray(self.native.read_bytes());pos=native_binary.HEADER_BYTES
         while pos<len(blob):

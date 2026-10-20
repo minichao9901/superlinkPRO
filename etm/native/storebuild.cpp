@@ -1236,6 +1236,7 @@ struct BuildBlock {
 };
 
 struct BuildOutput {
+    std::vector<std::array<uint64_t, 3>> predicate_issues;
     std::vector<BuildBlock> blocks;
     uint64_t generation_tag = 0;
     std::string generation;
@@ -1415,7 +1416,31 @@ class Tracker {
                           bool has_file, bool has_line, int64_t line, uint8_t executed,
                           uint8_t flow, uint64_t pc, uint32_t size, uint64_t cycles,
                           uint32_t site_id = 0xFFFFFFFFu) {
-        const std::string fn = function.empty() ? "(未知函数)" : function;
+        static const std::string unknown_function = "(未知函数)";
+        const std::string& fn = function.empty() ? unknown_function : function;
+        if (analysis_enabled_ && flow == kFlowLinear && !cycles && !has_expected_
+                && previous_.valid && previous_.flow == kFlowLinear
+                && previous_.function == function && !stack_.empty()
+                && stack_.back().function == fn && path_nodes_valid_
+                && site_id < site_stat_.size() && site_stat_[site_id] >= 0
+                && site_hotspot_[site_id] >= 0) {
+            auto& stat = stats_[static_cast<size_t>(site_stat_[site_id])];
+            auto& hot = hotspots_[static_cast<size_t>(site_hotspot_[site_id])];
+            ++stat.instructions;
+            if (executed == 0) ++stat.known_executed;
+            else if (executed == 1) ++stat.not_taken;
+            else ++stat.unknown_execution;
+            ++root_.value;
+            for (auto* node : path_nodes_) ++node->value;
+            auto* leaf = path_nodes_.empty() ? &root_ : path_nodes_.back();
+            ++leaf->self;
+            ++hot.records;
+            hot.unknown += executed == 2;
+            previous_.pc = pc;
+            previous_.size = size;
+            previous_.executed = executed;
+            return;
+        }
         TrackerStats* s_ptr = nullptr;
         TrackerHotspot* cached_hot = nullptr;
         size_t site = static_cast<size_t>(site_id);
@@ -2484,9 +2509,6 @@ class BuildVisitor : public NativeVisitor {
                     (void)read_uv(data, static_cast<size_t>(length), cursor);  // internal unknown
                     uint32_t previous = static_cast<uint32_t>(
                         read_uv(data, static_cast<size_t>(length), cursor));
-                    fact_runs.push_back(FactRun{instruction_index, run_start,
-                        static_cast<uint32_t>(count), static_cast<uint32_t>(block_index),
-                        static_cast<uint32_t>(record_start), 0u, tail_code});
                     if (run_cycles) {
                         fact_cycles.push_back(FactCycle{instruction_index + count - 1,
                             run_start + count - 1, run_cycles,
@@ -2508,6 +2530,12 @@ class BuildVisitor : public NativeVisitor {
                             : (is_tail ? tail_code : 0);
                         fact_ids.push_back(id);
                         fact_states.push_back(executed);
+                        if (instruction_index % 4096 == 0) {
+                            fact_runs.push_back(FactRun{instruction_index, run_start + position,
+                                static_cast<uint32_t>(std::min<uint64_t>(4096, output_.instructions - instruction_index)),
+                                static_cast<uint32_t>(block_index), static_cast<uint32_t>(record_start),
+                                static_cast<uint32_t>(position), 2});
+                        }
                         if (emit_index) {
                         ++cell_insn[cell];
                         if (executed == 0) ++cell_executed[cell];
@@ -2711,8 +2739,8 @@ class BuildVisitor : public NativeVisitor {
                 fail(kExitConsistency, "facts v2 计数超出可表示范围");
             }
             uint8_t header[64] = {};
-            std::memcpy(header, "ETMFACT2", 8);
-            const uint32_t version = 2, header_bytes = 64;
+            std::memcpy(header, "ETMFACT3", 8);
+            const uint32_t version = 3, header_bytes = 64;
             std::memcpy(header + 8, &version, 4);
             std::memcpy(header + 12, &header_bytes, 4);
             std::memcpy(header + 16, &instruction_count, 8);
@@ -2953,6 +2981,12 @@ class BuildVisitor : public NativeVisitor {
                 const bool is_tail = position + 1 == count;
                 const uint8_t executed = is_tail ? tail_code
                     : (entry->predicated ? 2 : 0);
+                if (executed == 2) {
+                    const uint64_t seq = start_seq + position;
+                    auto& issues = output_.predicate_issues;
+                    if (!issues.empty() && issues.back()[1] + 1 == seq) issues.back()[1] = seq;
+                    else issues.push_back({seq, seq, pending_.offset});
+                }
                 if (!is_tail) {
                     if (entry->predicated) {
                         ++output_.unknown;
@@ -2982,7 +3016,7 @@ class BuildVisitor : public NativeVisitor {
         if (tail_code == 2) nav_issue_.push_back(static_cast<uint32_t>(start_seq + count - 1));
         else if (tail->flow == kFlowCall && tail_code == 0) nav_call_.push_back(static_cast<uint32_t>(start_seq + count - 1));
         else if (tail->flow == kFlowReturn && tail_code == 0) nav_return_.push_back(static_cast<uint32_t>(start_seq + count - 1));
-        if (output_.first_instruction == 0 && count) output_.first_instruction = start_seq;
+        if (output_.instructions == count && count) output_.first_instruction = start_seq;
         if (output_.min_offset == std::numeric_limits<uint64_t>::max()) output_.min_offset = pending_.offset;
         output_.max_offset = std::max<uint64_t>(output_.max_offset, pending_.offset);
         output_.flush_seconds += chrono_seconds(flush_started);
@@ -3293,7 +3327,7 @@ int main_utf8(int argc, char** argv) {
                       << ",\"buildSha\":" << quote(build_sha())
                       << ",\"formats\":{\"native\":\"trace-bin native v1\","
                          "\"staticDict\":1,\"ranges\":1}"
-                      << ",\"capabilities\":[\"prescan\",\"diagnose\",\"build\",\"facts-v2\",\"quality-diagnostics\"]"
+                      << ",\"capabilities\":[\"prescan\",\"diagnose\",\"build\",\"facts-v3\",\"quality-diagnostics\"]"
                       << "}" << std::endl;
             return kExitOk;
         }
@@ -3629,6 +3663,12 @@ int main_utf8(int argc, char** argv) {
                 const auto& item = counters.logical_events[i];
                 result << '[' << item[0] << ',' << item[1] << ']';
             }
+            result << "],\"predicateIssues\":[";
+            for (size_t i = 0; i < output.predicate_issues.size(); ++i) {
+                if (i) result << ',';
+                const auto& item = output.predicate_issues[i];
+                result << '[' << item[0] << ',' << item[1] << ',' << item[2] << ']';
+            }
             result << "]},\n";
             result << " \"generation\":" << quote(output.generation)
                    << ", \"generationTag\":" << quote("0x" + [&]() {
@@ -3665,7 +3705,7 @@ int main_utf8(int argc, char** argv) {
                    << output.write_seconds << ",\"assembleFile\":"
                    << output.write_seconds << ",\"hashFile\":0.0},\n";
             result << " \"peakRssBytes\":" << output.peak_rss
-                   << ",\"facts\":{\"format\":\"ETMFACT2\",\"version\":2,\"bytes\":"
+                   << ",\"facts\":{\"format\":\"ETMFACT3\",\"version\":3,\"bytes\":"
                    << output.facts_bytes << ",\"pathRuns\":" << output.facts_path_runs
                    << ",\"nodes\":" << output.facts_nodes
                    << ",\"labels\":" << output.facts_labels

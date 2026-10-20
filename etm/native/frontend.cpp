@@ -24,6 +24,9 @@
 //   etm_frontend.exe <capture.kvdat> --clock 0 --data 1,2,3,4 --fraction 0.25 \
 //       --glitch-ns 4 --traceid 2 --chunk-bytes 1048576 --out <前缀> [--json <report.json>]
 
+#ifdef ETM_FRONTEND_OPENSSL
+#include <openssl/sha.h>
+#endif
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -145,6 +148,24 @@ static std::string jsonString(const std::string& value) {
 
 // ── SHA-256（输入指纹；不引第三方库） ──────────────────────────────────────
 
+#ifdef ETM_FRONTEND_OPENSSL
+class Sha256 {
+  public:
+    Sha256() { SHA256_Init(&context_); }
+    void update(const unsigned char* data, size_t size) { SHA256_Update(&context_, data, size); }
+    std::string hexDigest() const {
+        SHA256_CTX copy = context_;
+        unsigned char digest[32];
+        SHA256_Final(digest, &copy);
+        const char* hex = "0123456789abcdef";
+        std::string result; result.reserve(64);
+        for (unsigned char value : digest) { result += hex[value >> 4]; result += hex[value & 15]; }
+        return result;
+    }
+  private:
+    SHA256_CTX context_;
+};
+#else
 class Sha256 {
   public:
     Sha256() { reset(); }
@@ -234,6 +255,7 @@ class Sha256 {
     uint64_t length_;
 };
 
+#endif
 static std::string fileSha256(const fs::path& path) {
     std::FILE* file = openFile(path, L"rb");
     if (!file) throw std::runtime_error("打不开输入文件：" + pathToUtf8(path));
@@ -274,6 +296,13 @@ class ValueHistogram {
             cache_bits_[used_] = bits;
             cache_counts_[used_] = &found->second;
             ++used_;
+        } else {
+            // Floating interval representations change with the time exponent.
+            // Retaining only the first eight keys makes long captures miss the
+            // fast cache forever; refresh recent keys without changing counts.
+            cache_bits_[replace_] = bits;
+            cache_counts_[replace_] = &found->second;
+            replace_ = (replace_ + 1) % kCache;
         }
         ++total_;
     }
@@ -333,6 +362,7 @@ class ValueHistogram {
     std::array<uint64_t, kCache> cache_bits_{};
     std::array<int64_t*, kCache> cache_counts_{};
     int used_ = 0;
+    int replace_ = 0;
     uint64_t total_ = 0;
     uint64_t max_distinct_;
 };
@@ -1565,7 +1595,7 @@ static void writeFile(const fs::path& path, const void* data, size_t size) {
     if (!file) throw std::runtime_error("写不出文件：" + pathToUtf8(path));
     if (size && std::fwrite(data, 1, size, file) != size) {
         std::fclose(file);
-        throw std::runtime_error("写不出文件：" + path.string());
+        throw std::runtime_error("写不出文件：" + pathToUtf8(path));
     }
     std::fclose(file);
 }
@@ -1714,14 +1744,14 @@ static int realMain(const std::vector<std::string>& args) {
         fs::path prefix = pathFromUtf8(out_prefix);
         if (prefix.has_parent_path()) fs::create_directories(prefix.parent_path());
         const auto& tpiu = frontend.candidate(static_cast<size_t>(frontend.phase()));
-        writeFile(fs::path(prefix.string() + ".tpiu.bin"), tpiu.data(), tpiu.size());
+        writeFile(pathFromUtf8(pathToUtf8(prefix) + ".tpiu.bin"), tpiu.data(), tpiu.size());
         for (const auto& entry : demux.streams) {
-            writeFile(fs::path(prefix.string() + ".id" + std::to_string(entry.first) + ".bin"),
+            writeFile(pathFromUtf8(pathToUtf8(prefix) + ".id" + std::to_string(entry.first) + ".bin"),
                       entry.second.data(), entry.second.size());
         }
-        writeFile(fs::path(prefix.string() + ".physical.json"), physical_json.data(),
+        writeFile(pathFromUtf8(pathToUtf8(prefix) + ".physical.json"), physical_json.data(),
                   physical_json.size());
-        writeFile(fs::path(prefix.string() + ".framing.json"), framing_json.data(),
+        writeFile(pathFromUtf8(pathToUtf8(prefix) + ".framing.json"), framing_json.data(),
                   framing_json.size());
     }
 

@@ -1,15 +1,9 @@
-"""C2：NumPy 批量消费 C1 执行事实流，派生 cell/hotspot 索引表（v2 编码）。
+"""批量派生完整查询索引，热路径不按指令执行 Python CallTracker。
 
-路线依据：`docs/etm-r2-unblock-20261020.md` §4（原生执行事实 + NumPy 批量派生）。
-本模块是 t37 小原型的产品化实现，约束：
-
-* 只消费 C1 facts（`ETMFACT1`：RUNS/IDS/STATES/CYCLES；EVENTS 本批未用）；
-* 不读 sequence 块、不跑 Python CallTracker、不读/挂载参考表；
-* 热路径只有 NumPy 批量归约；Python 循环次数 = 批次数 + 唯一静态项数 + 有限常数，
-  由 `Counters` 显式记录；
-* 目前只派生 static→function/hotspot 映射与 cell 计数/未知/周期/首次出现
-  （含 `cell_hotspot_*`）；其余表列在 `COMPAT_PENDING` 并标注“未派生”，
-  **不填零冒充完成**；编码复用 `trace_store_index.encode_payload_v2`，不改其语义。
+生产入口 build_full_index 消费 ETMFACT3：IDS/STATES 为逐指令数组，
+RUNS 是每 4096 条指令一个的定位锚点（runSkip 定位到原始 RUN 内），
+路径与事件保持稀疏。仍支持旧 v1/v2 文件及部分表原型入口。
+所有输出复用 trace_store_index 的 v2 编码及查询语义。
 """
 from __future__ import annotations
 
@@ -34,8 +28,10 @@ from pathlib import Path
 
 MAGIC = b'ETMFACT1'
 MAGIC_V2 = b'ETMFACT2'
+MAGIC_V3 = b'ETMFACT3'
 VERSION = 1
 VERSION_V2 = 2
+VERSION_V3 = 3
 RUN_V2 = struct.Struct('<QQIIIB3sII')            # 40B（第 32B 起 runSkip/reserved）
 EVENT_V2 = struct.Struct('<QQIBBhhhiII')        # 40B（textId @32）
 PATH_RUN_V2 = struct.Struct('<QII')             # 16B startOrdinal/count/leafNode
@@ -150,6 +146,8 @@ def _read_varint(raw, position):
     value = 0
     shift = 0
     while True:
+        if position >= len(raw) or shift >= 64:
+            raise FactsError('facts 字符串长度无效或截断')
         byte = raw[position]
         position += 1
         value |= (byte & 0x7F) << shift
@@ -159,9 +157,13 @@ def _read_varint(raw, position):
 
 
 def _read_string_table(raw, position, count):
+    if count > len(raw) - position:
+        raise FactsError('facts 字符串计数超过文件长度')
     strings = []
     for _ in range(count):
         length, position = _read_varint(raw, position)
+        if length > len(raw) - position:
+            raise FactsError('facts 字符串被截断')
         strings.append(raw[position:position + length].decode('utf-8'))
         position += length
     return strings, position
@@ -171,11 +173,11 @@ def read_facts_v2(path):
     """读 facts v2（ETMFACT2）：RUNS40/IDS/STATES/CYCLES/EVENTS40/PATH_RUNS/NODES/LABELS/EVTEXTS。"""
     with Path(path).open('rb') as stream:
         raw = mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ)
-    if len(raw) < HEADER.size or raw[:8] != MAGIC_V2:
+    if len(raw) < HEADER.size or raw[:8] not in (MAGIC_V2, MAGIC_V3):
         raise FactsError('facts v2 magic/长度不符')
     (magic, version, header_bytes, instructions, runs, cycles, path_runs, events,
      nodes) = HEADER.unpack_from(raw, 0)
-    if version != VERSION_V2 or header_bytes != HEADER.size:
+    if (magic, version) not in ((MAGIC_V2, VERSION_V2), (MAGIC_V3, VERSION_V3)) or header_bytes != HEADER.size:
         raise FactsError('facts v2 version/headerBytes 非法')
     position = HEADER.size
 
@@ -202,9 +204,13 @@ def read_facts_v2(path):
     labels, position = _read_string_table(raw, position, int(label_count))
     evtexts = []
     if position < len(raw):
+        if position + 8 > len(raw):
+            raise FactsError('facts EVTEXTS 计数被截断')
         count = struct.unpack_from('<Q', raw, position)[0]
         position += 8
         evtexts, position = _read_string_table(raw, position, int(count))
+    if position != len(raw):
+        raise FactsError('facts 存在未识别的尾部数据')
     run_dtype = np.dtype([('startOrdinal', '<u8'), ('startSeq', '<u8'),
                           ('count', '<u4'), ('blockOrdinal', '<u4'),
                           ('recordOffset', '<u4'), ('tailState', 'u1'),
@@ -218,7 +224,7 @@ def read_facts_v2(path):
                             ('reserved', '<u4')])
     path_dtype = np.dtype([('startOrdinal', '<u8'), ('count', '<u4'), ('leafNode', '<u4')])
     node_dtype = np.dtype([('parent', '<i4'), ('label', '<u4')])
-    return dict(version=VERSION_V2, labels=labels, evtexts=evtexts,
+    return dict(version=version, labels=labels, evtexts=evtexts,
                 header=dict(instructionCount=int(instructions), runCount=int(runs),
                             cycleCount=int(cycles), pathRunCount=int(path_runs),
                             eventCount=int(events), nodeCount=int(nodes)),
@@ -232,10 +238,10 @@ def read_facts_v2(path):
 
 
 def read_facts_any(path):
-    """按 magic 分派 v1/v2（v1 文件保持原样可读）。"""
+    """按 magic 分派 v1/v2/v3。"""
     with Path(path).open('rb') as stream:
         magic = stream.read(8)
-    if magic == MAGIC_V2:
+    if magic in (MAGIC_V2, MAGIC_V3):
         return read_facts_v2(path)
     data = read_facts(path)
     data['version'] = VERSION
@@ -463,6 +469,8 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
     cycles = cycles_array(facts['cycles'])
     runs = runs_array(facts['runs'])
     total = int(ids.size)
+    if facts.get('version') == VERSION_V3 and cell_size != 4096:
+        raise FactsError('facts v3 的定位点使用固定4096指令单元格')
     counters.instructions = total
     counters.runs = int(runs.size)
     counters.cycle_anchors = int(cycles.size)
@@ -492,10 +500,7 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
         stop = min(total, start + int(batch))
         ordinal = np.arange(start, stop, dtype=np.int64)
         cell = ordinal // int(cell_size)
-        cell_insn += np.bincount(cell, minlength=cells)[:cells]
         chunk_states = states[start:stop]
-        cell_executed += np.bincount(cell[chunk_states == STATE_EXECUTED],
-                                     minlength=cells)[:cells]
         cell_not_taken += np.bincount(cell[chunk_states == STATE_NOT_TAKEN],
                                       minlength=cells)[:cells]
         cell_unknown += np.bincount(cell[chunk_states == STATE_UNKNOWN],
@@ -513,11 +518,19 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
             cell_hotspot_unknown += np.bincount(key[predicated_mask],
                                                 minlength=hotspot_span)[:hotspot_span]
         # 每个 (cell, hotspot) 的最小 cell 内偏移 + 对应 static_id（打包成 uint64 取 min）
-        unique_keys, first_index = np.unique(key, return_index=True)
-        offsets = (ordinal[first_index] % int(cell_size)).astype(np.uint64)
-        packed = (offsets << np.uint64(32)) | chunk_ids[first_index].astype(np.uint64)
-        np.minimum.at(hotspot_first, unique_keys, packed)
+        # A consecutive (cell, hotspot) run can contribute only its first
+        # ordinal to the minimum. Typical source lines cover several adjacent
+        # instructions, so reduce those candidates before the scattered write.
+        first = np.empty(len(key), bool)
+        first[0] = True
+        first[1:] = key[1:] != key[:-1]
+        offsets = (ordinal[first] % int(cell_size)).astype(np.uint64)
+        packed = (offsets << np.uint64(32)) | chunk_ids[first].astype(np.uint64)
+        np.minimum.at(hotspot_first, key[first], packed)
         _nc(counters)
+    cell_insn[:] = int(cell_size)
+    if cells:cell_insn[-1] = total - (cells - 1) * int(cell_size)
+    cell_executed[:] = cell_insn - cell_unknown - cell_not_taken
     timings['counts'] = round(time.perf_counter() - phase, 4)
 
     phase = time.perf_counter()
@@ -552,7 +565,7 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
     timings['hotspotFinalize'] = round(time.perf_counter() - phase, 4)
     shape = (cells, hotspot_count)
     extra = {}
-    if facts.get('version') == VERSION_V2 and facts.get('path_runs') is not None:
+    if facts.get('version') in (VERSION_V2, VERSION_V3) and facts.get('path_runs') is not None:
         phase = time.perf_counter()
         labels = list(facts.get('labels') or [''])
         evtexts = list(facts.get('evtexts') or [''])
@@ -697,9 +710,9 @@ def _node_chains(nodes):
     return chains
 
 
-def derive_remaining(facts, derived, static_entries):
+def derive_remaining(facts, derived, static_entries, materialize_seq=True):
     """派生默认/随机查询与导航所需剩余表（全部 NumPy 批量归约）。"""
-    if facts.get('version') != VERSION_V2:
+    if facts.get('version') not in (VERSION_V2, VERSION_V3):
         raise FactsError('剩余表派生需要 facts v2（PATH_RUNS/NODES/EVENTS）')
     started = time.perf_counter()
     ids = np.asarray(facts['ids'])
@@ -708,21 +721,27 @@ def derive_remaining(facts, derived, static_entries):
     cell_size = int(derived['cellSize'])
     cells = int(derived['cells'])
     mapping = derived['mapping']
-    runs = runs_array(facts['runs'])
-    seq = _seq_per_instruction(runs, total)
-    func = np.asarray(mapping['funcOfId'])[ids]
-    flow = np.asarray(mapping['flowOfId'])[ids]
-    executed = states == 0
-    unknown_mask = states == 2
-    not_taken_mask = states == 1
+    event_seq = np.asarray(facts['events']['seq'], np.int64)
+    event_ordinal = event_seq - np.arange(len(event_seq))
+    def seq_of(ordinal):
+        return (ordinal + np.searchsorted(event_ordinal, ordinal, side='right')).astype(np.int32)
+    seq = seq_of(np.arange(total, dtype=np.int32)) if materialize_seq else None
+    unknown_ordinal = np.flatnonzero(states == 2)
+    not_taken_ordinal = np.flatnonzero(states == 1)
     call_flow = int(trace_store.FLOW_CODES['call'])
-    call_mask = (executed[:-1] & (flow[:-1] == call_flow) & (seq[:-1] == seq[1:] - 1))
+    call_ordinal = np.flatnonzero((states[:-1] == 0)
+        & (np.asarray(mapping['flowOfId'])[ids[:-1]] == call_flow))
+    # An intervening event breaks observed-call attribution, even if the
+    # neighbouring instruction ordinals are consecutive.
+    call_seq = seq_of(call_ordinal)
+    keep = seq_of(call_ordinal + 1) == call_seq + 1
+    call_ordinal, call_seq = call_ordinal[keep], call_seq[keep]
     ordinal = np.arange(total, dtype=np.int32)
     cell = ordinal // cell_size
     ps_start = np.asarray(derived['ps_start'], np.int64)
     ps_leaf = np.asarray(derived['ps_leaf'], np.int64)
-    leaf_per_insn = np.repeat(ps_leaf.astype(np.int32), derived['ps_count'])
-    if len(leaf_per_insn) != total:
+    ps_count = np.asarray(derived['ps_count'], np.int64)
+    if int(ps_count.sum()) != total:
         raise FactsError('路径区间未覆盖全部指令')
     nodes = facts['nodes']
     node_count = len(nodes)
@@ -732,7 +751,7 @@ def derive_remaining(facts, derived, static_entries):
     anchor_ordinal = np.asarray(anchors['ordinal'], np.int64)
     anchor_cycles = np.asarray(anchors['cycles'], np.int64)
     anchor_cell = anchor_ordinal // cell_size
-    anchor_leaf = leaf_per_insn[anchor_ordinal]
+    anchor_leaf = ps_leaf[np.searchsorted(ps_start, anchor_ordinal, side='right') - 1]
     anchor_hotspot = np.asarray(mapping['hotspotOfId'], np.int64)[ids[anchor_ordinal]]
     hotspot_count = int(np.asarray(derived['cell_hotspot_count']).shape[1])
     # hs_cycles：按 (cell, hotspot) 聚合周期（整数）
@@ -743,9 +762,17 @@ def derive_remaining(facts, derived, static_entries):
     hs_cells = (unique // hotspot_count).astype(np.int32)
     hs_hotspots = (unique % hotspot_count).astype(np.int32)
     # cell_node_value：每条指令按其 path 叶的祖先链计入 cell
-    pair = cell * node_count + leaf_per_insn
-    node_self_counts = np.bincount(pair, minlength=cells * node_count).reshape(cells, node_count).astype(np.int32)
-    del pair
+    # Split path intervals only where they cross cell boundaries. The number
+    # of contributions follows path changes + cells, not instruction count.
+    ps_end = ps_start + ps_count
+    first_cell = ps_start // cell_size
+    pieces = (ps_end - 1) // cell_size - first_cell + 1
+    segment_ids = np.repeat(np.arange(len(ps_start)), pieces)
+    piece_starts = np.repeat(np.cumsum(pieces) - pieces, pieces)
+    piece_cells = np.repeat(first_cell, pieces) + np.arange(len(segment_ids)) - piece_starts
+    lengths = np.minimum(ps_end[segment_ids], (piece_cells + 1) * cell_size) - np.maximum(ps_start[segment_ids], piece_cells * cell_size)
+    node_self_counts = np.zeros((cells, node_count), np.int32)
+    np.add.at(node_self_counts, (piece_cells, ps_leaf[segment_ids]), lengths.astype(np.int32))
     cell_node_value = np.zeros((cells, node_count), np.uint16)
     cell_node_value_cycles = np.zeros((cells, node_count), np.int64)
     node_self_cycles = np.zeros((cells, node_count), np.int64)
@@ -783,12 +810,12 @@ def derive_remaining(facts, derived, static_entries):
     timings = dict(remainingSeconds=round(time.perf_counter() - started, 4))
     return dict(
         seq_per_instruction=seq,
-        unknown_seq=seq[unknown_mask].astype(np.int32),
-        unknown_func=func[unknown_mask].astype(np.int16),
-        not_taken_seq=seq[not_taken_mask].astype(np.int32),
-        not_taken_func=func[not_taken_mask].astype(np.int16),
-        call_pair_seq=seq[:-1][call_mask].astype(np.int32),
-        call_pair_func=func[1:][call_mask].astype(np.int16),
+        unknown_seq=seq_of(unknown_ordinal),
+        unknown_func=np.asarray(mapping['funcOfId'])[ids[unknown_ordinal]].astype(np.int16),
+        not_taken_seq=seq_of(not_taken_ordinal),
+        not_taken_func=np.asarray(mapping['funcOfId'])[ids[not_taken_ordinal]].astype(np.int16),
+        call_pair_seq=call_seq,
+        call_pair_func=np.asarray(mapping['funcOfId'])[ids[call_ordinal + 1]].astype(np.int16),
         cell_node_value=cell_node_value,
         cell_node_value_cycles=cell_node_value_cycles,
         node_self_cells=np.nonzero((node_self_counts != 0)
@@ -814,14 +841,15 @@ def derive_remaining(facts, derived, static_entries):
 
 
 def build_full_index(facts, static_entries, first_seq, last_seq, view=None,
-                     cell_size=4096, batch=1_000_000, compute_defaults=True):
+                     cell_size=4096, batch=1_000_000, compute_defaults=True,
+                     static_first_seen=False):
     """完整索引：C2 表 + C2b 表 + C2c 剩余表 + 默认视图，返回 (arrays, meta, timings, payload)。"""
     started = time.perf_counter()
     counters = Counters()
     derived = derive_tables(facts, static_entries, cell_size=cell_size, batch=batch,
                             counters=counters)
     timings = dict(derived['timings'])
-    remaining = derive_remaining(facts, derived, static_entries)
+    remaining = derive_remaining(facts, derived, static_entries, materialize_seq=False)
     timings.update(remaining['timings'])
     tables = derived_arrays(derived)
     for name in ('cell_node_value', 'cell_node_value_cycles', 'node_self_cells',
@@ -836,9 +864,14 @@ def build_full_index(facts, static_entries, first_seq, last_seq, view=None,
     # 使 window/analysis.hotspots 的顺序与 v1 一致（数值本身不变）。
     ids = np.asarray(facts['ids'])
     mapping = derived['mapping']
-    first_positions = np.full(len(static_entries), len(ids), np.int64)
-    np.minimum.at(first_positions, ids, np.arange(len(ids), dtype=np.int32))
-    order = np.argsort(first_positions)
+    if static_first_seen:
+        # Native core assigns static IDs when instructions first enter the
+        # logical stream. That producer contract already fixes hotspot order.
+        order = np.arange(len(static_entries))
+    else:
+        first_positions = np.full(len(static_entries), len(ids), np.int64)
+        np.minimum.at(first_positions, ids, np.arange(len(ids), dtype=np.int32))
+        order = np.argsort(first_positions)
     our_hotspots = np.asarray(mapping['hotspotOfId'], np.int64)[order]
     permutation = np.full(len(mapping['hotspotFunc']), -1, np.int64)
     next_id = 0

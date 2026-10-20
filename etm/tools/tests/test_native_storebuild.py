@@ -153,8 +153,8 @@ def read_facts_v2(path):
     raw = Path(path).read_bytes()
     (magic, version, header_bytes, instructions, runs, cycles, path_runs,
      events, nodes) = FACT_V2_HEADER.unpack_from(raw, 0)
-    assert magic == b'ETMFACT2', magic
-    assert version == 2, version
+    assert magic == b'ETMFACT3', magic
+    assert version == 3, version
     assert header_bytes == FACT_V2_HEADER.size, header_bytes
     position = header_bytes
     run_rows = []
@@ -398,8 +398,8 @@ class NativeStorebuildCase(unittest.TestCase):
         result = nsb.build(self.native, self.static_ext, store_root,
                            generation='g-facts', generation_tag=0x11,
                            facts_out=facts, native_index=True)
-        self.assertEqual(result['facts']['format'], 'ETMFACT2')
-        self.assertEqual(result['facts']['version'], 2)
+        self.assertEqual(result['facts']['format'], 'ETMFACT3')
+        self.assertEqual(result['facts']['version'], 3)
         self.assertEqual(result['facts']['bytes'], facts.stat().st_size)
         # 不写 manifest；不留临时文件
         self.assertFalse((store_root / 'manifest.json').exists())

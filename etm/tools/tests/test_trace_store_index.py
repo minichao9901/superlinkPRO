@@ -31,6 +31,35 @@ import trace_store_adapter
 import trace_store_index
 from test_trace_store import build_fixture
 
+
+class TimelineIntervalTests(unittest.TestCase):
+    def test_integral_matches_instruction_oracle_across_events_and_partial_bins(self):
+        random = np.random.default_rng(4137)
+        for size in (3, 79, 1009):
+            is_instruction = random.random(size) > 0.23
+            is_instruction[0] = False
+            is_instruction[-1] = True
+            seqs = np.flatnonzero(is_instruction)
+            functions = random.integers(0, 7, len(seqs))
+            starts = np.concatenate(([0], np.flatnonzero(np.diff(functions)) + 1))
+            index = trace_store_index.QueryIndex.__new__(trace_store_index.QueryIndex)
+            index.fs_start = starts
+            index.fs_count = np.diff(np.concatenate((starts, [len(seqs)])))
+            index.fs_func = functions[starts]
+            index.event_seqs = np.flatnonzero(~is_instruction)
+            for lo, hi in ((0, size - 1), (size // 3, size - 1), (1, max(1, size // 2))):
+                selected = np.flatnonzero((seqs >= lo) & (seqs <= hi))
+                if not len(selected):continue
+                for bins in (2, 17, 240):
+                    expected = np.zeros((bins, 7), np.int64)
+                    for ordinal in selected:
+                        bucket = (int(seqs[ordinal]) - lo) * bins // (hi - lo + 1)
+                        expected[bucket, functions[ordinal]] += 1
+                    actual = np.zeros_like(expected)
+                    index._distribute_function_segments(lo, hi, bins, hi - lo + 1,
+                                                         selected[0], selected[-1], actual)
+                    np.testing.assert_array_equal(actual, expected)
+
 ETM_ROOT = Path(__file__).resolve().parents[2]
 TMP_ROOT = Path(tempfile.mkdtemp(dir=str(ETM_ROOT / 'records'), prefix='_r1_index_'))
 atexit.register(shutil.rmtree, TMP_ROOT, True)
