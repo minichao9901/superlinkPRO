@@ -36,6 +36,7 @@ import json
 import math
 import os
 import secrets
+import struct
 import sys
 import time
 import zlib
@@ -48,6 +49,16 @@ import trace_store
 QUERY_INDEX_FORMAT = 'etm-trace-store-query-index'
 QUERY_INDEX_VERSION = 1
 QUERY_BLOCK_MAGIC = b'ETMQIDX1'
+# 块 12 v2 容器（R2 原生 builder 写、Python 读）：magic + 定长目录 + 每表 zlib。
+# 目录项按 64B 对齐：README 字段求和 60B，尾部 4B 保留（读取端要求为 0）。
+QUERY_V2_MAGIC = b'ETMQIDX2'
+QUERY_INDEX_VERSION_V2 = 2
+V2_HEADER = struct.Struct('<8sIII')                 # magic/version/tableCount/reserved
+V2_ITEM = struct.Struct('<IHBB4sQQQQQII')           # 60B 字段；磁盘上 64B（尾部保留 4B）
+V2_ITEM_BYTES = 64
+V2_DTYPES = {0: 'uint8', 1: 'int8', 2: 'uint16', 3: 'int16', 4: 'uint32', 5: 'int32',
+             6: 'uint64', 7: 'int64', 8: 'float32', 9: 'float64'}
+V2_DTYPE_CODES = {value: code for code, value in V2_DTYPES.items()}
 DEFAULT_CELL_INSTRUCTIONS = 4096
 DEFAULT_WINDOW_BINS = 1200
 DEFAULT_TIMELINE_BINS = 1600
@@ -61,7 +72,7 @@ _dzvar = trace_store._dzvar
 
 _TOP_KEYS = ('format', 'version', 'cellSize', 'instructions', 'events', 'cells',
              'staticCount', 'functionCount', 'hotspotCount', 'nodeCount', 'segmentCount',
-             'functionSegments', 'firstSeq', 'lastSeq', 'nav')
+             'functionSegments', 'firstSeq', 'lastSeq', 'nav', 'container')
 NAV_TABLE_NAMES = ('pc_cell_offsets', 'pc_cells', 'line_start', 'line_id')
 NAV_CELL_INSTRUCTIONS = 4096
 
@@ -125,6 +136,8 @@ def encode_payload(arrays, meta):
 
 def decode_payload(payload):
     payload = bytes(payload)
+    if payload[:len(QUERY_V2_MAGIC)] == QUERY_V2_MAGIC:
+        return _V2Archive(payload)
     magic = len(QUERY_BLOCK_MAGIC)
     if len(payload) < magic + 1 or payload[:magic] != QUERY_BLOCK_MAGIC:
         raise QueryIndexError('查询索引块 magic 不符（不是本读取器认识的索引）')
@@ -136,6 +149,123 @@ def decode_payload(payload):
         return np.load(io.BytesIO(payload[magic + 1:]), allow_pickle=False)
     except Exception as error:                     # noqa: BLE001 - 明确转成索引错误
         raise QueryIndexError('查询索引数据无法解析：%s' % error)
+
+
+def encode_payload_v2(arrays, meta, level=6):
+    """把语义表 + meta 编码成块 12 v2 负载（表目录 64B/项 + name 区 + 每表 zlib）。
+
+    与 v1(npz) 的表名/dtype/shape 完全一致；C++ builder 可直接写这个容器，
+    Python 读取端（``_V2Archive``）按目录懒加载并校验长度/CRC/形状。
+    """
+    payload_arrays = dict(arrays)
+    payload_arrays['meta_json'] = _json_array(
+        json.dumps(meta, ensure_ascii=False, sort_keys=True))
+    names = sorted(payload_arrays)
+    encoded = {name: name.encode('utf-8') for name in names}
+    name_area = b''.join(encoded[name] for name in names)
+    name_offsets = {}
+    cursor = 0
+    for name in names:
+        name_offsets[name] = cursor
+        cursor += len(encoded[name])
+    directory_bytes = len(names) * V2_ITEM_BYTES
+    data_offset = V2_HEADER.size + directory_bytes + len(name_area)
+    directory = bytearray()
+    blobs = []
+    for name in names:
+        array = np.ascontiguousarray(np.asarray(payload_arrays[name]))
+        if array.ndim not in (1, 2) or str(array.dtype) not in V2_DTYPE_CODES:
+            raise QueryIndexError('v2 容器不支持的表形状/类型：%s %r'
+                                  % (name, (array.shape, str(array.dtype))))
+        raw = array.tobytes()
+        blob = zlib.compress(raw, level)
+        shape0 = int(array.shape[0])
+        shape1 = int(array.shape[1]) if array.ndim == 2 else 0
+        directory += V2_ITEM.pack(
+            name_offsets[name], len(encoded[name]), V2_DTYPE_CODES[str(array.dtype)],
+            array.ndim, b'\x00' * 4, shape0, shape1, data_offset,
+            len(blob), len(raw), zlib.crc32(raw) & 0xFFFFFFFF, 0)
+        directory += b'\x00' * (V2_ITEM_BYTES - V2_ITEM.size)
+        blobs.append(blob)
+        data_offset += len(blob)
+    return (V2_HEADER.pack(QUERY_V2_MAGIC, QUERY_INDEX_VERSION_V2, len(names), 0)
+            + bytes(directory) + name_area + b''.join(blobs))
+
+
+class _V2Archive:
+    """块 12 v2 容器：解析表目录，成员按需解压（懒加载）+ 长度/CRC/形状校验。"""
+
+    def __init__(self, payload):
+        payload = bytes(payload)
+        if len(payload) < V2_HEADER.size:
+            raise QueryIndexError('v2 索引头部被截断')
+        magic, version, count, reserved = V2_HEADER.unpack_from(payload, 0)
+        if magic != QUERY_V2_MAGIC:
+            raise QueryIndexError('v2 索引 magic 不符：%r' % (magic,))
+        if version != QUERY_INDEX_VERSION_V2:
+            raise QueryIndexError('v2 索引版本不支持：%d' % version)
+        if reserved != 0:
+            raise QueryIndexError('v2 索引 reserved 非 0')
+        directory_end = V2_HEADER.size + count * V2_ITEM_BYTES
+        if directory_end > len(payload):
+            raise QueryIndexError('v2 索引目录被截断')
+        self._payload = payload
+        self._items = {}
+        self._cache = {}
+        self.files = []
+        for index in range(count):
+            base = V2_HEADER.size + index * V2_ITEM_BYTES
+            (name_offset, name_bytes, dtype_code, ndim, _reserved, shape0, shape1,
+             data_offset, compressed_bytes, uncompressed_bytes, crc32, _pad) = \
+                V2_ITEM.unpack_from(payload, base)
+            if dtype_code not in V2_DTYPES:
+                raise QueryIndexError('v2 索引表 dtypeCode 未知：%d' % dtype_code)
+            if ndim not in (1, 2):
+                raise QueryIndexError('v2 索引表 ndim 非法：%d' % ndim)
+            name_start = directory_end + int(name_offset)
+            name_end = name_start + int(name_bytes)
+            if name_start < directory_end or name_end > len(payload):
+                raise QueryIndexError('v2 索引表名越界')
+            try:
+                name = payload[name_start:name_end].decode('utf-8')
+            except UnicodeDecodeError:
+                raise QueryIndexError('v2 索引表名不是 UTF-8')
+            if data_offset + compressed_bytes > len(payload):
+                raise QueryIndexError('v2 索引表 %s 数据越界' % name)
+            shape = (int(shape0),) if ndim == 1 else (int(shape0), int(shape1))
+            dtype = np.dtype(V2_DTYPES[dtype_code])
+            if int(np.prod(shape)) * dtype.itemsize != int(uncompressed_bytes):
+                raise QueryIndexError('v2 索引表 %s 形状×dtype 字节数不符' % name)
+            self._items[name] = (shape, dtype, int(data_offset), int(compressed_bytes),
+                                 int(uncompressed_bytes), int(crc32))
+            self.files.append(name)
+
+    def __contains__(self, name):
+        return name in self._items
+
+    def __getitem__(self, name):
+        cached = self._cache.get(name)
+        if cached is not None:
+            return cached
+        shape, dtype, offset, compressed, uncompressed, crc32 = self._items[name]
+        try:
+            raw = zlib.decompress(self._payload[offset:offset + compressed])
+        except zlib.error as error:
+            raise QueryIndexError('v2 索引表 %s 解压失败：%s' % (name, error))
+        if len(raw) != uncompressed:
+            raise QueryIndexError('v2 索引表 %s 解压长度不符：%d≠%d'
+                                  % (name, len(raw), uncompressed))
+        if zlib.crc32(raw) & 0xFFFFFFFF != crc32:
+            raise QueryIndexError('v2 索引表 %s CRC32 不符（表损坏/被改写）' % name)
+        array = np.frombuffer(raw, dtype=dtype).reshape(shape)
+        self._cache[name] = array
+        return array
+
+    def get(self, name, default=None):
+        try:
+            return self[name]
+        except KeyError:
+            return default
 
 
 def validate_meta(store, meta):
@@ -1979,14 +2109,17 @@ class _SinkView:
 
 
 def build_index(view, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None,
-                with_nav=True):
+                with_nav=True, container='v1'):
     """构建索引负载：语义表 + 默认视图，返回 {payload, meta, arrays, 计时与体积}。"""
     started = time.perf_counter()
     built = build_tables(view, cell_size=cell_size, progress=bool(progress),
                          with_nav=with_nav)
     arrays, meta = built['arrays'], built['meta']
+    if container not in ('v1', 'v2'):
+        raise QueryIndexError('未知查询索引容器：%r' % (container,))
     meta['format'] = QUERY_INDEX_FORMAT
     meta['version'] = QUERY_INDEX_VERSION
+    meta['container'] = container
     meta['tables'] = sorted(arrays)
     meta['coverage'] = [int(meta['firstSeq']), int(meta['lastSeq'])]
     # 默认全段视图：用同一套查询算法生成并持久化（命中时解压即返回）。
@@ -2004,7 +2137,10 @@ def build_index(view, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None,
     meta['defaultViews'] = defaults
     meta['tables'] = sorted(arrays)
     defaults_seconds = round(time.perf_counter() - defaults_started, 3)
-    payload = encode_payload(arrays, meta)
+    if container == 'v2':
+        payload = encode_payload_v2(arrays, meta)
+    else:
+        payload = encode_payload(arrays, meta)
     total_seconds = round(time.perf_counter() - started, 3)
     return dict(payload=payload, meta=meta, arrays=arrays,
                 buildSeconds=total_seconds, defaultsSeconds=defaults_seconds,
@@ -2014,10 +2150,12 @@ def build_index(view, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None,
 
 
 def build_in_sink(sink, static, strings, counts, first_seq, last_seq,
-                  cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None, with_nav=True):
+                  cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None, with_nav=True,
+                  container='v1'):
     """`trace_store_write.write(build_query_index=True)` 用：把 12 号块加入 sink。"""
     view = _SinkView(sink, static, strings, counts, first_seq, last_seq)
-    result = build_index(view, cell_size=cell_size, progress=progress, with_nav=with_nav)
+    result = build_index(view, cell_size=cell_size, progress=progress, with_nav=with_nav,
+                         container=container)
     sink.add(trace_store.BLK_QUERY, result['payload'], int(result['meta']['cells']))
     return result
 
@@ -2037,7 +2175,7 @@ def _index_meta(payload_meta, result):
 
 
 def build_store_index(store_dir, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None,
-                       with_nav=True):
+                       with_nav=True, container='v1'):
     """给已发布 store 建立查询索引：写新 generation（复制块 + 替换 meta + 追加 12 号块），
     最后原子发布 manifest；旧 generation 保留（现有语义）。失败不改变当前代。"""
     started = time.perf_counter()
@@ -2049,7 +2187,7 @@ def build_store_index(store_dir, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=N
         if not meta:
             raise trace_store.TraceStoreError('store 缺少 meta 块，拒绝建查询索引')
         result = build_index(store, cell_size=cell_size, progress=progress,
-                             with_nav=with_nav)
+                             with_nav=with_nav, container=container)
         index_meta = _index_meta(result['meta'], result)
         generation_tag = secrets.randbits(63) or 1
         generation = 'g-%s-%s' % (time.strftime('%Y%m%dT%H%M%S'), secrets.token_hex(4))
@@ -2117,6 +2255,97 @@ def build_store_index(store_dir, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=N
         store.close()
 
 
+def reencode_store_index(store_dir, container='v2', progress=None):
+    """把现有块 12 换成另一种容器（v1↔v2），不重扫 sequence：写新 generation 并原子发布。
+
+    用于 R2 迁移/对照：v1(npz) 与 v2(表目录+zlib) 的表内容相同，只是容器不同；
+    本函数只重编码块 12 负载（并更新 meta.queryIndex/manifest），生产构建仍走 build_tables。
+    """
+    if container not in ('v1', 'v2'):
+        raise QueryIndexError('未知查询索引容器：%r' % (container,))
+    started = time.perf_counter()
+    store_dir = Path(store_dir).resolve()
+    store = trace_store.TraceStore(store_dir, verify='full')
+    try:
+        index = store.query_index
+        if index is None:
+            raise trace_store.TraceStoreError('store 没有查询索引，无法重编码块 12')
+        archive = index.arrays
+        names = getattr(archive, 'files', None) or archive._archive.files
+        arrays = {name: np.asarray(archive[name]) for name in names}
+        meta = dict(index.meta)
+        meta['container'] = container
+        if container == 'v2':
+            payload = encode_payload_v2(arrays, meta)
+        else:
+            payload = encode_payload(arrays, meta)
+        index_meta = _index_meta(meta, dict(payloadBytes=len(payload), buildSeconds=0.0,
+                                            defaultsSeconds=0.0))
+        manifest = dict(store.manifest or {})
+        generation_tag = secrets.randbits(63) or 1
+        generation = 'g-%s-%s' % (time.strftime('%Y%m%dT%H%M%S'), secrets.token_hex(4))
+        generation_dir = store_dir / 'generations' / generation
+        generation_dir.mkdir(parents=False)
+        temp_payload = generation_dir / (trace_store.STORE_FILE + '.payload.tmp')
+        sink = trace_store._BlockSink(temp_payload)
+        try:
+            source_meta = dict(store.meta or {})
+            source_meta['queryIndex'] = index_meta
+            for ordinal, entry in enumerate(store.container.blocks):
+                if entry.block_type == trace_store.BLK_META:
+                    sink.add_compressed_json(trace_store.BLK_META, source_meta)
+                    continue
+                if entry.block_type == trace_store.BLK_QUERY:
+                    continue
+                sink.add_raw(entry.block_type, store.container.raw_block(ordinal),
+                             entry.count, entry.flags)
+            sink.add(trace_store.BLK_QUERY, payload, int(meta.get('cells') or 0))
+            sink.handle.flush()
+            info = sink.assemble(generation_dir / trace_store.STORE_FILE, generation_tag,
+                                 optional_features=trace_store.QUERY_INDEX_FEATURE)
+        finally:
+            sink.close()
+            try:
+                temp_payload.unlink()
+            except OSError:
+                pass
+        manifest['generation'] = generation
+        manifest['generationTag'] = '0x%016x' % generation_tag
+        manifest['files'] = [dict(name=trace_store.STORE_FILE, bytes=info['bytes'],
+                                  sha256=info['sha256'], blocks=info['blocks'],
+                                  payloadBytes=info['payloadBytes'])]
+        counts = dict(manifest.get('counts') or {})
+        counts['queryIndex'] = {key: index_meta.get(key) for key in
+                                ('version', 'cellSize', 'cells', 'segmentCount',
+                                 'functionSegments', 'payloadBytes', 'buildSeconds',
+                                 'container')}
+        manifest['counts'] = counts
+        manifest['queryIndex'] = index_meta
+        notes = list(manifest.get('notes') or [])
+        notes.append('本代块 12 容器：%s（reencode_store_index，不重扫 sequence）' % container)
+        manifest['notes'] = notes
+        manifest['state'] = 'complete'
+        trace_store._publish_manifest(store_dir, manifest)
+        verify = trace_store.TraceStore(store_dir, verify='full')
+        try:
+            if verify.query_index is None:
+                raise trace_store.TraceStoreError('重编码后索引加载失败：%s'
+                                                  % (verify.query_index_error or '未知原因'))
+            loaded = verify.stats()['queryIndex']
+        finally:
+            verify.close()
+        del progress
+        return dict(ok=True, storeDir=str(store_dir), generation=generation,
+                    container=container, sourceContainer=index.meta.get('container'),
+                    payloadBytes=len(payload), storeBytes=info['bytes'],
+                    storeSha256=info['sha256'], indexMeta=index_meta,
+                    loadedSummary=loaded,
+                    totalSeconds=round(time.perf_counter() - started, 3),
+                    peakRssBytes=trace_store.peak_rss_bytes())
+    finally:
+        store.close()
+
+
 def index_summary(store):
     """store.stats()/诊断用：当前查询索要的版本与规模（无索引返回 None）。"""
     index = getattr(store, 'query_index', None)
@@ -2125,6 +2354,7 @@ def index_summary(store):
     meta = index.meta
     nav = meta.get('nav') or None
     return dict(version=int(meta.get('version') or 0),
+                container=(meta.get('container') or 'v1'),
                 cellSize=int(meta.get('cellSize') or 0),
                 cells=int(meta.get('cells') or 0),
                 segmentCount=int(meta.get('segmentCount') or 0),
@@ -2150,6 +2380,10 @@ def _main(argv=None):
     build.add_argument('--quiet', action='store_true')
     info = sub.add_parser('info', help='查看当前代的索引概要')
     info.add_argument('store')
+    reencode = sub.add_parser('reencode',
+                              help='把现有块 12 换成另一种容器（v1↔v2，不重扫）')
+    reencode.add_argument('store')
+    reencode.add_argument('--container', choices=('v1', 'v2'), default='v2')
     args = parser.parse_args(argv)
     store_dir = Path(args.store)
     if (store_dir / 'store').is_dir() and not (store_dir / 'manifest.json').is_file():
@@ -2157,6 +2391,13 @@ def _main(argv=None):
     if args.command == 'build':
         result = build_store_index(store_dir, cell_size=args.cell,
                                    progress=None if args.quiet else 'progress')
+        print(json.dumps(result, ensure_ascii=False, indent=1))
+        return 0
+    if args.command == 'reencode':
+        store_dir = Path(args.store)
+        if (store_dir / 'store').is_dir() and not (store_dir / 'manifest.json').is_file():
+            store_dir = store_dir / 'store'
+        result = reencode_store_index(store_dir, container=args.container)
         print(json.dumps(result, ensure_ascii=False, indent=1))
         return 0
     if args.command == 'info':

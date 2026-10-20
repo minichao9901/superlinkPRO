@@ -2365,6 +2365,7 @@ class TraceStore:
         meta = index.meta
         nav = meta.get('nav') or None
         return dict(available=True, version=int(meta.get('version') or 0),
+                    container=(meta.get('container') or 'v1'),
                     cellSize=int(meta.get('cellSize') or 0),
                     cells=int(meta.get('cells') or 0),
                     segmentCount=int(meta.get('segmentCount') or 0),

@@ -14,11 +14,14 @@ import atexit
 import json
 import os
 import shutil
+import struct
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
+import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -379,6 +382,79 @@ class IndexCase(unittest.TestCase):
                              _dumps(self.slow.function_timeline()))
         finally:
             store.close()
+
+    # -- 块 12 v2 容器（C++ 友好：表目录 + 每表 zlib）--------------------------------------
+    def test_v2_payload_roundtrip_matches_v1_tables(self):
+        """v2 编码/解码与 v1 表集逐表一致（表名/dtype/shape/字节）。"""
+        archive = self.fast.query_index.arrays._archive
+        arrays = {name: np.asarray(archive[name]) for name in archive.files}
+        meta = dict(self.fast.query_index.meta)
+        payload = trace_store_index.encode_payload_v2(arrays, meta)
+        self.assertEqual(payload[:len(trace_store_index.QUERY_V2_MAGIC)],
+                         trace_store_index.QUERY_V2_MAGIC)
+        decoded = trace_store_index.decode_payload(payload)
+        self.assertIsInstance(decoded, trace_store_index._V2Archive)
+        self.assertEqual(sorted(decoded.files), sorted(arrays))
+        for name in arrays:
+            expected = np.ascontiguousarray(arrays[name])
+            actual = np.ascontiguousarray(decoded[name])
+            self.assertEqual(actual.dtype, expected.dtype, name)
+            self.assertEqual(actual.shape, expected.shape, name)
+            self.assertEqual(actual.tobytes(), expected.tobytes(), name)
+        self.assertEqual(np.asarray(decoded['meta_json']).tobytes(),
+                         np.asarray(arrays['meta_json']).tobytes())
+
+    def test_v2_store_query_nav_and_lazy_loading(self):
+        """用 Python 参考构建 v2 索引：window/timeline/nav 与 v1/慢路径一致，导航表懒加载。"""
+        if not hasattr(trace_store_index, 'encode_payload_v2'):
+            self.skipTest('本版本没有 v2 容器')
+        v2_dir = self.root / 'v2-store'
+        shutil.copytree(self.store_dir, v2_dir)
+        trace_store_index.build_store_index(v2_dir, container='v2')
+        store = trace_store.TraceStore(v2_dir, verify='sizes')
+        try:
+            manifest = json.loads((v2_dir / 'manifest.json').read_text(encoding='utf-8'))
+            self.assertEqual((manifest.get('queryIndex') or {}).get('container'), 'v2')
+            self.assertIsNotNone(store.query_index, store.query_index_error)
+            self.assertEqual(_dumps(store.window()), _dumps(self.fast.window()))
+            self.assertEqual(_dumps(store.function_timeline()),
+                             _dumps(self.fast.function_timeline()))
+            loaded = set(getattr(store.query_index.arrays, '_cache', {}))
+            self.assertFalse(loaded & set(trace_store_index.NAV_TABLE_NAMES),
+                             '默认窗口命中不应解压 PC/line 四表：%r' % (sorted(loaded),))
+            self.assertIsNotNone(store.query_index.nav_tables())
+            for seq in (self.fast.first_seq, self.fast.last_seq // 2, self.fast.last_seq):
+                for mode in ('instruction', 'call', 'return', 'exception', 'issue',
+                             'source'):
+                    self.assertEqual(
+                        _dumps(store.navigate(seq=seq, direction=1, mode=mode)),
+                        _dumps(self.slow.navigate(seq=seq, direction=1, mode=mode)),
+                        'v2 导航与慢路径不一致：seq=%r mode=%r' % (seq, mode))
+        finally:
+            store.close()
+
+    def test_v2_unknown_version_and_corrupt_table_rejected(self):
+        """v2 读取端的明确拒绝：未知版本 / 表 CRC 不符 / 未知 magic。"""
+        archive = self.fast.query_index.arrays._archive
+        arrays = {name: np.asarray(archive[name]) for name in archive.files}
+        meta = dict(self.fast.query_index.meta)
+        payload = bytearray(trace_store_index.encode_payload_v2(arrays, meta))
+        bad_version = bytearray(payload)
+        struct.pack_into('<I', bad_version, 8, 9)
+        with self.assertRaises(trace_store_index.QueryIndexError):
+            trace_store_index.decode_payload(bytes(bad_version))
+        unknown = bytearray(payload)
+        unknown[:8] = b'ETMQIDX9'
+        with self.assertRaises(trace_store_index.QueryIndexError):
+            trace_store_index.decode_payload(bytes(unknown))
+        decoded = trace_store_index.decode_payload(bytes(payload))
+        name = 'ev_seq'
+        _shape, _dtype, offset, compressed, _uncompressed, _crc = decoded._items[name]
+        corrupted = bytearray(payload)
+        corrupted[offset] ^= 0xFF
+        broken = trace_store_index.decode_payload(bytes(corrupted))
+        with self.assertRaises(trace_store_index.QueryIndexError):
+            _ = broken[name]
 
     # -- 回退路径 ---------------------------------------------------------------------------
     def test_slow_env_forces_slow_path(self):

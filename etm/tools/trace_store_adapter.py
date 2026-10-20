@@ -157,6 +157,11 @@ def signature(folder):
     index = declared.get('queryIndex') or {}
     parts.append('query=%s:%s:%s' % (index.get('version') or 0, index.get('cellSize') or 0,
                                      index.get('payloadBytes') or 0))
+    engine = declared.get('engine') or (declared.get('bindings') or {}).get('engine') or {}
+    parts.append('engine=%s:%s:%s' % (engine.get('name') or 'python',
+                                      engine.get('version') or 0,
+                                      engine.get('fallback') or '-'))
+    parts.append('container=%s' % (index.get('container') or 'v1'))
     for name in STALENESS_INPUTS:
         parts.append(name + '=' + _stat_key(folder / name))
     decoded = folder / 'decoded.json'
@@ -577,14 +582,26 @@ class TraceStoreAdapter:
             generation = getattr(store, 'generation', None)
             summary = self._input_hash_summary(store)
             stats = store.stats()
+            manifest = dict(store.manifest or {})
         result = dict(result)
-        # W-P4-1 白名单键：traceStore 概要；这里补上实际代、输入核验状态与 R1 查询索引状态。
+        # W-P4-1 白名单键：traceStore 概要；这里补上实际代、输入核验状态、R1 查询索引状态
+        # 与 R2 引擎标识/构建成本（python 参考或 native；回退原因显式带出）。
         trace = dict(result.get('traceStore') or {})
         if generation is not None:
             trace['generation'] = generation
         if summary is not None:
             trace['inputHash'] = summary
-        trace['queryIndex'] = stats.get('queryIndex')
+        query_index = dict(stats.get('queryIndex') or {})
+        declared_index = manifest.get('queryIndex') or {}
+        if declared_index.get('container'):
+            query_index['container'] = declared_index.get('container')
+        trace['queryIndex'] = query_index
+        engine = manifest.get('engine') or (manifest.get('bindings') or {}).get('engine') or {}
+        trace['engine'] = dict(name=engine.get('name') or 'python',
+                               version=engine.get('version'),
+                               fallback=engine.get('fallback'),
+                               reason=engine.get('reason'),
+                               buildCosts=engine.get('buildCosts'))
         result['traceStore'] = trace
         return result
 

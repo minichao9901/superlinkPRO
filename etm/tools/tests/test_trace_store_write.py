@@ -219,6 +219,60 @@ class SyntheticCase(unittest.TestCase):
             **options)
 
 
+class EngineSelectionTests(SyntheticCase):
+    """t17：引擎选路（默认 python / native 明确失败 / 显式回退 / manifest 元数据）。"""
+
+    def test_default_engine_is_python_with_build_costs(self):
+        result, _ = self.write_store()
+        self.assertEqual(result['engine']['name'], 'python')
+        self.assertIsNone(result['engine']['fallback'])
+        self.assertIn('phases', result['engine']['buildCosts'])
+        manifest = json.loads((self.store_dir / 'manifest.json').read_text(encoding='utf-8'))
+        self.assertEqual((manifest.get('engine') or {}).get('name'), 'python')
+        processing = (manifest.get('bindings') or {}).get('processing') or {}
+        self.assertEqual(processing.get('engine'), 'python')
+        self.assertIn('buildCosts', processing)
+
+    def test_native_engine_fails_explicitly_without_build_capability(self):
+        with self.assertRaises(trace_store_write.NativeStorebuildUnavailable) as caught:
+            self.write_store(engine='native')
+        self.assertIn('build', str(caught.exception))
+        self.assertFalse((self.store_dir / 'manifest.json').is_file(),
+                         'native 失败不得发布半成品 manifest')
+
+    def test_native_engine_fallback_records_reason(self):
+        result, _ = self.write_store(engine='native', engine_fallback=True)
+        self.assertEqual(result['engine']['name'], 'python')
+        self.assertEqual(result['engine']['fallback'], 'native-unavailable')
+        self.assertTrue(result['engine']['reason'])
+        manifest = json.loads((self.store_dir / 'manifest.json').read_text(encoding='utf-8'))
+        self.assertEqual((manifest.get('engine') or {}).get('fallback'),
+                         'native-unavailable')
+        store = trace_store.TraceStore(self.store_dir, verify='sizes')
+        try:
+            window = store.window()
+            self.assertIsInstance(window, dict)
+            self.assertTrue(window)
+            self.assertEqual(store.counts['instructions'], result['instructions'])
+        finally:
+            store.close()
+
+    def test_engine_env_switch_and_fallback(self):
+        with patch.dict(os.environ, {'ETM_STORE_ENGINE': 'native'}, clear=False):
+            os.environ.pop('ETM_STORE_ENGINE_FALLBACK', None)
+            with self.assertRaises(trace_store_write.NativeStorebuildUnavailable):
+                self.write_store()
+        with patch.dict(os.environ, {'ETM_STORE_ENGINE': 'native',
+                                     'ETM_STORE_ENGINE_FALLBACK': '1'}, clear=False):
+            result, _ = self.write_store()
+        self.assertEqual(result['engine']['fallback'], 'native-unavailable')
+
+    def test_unknown_engine_rejected(self):
+        with self.assertRaises(trace_store.TraceStoreError) as caught:
+            self.write_store(engine='gpu')
+        self.assertIn('未知引擎', str(caught.exception))
+
+
 class EquivalenceTests(SyntheticCase):
     def test_events_analysis_summary_match_oracle(self):
         result, decoded = self.write_store()
