@@ -724,8 +724,11 @@ NativeCounters read_native(const fs::path& path, bool collect_ranges,
                 if (packet_is_overflow(type_code, header.protocol)) ++counters.packet_overflow;
             }
             if (visitor) {
+                // `body` 已去掉 5B 记录头（body_bytes_record = record_bytes - 5），
+                // 包 raw 应取 kPacketHeaderBytes - 5；-5 遗漏会多读 5 字节、越过
+                // body.size() 读到上一记录残留（t45 发现的 packets 块非确定性来源）。
                 visitor->on_packet(static_cast<uint32_t>(offset), size, type_code,
-                                   body.data() + kPacketHeaderBytes);
+                                   body.data() + (kPacketHeaderBytes - 5));
             }
             continue;
         }

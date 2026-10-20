@@ -219,6 +219,48 @@ def read_facts_v2(path):
                 nodes=node_rows, labels=labels, texts=texts)
 
 
+def store_blocks(path):
+    """解析 store.bin 的块目录：返回 [(block_type, payload_bytes)]。"""
+    raw = Path(path).read_bytes()
+    count, = struct.unpack_from('<I', raw, 24)
+    blocks = []
+    for position in range(count):
+        offset, length, _count, block_type, _flags, _crc = struct.unpack_from(
+            '<QIIHHI', raw, 56 + position * 24)
+        blocks.append((block_type, raw[offset:offset + length]))
+    return blocks
+
+
+def packet_records(payload):
+    """解码 packets 块：返回 [dict(delta, size, raw, text)]。"""
+    position = 0
+    records = []
+
+    def uv():
+        nonlocal position
+        value = 0
+        shift = 0
+        while True:
+            byte = payload[position]
+            position += 1
+            value |= (byte & 0x7F) << shift
+            if not byte & 0x80:
+                return value
+            shift += 7
+
+    while position < len(payload):
+        delta = uv()
+        size = uv()
+        raw_len = uv()
+        raw = payload[position:position + raw_len]
+        position += raw_len
+        text_len = uv()
+        text = payload[position:position + text_len]
+        position += text_len
+        records.append(dict(delta=delta, size=size, raw=raw, text=text))
+    return records
+
+
 class NativeStorebuildCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -449,6 +491,32 @@ class NativeStorebuildCase(unittest.TestCase):
         # 参考 _PathTracker 语义：IRQ 入口替换当前栈（外层保存在 contexts），
         # 因此内层 IRQ 下的指令路径链是 ('中断 5','main')；嵌套深度由 depth 表达。
         self.assertIn(('中断 5', 'main'), chains)
+
+    def test_packets_raw_uses_body_offset(self):
+        """packets 块 raw 按 body+17 取（不是 22）：raw 与 native 逐字节一致且确定性。
+
+        修复前 `body.data() + kPacketHeaderBytes(22)` 会越界 5 字节，packets 块字节
+        随堆/参数布局变化；修复后 raw 是 native.bin 记录的真实 payload。
+        """
+        out = self.root / 'packets-store'
+        result = nsb.build(self.native, self.static, out,
+                           generation='g-packets', generation_tag=0x13)
+        self.assertEqual(result['counts']['packets'], 1)
+        packets = [payload for block_type, payload in store_blocks(out / 'store.bin')
+                   if block_type == 4]
+        self.assertEqual(len(packets), 1)
+        records = packet_records(packets[0])
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]['delta'], 0)
+        self.assertEqual(records[0]['size'], 2)
+        self.assertEqual(records[0]['raw'], b'\x04\x00')
+        self.assertEqual(records[0]['text'], b'')
+        # 同参数第二次构建：整个 store 字节一致（修复前 packets 块不确定）
+        out2 = self.root / 'packets-store-2'
+        nsb.build(self.native, self.static, out2,
+                  generation='g-packets', generation_tag=0x13)
+        self.assertEqual((out / 'store.bin').read_bytes(),
+                         (out2 / 'store.bin').read_bytes())
 
     def test_bad_native_fails_readably(self):
         broken = self.root / 'broken-native.bin'
