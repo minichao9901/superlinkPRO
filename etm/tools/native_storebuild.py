@@ -195,6 +195,26 @@ def inspect_static(static, json_path=None, timeout=DEFAULT_TIMEOUT, binary=None)
     return _run_json_command(args, json_path, timeout, binary=binary)
 
 
+def build(native, static, out_dir, generation=None, generation_tag=None, result=None,
+          timeout=DEFAULT_TIMEOUT, binary=None, analysis=False):
+    """调用原生 build（blocks 1-11；块 12/默认视图留给 t21）。"""
+    native = Path(native)
+    static = Path(static)
+    if not native.is_file():
+        raise NativeStorebuildError('native.bin 不存在：%s' % native)
+    if not static.is_file():
+        raise NativeStorebuildError('static-dict.bin 不存在：%s' % static)
+    args = ['build', '--native', str(native), '--static', str(static),
+            '--out-dir', str(out_dir)]
+    if generation is not None:
+        args.extend(['--generation', str(generation)])
+    if generation_tag is not None:
+        args.extend(['--generation-tag', hex(int(generation_tag))])
+    if analysis:
+        args.append('--analysis')
+    return _run_json_command(args, result, timeout, binary=binary)
+
+
 def _write_json_or_print(payload, path):
     if path:
         Path(path).write_text(json.dumps(payload, ensure_ascii=False, indent=1) + '\n',
@@ -221,6 +241,14 @@ def main(argv=None):
     diagnose_parser.add_argument('--checkpoint-instructions', type=int, default=4096)
     diagnose_parser.add_argument('--max-run-instructions', type=int, default=4096)
     diagnose_parser.add_argument('--run-log', default=None)
+    build_parser = sub.add_parser('build', help='原生 build（blocks 1-11）')
+    build_parser.add_argument('--native', required=True)
+    build_parser.add_argument('--static', required=True)
+    build_parser.add_argument('--out-dir', required=True)
+    build_parser.add_argument('--generation', default=None)
+    build_parser.add_argument('--generation-tag', default=None)
+    build_parser.add_argument('--result', default=None)
+    build_parser.add_argument('--analysis', action='store_true')
     static_parser = sub.add_parser('static-info', help='读取/校验 static-dict.bin')
     static_parser.add_argument('--static', required=True)
     static_parser.add_argument('--json', default=None)
@@ -243,6 +271,15 @@ def main(argv=None):
                               max_run_instructions=args.max_run_instructions,
                               run_log=args.run_log, binary=args.binary)
             if args.json is None:
+                _write_json_or_print(result, None)
+            return 0
+        if args.command == 'build':
+            result = build(args.native, args.static, args.out_dir,
+                           generation=args.generation,
+                           generation_tag=args.generation_tag,
+                           result=args.result, binary=args.binary,
+                           analysis=args.analysis)
+            if args.result is None:
                 _write_json_or_print(result, None)
             return 0
         if args.command == 'static-info':

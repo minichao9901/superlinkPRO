@@ -207,6 +207,44 @@ class NativeStorebuildCase(unittest.TestCase):
         self.assertEqual(result['counts']['instructions'], 5)
         self.assertEqual(result['staticStrings'], 0)
 
+    def test_build_minimal_store_openable(self):
+        import trace_store
+        store_root = self.root / 'build-store'
+        generation = 'g-test'
+        result = nsb.build(self.native, self.static, store_root / 'generations' / generation,
+                           generation=generation, generation_tag=0x1234)
+        self.assertEqual(result['counts']['instructions'], 5)
+        self.assertEqual(result['counts']['events'], 8)
+        self.assertEqual(result['counts']['ranges'], 2)
+        store_path = store_root / 'generations' / generation / 'store.bin'
+        self.assertTrue(store_path.is_file())
+        # t17 才写 manifest；测试为了用现有读取端打开，构造最小 manifest。
+        info = result['files'][0]
+        manifest = dict(format='trace-store', formatName='trace-store v1',
+                        schemaVersion=1, byteOrder='little', state='complete',
+                        generation=generation, generationTag='0x1234',
+                        files=[dict(name='store.bin', bytes=info['bytes'],
+                                    sha256=info['sha256'])],
+                        counts=result['counts'],
+                        fieldPresence={'instruction': [
+                            'kind', 'seq', 'offset', 'pc', 'size', 'bytes', 'mnemonic',
+                            'operands', 'executed', 'function', 'file', 'line',
+                            'cycleCount', 'cycleSpan', 'flow', 'conditional',
+                            'executionState', 'executionReason', 'callPath', 'cycles'],
+                            'event': ['kind', 'seq', 'type', 'offset', 'text', 'payload',
+                                      'start', 'end', 'flags']},
+                        bindings={}, checksums=dict(algorithm='sha256', block='crc32'))
+        (store_root / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
+        store = trace_store.TraceStore(store_root, verify='sizes')
+        try:
+            self.assertEqual(store.counts['events'], 8)
+            self.assertEqual(len(store.static), 5)
+            self.assertEqual(store.event(0)['event']['kind'], 'event')
+            self.assertEqual(store.event(2)['event']['kind'], 'instruction')
+            self.assertTrue(store.nav)
+        finally:
+            store.close()
+
     def test_bad_native_fails_readably(self):
         broken = self.root / 'broken-native.bin'
         data = bytearray(self.native.read_bytes())

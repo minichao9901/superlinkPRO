@@ -23,11 +23,17 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <openssl/sha.h>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <map>
+#include <tuple>
+#include <iomanip>
+#include <memory>
+#include <zlib.h>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -102,6 +108,29 @@ class BuildError : public std::runtime_error {
 uint16_t read_u16(const uint8_t* data) {
     return static_cast<uint16_t>(data[0] | (data[1] << 8));
 }
+
+class FastSha256 {
+  public:
+    FastSha256() { SHA256_Init(&context_); }
+    void update(const void* data, size_t size) {
+        SHA256_Update(&context_, data, size);
+    }
+    std::string hex_digest() {
+        unsigned char digest[SHA256_DIGEST_LENGTH];
+        SHA256_Final(digest, &context_);
+        static const char* hex = "0123456789abcdef";
+        std::string out;
+        out.reserve(64);
+        for (unsigned char byte : digest) {
+            out.push_back(hex[byte >> 4]);
+            out.push_back(hex[byte & 15]);
+        }
+        return out;
+    }
+
+  private:
+    SHA256_CTX context_{};
+};
 
 uint32_t read_u32(const uint8_t* data) {
     return static_cast<uint32_t>(data[0]) | (static_cast<uint32_t>(data[1]) << 8)
@@ -182,6 +211,10 @@ class FastReader {
     size_t available_ = 0;
     uint64_t size_ = 0;
 };
+
+double chrono_seconds(std::chrono::steady_clock::time_point start) {
+    return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+}
 
 double seconds_since(std::chrono::steady_clock::time_point start) {
     return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
@@ -600,8 +633,11 @@ struct NativeVisitor {
                           uint32_t cycles) = 0;
     virtual void on_cycle(uint32_t offset, uint32_t cycles, uint32_t payload) = 0;
     virtual void on_event(uint16_t etype, uint32_t offset, uint32_t payload,
-                          uint64_t start, uint64_t end, uint32_t flags) = 0;
+                          uint64_t start, uint64_t end, uint32_t flags,
+                          const std::string& text) = 0;
     virtual void on_other(uint16_t etype, uint32_t offset) = 0;
+    virtual void on_packet(uint32_t offset, uint32_t size, uint32_t type_code,
+                           const uint8_t* raw) = 0;
 };
 
 NativeCounters read_native(const fs::path& path, bool collect_ranges,
@@ -614,7 +650,7 @@ NativeCounters read_native(const fs::path& path, bool collect_ranges,
     if (file_size < kNativeHeaderBytes) fail(kExitInput, "native.bin 短于 64 字节头部");
     NativeCounters counters;
     counters.native_bytes = file_size;
-    Sha256 sha;
+    FastSha256 sha;
     uint8_t header_bytes[kNativeHeaderBytes];
     if (!file.read(header_bytes, sizeof(header_bytes))) fail(kExitInput, "native.bin 头部被截断");
     if (compute_sha) sha.update(header_bytes, sizeof(header_bytes));
@@ -686,6 +722,10 @@ NativeCounters read_native(const fs::path& path, bool collect_ranges,
                 ++counters.packet_invalid;
                 if (packet_is_overflow(type_code, header.protocol)) ++counters.packet_overflow;
             }
+            if (visitor) {
+                visitor->on_packet(static_cast<uint32_t>(offset), size, type_code,
+                                   body.data() + kPacketHeaderBytes);
+            }
             continue;
         }
         if (kind == kRecordStatus) {
@@ -733,6 +773,11 @@ NativeCounters read_native(const fs::path& path, bool collect_ranges,
         const uint64_t end = read_u64(body.data() + 38);
         const uint16_t text_bytes = read_u16(body.data() + 54);
         const uint64_t element_offset = read_u64(body.data() + 22);
+        std::string element_text;
+        if (text_bytes) {
+            element_text.assign(reinterpret_cast<const char*>(body.data() + (kElementHeaderBytes - 5)),
+                                text_bytes);
+        }
         (void)last_conditional;
         if (last_executed > 1) fail(kExitInput, "native.bin lastExecuted 非法");
         if (text_bytes != body_bytes_record - (kElementHeaderBytes - 5)) {
@@ -747,7 +792,7 @@ NativeCounters read_native(const fs::path& path, bool collect_ranges,
             } else if (etype == kElementCycleCount) {
                 visitor->on_cycle(static_cast<uint32_t>(element_offset), cycle_count, payload);
             } else if (is_event_type(etype)) {
-                visitor->on_event(etype, static_cast<uint32_t>(element_offset), payload, start, end, flags);
+                visitor->on_event(etype, static_cast<uint32_t>(element_offset), payload, start, end, flags, element_text);
             } else {
                 visitor->on_other(etype, static_cast<uint32_t>(element_offset));
             }
@@ -1071,8 +1116,9 @@ struct DiagnoseVisitor : NativeVisitor {
         state_.cycle_element(cycles, payload);
     }
     void on_event(uint16_t etype, uint32_t offset, uint32_t payload,
-                  uint64_t start, uint64_t end, uint32_t flags) override {
-        (void)etype; (void)start; (void)end; (void)flags;
+                  uint64_t start, uint64_t end, uint32_t flags,
+                  const std::string& text) override {
+        (void)etype; (void)start; (void)end; (void)flags; (void)text;
         state_.flush_pending_tail();
         state_.flush_pending_run();
         if (state_.since_checkpoint >= state_.checkpoint_instructions) {
@@ -1086,10 +1132,1226 @@ struct DiagnoseVisitor : NativeVisitor {
         (void)etype; (void)offset;
         state_.flush_pending_tail();
     }
+    void on_packet(uint32_t offset, uint32_t size, uint32_t type_code,
+                   const uint8_t* raw) override {
+        (void)offset; (void)size; (void)type_code; (void)raw;
+    }
     const StaticDict& dict_;
     DiagnoseResult& result_;
     DiagnoseState state_;
 };
+
+
+// ── 最小 blocks 1–11 builder（t20：单 sequence 块，无块 12/默认视图）─────────────
+constexpr uint16_t trace_store_strings = 1;
+constexpr uint16_t trace_store_static = 2;
+uint32_t crc32_bytes(const uint8_t* data, size_t size) {
+    static uint32_t table[256];
+    static bool ready = false;
+    if (!ready) {
+        for (uint32_t index = 0; index < 256; ++index) {
+            uint32_t value = index;
+            for (int bit = 0; bit < 8; ++bit) {
+                value = (value & 1) ? (0xEDB88320u ^ (value >> 1)) : (value >> 1);
+            }
+            table[index] = value;
+        }
+        ready = true;
+    }
+    uint32_t crc = 0xFFFFFFFFu;
+    for (size_t index = 0; index < size; ++index) {
+        crc = table[(crc ^ data[index]) & 0xFF] ^ (crc >> 8);
+    }
+    return crc ^ 0xFFFFFFFFu;
+}
+
+void wv(std::vector<uint8_t>& out, uint64_t value) {
+    while (true) {
+        uint8_t byte = static_cast<uint8_t>(value & 0x7F);
+        value >>= 7;
+        if (value) out.push_back(static_cast<uint8_t>(byte | 0x80));
+        else { out.push_back(byte); return; }
+    }
+}
+
+void wzv(std::vector<uint8_t>& out, int64_t value) {
+    uint64_t encoded = value < 0 ? ((static_cast<uint64_t>(-value) << 1) - 1)
+                                 : (static_cast<uint64_t>(value) << 1);
+    wv(out, encoded);
+}
+
+void wpair(std::vector<uint8_t>& out, const void* data, size_t size) {
+    wv(out, size);
+    const auto* bytes = static_cast<const uint8_t*>(data);
+    out.insert(out.end(), bytes, bytes + size);
+}
+
+void wpair(std::vector<uint8_t>& out, const std::string& value) {
+    wpair(out, value.data(), value.size());
+}
+
+struct BuildBlock {
+    uint16_t type = 0;
+    std::vector<uint8_t> payload;
+    uint32_t count = 0;
+    uint16_t flags = 0;
+    uint32_t uncompressed = 0;   // flags=1 时为解压后字节数
+};
+
+struct BuildOutput {
+    std::vector<BuildBlock> blocks;
+    uint64_t generation_tag = 0;
+    std::string generation;
+    uint64_t instructions = 0;
+    uint64_t events = 0;
+    uint64_t ranges = 0;
+    uint64_t runs = 0;
+    uint64_t rare_events = 0;
+    uint64_t static_pcs = 0;
+    uint64_t strings = 0;
+    uint64_t packets = 0;
+    uint64_t checkpoints = 1;
+    uint64_t sequence_blocks = 1;
+    uint64_t executed = 0;
+    uint64_t unknown = 0;
+    uint64_t not_taken = 0;
+    uint64_t exceptions = 0;
+    uint64_t gaps = 0;
+    uint64_t boundaries = 0;
+    uint64_t cycle_elements = 0;
+    uint64_t cycle_sum = 0;
+    uint64_t first_instruction = 0;
+    uint64_t min_offset = 0;
+    uint64_t max_offset = 0;
+    uint64_t sequence_bytes = 0;
+    uint64_t peak_rss = 0;
+    std::string native_sha256;
+    std::string static_sha256;
+    std::string elf_sha256;
+    std::string store_sha256;
+    uint64_t store_bytes = 0;
+    double assemble_seconds = 0.0;
+    double write_seconds = 0.0;
+    double range_seconds = 0.0;
+    double flush_seconds = 0.0;
+    double tracker_seconds = 0.0;
+    double build_blocks_seconds = 0.0;
+    uint64_t range_hits = 0;
+    uint64_t range_misses = 0;
+    double analysis_seconds = 0.0;
+};
+
+
+struct TrackerFrame {
+    std::string function;
+    bool has_return = false;
+    uint64_t return_pc = 0;
+    bool has_origin = false;
+    std::string origin;
+};
+
+struct TrackerPrevious {
+    bool valid = false;
+    uint64_t pc = 0;
+    uint32_t size = 0;
+    uint8_t flow = 0;
+    uint8_t executed = 0;
+    std::string function;
+};
+
+struct TrackerContext {
+    std::vector<TrackerFrame> stack;
+    TrackerPrevious previous;
+    bool has_expected = false;
+    uint64_t expected = 0;
+};
+
+struct TrackerStats {
+    std::string function;
+    uint64_t instructions = 0;
+    uint64_t known_executed = 0;
+    uint64_t unknown_execution = 0;
+    uint64_t not_taken = 0;
+    uint64_t calls = 0;
+    uint64_t closed_calls = 0;
+    uint64_t tail_transfers = 0;
+    uint64_t interrupt_entries = 0;
+    uint64_t self_cycles = 0;
+    uint64_t total_cycles = 0;
+    uint64_t cycle_ranges = 0;
+};
+
+struct TrackerHotspot {
+    std::string function;
+    std::string file;
+    bool has_file = false;
+    bool has_line = false;
+    int64_t line = -1;
+    uint64_t records = 0;
+    uint64_t unknown = 0;
+    uint64_t cycles = 0;
+    uint64_t pc = 0;
+};
+
+struct TrackerEdge {
+    std::string caller;
+    std::string callee;
+    std::string kind;
+    uint64_t count = 0;
+};
+
+struct FlameNode {
+    std::string name;
+    uint64_t self = 0;
+    uint64_t value = 0;
+    uint64_t self_cycles = 0;
+    uint64_t value_cycles = 0;
+    std::vector<std::unique_ptr<FlameNode>> children;
+    std::unordered_map<std::string, FlameNode*> child_index;
+    FlameNode* child(const std::string& label) {
+        auto found = child_index.find(label);
+        if (found != child_index.end()) return found->second;
+        auto node = std::make_unique<FlameNode>();
+        node->name = label;
+        FlameNode* raw = node.get();
+        children.push_back(std::move(node));
+        child_index.emplace(label, raw);
+        return raw;
+    }
+};
+
+class Tracker {
+  public:
+    Tracker() { root_.name = "已恢复执行区间"; }
+    void set_analysis(bool enabled) { analysis_enabled_ = enabled; }
+    void clear_all() {
+        stack_.clear();
+        contexts_.clear();
+        previous_ = TrackerPrevious();
+        has_expected_ = false;
+        expected_ = 0;
+        sync();
+    }
+    void feed_event(uint16_t etype, uint32_t flags, uint32_t payload, uint64_t end) {
+        if (etype == 1 || etype == 2 || etype == 6 || etype == 7 || etype == 8) {
+            clear_all();
+            ++unknown_restarts_;
+        } else if (etype == 9) {
+            if (flags & (1u << 12)) {
+                clear_all();
+                ++unknown_restarts_;
+            }
+            TrackerContext context;
+            context.stack = stack_;
+            context.previous = previous_;
+            context.has_expected = has_expected_;
+            context.expected = expected_;
+            contexts_.push_back(std::move(context));
+            stack_.clear();
+            stack_.push_back(TrackerFrame{std::string("中断 ") + std::to_string(payload)});
+            previous_ = TrackerPrevious();
+            sync();
+        } else if (etype == 10) {
+            if (!contexts_.empty()) {
+                TrackerContext context = std::move(contexts_.back());
+                contexts_.pop_back();
+                stack_ = std::move(context.stack);
+                previous_ = context.previous;
+                has_expected_ = context.has_expected;
+                expected_ = context.expected;
+            } else {
+                clear_all();
+                ++unknown_restarts_;
+            }
+            sync();
+        }
+    }
+    void feed_instruction(const std::string& function, const std::string& file,
+                          bool has_file, bool has_line, int64_t line, uint8_t executed,
+                          uint8_t flow, uint64_t pc, uint32_t size, uint32_t cycles,
+                          uint32_t site_id = 0xFFFFFFFFu) {
+        const std::string fn = function.empty() ? "(未知函数)" : function;
+        TrackerStats* s_ptr = nullptr;
+        TrackerHotspot* cached_hot = nullptr;
+        size_t site = static_cast<size_t>(site_id);
+        if (analysis_enabled_ && site_id != 0xFFFFFFFFu) {
+            if (site >= site_stat_.size()) {
+                site_stat_.resize(site + 1, -1);
+                site_hotspot_.resize(site + 1, -1);
+            }
+            if (site_stat_[site] < 0) {
+                s_ptr = &statistics(fn);
+                site_stat_[site] = static_cast<int64_t>(s_ptr - stats_.data());
+            } else {
+                s_ptr = &stats_[static_cast<size_t>(site_stat_[site])];
+            }
+            if (site_hotspot_[site] < 0) {
+                const std::string key = fn + "\x1f" + (has_file ? file : std::string())
+                    + "\x1f" + (has_line ? std::to_string(line) : std::string());
+                auto found = hotspot_index_.find(key);
+                if (found == hotspot_index_.end()) {
+                    hotspots_.push_back(TrackerHotspot{fn, file, has_file, has_line, line, 0, 0, 0, pc});
+                    site_hotspot_[site] = static_cast<int64_t>(hotspots_.size() - 1);
+                    hotspot_index_.emplace(key, hotspots_.size() - 1);
+                } else {
+                    site_hotspot_[site] = static_cast<int64_t>(found->second);
+                }
+            }
+            cached_hot = &hotspots_[static_cast<size_t>(site_hotspot_[site])];
+        } else if (analysis_enabled_) {
+            s_ptr = &statistics(fn);
+        }
+        TrackerStats& s = analysis_enabled_ ? *s_ptr : dummy_stats_;
+        if (has_expected_) {
+            if (pc != (expected_ & ~1ull)) {
+                stack_.clear();
+                previous_ = TrackerPrevious();
+                ++unknown_restarts_;
+            }
+            has_expected_ = false;
+        }
+        if (stack_.empty()) {
+            stack_.clear();
+            stack_.push_back(TrackerFrame{"采集前调用栈未知"});
+            stack_.push_back(TrackerFrame{fn});
+            sync();
+        }
+        if (stack_.back().function.rfind("中断 ", 0) == 0) {
+            stack_.push_back(TrackerFrame{fn});
+            ++s.interrupt_entries;
+            sync();
+        }
+        if (previous_.valid && previous_.executed == 0) {
+            const std::string old_fn = previous_.function.empty() ? "(未知函数)"
+                                                                   : previous_.function;
+            if (previous_.flow == kFlowCall) {
+                TrackerFrame frame;
+                frame.function = fn;
+                frame.has_return = true;
+                frame.return_pc = previous_.pc + previous_.size;
+                frame.has_origin = true;
+                frame.origin = fn;
+                stack_.push_back(std::move(frame));
+                if (analysis_enabled_) { ++s.calls; add_edge(old_fn, fn, "call"); }
+                sync();
+            } else if (previous_.flow == kFlowReturn || previous_.flow == kFlowBranch) {
+                int match = -1;
+                for (int index = static_cast<int>(stack_.size()) - 1; index >= 0; --index) {
+                    if (stack_[index].has_return && stack_[index].return_pc == pc) {
+                        match = index;
+                        break;
+                    }
+                }
+                if (match >= 0) {
+                    if (analysis_enabled_) {
+                        for (size_t index = static_cast<size_t>(match); index < stack_.size(); ++index) {
+                            if (stack_[index].has_origin) {
+                                ++statistics(stack_[index].origin).closed_calls;
+                            }
+                        }
+                    }
+                    stack_.resize(static_cast<size_t>(match));
+                    sync();
+                } else if (old_fn != fn && previous_.flow == kFlowBranch) {
+                    if (analysis_enabled_) { ++s.tail_transfers; add_edge(old_fn, fn, "tail-transfer"); }
+                    stack_.back().function = fn;
+                    sync();
+                } else if (old_fn != fn) {
+                    stack_.clear();
+                    stack_.push_back(TrackerFrame{"采集前调用栈未知"});
+                    stack_.push_back(TrackerFrame{fn});
+                    ++unknown_restarts_;
+                    sync();
+                }
+            }
+        }
+        if (stack_.empty() || stack_.back().function != fn) {
+            stack_.clear();
+            stack_.push_back(TrackerFrame{"调用关系未证实"});
+            stack_.push_back(TrackerFrame{fn});
+            ++unknown_restarts_;
+            sync();
+        }
+        if (stack_.size() > 128) fail(kExitConsistency, "调用层级超过 128");
+        if (analysis_enabled_) {
+            ++s.instructions;
+            if (executed == 0) ++s.known_executed;
+            else if (executed == 1) ++s.not_taken;
+            else ++s.unknown_execution;
+            if (cycles) {
+                s.self_cycles += cycles;
+                ++s.cycle_ranges;
+                for (const TrackerFrame& frame : stack_) {
+                    statistics(frame.function).total_cycles += cycles;
+                }
+            }
+            FlameNode* node = &root_;
+            node->value += 1;
+            node->value_cycles += cycles;
+            if (!path_nodes_valid_) {
+                path_nodes_.clear();
+                for (const TrackerFrame& frame : stack_) {
+                    FlameNode* child = node->child(frame.function);
+                    path_nodes_.push_back(child);
+                    node = child;
+                }
+                path_nodes_valid_ = true;
+            }
+            for (FlameNode* item : path_nodes_) {
+                item->value += 1;
+                item->value_cycles += cycles;
+            }
+            FlameNode* leaf = path_nodes_.empty() ? &root_ : path_nodes_.back();
+            leaf->self += 1;
+            leaf->self_cycles += cycles;
+            TrackerHotspot* hot = cached_hot;
+            if (hot == nullptr) {
+                const std::string key = fn + "\x1f" + (has_file ? file : std::string())
+                    + "\x1f" + (has_line ? std::to_string(line) : std::string());
+                auto found = hotspot_index_.find(key);
+                if (found == hotspot_index_.end()) {
+                    hotspots_.push_back(TrackerHotspot{fn, file, has_file, has_line, line, 0, 0, 0, pc});
+                    hotspot_index_.emplace(key, hotspots_.size() - 1);
+                    hot = &hotspots_.back();
+                } else {
+                    hot = &hotspots_[found->second];
+                }
+            }
+            ++hot->records;
+            hot->unknown += executed == 2;
+            hot->cycles += cycles;
+        }
+        previous_.valid = true;
+        previous_.pc = pc;
+        previous_.size = size;
+        previous_.flow = flow;
+        previous_.executed = executed;
+        previous_.function = function;
+    }
+    std::string analysis_json() const;
+    uint64_t unknown_restarts() const { return unknown_restarts_; }
+    const TrackerPrevious& previous() const { return previous_; }
+    bool has_expected() const { return has_expected_; }
+    uint64_t expected() const { return expected_; }
+    const std::vector<TrackerFrame>& stack() const { return stack_; }
+    const std::vector<TrackerContext>& contexts() const { return contexts_; }
+
+  private:
+    TrackerStats& statistics(const std::string& fn) {
+        auto found = stats_index_.find(fn);
+        if (found != stats_index_.end()) return stats_[found->second];
+        stats_.push_back(TrackerStats{fn});
+        stats_index_.emplace(fn, stats_.size() - 1);
+        return stats_.back();
+    }
+    void add_edge(const std::string& caller, const std::string& callee,
+                  const std::string& kind) {
+        const std::string key = caller + "\x1f" + callee + "\x1f" + kind;
+        auto found = edge_index_.find(key);
+        if (found == edge_index_.end()) {
+            edges_.push_back(TrackerEdge{caller, callee, kind, 1});
+            edge_index_.emplace(key, edges_.size() - 1);
+        } else {
+            ++edges_[found->second].count;
+        }
+    }
+    void sync() {
+        path_nodes_.clear();
+        path_nodes_valid_ = false;
+        path_.clear();
+        for (const TrackerFrame& frame : stack_) path_.push_back(frame.function);
+    }
+    std::vector<TrackerFrame> stack_;
+    std::vector<TrackerContext> contexts_;
+    TrackerPrevious previous_;
+    bool has_expected_ = false;
+    uint64_t expected_ = 0;
+    uint64_t unknown_restarts_ = 0;
+    bool analysis_enabled_ = true;
+    TrackerStats dummy_stats_;
+    std::vector<int64_t> site_stat_;
+    std::vector<int64_t> site_hotspot_;
+    std::vector<TrackerStats> stats_;
+    std::unordered_map<std::string, size_t> stats_index_;
+    std::vector<TrackerHotspot> hotspots_;
+    std::unordered_map<std::string, size_t> hotspot_index_;
+    std::vector<TrackerEdge> edges_;
+    std::unordered_map<std::string, size_t> edge_index_;
+    FlameNode root_;
+    std::vector<FlameNode*> path_nodes_;
+    bool path_nodes_valid_ = false;
+    std::vector<std::string> path_;
+};
+
+std::string flame_json(const FlameNode& node) {
+    std::ostringstream out;
+    out << "{\"name\":" << quote(node.name) << ",\"self\":" << node.self
+        << ",\"value\":" << node.value << ",\"selfCycles\":" << node.self_cycles
+        << ",\"valueCycles\":" << node.value_cycles << ",\"children\":[";
+    for (size_t index = 0; index < node.children.size(); ++index) {
+        if (index) out << ",";
+        out << flame_json(*node.children[index]);
+    }
+    out << "]}";
+    return out.str();
+}
+
+std::string Tracker::analysis_json() const {
+    if (!analysis_enabled_) return "{}";
+    uint64_t total_calls = 0, total_cycles = 0, executed = 0, instructions = 0;
+    for (const TrackerStats& s : stats_) {
+        total_calls += s.calls;
+        total_cycles += s.self_cycles;
+        executed += s.known_executed;
+        instructions += s.instructions;
+    }
+    std::vector<size_t> order(stats_.size());
+    for (size_t index = 0; index < order.size(); ++index) order[index] = index;
+    std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) {
+        return stats_[a].instructions > stats_[b].instructions;
+    });
+    std::ostringstream out;
+    out << std::setprecision(17);
+    out << "{\"functions\":[";
+    bool first = true;
+    for (size_t index : order) {
+        const TrackerStats& s = stats_[index];
+        if (!first) out << ",";
+        first = false;
+        const uint64_t open_calls = s.calls > s.closed_calls ? s.calls - s.closed_calls : 0;
+        const double call_percent = total_calls ? 100.0 * s.calls / total_calls : 0.0;
+        const double cycle_percent = total_cycles ? 100.0 * s.self_cycles / total_cycles : 0.0;
+        out << "{\"function\":" << quote(s.function) << ",\"instructions\":"
+            << s.instructions << ",\"knownExecuted\":" << s.known_executed
+            << ",\"unknownExecution\":" << s.unknown_execution
+            << ",\"notTaken\":" << s.not_taken << ",\"calls\":" << s.calls
+            << ",\"closedCalls\":" << s.closed_calls << ",\"tailTransfers\":"
+            << s.tail_transfers << ",\"interruptEntries\":" << s.interrupt_entries
+            << ",\"selfCycles\":" << s.self_cycles << ",\"totalCycles\":"
+            << s.total_cycles << ",\"cycleRanges\":" << s.cycle_ranges
+            << ",\"openCalls\":" << open_calls << ",\"callPercent\":" << call_percent
+            << ",\"cyclePercent\":" << cycle_percent << ",\"cpi\":";
+        if (s.instructions && s.self_cycles) out << (double)s.self_cycles / s.instructions;
+        else out << "null";
+        out << "}";
+    }
+    out << "],\"hotspots\":[";
+    std::vector<size_t> hot_order(hotspots_.size());
+    for (size_t index = 0; index < hot_order.size(); ++index) hot_order[index] = index;
+    std::stable_sort(hot_order.begin(), hot_order.end(), [&](size_t a, size_t b) {
+        if (hotspots_[a].cycles != hotspots_[b].cycles)
+            return hotspots_[a].cycles > hotspots_[b].cycles;
+        return hotspots_[a].records > hotspots_[b].records;
+    });
+    first = true;
+    for (size_t index : hot_order) {
+        const TrackerHotspot& h = hotspots_[index];
+        if (!first) out << ",";
+        first = false;
+        out << "{\"function\":" << quote(h.function) << ",\"file\":";
+        if (h.has_file) out << quote(h.file); else out << "null";
+        out << ",\"line\":";
+        if (h.has_line) out << h.line; else out << "null";
+        out << ",\"records\":" << h.records << ",\"unknown\":" << h.unknown
+            << ",\"cycles\":" << h.cycles << ",\"pc\":" << h.pc << "}";
+    }
+    out << "],\"flame\":" << flame_json(root_) << ",\"observedCalls\":"
+        << total_calls << ",\"unknownStackRestarts\":" << unknown_restarts_
+        << ",\"edges\":[";
+    for (size_t index = 0; index < edges_.size(); ++index) {
+        const TrackerEdge& e = edges_[index];
+        if (index) out << ",";
+        out << "{\"caller\":" << quote(e.caller) << ",\"callee\":" << quote(e.callee)
+            << ",\"kind\":" << quote(e.kind) << ",\"count\":" << e.count << "}";
+    }
+    out << "],\"timing\":{\"totalCycles\":" << total_cycles
+        << ",\"cycleRanges\":";
+    uint64_t cycle_ranges = 0;
+    for (const TrackerStats& s : stats_) cycle_ranges += s.cycle_ranges;
+    out << cycle_ranges << ",\"executedInstructions\":" << executed
+        << ",\"instructions\":" << instructions << ",\"cpi\":";
+    if (executed && total_cycles) out << (double)total_cycles / executed; else out << "null";
+    out << ",\"functions\":[";
+    std::vector<size_t> cycle_order;
+    for (size_t index = 0; index < stats_.size(); ++index) {
+        if (stats_[index].self_cycles) cycle_order.push_back(index);
+    }
+    std::stable_sort(cycle_order.begin(), cycle_order.end(), [&](size_t a, size_t b) {
+        return stats_[a].self_cycles > stats_[b].self_cycles;
+    });
+    first = true;
+    for (size_t index : cycle_order) {
+        const TrackerStats& s = stats_[index];
+        if (!first) out << ",";
+        first = false;
+        const double percent = total_cycles ? 100.0 * s.self_cycles / total_cycles : 0.0;
+        out << "{\"function\":" << quote(s.function) << ",\"selfCycles\":" << s.self_cycles
+            << ",\"cyclePercent\":" << percent << ",\"instructions\":" << s.instructions
+            << ",\"cpi\":";
+        if (s.instructions && s.self_cycles) out << (double)s.self_cycles / s.instructions;
+        else out << "null";
+        out << ",\"calls\":" << s.calls << "}";
+    }
+    out << "],\"timeFlameAvailable\":" << (total_cycles ? "true" : "false")
+        << ",\"basis\":";
+    if (total_cycles) {
+        out << quote("周期计数来自 ETMv4 cycle-count 元素（区间末指令记录，可求和）；区间若跨越函数边界会让归因偏移，属极端情况");
+    } else {
+        out << quote("本记录没有周期计数数据（目标未启用，或 ETMv3/F103 不支持），时间轴不可用");
+    }
+    out << "},\"weight\":";
+    if (total_cycles) {
+        out << quote("路径指令记录数（含未成立/未知状态）；周期列才是耗时，指令数不是");
+    } else {
+        out << quote("路径指令记录数（含未成立/未知状态），不是耗时");
+    }
+    out << ",\"callsPerSecond\":null,\"rateReason\":";
+    if (total_cycles) {
+        out << quote("可用周期计数折算时间（coreHz 已知），但调用/秒仍取决于覆盖完整度");
+    } else {
+        out << quote("缺少覆盖可信执行区间的时间基准，暂不计算调用/秒");
+    }
+    out << "}";
+    return out.str();
+}
+
+class BuildVisitor : public NativeVisitor {
+  public:
+    BuildVisitor(const StaticDict& dict, BuildOutput& output, bool need_tracker = true)
+        : dict_(dict), output_(output), need_tracker_(need_tracker) {
+        strings_.values.push_back("");
+        ids_.emplace("", 0);
+        intern("采集前调用栈未知");
+        for (const StaticEntry& entry : dict.entries) {
+            const uint32_t sid = entry.id;
+            if (sid >= static_entries_.size()) static_entries_.resize(sid + 1);
+            static_entries_[sid] = &entry;
+            intern(entry_text(entry, 0));
+            intern(entry_text(entry, 1));
+            intern(entry_text(entry, 2));
+            intern(entry_text(entry, 3));
+        }
+        start_block(0);
+        output_.first_instruction = 0;
+        output_.min_offset = std::numeric_limits<uint64_t>::max();
+    }
+    void on_packet(uint32_t offset, uint32_t size, uint32_t type_code,
+                   const uint8_t* raw) override {
+        const uint64_t delta = packet_buffer_.empty() ? offset : offset - packet_previous_offset_;
+        wv(packet_buffer_, delta);
+        wv(packet_buffer_, size);
+        wpair(packet_buffer_, raw, size);
+        wpair(packet_buffer_, std::string());
+        packet_previous_offset_ = offset;
+        ++output_.packets;
+    }
+    const std::vector<const StaticEntry*>& range_entries(uint64_t start, uint64_t end,
+                                                         uint32_t payload) {
+        const uint64_t key = (start << 32) | end;
+        auto found = range_cache_.find(key);
+        if (found != range_cache_.end()) {
+            ++output_.range_hits;
+            return found->second;
+        }
+        ++output_.range_misses;
+        std::vector<const StaticEntry*> entries;
+        entries.reserve(payload);
+        uint64_t pc = start;
+        while (pc < end) {
+            const StaticEntry* entry = dict_.find(static_cast<uint32_t>(pc));
+            if (!entry) {
+                std::ostringstream message;
+                message << "静态字典缺少 PC 0x" << std::hex << pc;
+                fail(kExitRangeMismatch, message.str());
+            }
+            entries.push_back(entry);
+            pc += entry->size;
+            if (entries.size() > payload + 1) fail(kExitRangeMismatch, "范围走查超过 payload");
+        }
+        if (pc != end || entries.size() != payload) {
+            fail(kExitRangeMismatch, "范围走查与 payload/end 不符");
+        }
+        auto inserted = range_cache_.emplace(key, std::move(entries));
+        return inserted.first->second;
+    }
+
+    void on_range(uint32_t offset, uint64_t start, uint64_t end, uint32_t payload,
+                  uint8_t last_executed, uint32_t cycles) override {
+        if (pending_.valid) {
+            const auto& previous_entries = *pending_.segments.back().entries;
+            const StaticEntry* previous_tail = previous_entries.back();
+            const uint8_t previous_tail_code = previous_tail->predicated
+                ? 2 : (pending_.last_executed ? 0 : 1);
+            if (pending_.offset == offset && previous_tail_code == 0
+                    && pending_.cycles == 0) {
+                const auto& entries = range_entries(start, end, payload);
+                pending_.segments.push_back(PendingSegment{&entries, offset, payload,
+                                                           last_executed});
+                pending_.last_executed = last_executed;
+                pending_.cycles = cycles;
+                pending_.span = cycles ? payload : 0;
+                pending_.payload += payload;
+                ++output_.ranges;
+                return;
+            }
+            flush_pending();
+        }
+        const auto& entries = range_entries(start, end, payload);
+        ++output_.ranges;
+        pending_.valid = true;
+        pending_.offset = offset;
+        pending_.last_executed = last_executed;
+        pending_.cycles = cycles;
+        pending_.span = cycles ? payload : 0;
+        pending_.payload = payload;
+        pending_.segments.clear();
+        pending_.segments.push_back(PendingSegment{&entries, offset, payload, last_executed});
+    }
+    void on_cycle(uint32_t offset, uint32_t cycles, uint32_t payload) override {
+        (void)offset;
+        ++output_.cycle_elements;
+        output_.cycle_sum += cycles;
+        if (pending_.valid) {
+            if (cycles) {
+                pending_.cycles += cycles;
+                if (!pending_.span && !pending_.segments.empty())
+                    pending_.span = pending_.segments.back().payload;
+            }
+            flush_pending();
+        }
+    }
+    void on_event(uint16_t etype, uint32_t offset, uint32_t payload,
+                  uint64_t start, uint64_t end, uint32_t flags,
+                  const std::string& text) override {
+        event_text_ = text;
+        flush_pending();
+        const uint32_t seq = static_cast<uint32_t>(expected_seq_);
+        const uint32_t text_id = intern(event_text_);
+        event_text_.clear();
+        std::vector<uint8_t> body;
+        wv(body, seq);
+        body.push_back(static_cast<uint8_t>(etype));
+        wv(body, offset);
+        wv(body, payload);
+        wv(body, start);
+        wv(body, end);
+        wv(body, flags);
+        wv(body, text_id);
+        std::vector<uint8_t> record;
+        record.push_back(2);
+        wv(record, body.size());
+        record.insert(record.end(), body.begin(), body.end());
+        emit_record(record, seq, seq);
+        ++expected_seq_;
+        ++output_.rare_events;
+        ++output_.events;
+        ++event_types_[etype];
+        if (etype == 9) ++output_.exceptions;
+        if (etype == 9 || etype == 10) nav_exception_.push_back(seq);
+        if (is_boundary_type(etype)) {
+            nav_issue_.push_back(seq);
+            ++output_.boundaries;
+        }
+        nav_event_.push_back(seq);
+        if (is_gap_type(etype) || (etype == 2 && payload)) ++output_.gaps;
+        if (need_tracker_) tracker_.feed_event(etype, flags, payload, end);
+    }
+    void on_other(uint16_t etype, uint32_t offset) override {
+        (void)etype; (void)offset;
+        flush_pending();
+    }
+    void finish() {
+        flush_pending();
+        if (blocks_.size() && block_records_.back() <= 1) {
+            // 最后一块只有检查点：若确有记录，rotate 一定发生在下一条记录之前；
+            // 这里只防御空 build。
+            blocks_.pop_back();
+            block_records_.pop_back();
+            block_first_.pop_back();
+            block_last_.pop_back();
+            checkpoint_index_.pop_back();
+        }
+        output_.events = expected_seq_;
+        output_.instructions = output_.events - output_.rare_events;
+        output_.sequence_blocks = blocks_.size();
+        output_.checkpoints = checkpoint_index_.size();
+        output_.sequence_bytes = 0;
+        for (const auto& block : blocks_) output_.sequence_bytes += block.size();
+        output_.strings = strings_.values.size();
+        output_.static_pcs = static_entries_.size();
+        output_.peak_rss = peak_rss_bytes();
+        build_blocks();
+    }
+    std::vector<BuildBlock>& blocks() { return output_.blocks; }
+    const std::map<uint16_t, uint64_t>& event_types() const { return event_types_; }
+    std::string analysis_json() const { return tracker_.analysis_json(); }
+    void set_analysis(bool enabled) { tracker_.set_analysis(enabled); }
+
+  private:
+    const std::string& entry_text(const StaticEntry& entry, int slot) {
+        static const std::string empty;
+        if (!dict_.has_extension) return empty;
+        if (slot == 0 && !(entry.flags & 2)) return empty;
+        if (slot == 1 && !(entry.flags & 4)) return empty;
+        return dict_.text(entry, slot);
+    }
+    uint32_t intern(const std::string& value) {
+        auto found = ids_.find(value);
+        if (found != ids_.end()) return found->second;
+        uint32_t identifier = static_cast<uint32_t>(strings_.values.size());
+        strings_.values.push_back(value);
+        ids_.emplace(value, identifier);
+        return identifier;
+    }
+    void encode_function(std::vector<uint8_t>& out, const std::string& value,
+                         bool present) {
+        if (!present) {
+            out.push_back(0);
+            return;
+        }
+        out.push_back(1);
+        wv(out, intern(value));
+    }
+    void encode_previous(std::vector<uint8_t>& out, const TrackerPrevious& previous) {
+        if (!previous.valid) {
+            out.push_back(0);
+            return;
+        }
+        out.push_back(1);
+        wv(out, previous.pc);
+        wv(out, previous.size);
+        out.push_back(previous.flow);
+        out.push_back(previous.executed);
+        encode_function(out, previous.function, !previous.function.empty());
+    }
+    void encode_optional(std::vector<uint8_t>& out, bool present, uint64_t value) {
+        if (!present) {
+            out.push_back(0);
+            return;
+        }
+        out.push_back(1);
+        wv(out, value);
+    }
+    void encode_stack(std::vector<uint8_t>& out, const std::vector<TrackerFrame>& stack) {
+        wv(out, stack.size());
+        for (const TrackerFrame& frame : stack) {
+            encode_function(out, frame.function, true);
+            uint8_t flags = 0;
+            if (frame.has_return) flags |= 1;
+            if (frame.has_origin) flags |= 2;
+            out.push_back(flags);
+            if (frame.has_return) wv(out, frame.return_pc);
+            if (frame.has_origin) wv(out, intern(frame.origin));
+        }
+    }
+    void encode_tracker(std::vector<uint8_t>& out) {
+        wv(out, tracker_.unknown_restarts());
+        encode_previous(out, tracker_.previous());
+        encode_optional(out, tracker_.has_expected(), tracker_.expected());
+        encode_stack(out, tracker_.stack());
+        wv(out, tracker_.contexts().size());
+        for (const TrackerContext& context : tracker_.contexts()) {
+            encode_stack(out, context.stack);
+            encode_previous(out, context.previous);
+            encode_optional(out, context.has_expected, context.expected);
+        }
+    }
+    void start_block(uint64_t seq) {
+        blocks_.push_back({});
+        block_records_.push_back(1);
+        block_first_.push_back(seq);
+        block_last_.push_back(seq);
+        checkpoint_index_.push_back(std::make_tuple(seq, blocks_.size() - 1, 0));
+        std::vector<uint8_t> payload;
+        wv(payload, seq);
+        encode_tracker(payload);
+        std::vector<uint8_t> record;
+        record.push_back(3);
+        wv(record, payload.size());
+        record.insert(record.end(), payload.begin(), payload.end());
+        blocks_.back().insert(blocks_.back().end(), record.begin(), record.end());
+        rotate_ = false;
+    }
+    void emit_record(const std::vector<uint8_t>& record, uint64_t start_seq,
+                     uint64_t end_seq) {
+        if (rotate_) {
+            if (!need_tracker_) fail(kExitConsistency, "输入需要多 sequence 块但未启用 tracker");
+            start_block(expected_seq_);
+        }
+        if (block_records_.back() == 1) block_first_.back() = start_seq;
+        blocks_.back().insert(blocks_.back().end(), record.begin(), record.end());
+        ++block_records_.back();
+        block_last_.back() = end_seq;
+        if (blocks_.back().size() >= (58ull << 20)) rotate_ = true;
+    }
+    void flush_pending() {
+        if (!pending_.valid) return;
+        const auto flush_started = std::chrono::steady_clock::now();
+        pending_.valid = false;
+        const auto& segments = pending_.segments;
+        const StaticEntry* tail = segments.back().entries->back();
+        const uint8_t tail_code = tail->predicated ? 2 : (pending_.last_executed ? 0 : 1);
+        size_t count = 0;
+        for (const PendingSegment& segment : segments) count += segment.payload;
+        const uint32_t start_seq = static_cast<uint32_t>(expected_seq_);
+        auto& payload = run_payload_;
+        payload.clear();
+        if (payload.capacity() < 128) payload.reserve(128);
+        wv(payload, start_seq);
+        wv(payload, count);
+        payload.push_back(tail_code);
+        wv(payload, pending_.offset);
+        wv(payload, pending_.cycles);
+        wv(payload, pending_.span);
+        uint32_t internal_unknown = 0;
+        size_t remaining = count;
+        for (const PendingSegment& segment : segments) {
+            for (const StaticEntry* entry : *segment.entries) {
+                if (remaining == 1) break;
+                if (entry->predicated) ++internal_unknown;
+                --remaining;
+            }
+            if (remaining == 1) break;
+        }
+        wv(payload, internal_unknown);
+        size_t remaining_ids = count;
+        uint32_t previous_id = 0;
+        bool first_id = true;
+        for (const PendingSegment& segment : segments) {
+            for (const StaticEntry* entry : *segment.entries) {
+                if (remaining_ids == 0) break;
+                if (first_id) {
+                    wv(payload, entry->id);
+                    first_id = false;
+                } else {
+                    wzv(payload, static_cast<int64_t>(entry->id)
+                                - static_cast<int64_t>(previous_id));
+                }
+                previous_id = entry->id;
+                --remaining_ids;
+            }
+            if (remaining_ids == 0) break;
+        }
+        auto& record = run_record_;
+        record.clear();
+        if (record.capacity() < 160) record.reserve(160);
+        record.push_back(1);
+        wv(record, payload.size());
+        record.insert(record.end(), payload.begin(), payload.end());
+        emit_record(record, start_seq, start_seq + count - 1);
+        ++output_.runs;
+        output_.instructions += count;
+        expected_seq_ += count;
+        size_t position = 0;
+        const auto tracker_started = std::chrono::steady_clock::now();
+        for (const PendingSegment& segment : segments) {
+            for (const StaticEntry* entry : *segment.entries) {
+                const bool is_tail = position + 1 == count;
+                const uint8_t executed = is_tail ? tail_code
+                    : (entry->predicated ? 2 : 0);
+                if (!is_tail) {
+                    if (entry->predicated) {
+                        ++output_.unknown;
+                        nav_issue_.push_back(static_cast<uint32_t>(start_seq + position));
+                    } else {
+                        ++output_.executed;
+                        if (entry->flow == kFlowCall) nav_call_.push_back(static_cast<uint32_t>(start_seq + position));
+                        if (entry->flow == kFlowReturn) nav_return_.push_back(static_cast<uint32_t>(start_seq + position));
+                    }
+                }
+                if (need_tracker_) {
+                    const bool has_file = dict_.has_extension && (entry->flags & 4);
+                    const bool has_line = dict_.has_extension && (entry->flags & 8);
+                    tracker_.feed_instruction(entry_text(*entry, 0), entry_text(*entry, 1),
+                                              has_file, has_line, entry->line, executed,
+                                              entry->flow, entry->pc, entry->size,
+                                              is_tail ? pending_.cycles : 0,
+                                              entry->id);
+                }
+                ++position;
+            }
+        }
+        output_.tracker_seconds += chrono_seconds(tracker_started);
+        if (tail_code == 0) ++output_.executed;
+        else if (tail_code == 1) ++output_.not_taken;
+        else ++output_.unknown;
+        if (tail_code == 2) nav_issue_.push_back(static_cast<uint32_t>(start_seq + count - 1));
+        else if (tail->flow == kFlowCall && tail_code == 0) nav_call_.push_back(static_cast<uint32_t>(start_seq + count - 1));
+        else if (tail->flow == kFlowReturn && tail_code == 0) nav_return_.push_back(static_cast<uint32_t>(start_seq + count - 1));
+        if (output_.first_instruction == 0 && count) output_.first_instruction = start_seq;
+        if (output_.min_offset == std::numeric_limits<uint64_t>::max()) output_.min_offset = pending_.offset;
+        output_.max_offset = std::max<uint64_t>(output_.max_offset, pending_.offset);
+        output_.flush_seconds += chrono_seconds(flush_started);
+    }
+    void build_blocks() {
+        const auto blocks_started = std::chrono::steady_clock::now();
+        BuildBlock stat;
+        stat.type = trace_store_static;
+        for (size_t identifier = 0; identifier < static_entries_.size(); ++identifier) {
+            const StaticEntry* entry = static_entries_[identifier];
+            if (!entry) continue;
+            wv(stat.payload, entry->pc);
+            stat.payload.push_back(static_cast<uint8_t>(entry->size));
+            uint8_t flags = 0;
+            if (entry->predicated) flags |= 0x01;
+            if (entry->conditional) flags |= 0x02;
+            if (dict_.has_extension && (entry->flags & 2)) flags |= 0x04;
+            if (dict_.has_extension && (entry->flags & 4)) flags |= 0x08;
+            if (dict_.has_extension && (entry->flags & 8)) flags |= 0x10;
+            stat.payload.push_back(flags);
+            stat.payload.push_back(entry->flow);
+            for (uint32_t index = 0; index < entry->size; ++index) {
+                stat.payload.push_back(entry->code[index]);
+            }
+            wv(stat.payload, intern(entry_text(*entry, 2)));
+            wv(stat.payload, intern(entry_text(*entry, 3)));
+            if (flags & 0x04) wv(stat.payload, intern(entry_text(*entry, 0)));
+            if (flags & 0x08) wv(stat.payload, intern(entry_text(*entry, 1)));
+            if (flags & 0x10) wv(stat.payload, static_cast<uint64_t>(entry->line));
+            ++stat.count;
+        }
+        output_.blocks.push_back(std::move(stat));
+        BuildBlock strings;
+        strings.type = trace_store_strings;
+        for (const std::string& value : strings_.values) wpair(strings.payload, value);
+        strings.count = static_cast<uint32_t>(strings_.values.size());
+        output_.blocks.push_back(std::move(strings));
+        for (size_t index = 0; index < blocks_.size(); ++index) {
+            BuildBlock sequence;
+            sequence.type = 3;
+            sequence.payload = blocks_[index];
+            sequence.count = block_records_[index];
+            output_.blocks.push_back(std::move(sequence));
+        }
+        BuildBlock packets;
+        packets.type = 4;
+        packets.payload = packet_buffer_;
+        packets.count = static_cast<uint32_t>(output_.packets);
+        if (!packets.payload.empty()) output_.blocks.push_back(std::move(packets));
+        auto add_nav = [&](uint32_t mode, const std::vector<uint32_t>& values) {
+            if (values.empty()) return;
+            for (size_t start = 0; start < values.size(); start += 65536) {
+                const size_t stop = std::min(values.size(), start + 65536);
+                BuildBlock block;
+                block.type = 5;
+                block.payload.push_back(static_cast<uint8_t>(mode));
+                wv(block.payload, stop - start);
+                wv(block.payload, values[start]);
+                uint32_t value = values[start];
+                for (size_t index = start + 1; index < stop; ++index) {
+                    wv(block.payload, values[index] - value);
+                    value = values[index];
+                }
+                block.count = static_cast<uint32_t>(stop - start);
+                output_.blocks.push_back(std::move(block));
+            }
+        };
+        add_nav(1, nav_call_);
+        add_nav(2, nav_return_);
+        add_nav(3, nav_exception_);
+        add_nav(4, nav_issue_);
+        add_nav(5, nav_event_);
+        BuildBlock agg;
+        agg.type = 6;
+        for (size_t index = 0; index < blocks_.size(); ++index) {
+            wv(agg.payload, index);
+            wv(agg.payload, block_first_[index]);
+            wv(agg.payload, block_last_[index]);
+            wv(agg.payload, block_records_[index]);
+            wv(agg.payload, output_.instructions);
+            wv(agg.payload, output_.executed);
+            wv(agg.payload, output_.unknown);
+            wv(agg.payload, output_.not_taken);
+            wv(agg.payload, output_.cycle_sum);
+            wv(agg.payload, output_.rare_events);
+            wv(agg.payload, nav_call_.size());
+            wv(agg.payload, nav_return_.size());
+            wv(agg.payload, output_.exceptions);
+            wv(agg.payload, output_.boundaries);
+        }
+        agg.count = static_cast<uint32_t>(blocks_.size());
+        output_.blocks.push_back(std::move(agg));
+        BuildBlock checkpoints;
+        checkpoints.type = 11;
+        uint64_t previous_seq = 0;
+        for (const auto& item : checkpoint_index_) {
+            wv(checkpoints.payload, std::get<0>(item) - previous_seq);
+            wv(checkpoints.payload, std::get<1>(item));
+            wv(checkpoints.payload, std::get<2>(item));
+            previous_seq = std::get<0>(item);
+        }
+        checkpoints.count = static_cast<uint32_t>(checkpoint_index_.size());
+        output_.blocks.push_back(std::move(checkpoints));
+        output_.build_blocks_seconds = chrono_seconds(blocks_started);
+    }
+    const StaticDict& dict_;
+    BuildOutput& output_;
+    bool need_tracker_ = true;
+    struct Strings {
+        std::vector<std::string> values;
+    } strings_;
+    std::unordered_map<std::string, uint32_t> ids_;
+    std::vector<const StaticEntry*> static_entries_;
+    std::unordered_map<uint64_t, std::vector<const StaticEntry*>> range_cache_;
+    Tracker tracker_;
+    std::vector<std::vector<uint8_t>> blocks_;
+    std::vector<uint32_t> block_records_;
+    std::vector<uint64_t> block_first_;
+    std::vector<uint64_t> block_last_;
+    std::vector<std::tuple<uint64_t, uint32_t, uint32_t>> checkpoint_index_;
+    bool rotate_ = false;
+    std::vector<uint8_t> run_payload_;
+    std::vector<uint8_t> run_record_;
+    std::vector<uint8_t> packet_buffer_;
+    uint64_t packet_previous_offset_ = 0;
+    uint64_t expected_seq_ = 0;
+    struct PendingSegment {
+        const std::vector<const StaticEntry*>* entries = nullptr;
+        uint32_t offset = 0;
+        uint32_t payload = 0;
+        uint8_t last_executed = 0;
+    };
+    struct Pending {
+        bool valid = false;
+        uint32_t offset = 0;
+        uint32_t last_executed = 0;
+        uint32_t cycles = 0;
+        uint32_t span = 0;
+        uint32_t payload = 0;
+        std::vector<PendingSegment> segments;
+    } pending_;
+    std::string event_text_;
+    std::map<uint16_t, uint64_t> event_types_;
+    std::vector<uint32_t> nav_call_, nav_return_, nav_exception_, nav_issue_, nav_event_;
+};
+
+std::vector<uint8_t> zlib_compress(const std::vector<uint8_t>& input, int level = 6) {
+    uLongf bound = compressBound(static_cast<uLong>(input.size()));
+    std::vector<uint8_t> output(bound);
+    uLongf written = bound;
+    int result = compress2(output.data(), &written, input.data(),
+                           static_cast<uLong>(input.size()), level);
+    if (result != Z_OK) fail(kExitOther, "zlib 压缩失败");
+    output.resize(written);
+    return output;
+}
+
+void add_json_block(BuildOutput& output, uint16_t type, const std::string& json) {
+    BuildBlock block;
+    block.type = type;
+    block.payload.assign(json.begin(), json.end());
+    block.count = static_cast<uint32_t>(json.size());
+    output.blocks.push_back(std::move(block));
+}
+
+void write_store(const fs::path& path, BuildOutput& output) {
+    // 块顺序：strings/static/sequence/packets/nav/agg/meta/summary/sources/issues/checkpoints
+    const uint64_t blocks = output.blocks.size();
+    const uint64_t index_bytes = blocks * 24;
+    const uint64_t payload_start = 56 + index_bytes;
+    uint64_t payload_bytes = 0;
+    for (const BuildBlock& block : output.blocks) payload_bytes += block.payload.size();
+    const uint64_t file_bytes = payload_start + payload_bytes;
+    if (file_bytes > (1ull << 40)) fail(kExitIo, "store 文件过大");
+    std::vector<uint8_t> header(56, 0);
+    std::memcpy(header.data(), "ETMTSv1\0", 8);
+    header[8] = 1; header[9] = 0;                    // schema u16
+    header[10] = 1; header[11] = 0;                  // FILE_TRACE u16
+    const uint32_t byte_order = 0x01020304u;
+    std::memcpy(header.data() + 12, &byte_order, 4);
+    const uint64_t tag = output.generation_tag;
+    std::memcpy(header.data() + 16, &tag, 8);
+    const uint32_t block_count = static_cast<uint32_t>(blocks);
+    std::memcpy(header.data() + 24, &block_count, 4);
+    const uint32_t required = 0;
+    std::memcpy(header.data() + 28, &required, 4);
+    std::memcpy(header.data() + 32, &payload_bytes, 8);
+    std::memcpy(header.data() + 40, &file_bytes, 8);
+    const uint32_t checksum = crc32_bytes(header.data(), 48);
+    std::memcpy(header.data() + 48, &checksum, 4);
+    std::vector<uint8_t> index(static_cast<size_t>(index_bytes), 0);
+    uint64_t offset = 0;
+    for (size_t position = 0; position < output.blocks.size(); ++position) {
+        const BuildBlock& block = output.blocks[position];
+        uint8_t* row = index.data() + position * 24;
+        const uint64_t absolute = payload_start + offset;
+        std::memcpy(row, &absolute, 8);
+        const uint32_t length = static_cast<uint32_t>(block.payload.size());
+        const uint16_t type = block.type;
+        const uint16_t flags = block.flags;
+        const uint32_t count = block.flags ? block.uncompressed : block.count;
+        const uint32_t crc = crc32_bytes(block.payload.data(), block.payload.size());
+        std::memcpy(row + 8, &length, 4);
+        std::memcpy(row + 12, &count, 4);
+        std::memcpy(row + 16, &type, 2);
+        std::memcpy(row + 18, &flags, 2);
+        std::memcpy(row + 20, &crc, 4);
+        offset += length;
+    }
+    const std::string path_text = path.string();
+    std::FILE* out = std::fopen(path_text.c_str(), "wb");
+    if (!out) fail(kExitIo, "打不开 store.bin 输出");
+    FastSha256 sha;
+    auto emit = [&](const uint8_t* data, size_t size) {
+        if (size && std::fwrite(data, 1, size, out) != size) {
+            std::fclose(out);
+            fail(kExitIo, "写 store.bin 失败");
+        }
+        sha.update(data, size);
+    };
+    emit(header.data(), header.size());
+    emit(index.data(), index.size());
+    for (const BuildBlock& block : output.blocks) {
+        emit(block.payload.data(), block.payload.size());
+    }
+    if (std::fflush(out) != 0 || std::fclose(out) != 0) fail(kExitIo, "写 store.bin 失败");
+    output.store_sha256 = sha.hex_digest();
+    output.store_bytes = file_bytes;
+}
+
+std::string meta_json(const BuildOutput& output,
+                       const std::map<uint16_t, uint64_t>& event_counts) {
+    std::ostringstream json;
+    json << "{";
+    json << "\"format\":\"trace-store\",\"formatName\":\"trace-store v1\","
+            "\"schemaVersion\":1,\"byteOrder\":\"little\",";
+    json << "\"record\":{\"name\":\"native-storebuild\",\"eventsSource\":\"native.bin\","
+            "\"streamedSchema\":2,\"protocol\":\"ETMv4\"},";
+    json << "\"counts\":{\"events\":" << output.events << ",\"instructions\":"
+         << output.instructions << ",\"ranges\":" << output.ranges << ",\"declaredRanges\":"
+         << output.ranges << ",\"runs\":" << output.runs << ",\"rareEvents\":"
+         << output.rare_events << ",\"staticPcs\":" << output.static_pcs
+         << ",\"strings\":" << output.strings << ",\"packets\":" << output.packets
+         << ",\"sequenceBlocks\":" << output.sequence_blocks
+         << ",\"checkpoints\":" << output.checkpoints << ",\"executed\":" << output.executed
+         << ",\"unknownExecution\":" << output.unknown << ",\"notTaken\":"
+         << output.not_taken << ",\"exceptions\":" << output.exceptions
+         << ",\"gaps\":" << output.gaps << "},";
+    json << "\"eventTypes\":{";
+    bool first = true;
+    for (const auto& item : event_counts) {
+        if (!first) json << ",";
+        first = false;
+        json << "\"" << item.first << "\":" << item.second;
+    }
+    json << "},";
+    json << "\"seq\":{\"first\":0,\"last\":" << (output.events ? output.events - 1 : 0)
+         << ",\"contiguous\":true,\"count\":" << output.events
+         << ",\"firstInstruction\":" << output.first_instruction
+         << ",\"offsetRange\":[" << output.min_offset << "," << output.max_offset << "]},";
+    json << "\"fieldPresence\":{\"instruction\":[\"kind\",\"seq\",\"offset\",\"pc\",\"size\","
+            "\"bytes\",\"mnemonic\",\"operands\",\"executed\",\"function\",\"file\",\"line\","
+            "\"cycleCount\",\"cycleSpan\",\"flow\",\"conditional\",\"executionState\","
+            "\"executionReason\",\"callPath\",\"cycles\"],"
+            "\"event\":[\"kind\",\"seq\",\"type\",\"offset\",\"text\",\"payload\",\"start\","
+            "\"end\",\"flags\"]},";
+    json << "\"hasCycleFields\":true,";
+    json << "\"layout\":{\"headerBytes\":56,\"indexEntryBytes\":24,\"targetBlockBytes\":1048576,"
+            "\"maxBlockBytes\":67108864,\"runInstructionLimit\":4096,"
+            "\"checkpointInstructions\":4096},";
+    json << "\"created\":{\"unix\":0,\"iso\":\"\"},\"issues\":0}";
+    return json.str();
+}
 
 }  // namespace
 
@@ -1110,7 +2372,7 @@ int main(int argc, char** argv) {
                       << ",\"buildSha\":" << quote(build_sha())
                       << ",\"formats\":{\"native\":\"trace-bin native v1\","
                          "\"staticDict\":1,\"ranges\":1}"
-                      << ",\"capabilities\":[\"prescan\",\"diagnose\"]"
+                      << ",\"capabilities\":[\"prescan\",\"diagnose\",\"build\"]"
                       << "}" << std::endl;
             return kExitOk;
         }
@@ -1290,6 +2552,160 @@ int main(int argc, char** argv) {
             } else {
                 std::cout << json.str();
             }
+            return kExitOk;
+        }
+        if (command == "build") {
+            std::string native_path;
+            std::string static_path;
+            std::string out_dir;
+            std::string generation;
+            std::string result_path;
+            bool force_analysis = false;
+            uint64_t generation_tag = 0;
+            for (int index = 2; index < argc; ++index) {
+                const std::string arg = argv[index];
+                auto next = [&](const char* label) -> std::string {
+                    if (index + 1 >= argc) fail(kExitUsage, std::string(label) + " 缺少参数");
+                    return argv[++index];
+                };
+                if (arg == "--native") native_path = next("--native");
+                else if (arg == "--static") static_path = next("--static");
+                else if (arg == "--out-dir") out_dir = next("--out-dir");
+                else if (arg == "--generation") generation = next("--generation");
+                else if (arg == "--generation-tag") generation_tag = std::stoull(next("--generation-tag"), nullptr, 0);
+                else if (arg == "--result" || arg == "--json") result_path = next("--result");
+                else if (arg == "--analysis") force_analysis = true;
+                else fail(kExitUsage, "未知参数：" + arg);
+            }
+            if (native_path.empty()) fail(kExitUsage, "build 需要 --native");
+            if (static_path.empty()) fail(kExitUsage, "build 需要 --static");
+            if (out_dir.empty()) fail(kExitUsage, "build 需要 --out-dir");
+            StaticDict dict = load_static_dict(static_path);
+            BuildOutput output;
+            output.generation = generation.empty() ? fs::path(out_dir).filename().string() : generation;
+            output.generation_tag = generation_tag;
+            std::error_code size_error;
+            const uint64_t native_size = fs::file_size(native_path, size_error);
+            const bool need_analysis = true;
+            (void)force_analysis;
+            (void)size_error;
+            BuildVisitor visitor(dict, output, true);
+            visitor.set_analysis(need_analysis);
+            const auto started = std::chrono::steady_clock::now();
+            NativeCounters counters = read_native(native_path, false, nullptr, 1000000, 0,
+                                                   nullptr, true, &visitor);
+            visitor.finish();
+            for (BuildBlock& block : output.blocks) {
+                if (block.type != 3) continue;
+                if (block.payload.size() > (64u << 20)) {
+                    std::ostringstream message;
+                    message << "sequence 块 " << block.payload.size()
+                            << " B 超过 64 MiB；t20 最小闭环只支持单块输入"
+                               "（19.86M 需多块/检查点状态，留待下一任务）";
+                    fail(kExitIo, message.str());
+                }
+                break;
+            }
+            const double assemble_seconds = seconds_since(started);
+            output.native_sha256 = counters.native_sha256;
+            output.static_sha256 = dict.sha256;
+            output.elf_sha256 = dict.elf_sha256;
+            // JSON 块
+            add_json_block(output, 7, meta_json(output, visitor.event_types()));
+            const auto analysis_started = std::chrono::steady_clock::now();
+            const std::string analysis = visitor.analysis_json();
+            output.analysis_seconds = chrono_seconds(analysis_started);
+            std::ostringstream summary;
+            summary << "{\"eventCount\":" << output.events << ",\"packetCount\":"
+                    << output.packets << ",\"sourceFiles\":[],\"firstSeq\":"
+                    << output.first_instruction << ",\"traceStore\":{\"format\":\"trace-store v1\","
+                    << "\"generation\":" << quote(output.generation) << ",\"runs\":"
+                    << output.runs << ",\"instructions\":" << output.instructions << "},"
+                    << "\"analysis\":" << analysis
+                    << ",\"streamed\":{\"schema\":2,\"events\":"
+                    << output.events << "}}";
+            add_json_block(output, 8, summary.str());
+            add_json_block(output, 9, "{}");
+            add_json_block(output, 10, "[]");
+            const auto write_started = std::chrono::steady_clock::now();
+            fs::path directory(out_dir);
+            std::error_code error;
+            fs::create_directories(directory, error);
+            if (error) fail(kExitIo, "创建 out-dir 失败：" + error.message());
+            fs::path store_path = directory / "store.bin";
+            fs::path temporary = directory / ("store.bin.tmp." + std::to_string(GetCurrentProcessId()));
+            try {
+                write_store(temporary, output);
+                fs::rename(temporary, store_path, error);
+                if (error) {
+                    fs::remove(temporary);
+                    fail(kExitIo, "重命名 store.bin 失败：" + error.message());
+                }
+            } catch (...) {
+                std::error_code ignored;
+                fs::remove(temporary, ignored);
+                throw;
+            }
+            output.write_seconds = seconds_since(write_started);
+            std::ostringstream result;
+            result << "{\n";
+            result << " \"protocol\":" << quote(kProtocol) << ", \"schema\":" << kSchema
+                   << ", \"abi\":" << kAbi << ",\n";
+            result << " \"engine\":{\"name\":\"etm_storebuild\",\"buildSha\":"
+                   << quote(build_sha()) << ",\"compiler\":" << quote(compiler_string())
+                   << ",\"nativeFormat\":\"trace-bin native v1\",\"storeSchema\":1,"
+                   << "\"queryIndex\":0},\n";
+            result << " \"generation\":" << quote(output.generation)
+                   << ", \"generationTag\":" << quote("0x" + [&]() {
+                          std::ostringstream tag;
+                          tag << std::hex << output.generation_tag;
+                          return tag.str();
+                      }()) << ",\n";
+            result << " \"files\":[{\"name\":\"store.bin\",\"bytes\":" << output.store_bytes
+                   << ",\"sha256\":" << quote(output.store_sha256) << ",\"blocks\":"
+                   << output.blocks.size() << ",\"payloadBytes\":"
+                   << (output.store_bytes - 56 - output.blocks.size() * 24) << "}],\n";
+            result << " \"counts\":{\"events\":" << output.events << ",\"instructions\":"
+                   << output.instructions << ",\"ranges\":" << output.ranges
+                   << ",\"runs\":" << output.runs << ",\"rareEvents\":"
+                   << output.rare_events << ",\"staticPcs\":" << output.static_pcs
+                   << ",\"strings\":" << output.strings << ",\"packets\":"
+                   << output.packets << ",\"sequenceBlocks\":" << output.sequence_blocks
+                   << ",\"checkpoints\":" << output.checkpoints << ","
+                   << "\"executed\":" << output.executed << ",\"unknownExecution\":"
+                   << output.unknown << ",\"notTaken\":" << output.not_taken
+                   << ",\"exceptions\":" << output.exceptions << ",\"gaps\":"
+                   << output.gaps << "},\n";
+            result << " \"phases\":{\"readNative\":" << assemble_seconds
+                   << ",\"assemble\":" << assemble_seconds
+                   << ",\"rangeHits\":" << output.range_hits << ",\"rangeMisses\":" << output.range_misses
+                   << ",\"rangeWalk\":" << output.range_seconds
+                   << ",\"runEncode\":" << output.flush_seconds
+                   << ",\"tracker\":" << output.tracker_seconds
+                   << ",\"buildBlocks\":" << output.build_blocks_seconds
+                   << ",\"analysis\":" << output.analysis_seconds
+                   << ",\"queryIndex\":0.0,\"defaultViews\":0.0,\"writeBlocks\":"
+                   << output.write_seconds << ",\"assembleFile\":"
+                   << output.write_seconds << ",\"hashFile\":0.0},\n";
+            result << " \"peakRssBytes\":" << output.peak_rss << ",\n";
+            result << " \"inputs\":{\"nativeSha256\":" << quote(output.native_sha256)
+                   << ",\"nativeBytes\":" << counters.native_bytes
+                   << ",\"elfSha256\":" << quote(output.elf_sha256)
+                   << ",\"rangesSha256\":\"\",\"staticDictSha256\":"
+                   << quote(output.static_sha256) << "},\n";
+            result << " \"layout\":{\"checkpointInstructions\":4096,\"cellInsn\":4096,"
+                      "\"targetBlockBytes\":1048576,\"maxBlockBytes\":67108864,"
+                      "\"maxRunInstructions\":4096},\n";
+            result << " \"canonical\":{\"compare\":\"semantic\",\"runs\":\"layout-"
+                      "independent\",\"ignored\":[\"runs\",\"checkpoints\"],"
+                      "\"note\":\"blocks 1-11 only; no block12/default views; R2 §8.1\"}\n";
+            result << "}\n";
+            fs::path result_file = result_path.empty() ? directory / "build-result.json"
+                                                       : fs::path(result_path);
+            std::ofstream out(result_file);
+            if (!out) fail(kExitIo, "打不开 build-result 输出：" + result_file.string());
+            out << result.str();
+            if (!out) fail(kExitIo, "写 build-result 失败");
             return kExitOk;
         }
         if (command == "diagnose") {
