@@ -820,7 +820,7 @@ def write(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=None, el
           checkpoint_instructions=trace_store.DEFAULT_CHECKPOINT_INSTRUCTIONS,
           hash_inputs=True, write_decoded=False, decoder=None, max_events=None,
           progress=None, progress_every=500000, image=None, keep_native=False,
-          pause_gc=True):
+          build_query_index=False, pause_gc=True):
     """把记录目录（或 etm.bin/elf/config）一步写成 trace-store v1。
 
     输入优先级：``native_bin`` 参数 > ``record_dir/native.bin`` > 用 ``etm_decode --binary``
@@ -845,7 +845,7 @@ def write(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=None, el
             verify_image=verify_image, checkpoint_instructions=checkpoint_instructions,
             hash_inputs=hash_inputs, write_decoded=write_decoded, decoder=decoder,
             max_events=max_events, progress=progress, progress_every=progress_every,
-            image=image, keep_native=keep_native)
+            image=image, keep_native=keep_native, build_query_index=build_query_index)
     gc.disable()
     try:
         return _write_fused(
@@ -855,7 +855,7 @@ def write(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=None, el
             verify_image=verify_image, checkpoint_instructions=checkpoint_instructions,
             hash_inputs=hash_inputs, write_decoded=write_decoded, decoder=decoder,
             max_events=max_events, progress=progress, progress_every=progress_every,
-            image=image, keep_native=keep_native)
+            image=image, keep_native=keep_native, build_query_index=build_query_index)
     finally:
         gc.enable()
 
@@ -865,8 +865,14 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
                  physical=None, capture=None, verify_image=True,
                  checkpoint_instructions=trace_store.DEFAULT_CHECKPOINT_INSTRUCTIONS,
                  hash_inputs=True, write_decoded=False, decoder=None, max_events=None,
-                 progress=None, progress_every=500000, image=None, keep_native=False):
-    """``write`` 的内部实现（暂停 GC 的包装见上）。"""
+                 progress=None, progress_every=500000, image=None, keep_native=False,
+                 build_query_index=False):
+    """``write`` 的内部实现（暂停 GC 的包装见上）。
+
+    ``build_query_index=True``（CLI ``--build-query-index``）在发布前追加 R1 查询索引块
+    （``BLK_QUERY``）：window/function_timeline 之后的读取走索引快路径。默认关闭，
+    默认路径的 store.bin 字节保持不变。
+    """
     started = time.perf_counter()
     record_dir = Path(record_dir).resolve()
     store_dir = Path(store_dir).resolve()
@@ -1291,13 +1297,28 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
         stored_summary['traceStore'] = dict(
             format=trace_store.FULL_FORMAT_NAME, generation=generation,
             runs=assembler.state['runs'], instructions=assembler.state['instructions'])
+        index_meta = None
+        if build_query_index:
+            import trace_store_index
+            index_result = trace_store_index.build_in_sink(
+                sink, assembler.static_entries, assembler.strings.values,
+                assembler.state, first_seq=0, last_seq=assembler.expected_seq - 1,
+                cell_size=trace_store_index.DEFAULT_CELL_INSTRUCTIONS, progress=progress)
+            index_meta = trace_store_index._index_meta(index_result['meta'], index_result)
+            meta['queryIndex'] = index_meta
+            meta['counts']['queryIndex'] = {
+                key: index_meta.get(key) for key in
+                ('version', 'cellSize', 'cells', 'segmentCount', 'functionSegments',
+                 'payloadBytes', 'buildSeconds')}
         sink.add_compressed_json(trace_store.BLK_META, meta)
         sink.add_compressed_json(trace_store.BLK_SUMMARY, stored_summary)
         sink.add_compressed_json(trace_store.BLK_SOURCES, sources_data)
         sink.add_compressed_json(trace_store.BLK_ISSUES, issues)
 
         sink.handle.flush()
-        info = sink.assemble(generation_dir / trace_store.STORE_FILE, generation_tag)
+        info = sink.assemble(
+            generation_dir / trace_store.STORE_FILE, generation_tag,
+            optional_features=(trace_store.QUERY_INDEX_FEATURE if build_query_index else 0))
         sink.close()
         try:
             temp_payload.unlink()
@@ -1332,6 +1353,10 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
             traceStore=trace_store.SCHEMA_VERSION, processor='trace_store_write.py fused writer',
             decodedVersion=3, decoderLibrary=(status or {}).get('library'), protocol=protocol,
             nativeFormat='trace-bin native v1', source=NATIVE_FILE)
+        if index_meta is not None:
+            manifest_extra = dict(queryIndex=index_meta)
+        else:
+            manifest_extra = {}
         manifest = dict(
             format=trace_store.FORMAT_NAME, formatName=trace_store.FULL_FORMAT_NAME,
             schemaVersion=trace_store.SCHEMA_VERSION, byteOrder='little', state='complete',
@@ -1345,7 +1370,10 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
             notes=['manifest 是唯一发布点：失败/中止的 generation 目录不会被本 manifest 引用',
                    '旧 generation 保留不删，读取只认 manifest 指向的一代',
                    '本代由 P3 融合写出器从 native.bin 直接生成，未生成 events/packets/elements '
-                   'JSONL 或 SQLite；包说明文本不可用（见 meta.packetText）'],
+                   'JSONL 或 SQLite；包说明文本不可用（见 meta.packetText）']
+                + (['本代含 R1 查询索引块（BLK_QUERY=12）：window/function_timeline 走索引快路径，'
+                    'TRACE_STORE_SLOW=1 强制慢路径对照'] if index_meta is not None else []),
+            **manifest_extra,
         )
         trace_store._publish_manifest(store_dir, manifest)
         since = mark('publish', since)
@@ -1368,6 +1396,7 @@ def _write_fused(record_dir, store_dir, *, native_bin=None, work_dir=None, etm=N
                       runs=assembler.state['runs'], events=assembler.state['events'],
                       instructions=assembler.state['instructions'],
                       packetText=False, decodedWritten=bool(write_decoded),
+                      queryIndex=index_meta,
                       decodedPath=str(record_dir / DECODED_FILE) if write_decoded else None,
                       warnings=warnings)
         note('  完成：%s（%.1f s，%.1f MiB，%d 条事件 / %d 条指令）'
@@ -1460,6 +1489,8 @@ def _main(argv=None):
                         default=trace_store.DEFAULT_CHECKPOINT_INSTRUCTIONS,
                         help='检查点最大指令间隔（默认 4096）')
     writer.add_argument('--no-image', action='store_true', help='跳过 ELF 机器码/源码位置交叉校验')
+    writer.add_argument('--build-query-index', action='store_true',
+                        help='发布前追加 R1 查询索引块（BLK_QUERY=12）：window/timeline 快路径')
     writer.add_argument('--no-hash-inputs', action='store_true',
                         help='不读取输入文件内容、不计算 sha256（只记尺寸；'
                              'manifest.bindings.inputHash/meta.verify.inputHash 标记 skipped）')
@@ -1485,6 +1516,7 @@ def _main(argv=None):
                 args.record_dir, args.store_dir, native_bin=args.native_bin,
                 work_dir=args.work_dir, etm=args.etm, elf=args.elf, config=config,
                 verify_image=not args.no_image, hash_inputs=not args.no_hash_inputs,
+                build_query_index=args.build_query_index,
                 write_decoded=args.write_decoded,
                 checkpoint_instructions=args.checkpoint_instructions,
                 max_events=args.max_events, decoder=args.decoder,

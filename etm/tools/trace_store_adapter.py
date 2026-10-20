@@ -153,6 +153,10 @@ def signature(folder):
     folder = Path(folder).resolve()
     manifest = manifest_path(folder)
     parts = ['trace-store', _stat_key(manifest)]
+    declared = _read_small_json(manifest) or {}
+    index = declared.get('queryIndex') or {}
+    parts.append('query=%s:%s:%s' % (index.get('version') or 0, index.get('cellSize') or 0,
+                                     index.get('payloadBytes') or 0))
     for name in STALENESS_INPUTS:
         parts.append(name + '=' + _stat_key(folder / name))
     decoded = folder / 'decoded.json'
@@ -572,13 +576,15 @@ class TraceStoreAdapter:
             result = store.overview()
             generation = getattr(store, 'generation', None)
             summary = self._input_hash_summary(store)
+            stats = store.stats()
         result = dict(result)
-        # W-P4-1 白名单键：traceStore 概要；这里补上实际代与输入核验状态（R0-A）。
+        # W-P4-1 白名单键：traceStore 概要；这里补上实际代、输入核验状态与 R1 查询索引状态。
         trace = dict(result.get('traceStore') or {})
         if generation is not None:
             trace['generation'] = generation
         if summary is not None:
             trace['inputHash'] = summary
+        trace['queryIndex'] = stats.get('queryIndex')
         result['traceStore'] = trace
         return result
 
