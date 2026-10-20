@@ -48,7 +48,7 @@ add_executable(etm_storebuild native/storebuild.cpp)
 set_property(TARGET etm_storebuild PROPERTY CXX_STANDARD 17)
 if(MINGW)
   target_link_libraries(etm_storebuild PRIVATE psapi z crypto)
-  target_link_options(etm_storebuild PRIVATE -static -static-libgcc -static-libstdc++)
+  target_link_options(etm_storebuild PRIVATE -municode -static -static-libgcc -static-libstdc++)
 endif()
 execute_process(COMMAND git rev-parse --short=12 HEAD
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

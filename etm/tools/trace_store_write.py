@@ -825,30 +825,12 @@ class NativeStorebuildUnavailable(trace_store.TraceStoreError):
 
 
 def native_capabilities(timeout=60, binary=None):
-    """运行 `native_storebuild.py --version` 并解析握手 JSON（失败抛明确异常）。"""
-    if not NATIVE_MODULE.is_file():
-        raise NativeStorebuildUnavailable('原生 builder 包装不存在：%s' % NATIVE_MODULE)
-    command = [sys.executable, '-X', 'utf8', str(NATIVE_MODULE), '--version']
-    if binary:
-        command += ['--binary', str(binary)]
+    """Direct native handshake, also valid inside a frozen portable launcher."""
     try:
-        completed = subprocess.run(command, capture_output=True, text=True,
-                                   encoding='utf-8', timeout=timeout,
-                                   cwd=str(NATIVE_MODULE.parent.parent.parent))
-    except (OSError, subprocess.SubprocessError) as error:
+        import native_storebuild
+        return native_storebuild.probe(binary, timeout=timeout)
+    except (ImportError, OSError, RuntimeError) as error:
         raise NativeStorebuildUnavailable('原生 builder 握手失败：%s' % error)
-    if completed.returncode != 0:
-        raise NativeStorebuildUnavailable(
-            '原生 builder --version 退出码 %d：%s' % (completed.returncode,
-                                                      (completed.stderr or '')[-500:]))
-    try:
-        info = json.loads(completed.stdout)
-    except json.JSONDecodeError as error:
-        raise NativeStorebuildUnavailable('原生 builder --version 输出不是 JSON：%s' % error)
-    if info.get('protocol') != NATIVE_PROTOCOL:
-        raise NativeStorebuildUnavailable(
-            '原生 builder 协议不符：%r（需要 %r）' % (info.get('protocol'), NATIVE_PROTOCOL))
-    return info
 
 
 def resolve_engine(engine=None):
@@ -905,9 +887,10 @@ def _write_native(record_dir, store_dir, **kwargs):
             'etm_storebuild 尚未提供 build 能力（capabilities=%s）：R2 原生 build 由 '
             't20/t21 交付；请显式允许回退（ETM_STORE_ENGINE_FALLBACK=1）或改用 python 引擎'
             % sorted(capabilities))
-    raise NativeStorebuildUnavailable(
-        't17 的 native 接入骨架已就绪，但 build 契约（build-result/块 12 v2 写出）'
-        '等待 t20/t21 落地后才能启用；请显式允许回退或用 python 引擎')
+    if not {'facts-v2', 'quality-diagnostics'}.issubset(capabilities):
+        raise NativeStorebuildUnavailable('原生 build 缺少 facts-v2/quality-diagnostics，请重新构建')
+    from native_pipeline import write as native_write
+    return native_write(record_dir, store_dir, **kwargs)
 
 
 # ---------------------------------------------------------------------------------------------

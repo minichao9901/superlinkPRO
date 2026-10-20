@@ -115,7 +115,7 @@ def collect_ranges(native_path, progress=None):
 # 静态条目（与 _Assembler._static_entry 逐项一致）
 # ---------------------------------------------------------------------------------------------
 
-def build_static_entries(ranges, elf_path, *, verify_image=True, progress=None):
+def build_static_entries(ranges, elf_path, *, verify_image=True, progress=None, image=None):
     """按首次出现顺序生成静态条目（与参考 `_Assembler._static_entry` 同口径）。"""
     import decode_stream as expander
     from trace_store_write import _known_addresses
@@ -123,7 +123,7 @@ def build_static_entries(ranges, elf_path, *, verify_image=True, progress=None):
     started = time.perf_counter()
     timings = {}
     phase = time.perf_counter()
-    image = Image(str(elf_path))
+    image = image or Image(str(elf_path))
     timings['loadImageSeconds'] = round(time.perf_counter() - phase, 4)
     phase = time.perf_counter()
     predicates = predicate_addresses(image)

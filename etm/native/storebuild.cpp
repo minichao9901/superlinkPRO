@@ -20,6 +20,7 @@
 // * 静态字典在 native 流之前一次性读入；诊断的 run/谓词/周期状态机全部在 C++ 内完成。
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -50,6 +51,15 @@
 namespace fs = std::filesystem;
 
 namespace {
+
+std::FILE* open_utf8_file(const std::string& name, const char* mode) {
+#ifdef _WIN32
+    const std::wstring wide_mode(mode, mode + std::strlen(mode));
+    return _wfopen(fs::u8path(name).c_str(), wide_mode.c_str());
+#else
+    return std::fopen(name.c_str(), mode);
+#endif
+}
 
 constexpr const char* kProtocol = "etm-storebuild/1";
 constexpr uint32_t kSchema = 1;
@@ -166,7 +176,7 @@ class FastReader {
   public:
     explicit FastReader(const fs::path& path, size_t capacity = 4u << 20) {
         file_.open(path, std::ios::binary);
-        if (!file_) fail(kExitIo, "打不开 native.bin：" + path.string());
+        if (!file_) fail(kExitIo, "打不开 native.bin：" + path.u8string());
         file_.seekg(0, std::ios::end);
         size_ = static_cast<uint64_t>(file_.tellg());
         file_.seekg(0, std::ios::beg);
@@ -423,9 +433,10 @@ uint32_t parse_hex_byte(char ch) {
     fail(kExitInput, "static-dict elfSha256 不是十六进制");
 }
 
-StaticDict load_static_dict(const fs::path& path) {
+StaticDict load_static_dict(const std::string& name) {
+    const fs::path path = fs::u8path(name);
     std::ifstream file(path, std::ios::binary);
-    if (!file) fail(kExitInput, "打不开 static-dict：" + path.string());
+    if (!file) fail(kExitInput, "打不开 static-dict：" + path.u8string());
     file.seekg(0, std::ios::end);
     const uint64_t size = static_cast<uint64_t>(file.tellg());
     file.seekg(0, std::ios::beg);
@@ -581,6 +592,11 @@ struct NativeCounters {
     uint64_t packet_unsync = 0;
     uint64_t packet_invalid = 0;
     uint64_t packet_overflow = 0;
+    uint64_t packet_covered = 0, packet_overlap = 0, packet_end = 0, unsync_bytes = 0;
+    uint64_t previous_packet_offset = 0;
+    std::vector<std::array<uint64_t, 3>> packet_faults;
+    std::vector<std::array<uint64_t, 2>> logical_events;
+    uint64_t logical_seq = 0, first_range_offset = 0;
     std::string native_sha256;
     uint64_t native_bytes = 0;
     NativeHeader header;
@@ -615,13 +631,13 @@ bool packet_is_unsync(uint32_t type_code, uint32_t protocol) {
 }
 
 bool packet_is_invalid(uint32_t type_code, uint32_t protocol) {
-    if (protocol == 2) return type_code == 2 || type_code == 23 || type_code == 24;
-    return type_code == 0x201 || type_code == 0x202
+    if (protocol == 2) return type_code == 2 || type_code < 1 || type_code > 21;
+    return type_code == 0x201 || type_code == 0x105
         || (type_code >= 0x300 && type_code <= 0x303);
 }
 
 bool packet_is_overflow(uint32_t type_code, uint32_t protocol) {
-    if (protocol == 2) return type_code == 10;  // STORE_FAIL
+    if (protocol == 2) return false;  // STORE_FAIL is not an overflow packet.
     return type_code == 0x105;
 }
 
@@ -641,11 +657,12 @@ struct NativeVisitor {
                            const uint8_t* raw) = 0;
 };
 
-NativeCounters read_native(const fs::path& path, bool collect_ranges,
+NativeCounters read_native(const std::string& name, bool collect_ranges,
                            std::vector<RangeRecord>* ranges,
                            uint64_t max_unique_ranges, uint64_t limit_records,
                            std::ostream* range_out, bool compute_sha = false,
                            NativeVisitor* visitor = nullptr) {
+    const fs::path path = fs::u8path(name);
     FastReader file(path);
     const uint64_t file_size = file.size();
     if (file_size < kNativeHeaderBytes) fail(kExitInput, "native.bin 短于 64 字节头部");
@@ -714,7 +731,16 @@ NativeCounters read_native(const fs::path& path, bool collect_ranges,
             const uint32_t type_code = read_u32(body.data());
             const uint64_t offset = read_u64(body.data() + 5);
             const uint32_t size = read_u32(body.data() + 13);
-            (void)offset;
+            if (offset < counters.previous_packet_offset)
+                fail(kExitInput, "native.bin packet offsets are not ordered");
+            counters.previous_packet_offset = offset;
+            const uint64_t stop = offset + size;
+            counters.packet_overlap += std::min<uint64_t>(size,
+                counters.packet_end > offset ? counters.packet_end - offset : 0);
+            if (stop > counters.packet_end)
+                counters.packet_covered += stop - std::max(offset, counters.packet_end);
+            counters.packet_end = std::max(counters.packet_end, stop);
+            if (packet_is_unsync(type_code, header.protocol)) counters.unsync_bytes += size;
             if (size != record_bytes - kPacketHeaderBytes) {
                 fail(kExitInput, "native.bin 包长度与记录长度不符");
             }
@@ -722,6 +748,7 @@ NativeCounters read_native(const fs::path& path, bool collect_ranges,
             if (packet_is_invalid(type_code, header.protocol)) {
                 ++counters.packet_invalid;
                 if (packet_is_overflow(type_code, header.protocol)) ++counters.packet_overflow;
+                counters.packet_faults.push_back({offset, size, type_code});
             }
             if (visitor) {
                 // `body` 已去掉 5B 记录头（body_bytes_record = record_bytes - 5），
@@ -790,6 +817,12 @@ NativeCounters read_native(const fs::path& path, bool collect_ranges,
         if (bool(flags8 & 0x08) != bool(text_bytes)) fail(kExitInput, "native.bin 元素 has_text 标志不一致");
         counters.type_counts[etype]++;
         counters.text_bytes += text_bytes;
+        if (etype == kElementInstrRange) {
+            if (!counters.range_records) counters.first_range_offset = element_offset;
+            counters.logical_seq += payload;
+        } else if (is_event_type(etype)) {
+            counters.logical_events.push_back({counters.logical_seq++, element_offset});
+        }
         if (visitor) {
             if (etype == kElementInstrRange) {
                 visitor->on_range(static_cast<uint32_t>(element_offset), start, end, payload, last_executed, cycle_count);
@@ -874,7 +907,7 @@ struct DiagnoseState {
     uint32_t pending_id = 0;
     uint32_t pending_offset = 0;
     uint8_t pending_executed = 0;  // 0=true,1=false,2=unknown
-    uint32_t pending_cycles = 0;
+    uint64_t pending_cycles = 0;
     uint32_t pending_span = 0;
     uint32_t pending_payload = 0;
     uint64_t instructions = 0;
@@ -940,7 +973,7 @@ struct DiagnoseState {
         const uint32_t id = pending_id;
         const uint32_t offset = pending_offset;
         const uint8_t executed = pending_executed;
-        const uint32_t cycles = pending_cycles;
+        const uint64_t cycles = pending_cycles;
         const uint32_t span = pending_span;
         pending = false;
         ++debug_tail;
@@ -1356,8 +1389,8 @@ class Tracker {
             TrackerContext context;
             context.stack = stack_;
             context.previous = previous_;
-            context.has_expected = has_expected_;
-            context.expected = expected_;
+            context.has_expected = (flags & (1u << 6)) != 0;
+            context.expected = end;
             contexts_.push_back(std::move(context));
             stack_.clear();
             stack_.push_back(TrackerFrame{std::string("中断 ") + std::to_string(payload)});
@@ -1380,7 +1413,7 @@ class Tracker {
     }
     void feed_instruction(const std::string& function, const std::string& file,
                           bool has_file, bool has_line, int64_t line, uint8_t executed,
-                          uint8_t flow, uint64_t pc, uint32_t size, uint32_t cycles,
+                          uint8_t flow, uint64_t pc, uint32_t size, uint64_t cycles,
                           uint32_t site_id = 0xFFFFFFFFu) {
         const std::string fn = function.empty() ? "(未知函数)" : function;
         TrackerStats* s_ptr = nullptr;
@@ -1827,7 +1860,16 @@ class PathTracker {
     }
     void feed_instruction(const std::string& function, uint8_t executed, uint8_t flow,
                           uint64_t pc, uint32_t size) {
-        const std::string fn = function.empty() ? "(未知函数)" : function;
+        static const std::string unknown_function = "(未知函数)";
+        const std::string& fn = function.empty() ? unknown_function : function;
+        if (flow == kFlowLinear && previous_.valid && previous_.flow == kFlowLinear
+                && !has_expected_ && !stack_.empty() && stack_.back().function == fn
+                && previous_.function == function) {
+            previous_.pc = pc;
+            previous_.size = size;
+            previous_.executed = executed;
+            return;
+        }
         if (has_expected_) {
             if (pc != (expected_ & ~1ull)) {
                 stack_.clear();
@@ -1940,7 +1982,7 @@ class FactsSink {
   public:
     explicit FactsSink(const std::string& path) : final_path_(path) {
         temp_path_ = path + ".tmp." + std::to_string(GetCurrentProcessId());
-        file_ = std::fopen(temp_path_.c_str(), "wb");
+        file_ = open_utf8_file(temp_path_, "wb");
         if (!file_) fail(kExitIo, "打不开 facts 输出");
     }
     ~FactsSink() { cleanup(); }
@@ -1979,10 +2021,10 @@ class FactsSink {
         std::fclose(file_);
         file_ = nullptr;
         std::error_code error;
-        fs::rename(temp_path_, final_path_, error);
+        fs::rename(fs::u8path(temp_path_), fs::u8path(final_path_), error);
         if (error) {
             std::error_code ignored;
-            fs::remove(temp_path_, ignored);
+            fs::remove(fs::u8path(temp_path_), ignored);
             fail(kExitIo, "重命名 facts 输出失败：" + error.message());
         }
         committed_ = true;
@@ -2005,7 +2047,7 @@ class FactsSink {
         file_ = nullptr;
         if (!committed_) {
             std::error_code ignored;
-            fs::remove(temp_path_, ignored);
+            fs::remove(fs::u8path(temp_path_), ignored);
         }
     }
     std::string final_path_;
@@ -2270,7 +2312,7 @@ class BuildVisitor : public NativeVisitor {
     std::string analysis_json() const { return tracker_.analysis_json(); }
     void set_analysis(bool enabled) { tracker_.set_analysis(enabled); }
     void set_facts_out(const std::string& path) { facts_out_ = path; }
-    std::vector<uint8_t> build_native_index() {
+    std::vector<uint8_t> build_native_index(bool emit_index = true) {
         const size_t static_count = static_entries_.size();
         std::vector<uint32_t> pc_offsets(static_count + 1, 0);
         std::vector<std::vector<uint32_t>> pc_cells(static_count);
@@ -2466,6 +2508,7 @@ class BuildVisitor : public NativeVisitor {
                             : (is_tail ? tail_code : 0);
                         fact_ids.push_back(id);
                         fact_states.push_back(executed);
+                        if (emit_index) {
                         ++cell_insn[cell];
                         if (executed == 0) ++cell_executed[cell];
                         else if (executed == 1) ++cell_not_taken[cell];
@@ -2491,6 +2534,7 @@ class BuildVisitor : public NativeVisitor {
                             line_current = line_keys[id];
                             line_start.push_back(static_cast<uint32_t>(instruction_index));
                             line_id.push_back(id);
+                        }
                         }
                         if (!facts_out_.empty()) {
                             fact_path->feed_instruction(fact_function_text[id], executed,
@@ -2651,7 +2695,7 @@ class BuildVisitor : public NativeVisitor {
             const auto started = std::chrono::steady_clock::now();
             const std::string path = facts_out_;
             std::error_code dir_error;
-            fs::create_directories(fs::path(path).parent_path(), dir_error);
+            fs::create_directories(fs::u8path(path).parent_path(), dir_error);
             FactsSink sink(path);
             const uint64_t instruction_count = fact_ids.size();
             const uint64_t run_count = fact_runs.size();
@@ -2744,7 +2788,7 @@ class BuildVisitor : public NativeVisitor {
             const uint64_t peak_after_facts = peak_rss_bytes();
             if (peak_after_facts > output_.peak_rss) output_.peak_rss = peak_after_facts;
         }
-        return encode_v2_payload(tables);
+        return emit_index ? encode_v2_payload(tables) : std::vector<uint8_t>();
     }
 
   private:
@@ -3075,7 +3119,7 @@ class BuildVisitor : public NativeVisitor {
         bool valid = false;
         uint32_t offset = 0;
         uint32_t last_executed = 0;
-        uint32_t cycles = 0;
+        uint64_t cycles = 0;
         uint32_t span = 0;
         uint32_t payload = 0;
         std::vector<PendingSegment> segments;
@@ -3098,9 +3142,10 @@ std::vector<uint8_t> zlib_compress(const std::vector<uint8_t>& input, int level)
     return output;
 }
 
-std::vector<uint8_t> read_binary_file(const fs::path& path) {
+std::vector<uint8_t> read_binary_file(const std::string& name) {
+    const fs::path path = fs::u8path(name);
     std::ifstream file(path, std::ios::binary);
-    if (!file) fail(kExitIo, "打不开 v2 index payload：" + path.string());
+    if (!file) fail(kExitIo, "打不开 v2 index payload：" + path.u8string());
     file.seekg(0, std::ios::end);
     const std::streamoff size = file.tellg();
     if (size < 0) fail(kExitIo, "v2 index payload 长度无效");
@@ -3164,8 +3209,8 @@ void write_store(const fs::path& path, BuildOutput& output) {
         std::memcpy(row + 20, &crc, 4);
         offset += length;
     }
-    const std::string path_text = path.string();
-    std::FILE* out = std::fopen(path_text.c_str(), "wb");
+    const std::string path_text = path.u8string();
+    std::FILE* out = open_utf8_file(path_text, "wb");
     if (!out) fail(kExitIo, "打不开 store.bin 输出");
     FastSha256 sha;
     auto emit = [&](const uint8_t* data, size_t size) {
@@ -3231,7 +3276,7 @@ std::string meta_json(const BuildOutput& output,
 
 }  // namespace
 
-int main(int argc, char** argv) {
+int main_utf8(int argc, char** argv) {
     std::ios::sync_with_stdio(false);
     try {
         if (argc < 2) {
@@ -3248,7 +3293,7 @@ int main(int argc, char** argv) {
                       << ",\"buildSha\":" << quote(build_sha())
                       << ",\"formats\":{\"native\":\"trace-bin native v1\","
                          "\"staticDict\":1,\"ranges\":1}"
-                      << ",\"capabilities\":[\"prescan\",\"diagnose\",\"build\"]"
+                      << ",\"capabilities\":[\"prescan\",\"diagnose\",\"build\",\"facts-v2\",\"quality-diagnostics\"]"
                       << "}" << std::endl;
             return kExitOk;
         }
@@ -3294,7 +3339,7 @@ int main(int argc, char** argv) {
             std::vector<RangeRecord> ranges;
             std::ofstream range_stream;
             if (!ranges_path.empty()) {
-                range_stream.open(ranges_path, std::ios::binary);
+                range_stream.open(fs::u8path(ranges_path), std::ios::binary);
                 if (!range_stream) fail(kExitIo, "打不开 ranges 输出：" + ranges_path);
             }
             const auto started = std::chrono::steady_clock::now();
@@ -3308,7 +3353,7 @@ int main(int argc, char** argv) {
             }
             std::string ranges_sha;
             if (!ranges_path.empty()) {
-                std::ifstream check(ranges_path, std::ios::binary);
+                std::ifstream check(fs::u8path(ranges_path), std::ios::binary);
                 Sha256 sha;
                 std::vector<char> buffer(1 << 20);
                 while (check) {
@@ -3360,7 +3405,7 @@ int main(int argc, char** argv) {
             }
             json << "}\n}\n";
             if (!json_path.empty()) {
-                std::ofstream out(json_path);
+                std::ofstream out(fs::u8path(json_path));
                 if (!out) fail(kExitIo, "打不开 JSON 输出：" + json_path);
                 out << json.str();
             } else {
@@ -3422,7 +3467,7 @@ int main(int argc, char** argv) {
             }
             json << "\n ]\n}\n";
             if (!json_path.empty()) {
-                std::ofstream out(json_path);
+                std::ofstream out(fs::u8path(json_path));
                 if (!out) fail(kExitIo, "打不开 JSON 输出：" + json_path);
                 out << json.str();
             } else {
@@ -3464,10 +3509,10 @@ int main(int argc, char** argv) {
             if (out_dir.empty()) fail(kExitUsage, "build 需要 --out-dir");
             StaticDict dict = load_static_dict(static_path);
             BuildOutput output;
-            output.generation = generation.empty() ? fs::path(out_dir).filename().string() : generation;
+            output.generation = generation.empty() ? fs::u8path(out_dir).filename().string() : generation;
             output.generation_tag = generation_tag;
             std::error_code size_error;
-            const uint64_t native_size = fs::file_size(native_path, size_error);
+            const uint64_t native_size = fs::file_size(fs::u8path(native_path), size_error);
             const bool need_analysis = true;
             (void)force_analysis;
             (void)size_error;
@@ -3514,7 +3559,7 @@ int main(int argc, char** argv) {
                 const auto index_started = std::chrono::steady_clock::now();
                 BuildBlock query;
                 query.type = 12;
-                query.payload = visitor.build_native_index();
+                query.payload = visitor.build_native_index(native_index);
                 output.index_seconds = chrono_seconds(index_started);
                 if (!native_index) query.payload.clear();
                 if (native_index) {
@@ -3532,7 +3577,7 @@ int main(int argc, char** argv) {
                 output.blocks.push_back(std::move(query));
             }
             const auto write_started = std::chrono::steady_clock::now();
-            fs::path directory(out_dir);
+            fs::path directory = fs::u8path(out_dir);
             std::error_code error;
             fs::create_directories(directory, error);
             if (error) fail(kExitIo, "创建 out-dir 失败：" + error.message());
@@ -3559,6 +3604,32 @@ int main(int argc, char** argv) {
                    << quote(build_sha()) << ",\"compiler\":" << quote(compiler_string())
                    << ",\"nativeFormat\":\"trace-bin native v1\",\"storeSchema\":1,"
                    << "\"queryIndex\":0},\n";
+            result << " \"diagnostics\":{\"status\":{\"processed\":"
+                   << counters.status.processed << ",\"lastErrorCode\":"
+                   << counters.status.last_error_code << ",\"library\":"
+                   << quote(counters.status.library) << ",\"lastError\":"
+                   << quote(counters.status.last_error) << "},\"covered\":"
+                   << counters.packet_covered << ",\"overlap\":" << counters.packet_overlap
+                   << ",\"unknown\":" << counters.unsync_bytes
+                   << ",\"unsync_records\":" << counters.packet_unsync
+                   << ",\"invalid\":" << counters.packet_invalid
+                   << ",\"overflow\":" << counters.packet_overflow
+                   << ",\"packet_count\":" << counters.saw_packets
+                   << ",\"cycle_elements\":" << counters.cycle_elements
+                   << ",\"elements\":" << counters.saw_elements << ",\"faults\":[";
+            for (size_t i = 0; i < counters.packet_faults.size(); ++i) {
+                if (i) result << ',';
+                const auto& fault = counters.packet_faults[i];
+                result << '[' << fault[0] << ',' << fault[1] << ',' << fault[2] << ']';
+            }
+            result << "],\"firstRangeOffset\":" << counters.first_range_offset
+                   << ",\"packetEnd\":" << counters.packet_end << ",\"events\":[";
+            for (size_t i = 0; i < counters.logical_events.size(); ++i) {
+                if (i) result << ',';
+                const auto& item = counters.logical_events[i];
+                result << '[' << item[0] << ',' << item[1] << ']';
+            }
+            result << "]},\n";
             result << " \"generation\":" << quote(output.generation)
                    << ", \"generationTag\":" << quote("0x" + [&]() {
                           std::ostringstream tag;
@@ -3613,9 +3684,9 @@ int main(int argc, char** argv) {
                       "\"note\":\"blocks 1-11 only; no block12/default views; R2 §8.1\"}\n";
             result << "}\n";
             fs::path result_file = result_path.empty() ? directory / "build-result.json"
-                                                       : fs::path(result_path);
+                                                       : fs::u8path(result_path);
             std::ofstream out(result_file);
-            if (!out) fail(kExitIo, "打不开 build-result 输出：" + result_file.string());
+            if (!out) fail(kExitIo, "打不开 build-result 输出：" + result_file.u8string());
             out << result.str();
             if (!out) fail(kExitIo, "写 build-result 失败");
             return kExitOk;
@@ -3654,7 +3725,7 @@ int main(int argc, char** argv) {
             DiagnoseVisitor visitor(dict, result);
             DiagnoseState& state = visitor.state_;
             if (!run_log_path.empty()) {
-                run_log_stream.open(run_log_path, std::ios::binary);
+                run_log_stream.open(fs::u8path(run_log_path), std::ios::binary);
                 if (!run_log_stream) fail(kExitIo, "打不开 run-log 输出：" + run_log_path);
                 visitor.state_.run_log = &run_log_stream;
             }
@@ -3780,7 +3851,7 @@ int main(int argc, char** argv) {
                  << ",\"targetBlockBytes\":" << kTargetBlockBytes << "}\n";
             json << "}\n";
             if (!json_path.empty()) {
-                std::ofstream out(json_path);
+                std::ofstream out(fs::u8path(json_path));
                 if (!out) fail(kExitIo, "打不开 JSON 输出：" + json_path);
                 out << json.str();
             } else {
@@ -3798,3 +3869,23 @@ int main(int argc, char** argv) {
         return kExitOther;
     }
 }
+
+#ifdef _WIN32
+int wmain(int argc, wchar_t** argv) {
+    std::vector<std::string> values;
+    values.reserve(argc);
+    for (int i=0;i<argc;++i) {
+        int count=WideCharToMultiByte(CP_UTF8,0,argv[i],-1,nullptr,0,nullptr,nullptr);
+        if (!count) return 1;
+        std::string value(count,'\0');
+        WideCharToMultiByte(CP_UTF8,0,argv[i],-1,value.data(),count,nullptr,nullptr);
+        value.resize(count-1);
+        values.push_back(std::move(value));
+    }
+    std::vector<char*> pointers;
+    for (auto& value: values) pointers.push_back(&value[0]);
+    return main_utf8(argc,pointers.data());
+}
+#else
+int main(int argc,char** argv) {return main_utf8(argc,argv);}
+#endif

@@ -218,6 +218,8 @@ class _V2Archive:
             (name_offset, name_bytes, dtype_code, ndim, _reserved, shape0, shape1,
              data_offset, compressed_bytes, uncompressed_bytes, crc32, _pad) = \
                 V2_ITEM.unpack_from(payload, base)
+            if _reserved != b'\x00' * 4 or _pad or any(payload[base + V2_ITEM.size:base + V2_ITEM_BYTES]):
+                raise QueryIndexError('v2 索引目录保留字段非零')
             if dtype_code not in V2_DTYPES:
                 raise QueryIndexError('v2 索引表 dtypeCode 未知：%d' % dtype_code)
             if ndim not in (1, 2):

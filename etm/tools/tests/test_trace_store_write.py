@@ -220,6 +220,13 @@ class SyntheticCase(unittest.TestCase):
 
 
 class EngineSelectionTests(SyntheticCase):
+    def setUp(self):
+        super().setUp()
+        unavailable = patch.object(trace_store_write, 'native_capabilities',
+            side_effect=trace_store_write.NativeStorebuildUnavailable('test: native build unavailable'))
+        unavailable.start()
+        self.addCleanup(unavailable.stop)
+
     """t17：引擎选路（默认 python / native 明确失败 / 显式回退 / manifest 元数据）。"""
 
     def test_default_engine_is_python_with_build_costs(self):

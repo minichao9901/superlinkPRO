@@ -45,7 +45,8 @@ class NativeFrontendMismatch(NativeFrontendError):
 
 def binary_path(root=None):
     """原生前端可执行文件路径（与 build-decoder.ps1 的输出目录一致）。"""
-    base = Path(root) if root else ROOT
+    import decode_trace
+    base = Path(root) if root else decode_trace.ROOT
     return base / 'build-native' / 'etm_frontend.exe'
 
 

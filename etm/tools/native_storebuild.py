@@ -50,7 +50,8 @@ class NativeStorebuildMismatch(NativeStorebuildError):
 
 
 def binary_path(root=None):
-    base = Path(root) if root else ROOT
+    import decode_trace
+    base = Path(root) if root else decode_trace.ROOT
     return base / 'build-native' / 'etm_storebuild.exe'
 
 
