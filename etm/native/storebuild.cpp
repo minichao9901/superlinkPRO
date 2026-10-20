@@ -31,6 +31,7 @@
 #include <limits>
 #include <map>
 #include <tuple>
+#include <set>
 #include <iomanip>
 #include <memory>
 #include <zlib.h>
@@ -1239,6 +1240,7 @@ struct BuildOutput {
     uint64_t range_hits = 0;
     uint64_t range_misses = 0;
     double analysis_seconds = 0.0;
+    double index_seconds = 0.0;
 };
 
 
@@ -1715,6 +1717,89 @@ std::string Tracker::analysis_json() const {
     return out.str();
 }
 
+
+struct V2Table {
+    std::string name;
+    uint8_t dtype = 4;       // 4=u32
+    uint8_t ndim = 1;
+    uint64_t shape0 = 0;
+    uint64_t shape1 = 0;
+    std::vector<uint8_t> raw;
+};
+
+std::vector<uint8_t> zlib_compress(const std::vector<uint8_t>& input, int level = 6);
+
+std::vector<uint8_t> encode_v2_payload(const std::vector<V2Table>& tables) {
+    std::vector<std::string> names;
+    names.reserve(tables.size());
+    for (const V2Table& table : tables) names.push_back(table.name);
+    std::sort(names.begin(), names.end());
+    std::unordered_map<std::string, const V2Table*> by_name;
+    for (const V2Table& table : tables) by_name.emplace(table.name, &table);
+    std::string names_area;
+    std::unordered_map<std::string, uint32_t> name_offset;
+    for (const std::string& name : names) {
+        name_offset.emplace(name, static_cast<uint32_t>(names_area.size()));
+        names_area.append(name);
+    }
+    const uint32_t count = static_cast<uint32_t>(names.size());
+    std::vector<uint8_t> directory(static_cast<size_t>(count) * 64, 0);
+    std::vector<std::vector<uint8_t>> blobs;
+    blobs.reserve(count);
+    uint64_t data_offset = 20 + directory.size() + names_area.size();
+    for (size_t index = 0; index < names.size(); ++index) {
+        const V2Table& table = *by_name.at(names[index]);
+        std::vector<uint8_t> blob = zlib_compress(table.raw);
+        uint8_t* row = directory.data() + index * 64;
+        uint32_t off = name_offset.at(names[index]);
+        uint16_t name_bytes = static_cast<uint16_t>(names[index].size());
+        std::memcpy(row + 0, &off, 4);
+        std::memcpy(row + 4, &name_bytes, 2);
+        row[6] = table.dtype;
+        row[7] = table.ndim;
+        std::memcpy(row + 12, &table.shape0, 8);
+        std::memcpy(row + 20, &table.shape1, 8);
+        std::memcpy(row + 28, &data_offset, 8);
+        const uint64_t compressed = blob.size();
+        const uint64_t uncompressed = table.raw.size();
+        std::memcpy(row + 36, &compressed, 8);
+        std::memcpy(row + 44, &uncompressed, 8);
+        const uint32_t crc = crc32_bytes(table.raw.data(), table.raw.size());
+        std::memcpy(row + 52, &crc, 4);
+        data_offset += blob.size();
+        blobs.push_back(std::move(blob));
+    }
+    std::vector<uint8_t> payload;
+    payload.insert(payload.end(), {'E','T','M','Q','I','D','X','2'});
+    auto append_u32 = [&](uint32_t value) {
+        const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&value);
+        payload.insert(payload.end(), bytes, bytes + 4);
+    };
+    append_u32(2);
+    append_u32(count);
+    append_u32(0);
+    payload.insert(payload.end(), directory.begin(), directory.end());
+    payload.insert(payload.end(), names_area.begin(), names_area.end());
+    for (const auto& blob : blobs) payload.insert(payload.end(), blob.begin(), blob.end());
+    return payload;
+}
+
+
+uint64_t read_uv(const uint8_t* data, size_t size, size_t& position) {
+    uint64_t value = 0;
+    unsigned shift = 0;
+    while (position < size && shift < 64) {
+        const uint8_t byte = data[position++];
+        value |= static_cast<uint64_t>(byte & 0x7f) << shift;
+        if (!(byte & 0x80)) return value;
+        shift += 7;
+    }
+    fail(kExitConsistency, "v2 index varint 截断");
+}
+int64_t read_sv(const uint8_t* data, size_t size, size_t& position) {
+    const uint64_t raw = read_uv(data, size, position);
+    return static_cast<int64_t>((raw >> 1) ^ (~(raw & 1) + 1));
+}
 class BuildVisitor : public NativeVisitor {
   public:
     BuildVisitor(const StaticDict& dict, BuildOutput& output, bool need_tracker = true)
@@ -1886,6 +1971,183 @@ class BuildVisitor : public NativeVisitor {
     const std::map<uint16_t, uint64_t>& event_types() const { return event_types_; }
     std::string analysis_json() const { return tracker_.analysis_json(); }
     void set_analysis(bool enabled) { tracker_.set_analysis(enabled); }
+    std::vector<uint8_t> build_native_index() {
+        const size_t static_count = static_entries_.size();
+        std::vector<uint32_t> pc_offsets(static_count + 1, 0);
+        std::vector<std::vector<uint32_t>> pc_cells(static_count);
+        std::vector<int64_t> last_cell(static_count, -1);
+        std::vector<std::string> line_keys(static_count);
+        std::string line_current;
+        bool line_has_current = false;
+        std::vector<uint32_t> line_start;
+        std::vector<uint32_t> line_id;
+        std::vector<uint32_t> event_seqs;
+        const uint64_t cell_count = (output_.instructions + 4095) / 4096;
+        std::vector<int16_t> anchor_block(cell_count, -1);
+        std::vector<int32_t> anchor_offset(cell_count, -1);
+        std::vector<int16_t> anchor_skip(cell_count, 0);
+        std::vector<int64_t> cell_first_seq(cell_count, -1);
+        for (size_t id = 0; id < static_count; ++id) {
+            const StaticEntry* entry = static_entries_[id];
+            if (!entry) continue;
+            const bool has_file = dict_.has_extension && (entry->flags & 4);
+            const bool has_line = dict_.has_extension && (entry->flags & 8);
+            line_keys[id] = (has_line ? entry_text(*entry, 1) : std::string())
+                + "\x1f" + (has_line ? std::to_string(entry->line) : std::string());
+        }
+        uint64_t instruction_index = 0;
+        for (size_t block_index = 0; block_index < blocks_.size(); ++block_index) {
+            const std::vector<uint8_t>& block = blocks_[block_index];
+            size_t offset = 0;
+            while (offset < block.size()) {
+                const size_t record_start = offset;
+                const uint8_t type = block[offset++];
+                const uint64_t length = read_uv(block.data(), block.size(), offset);
+                if (offset + length > block.size()) fail(kExitConsistency, "v2 index sequence 截断");
+                if (type == 2) {
+                    size_t cursor = 0;
+                    const uint32_t event_seq = static_cast<uint32_t>(
+                        read_uv(block.data() + offset, static_cast<size_t>(length), cursor));
+                    event_seqs.push_back(event_seq);
+                }
+                if (type == 1) {
+                    const uint8_t* data = block.data() + offset;
+                    size_t cursor = 0;
+                    (void)read_uv(data, static_cast<size_t>(length), cursor);  // start seq
+                    const uint64_t count = read_uv(data, static_cast<size_t>(length), cursor);
+                    ++cursor;  // tail
+                    (void)read_uv(data, static_cast<size_t>(length), cursor);  // offset
+                    (void)read_uv(data, static_cast<size_t>(length), cursor);  // cycles
+                    (void)read_uv(data, static_cast<size_t>(length), cursor);  // span
+                    (void)read_uv(data, static_cast<size_t>(length), cursor);  // internal unknown
+                    uint32_t previous = static_cast<uint32_t>(
+                        read_uv(data, static_cast<size_t>(length), cursor));
+                    for (uint64_t position = 0; position < count; ++position) {
+                        uint32_t id = previous;
+                        if (position) {
+                            const int64_t delta = read_sv(data, static_cast<size_t>(length), cursor);
+                            id = static_cast<uint32_t>(static_cast<int64_t>(previous) + delta);
+                            previous = id;
+                        }
+                        if (id >= static_count) fail(kExitConsistency, "v2 index static id 越界");
+                        const uint32_t cell = static_cast<uint32_t>(instruction_index / 4096);
+                        if (last_cell[id] != static_cast<int64_t>(cell)) {
+                            last_cell[id] = cell;
+                            pc_cells[id].push_back(cell);
+                        }
+                        if (instruction_index % 4096 == 0 && cell < cell_count) {
+                            anchor_block[cell] = static_cast<int16_t>(block_index);
+                            anchor_offset[cell] = static_cast<int32_t>(record_start);
+                            anchor_skip[cell] = static_cast<int16_t>(position);
+                            cell_first_seq[cell] = static_cast<int64_t>(
+                                expected_seq_ - output_.events + 0);  // placeholder, filled below if needed
+                        }
+                        if (!line_has_current || line_current != line_keys[id]) {
+                            line_has_current = true;
+                            line_current = line_keys[id];
+                            line_start.push_back(static_cast<uint32_t>(instruction_index));
+                            line_id.push_back(id);
+                        }
+                        ++instruction_index;
+                    }
+                }
+                offset += length;
+            }
+        }
+        if (instruction_index != output_.instructions) fail(kExitConsistency, "v2 index 指令数不符");
+        uint32_t running = 0;
+        for (size_t id = 0; id < static_count; ++id) {
+            pc_offsets[id] = running;
+            running += static_cast<uint32_t>(pc_cells[id].size());
+        }
+        pc_offsets[static_count] = running;
+        std::vector<uint8_t> pc_offsets_raw;
+        std::vector<uint8_t> pc_cells_raw;
+        std::vector<uint8_t> line_start_raw;
+        std::vector<uint8_t> line_id_raw;
+        std::vector<uint8_t> anchor_block_raw;
+        std::vector<uint8_t> anchor_offset_raw;
+        std::vector<uint8_t> anchor_skip_raw;
+        std::vector<uint8_t> ev_seq_raw;
+        auto put32 = [](std::vector<uint8_t>& out, uint32_t value) {
+            const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&value);
+            out.insert(out.end(), bytes, bytes + 4);
+        };
+        auto put16 = [](std::vector<uint8_t>& out, uint16_t value) {
+            const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&value);
+            out.insert(out.end(), bytes, bytes + 2);
+        };
+        for (uint32_t value : pc_offsets) put32(pc_offsets_raw, value);
+        for (const auto& values : pc_cells) for (uint32_t value : values) put32(pc_cells_raw, value);
+        for (uint32_t value : line_start) put32(line_start_raw, value);
+        for (uint32_t value : line_id) put32(line_id_raw, value);
+        for (int16_t value : anchor_block) put16(anchor_block_raw, static_cast<uint16_t>(value));
+        for (int32_t value : anchor_offset) put32(anchor_offset_raw, static_cast<uint32_t>(value));
+        for (int16_t value : anchor_skip) put16(anchor_skip_raw, static_cast<uint16_t>(value));
+        for (uint32_t value : event_seqs) put32(ev_seq_raw, value);
+        uint32_t nav_checksum = static_cast<uint32_t>(crc32(
+            0, pc_offsets_raw.data(), static_cast<uInt>(pc_offsets_raw.size())));
+        nav_checksum = static_cast<uint32_t>(crc32(
+            nav_checksum, pc_cells_raw.data(), static_cast<uInt>(pc_cells_raw.size())));
+        nav_checksum = static_cast<uint32_t>(crc32(
+            nav_checksum, line_start_raw.data(), static_cast<uInt>(line_start_raw.size())));
+        nav_checksum = static_cast<uint32_t>(crc32(
+            nav_checksum, line_id_raw.data(), static_cast<uInt>(line_id_raw.size())));
+        std::ostringstream meta;
+        meta << "{\"format\":\"etm-trace-store-query-index\",\"version\":1,\"cellSize\":4096,"
+             << "\"instructions\":" << output_.instructions << ",\"events\":"
+             << (output_.events - output_.instructions) << ",\"cells\":" << cell_count
+             << ",\"firstSeq\":0,\"lastSeq\":" << (output_.events ? output_.events - 1 : 0)
+             << ",\"staticCount\":" << static_count << ",\"coverage\":[0,"
+             << (output_.events ? output_.events - 1 : 0) << "],\"strings\":[";
+        {
+            bool first_string = true;
+            for (const std::string& value : strings_.values) {
+                if (!first_string) meta << ",";
+                first_string = false;
+                meta << quote(value);
+            }
+        }
+        meta << "],\"functionNames\":[";
+        {
+            std::set<std::string> functions;
+            for (const StaticEntry* entry : static_entries_) {
+                if (!entry) continue;
+                const std::string fn = entry_text(*entry, 0);
+                if (!fn.empty()) functions.insert(fn);
+            }
+            bool first_function = true;
+            for (const std::string& fn : functions) {
+                if (!first_function) meta << ",";
+                first_function = false;
+                meta << quote(fn);
+            }
+        }
+        meta << "],"
+             << "\"nav\":{\"cellSize\":4096,\"staticCount\":" << static_count
+             << ",\"instructions\":" << output_.instructions << ",\"pcCellPairs\":"
+             << running << ",\"lineRuns\":" << line_start.size() << ",\"checksum\":"
+             << nav_checksum << "},"
+             << "\"tables\":[]}";
+        const std::string meta_text = meta.str();
+        std::vector<uint8_t> meta_raw(meta_text.begin(), meta_text.end());
+        std::vector<V2Table> tables;
+        auto add = [&](const std::string& name, uint8_t dtype, uint8_t ndim,
+                       uint64_t shape0, uint64_t shape1, std::vector<uint8_t> raw) {
+            tables.push_back(V2Table{name, dtype, ndim, shape0, shape1, std::move(raw)});
+        };
+        add("pc_cell_offsets", 4, 1, static_count + 1, 0, std::move(pc_offsets_raw));
+        add("pc_cells", 4, 1, running, 0, std::move(pc_cells_raw));
+        add("line_start", 4, 1, line_start.size(), 0, std::move(line_start_raw));
+        add("line_id", 4, 1, line_id.size(), 0, std::move(line_id_raw));
+        add("cell_anchor_block", 3, 1, cell_count, 0, std::move(anchor_block_raw));
+        add("cell_anchor_offset", 5, 1, cell_count, 0, std::move(anchor_offset_raw));
+        add("cell_anchor_skip", 3, 1, cell_count, 0, std::move(anchor_skip_raw));
+        add("ev_seq", 5, 1, event_seqs.size(), 0, std::move(ev_seq_raw));
+        const uint64_t meta_size = meta_raw.size();
+        add("meta_json", 0, 1, meta_size, 0, std::move(meta_raw));
+        return encode_v2_payload(tables);
+    }
 
   private:
     const std::string& entry_text(const StaticEntry& entry, int slot) {
@@ -2225,7 +2487,7 @@ class BuildVisitor : public NativeVisitor {
     std::vector<uint32_t> nav_call_, nav_return_, nav_exception_, nav_issue_, nav_event_;
 };
 
-std::vector<uint8_t> zlib_compress(const std::vector<uint8_t>& input, int level = 6) {
+std::vector<uint8_t> zlib_compress(const std::vector<uint8_t>& input, int level) {
     uLongf bound = compressBound(static_cast<uLong>(input.size()));
     std::vector<uint8_t> output(bound);
     uLongf written = bound;
@@ -2575,6 +2837,7 @@ int main(int argc, char** argv) {
             std::string generation;
             std::string result_path;
             std::string index_payload_path;
+            bool native_index = false;
             bool force_analysis = false;
             uint64_t generation_tag = 0;
             for (int index = 2; index < argc; ++index) {
@@ -2591,6 +2854,7 @@ int main(int argc, char** argv) {
                 else if (arg == "--result" || arg == "--json") result_path = next("--result");
                 else if (arg == "--analysis") force_analysis = true;
                 else if (arg == "--index-payload") index_payload_path = next("--index-payload");
+                else if (arg == "--native-index") native_index = true;
                 else fail(kExitUsage, "未知参数：" + arg);
             }
             if (native_path.empty()) fail(kExitUsage, "build 需要 --native");
@@ -2643,6 +2907,16 @@ int main(int argc, char** argv) {
             add_json_block(output, 8, summary.str());
             add_json_block(output, 9, "{}");
             add_json_block(output, 10, "[]");
+            if (native_index && index_payload_path.empty()) {
+                const auto index_started = std::chrono::steady_clock::now();
+                BuildBlock query;
+                query.type = 12;
+                query.payload = visitor.build_native_index();
+                output.index_seconds = chrono_seconds(index_started);
+                query.count = query.payload.size() >= 16
+                    ? read_u32(query.payload.data() + 12) : 0;
+                output.blocks.push_back(std::move(query));
+            }
             if (!index_payload_path.empty()) {
                 BuildBlock query;
                 query.type = 12;
@@ -2708,7 +2982,8 @@ int main(int argc, char** argv) {
                    << ",\"tracker\":" << output.tracker_seconds
                    << ",\"buildBlocks\":" << output.build_blocks_seconds
                    << ",\"analysis\":" << output.analysis_seconds
-                   << ",\"queryIndex\":0.0,\"defaultViews\":0.0,\"writeBlocks\":"
+                   << ",\"queryIndex\":" << output.index_seconds
+                   << ",\"defaultViews\":0.0,\"writeBlocks\":"
                    << output.write_seconds << ",\"assembleFile\":"
                    << output.write_seconds << ",\"hashFile\":0.0},\n";
             result << " \"peakRssBytes\":" << output.peak_rss << ",\n";

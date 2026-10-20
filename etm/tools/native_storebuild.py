@@ -195,8 +195,62 @@ def inspect_static(static, json_path=None, timeout=DEFAULT_TIMEOUT, binary=None)
     return _run_json_command(args, json_path, timeout, binary=binary)
 
 
+def build_local_index(store_dir, build_result):
+    """在 C++ 产出的 store 上做本地索引聚合（不是参考表转写）。
+
+    这是一个过渡实现：用 p1 `trace_store_index.build_index` 扫描当前 store 的
+    sequence，生成本地 anchor/57 表/默认视图/v2 payload；57 表的 C++ 同遍版本仍未完成。
+    """
+    import json
+    import time
+    import trace_store
+    import trace_store_index
+    store_dir = Path(store_dir)
+    counts = build_result['counts']
+    files = build_result['files']
+    manifest = dict(
+        format='trace-store', formatName='trace-store v1', schemaVersion=1,
+        byteOrder='little', state='complete', generation=build_result.get('generation', 'g'),
+        generationTag=build_result.get('generationTag', '0x1234'),
+        files=[dict(name='store.bin', bytes=files[0]['bytes'],
+                    sha256=files[0]['sha256'])],
+        counts=counts,
+        fieldPresence={'instruction': [
+            'kind', 'seq', 'offset', 'pc', 'size', 'bytes', 'mnemonic', 'operands',
+            'executed', 'function', 'file', 'line', 'cycleCount', 'cycleSpan',
+            'flow', 'conditional', 'executionState', 'executionReason', 'callPath',
+            'cycles'], 'event': ['kind', 'seq', 'type', 'offset', 'text', 'payload',
+                                 'start', 'end', 'flags']},
+        bindings={}, checksums=dict(algorithm='sha256', block='crc32'))
+    import os
+    import shutil
+    generation = str(build_result.get('generation', 'g'))
+    parent = store_dir / '_local-index-parent'
+    shutil.rmtree(parent, ignore_errors=True)
+    generation_dir = parent / 'generations' / generation
+    generation_dir.mkdir(parents=True, exist_ok=True)
+    os.link(store_dir / 'store.bin', generation_dir / 'store.bin')
+    manifest['generation'] = generation
+    (parent / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
+    try:
+        started = time.perf_counter()
+        store = trace_store.TraceStore(parent, verify='sizes')
+        try:
+            built = trace_store_index.build_index(store, container='v2', with_nav=True)
+        finally:
+            store.close()
+        elapsed = time.perf_counter() - started
+    finally:
+        shutil.rmtree(parent, ignore_errors=True)
+    payload_path = store_dir / 'index-v2.payload'
+    payload_path.write_bytes(built['payload'])
+    return dict(payloadBytes=len(built['payload']), tableCount=len(built['arrays']),
+                seconds=round(elapsed, 3), buildSeconds=built['buildSeconds'],
+                defaultsSeconds=built['defaultsSeconds'], payloadPath=str(payload_path))
+
+
 def build(native, static, out_dir, generation=None, generation_tag=None, result=None,
-          timeout=DEFAULT_TIMEOUT, binary=None, analysis=False):
+          timeout=DEFAULT_TIMEOUT, binary=None, analysis=False, local_index=False):
     """调用原生 build（blocks 1-11；块 12/默认视图留给 t21）。"""
     native = Path(native)
     static = Path(static)
@@ -212,7 +266,22 @@ def build(native, static, out_dir, generation=None, generation_tag=None, result=
         args.extend(['--generation-tag', hex(int(generation_tag))])
     if analysis:
         args.append('--analysis')
-    return _run_json_command(args, result, timeout, binary=binary)
+    if not local_index:
+        return _run_json_command(args, result, timeout, binary=binary)
+    first = _run_json_command(args, result, timeout, binary=binary)
+    info = build_local_index(out_dir, first)
+    args.extend(['--index-payload', info['payloadPath']])
+    final = _run_json_command(args, result, timeout, binary=binary)
+    phases = final.setdefault('phases', {})
+    phases['queryIndex'] = info['seconds']
+    phases['defaultViews'] = info['defaultsSeconds']
+    final['localIndex'] = {key: info[key] for key in
+                           ('payloadBytes', 'tableCount', 'seconds',
+                            'buildSeconds', 'defaultsSeconds')}
+    if result is not None:
+        Path(result).write_text(json.dumps(final, ensure_ascii=False, indent=1),
+                                encoding='utf-8')
+    return final
 
 
 def _write_json_or_print(payload, path):
@@ -249,6 +318,7 @@ def main(argv=None):
     build_parser.add_argument('--generation-tag', default=None)
     build_parser.add_argument('--result', default=None)
     build_parser.add_argument('--analysis', action='store_true')
+    build_parser.add_argument('--local-index', action='store_true')
     static_parser = sub.add_parser('static-info', help='读取/校验 static-dict.bin')
     static_parser.add_argument('--static', required=True)
     static_parser.add_argument('--json', default=None)
@@ -278,7 +348,7 @@ def main(argv=None):
                            generation=args.generation,
                            generation_tag=args.generation_tag,
                            result=args.result, binary=args.binary,
-                           analysis=args.analysis)
+                           analysis=args.analysis, local_index=args.local_index)
             if args.result is None:
                 _write_json_or_print(result, None)
             return 0
