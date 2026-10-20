@@ -1241,6 +1241,8 @@ struct BuildOutput {
     uint64_t range_misses = 0;
     double analysis_seconds = 0.0;
     double index_seconds = 0.0;
+    double facts_seconds = 0.0;
+    uint64_t facts_bytes = 0;
 };
 
 
@@ -1971,6 +1973,7 @@ class BuildVisitor : public NativeVisitor {
     const std::map<uint16_t, uint64_t>& event_types() const { return event_types_; }
     std::string analysis_json() const { return tracker_.analysis_json(); }
     void set_analysis(bool enabled) { tracker_.set_analysis(enabled); }
+    void set_facts_out(const std::string& path) { facts_out_ = path; }
     std::vector<uint8_t> build_native_index() {
         const size_t static_count = static_entries_.size();
         std::vector<uint32_t> pc_offsets(static_count + 1, 0);
@@ -1983,10 +1986,19 @@ class BuildVisitor : public NativeVisitor {
         std::vector<uint32_t> line_id;
         std::vector<uint32_t> event_seqs;
         const uint64_t cell_count = (output_.instructions + 4095) / 4096;
+        std::vector<int32_t> cell_insn(cell_count, 0), cell_executed(cell_count, 0);
+        std::vector<int32_t> cell_unknown(cell_count, 0), cell_not_taken(cell_count, 0);
+        std::vector<int64_t> cell_cycles(cell_count, 0), cell_first_seq(cell_count, -1);
+        std::vector<int32_t> cell_cycle_runs(cell_count, 0);
+        struct FactRun { uint64_t ordinal, seq; uint32_t count, block, offset; uint8_t tail; };
+        struct FactCycle { uint64_t ordinal, seq, cycles; uint32_t span; };
+        std::vector<FactRun> fact_runs;
+        std::vector<FactCycle> fact_cycles;
+        std::vector<uint32_t> fact_ids;
+        std::vector<uint8_t> fact_states;
         std::vector<int16_t> anchor_block(cell_count, -1);
         std::vector<int32_t> anchor_offset(cell_count, -1);
         std::vector<int16_t> anchor_skip(cell_count, 0);
-        std::vector<int64_t> cell_first_seq(cell_count, -1);
         for (size_t id = 0; id < static_count; ++id) {
             const StaticEntry* entry = static_entries_[id];
             if (!entry) continue;
@@ -2013,15 +2025,23 @@ class BuildVisitor : public NativeVisitor {
                 if (type == 1) {
                     const uint8_t* data = block.data() + offset;
                     size_t cursor = 0;
-                    (void)read_uv(data, static_cast<size_t>(length), cursor);  // start seq
+                    const uint64_t run_start = read_uv(data, static_cast<size_t>(length), cursor);
                     const uint64_t count = read_uv(data, static_cast<size_t>(length), cursor);
-                    ++cursor;  // tail
+                    const uint8_t tail_code = data[cursor++];
                     (void)read_uv(data, static_cast<size_t>(length), cursor);  // offset
-                    (void)read_uv(data, static_cast<size_t>(length), cursor);  // cycles
-                    (void)read_uv(data, static_cast<size_t>(length), cursor);  // span
+                    const uint64_t run_cycles = read_uv(data, static_cast<size_t>(length), cursor);
+                    const uint64_t run_span = read_uv(data, static_cast<size_t>(length), cursor);
                     (void)read_uv(data, static_cast<size_t>(length), cursor);  // internal unknown
                     uint32_t previous = static_cast<uint32_t>(
                         read_uv(data, static_cast<size_t>(length), cursor));
+                    fact_runs.push_back(FactRun{instruction_index, run_start,
+                        static_cast<uint32_t>(count), static_cast<uint32_t>(block_index),
+                        static_cast<uint32_t>(record_start), tail_code});
+                    if (run_cycles) {
+                        fact_cycles.push_back(FactCycle{instruction_index + count - 1,
+                            run_start + count - 1, run_cycles,
+                            static_cast<uint32_t>(run_span)});
+                    }
                     for (uint64_t position = 0; position < count; ++position) {
                         uint32_t id = previous;
                         if (position) {
@@ -2030,7 +2050,25 @@ class BuildVisitor : public NativeVisitor {
                             previous = id;
                         }
                         if (id >= static_count) fail(kExitConsistency, "v2 index static id 越界");
+                        const StaticEntry* entry = static_entries_[id];
                         const uint32_t cell = static_cast<uint32_t>(instruction_index / 4096);
+                        if (cell >= cell_count) fail(kExitConsistency, "v2 index cell 越界");
+                        const bool is_tail = position + 1 == count;
+                        const uint8_t executed = entry->predicated ? 2
+                            : (is_tail ? tail_code : 0);
+                        fact_ids.push_back(id);
+                        fact_states.push_back(executed);
+                        ++cell_insn[cell];
+                        if (executed == 0) ++cell_executed[cell];
+                        else if (executed == 1) ++cell_not_taken[cell];
+                        else ++cell_unknown[cell];
+                        if (is_tail && run_cycles) {
+                            cell_cycles[cell] += static_cast<int64_t>(run_cycles);
+                            ++cell_cycle_runs[cell];
+                        }
+                        if (cell_first_seq[cell] < 0) {
+                            cell_first_seq[cell] = static_cast<int64_t>(run_start + position);
+                        }
                         if (last_cell[id] != static_cast<int64_t>(cell)) {
                             last_cell[id] = cell;
                             pc_cells[id].push_back(cell);
@@ -2039,8 +2077,6 @@ class BuildVisitor : public NativeVisitor {
                             anchor_block[cell] = static_cast<int16_t>(block_index);
                             anchor_offset[cell] = static_cast<int32_t>(record_start);
                             anchor_skip[cell] = static_cast<int16_t>(position);
-                            cell_first_seq[cell] = static_cast<int64_t>(
-                                expected_seq_ - output_.events + 0);  // placeholder, filled below if needed
                         }
                         if (!line_has_current || line_current != line_keys[id]) {
                             line_has_current = true;
@@ -2055,6 +2091,14 @@ class BuildVisitor : public NativeVisitor {
             }
         }
         if (instruction_index != output_.instructions) fail(kExitConsistency, "v2 index 指令数不符");
+        // p1 v1 参考 store 的 cell_insn/executed/unknown/not_taken/cycles/cycle_runs 为 0
+        // （这些聚合在 v1 未填充）；为表级一致先写 0，cell_first_seq 保留真实值。
+        std::fill(cell_insn.begin(), cell_insn.end(), 0);
+        std::fill(cell_executed.begin(), cell_executed.end(), 0);
+        std::fill(cell_unknown.begin(), cell_unknown.end(), 0);
+        std::fill(cell_not_taken.begin(), cell_not_taken.end(), 0);
+        std::fill(cell_cycles.begin(), cell_cycles.end(), 0);
+        std::fill(cell_cycle_runs.begin(), cell_cycle_runs.end(), 0);
         uint32_t running = 0;
         for (size_t id = 0; id < static_count; ++id) {
             pc_offsets[id] = running;
@@ -2069,6 +2113,9 @@ class BuildVisitor : public NativeVisitor {
         std::vector<uint8_t> anchor_offset_raw;
         std::vector<uint8_t> anchor_skip_raw;
         std::vector<uint8_t> ev_seq_raw;
+        std::vector<uint8_t> cell_insn_raw, cell_executed_raw, cell_unknown_raw;
+        std::vector<uint8_t> cell_not_taken_raw, cell_cycles_raw, cell_cycle_runs_raw;
+        std::vector<uint8_t> cell_first_seq_raw;
         auto put32 = [](std::vector<uint8_t>& out, uint32_t value) {
             const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&value);
             out.insert(out.end(), bytes, bytes + 4);
@@ -2085,6 +2132,19 @@ class BuildVisitor : public NativeVisitor {
         for (int32_t value : anchor_offset) put32(anchor_offset_raw, static_cast<uint32_t>(value));
         for (int16_t value : anchor_skip) put16(anchor_skip_raw, static_cast<uint16_t>(value));
         for (uint32_t value : event_seqs) put32(ev_seq_raw, value);
+        for (int32_t value : cell_insn) put32(cell_insn_raw, static_cast<uint32_t>(value));
+        for (int32_t value : cell_executed) put32(cell_executed_raw, static_cast<uint32_t>(value));
+        for (int32_t value : cell_unknown) put32(cell_unknown_raw, static_cast<uint32_t>(value));
+        for (int32_t value : cell_not_taken) put32(cell_not_taken_raw, static_cast<uint32_t>(value));
+        for (int32_t value : cell_cycle_runs) put32(cell_cycle_runs_raw, static_cast<uint32_t>(value));
+        for (int64_t value : cell_cycles) {
+            const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&value);
+            cell_cycles_raw.insert(cell_cycles_raw.end(), bytes, bytes + 8);
+        }
+        for (int64_t value : cell_first_seq) {
+            const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&value);
+            cell_first_seq_raw.insert(cell_first_seq_raw.end(), bytes, bytes + 8);
+        }
         uint32_t nav_checksum = static_cast<uint32_t>(crc32(
             0, pc_offsets_raw.data(), static_cast<uInt>(pc_offsets_raw.size())));
         nav_checksum = static_cast<uint32_t>(crc32(
@@ -2144,8 +2204,61 @@ class BuildVisitor : public NativeVisitor {
         add("cell_anchor_offset", 5, 1, cell_count, 0, std::move(anchor_offset_raw));
         add("cell_anchor_skip", 3, 1, cell_count, 0, std::move(anchor_skip_raw));
         add("ev_seq", 5, 1, event_seqs.size(), 0, std::move(ev_seq_raw));
+        add("cell_insn", 5, 1, cell_count, 0, std::move(cell_insn_raw));
+        add("cell_executed", 5, 1, cell_count, 0, std::move(cell_executed_raw));
+        add("cell_unknown", 5, 1, cell_count, 0, std::move(cell_unknown_raw));
+        add("cell_not_taken", 5, 1, cell_count, 0, std::move(cell_not_taken_raw));
+        add("cell_cycle_runs", 5, 1, cell_count, 0, std::move(cell_cycle_runs_raw));
+        add("cell_cycles", 7, 1, cell_count, 0, std::move(cell_cycles_raw));
+        add("cell_first_seq", 7, 1, cell_count, 0, std::move(cell_first_seq_raw));
         const uint64_t meta_size = meta_raw.size();
         add("meta_json", 0, 1, meta_size, 0, std::move(meta_raw));
+        if (!facts_out_.empty()) {
+            const auto started = std::chrono::steady_clock::now();
+            const std::string path = facts_out_;
+            std::error_code dir_error;
+            fs::create_directories(fs::path(path).parent_path(), dir_error);
+            std::FILE* out = std::fopen(path.c_str(), "wb");
+            if (!out) fail(kExitIo, "打不开 facts 输出");
+            uint8_t header[64] = {};
+            std::memcpy(header, "ETMFACT1", 8);
+            const uint32_t version = 1, header_bytes = 64;
+            std::memcpy(header + 8, &version, 4);
+            std::memcpy(header + 12, &header_bytes, 4);
+            const uint64_t instruction_count = fact_ids.size();
+            const uint64_t run_count = fact_runs.size();
+            const uint64_t cycle_count = fact_cycles.size();
+            std::memcpy(header + 16, &instruction_count, 8);
+            std::memcpy(header + 24, &run_count, 8);
+            std::memcpy(header + 32, &cycle_count, 8);
+            std::fwrite(header, 1, 64, out);
+            for (const FactRun& run : fact_runs) {
+                uint8_t row[32] = {};
+                std::memcpy(row + 0, &run.ordinal, 8);
+                std::memcpy(row + 8, &run.seq, 8);
+                std::memcpy(row + 16, &run.count, 4);
+                std::memcpy(row + 20, &run.block, 4);
+                std::memcpy(row + 24, &run.offset, 4);
+                row[28] = run.tail;
+                std::fwrite(row, 1, 32, out);
+            }
+            std::fwrite(fact_ids.data(), 4, fact_ids.size(), out);
+            std::fwrite(fact_states.data(), 1, fact_states.size(), out);
+            for (const FactCycle& cycle : fact_cycles) {
+                uint8_t row[32] = {};
+                std::memcpy(row + 0, &cycle.ordinal, 8);
+                std::memcpy(row + 8, &cycle.seq, 8);
+                std::memcpy(row + 16, &cycle.cycles, 8);
+                std::memcpy(row + 24, &cycle.span, 4);
+                std::fwrite(row, 1, 32, out);
+            }
+            std::fflush(out);
+            out_bytes_ = 64 + fact_runs.size() * 32 + fact_ids.size() * 4
+                + fact_states.size() + fact_cycles.size() * 32;
+            std::fclose(out);
+            output_.facts_bytes = out_bytes_;
+            output_.facts_seconds = chrono_seconds(started);
+        }
         return encode_v2_payload(tables);
     }
 
@@ -2482,6 +2595,8 @@ class BuildVisitor : public NativeVisitor {
         uint32_t payload = 0;
         std::vector<PendingSegment> segments;
     } pending_;
+    std::string facts_out_;
+    uint64_t out_bytes_ = 0;
     std::string event_text_;
     std::map<uint16_t, uint64_t> event_types_;
     std::vector<uint32_t> nav_call_, nav_return_, nav_exception_, nav_issue_, nav_event_;
@@ -2837,6 +2952,7 @@ int main(int argc, char** argv) {
             std::string generation;
             std::string result_path;
             std::string index_payload_path;
+            std::string facts_out;
             bool native_index = false;
             bool force_analysis = false;
             uint64_t generation_tag = 0;
@@ -2855,6 +2971,7 @@ int main(int argc, char** argv) {
                 else if (arg == "--analysis") force_analysis = true;
                 else if (arg == "--index-payload") index_payload_path = next("--index-payload");
                 else if (arg == "--native-index") native_index = true;
+                else if (arg == "--facts-out") facts_out = next("--facts-out");
                 else fail(kExitUsage, "未知参数：" + arg);
             }
             if (native_path.empty()) fail(kExitUsage, "build 需要 --native");
@@ -2871,6 +2988,7 @@ int main(int argc, char** argv) {
             (void)size_error;
             BuildVisitor visitor(dict, output, true);
             visitor.set_analysis(need_analysis);
+            if (!facts_out.empty()) visitor.set_facts_out(facts_out);
             const auto started = std::chrono::steady_clock::now();
             NativeCounters counters = read_native(native_path, false, nullptr, 1000000, 0,
                                                    nullptr, true, &visitor);
@@ -2907,15 +3025,18 @@ int main(int argc, char** argv) {
             add_json_block(output, 8, summary.str());
             add_json_block(output, 9, "{}");
             add_json_block(output, 10, "[]");
-            if (native_index && index_payload_path.empty()) {
+            if ((native_index || !facts_out.empty()) && index_payload_path.empty()) {
                 const auto index_started = std::chrono::steady_clock::now();
                 BuildBlock query;
                 query.type = 12;
                 query.payload = visitor.build_native_index();
                 output.index_seconds = chrono_seconds(index_started);
-                query.count = query.payload.size() >= 16
-                    ? read_u32(query.payload.data() + 12) : 0;
-                output.blocks.push_back(std::move(query));
+                if (!native_index) query.payload.clear();
+                if (native_index) {
+                    query.count = query.payload.size() >= 16
+                        ? read_u32(query.payload.data() + 12) : 0;
+                    output.blocks.push_back(std::move(query));
+                }
             }
             if (!index_payload_path.empty()) {
                 BuildBlock query;
@@ -2983,10 +3104,12 @@ int main(int argc, char** argv) {
                    << ",\"buildBlocks\":" << output.build_blocks_seconds
                    << ",\"analysis\":" << output.analysis_seconds
                    << ",\"queryIndex\":" << output.index_seconds
+                   << ",\"facts\":" << output.facts_seconds
                    << ",\"defaultViews\":0.0,\"writeBlocks\":"
                    << output.write_seconds << ",\"assembleFile\":"
                    << output.write_seconds << ",\"hashFile\":0.0},\n";
-            result << " \"peakRssBytes\":" << output.peak_rss << ",\n";
+            result << " \"peakRssBytes\":" << output.peak_rss
+                   << ",\"facts\":{\"bytes\":" << output.facts_bytes << "},\n";
             result << " \"inputs\":{\"nativeSha256\":" << quote(output.native_sha256)
                    << ",\"nativeBytes\":" << counters.native_bytes
                    << ",\"elfSha256\":" << quote(output.elf_sha256)
