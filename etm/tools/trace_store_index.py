@@ -61,7 +61,9 @@ _dzvar = trace_store._dzvar
 
 _TOP_KEYS = ('format', 'version', 'cellSize', 'instructions', 'events', 'cells',
              'staticCount', 'functionCount', 'hotspotCount', 'nodeCount', 'segmentCount',
-             'functionSegments', 'firstSeq', 'lastSeq')
+             'functionSegments', 'firstSeq', 'lastSeq', 'nav')
+NAV_TABLE_NAMES = ('pc_cell_offsets', 'pc_cells', 'line_start', 'line_id')
+NAV_CELL_INSTRUCTIONS = 4096
 
 
 class QueryIndexError(ValueError):
@@ -166,6 +168,22 @@ def validate_meta(store, meta):
                                   % (name, declared, actual))
     if not instructions or not expected_cells:
         raise QueryIndexError('查询索引用在空记录上（instructions=%d）' % instructions)
+    nav = meta.get('nav')
+    if nav is not None:
+        if not isinstance(nav, dict):
+            raise QueryIndexError('查询索引 meta.nav 不是对象')
+        if int(nav.get('cellSize') or 0) != cell_size:
+            raise QueryIndexError('查询索引 meta.nav.cellSize 与主表不符：%r'
+                                  % (nav.get('cellSize'),))
+        for name, actual in (('staticCount', len(store.static)),
+                             ('instructions', instructions)):
+            if int(nav.get(name) or -1) != actual:
+                raise QueryIndexError('查询索引 meta.nav.%s 与当前代不符：%r≠%r'
+                                      % (name, nav.get(name), actual))
+        for name in ('pcCellPairs', 'lineRuns'):
+            value = nav.get(name)
+            if value is None or int(value) < 0:
+                raise QueryIndexError('查询索引 meta.nav.%s 非法：%r' % (name, value))
 
 
 def load_query_index(store):
@@ -355,7 +373,7 @@ class CellBuffers:
         self.cycleRuns = 0
 
 
-def build_tables(view, cell_size=4096, progress=True):
+def build_tables(view, cell_size=4096, progress=True, with_nav=True):
     """单遍扫描 view 的 sequence 块，产出设计 §3.3 的语义表（numpy 数组，不落盘）。
 
     ``view`` 需要提供：``static``/``strings``/``counts``/``first_seq``/``last_seq``/
@@ -369,6 +387,20 @@ def build_tables(view, cell_size=4096, progress=True):
     st_file = [entry.file for entry in static]
     st_line = [entry.line for entry in static]
     st_flow_name = [entry.flow for entry in static]
+    static_count = len(static)
+    # 导航表（PC_CELLS/LINE_RUNS）：与 trace_store_nav.build_nav_index 同口径、同遍采集。
+    # 口径：每个静态 ID 首次进入某单元格时记 (id, cell)；源码行区间按 (line is None) 或
+    # (file, line) 变化切段（line 为 None 时只比较 None，与 sidecar 实现逐行一致）。
+    nav_cells_by_id = [[] for _ in range(static_count)]
+    nav_last_cell = [-1] * static_count
+    nav_line_starts = []
+    nav_line_ids = []
+    nav_line_keys = np.empty(static_count, np.int32)
+    nav_line_key_index = {}
+    for identifier, entry in enumerate(static):
+        key = (0,) if entry.line is None else (1, entry.file, entry.line)
+        nav_line_keys[identifier] = nav_line_key_index.setdefault(key, len(nav_line_key_index))
+    nav_current_line_key = -1
     total_instructions = int(store.counts['instructions'])
     total_events = int(store.counts['events']) - total_instructions
     cell_count = (total_instructions + cell_size - 1) // cell_size
@@ -649,6 +681,14 @@ def build_tables(view, cell_size=4096, progress=True):
                     run_position = position_in_run + step
                     identifier = identifiers[run_position]
                     instruction_seq = seq + run_position
+                    if nav_last_cell[identifier] != cell:
+                        nav_cells_by_id[identifier].append(cell)
+                        nav_last_cell[identifier] = cell
+                    nav_line_key = int(nav_line_keys[identifier])
+                    if nav_line_key != nav_current_line_key:
+                        nav_line_starts.append(instruction_index)
+                        nav_line_ids.append(identifier)
+                        nav_current_line_key = nav_line_key
                     if cell_first_seq[cell] < 0:
                         cell_first_seq[cell] = instruction_seq
                         cell_anchor_block[cell] = block_ordinal
@@ -741,6 +781,28 @@ def build_tables(view, cell_size=4096, progress=True):
     close_function_segment(instruction_index)
     flush_cell(cell, last=True)
     timings['scan'] = round(time.perf_counter() - phase, 3)
+    # ---- 导航表（PC_CELLS/LINE_RUNS）--------------------------------------------------------
+    nav_pair_count = sum(len(values) for values in nav_cells_by_id) if with_nav else 0
+    nav_offsets = np.zeros(static_count + 1, np.uint32)
+    if with_nav:
+        running = 0
+        for identifier, values in enumerate(nav_cells_by_id):
+            nav_offsets[identifier] = running
+            running += len(values)
+        nav_offsets[static_count] = running
+        nav_cells = np.empty(nav_pair_count, np.uint32)
+        position = 0
+        for values in nav_cells_by_id:
+            if values:
+                nav_cells[position:position + len(values)] = values
+                position += len(values)
+        nav_line_start = np.asarray(nav_line_starts, np.uint32)
+        nav_line_id = np.asarray(nav_line_ids, np.uint32)
+    else:
+        nav_offsets = np.zeros(1, np.uint32)
+        nav_cells = np.empty(0, np.uint32)
+        nav_line_start = np.empty(0, np.uint32)
+        nav_line_id = np.empty(0, np.uint32)
     if instruction_index != total_instructions:
         raise RuntimeError('索引扫描的指令数 %d 与 meta 声明 %d 不符'
                            % (instruction_index, total_instructions))
@@ -845,6 +907,8 @@ def build_tables(view, cell_size=4096, progress=True):
         st_pred=predicated_of_id.astype(np.uint8), st_hotspot=hotspot_of_id,
         h_func=np.array(hotspot_func, np.int16), h_file=h_file, h_line=h_line,
         node_parent=node_parent, node_label=node_label,
+        pc_cell_offsets=nav_offsets, pc_cells=nav_cells,
+        line_start=nav_line_start, line_id=nav_line_id,
     )
     meta = dict(
         format=QUERY_INDEX_FORMAT, version=QUERY_INDEX_VERSION, cellSize=cell_size,
@@ -855,6 +919,17 @@ def build_tables(view, cell_size=4096, progress=True):
         firstSeq=int(store.first_seq), lastSeq=int(store.last_seq),
         strings=strings, functionNames=function_names,
     )
+    if with_nav:
+        checksum = zlib.crc32(nav_offsets.tobytes())
+        checksum = zlib.crc32(nav_cells.tobytes(), checksum)
+        checksum = zlib.crc32(nav_line_start.tobytes(), checksum)
+        checksum = zlib.crc32(nav_line_id.tobytes(), checksum) & 0xFFFFFFFF
+        meta['nav'] = dict(cellSize=cell_size, staticCount=static_count,
+                           instructions=total_instructions,
+                           pcCellPairs=int(nav_pair_count),
+                           lineRuns=int(len(nav_line_start)), checksum=checksum)
+    else:
+        meta['nav'] = None
     timings['total'] = round(time.perf_counter() - started, 3)
     return dict(arrays=arrays, meta=meta, timings=timings)
 
@@ -889,6 +964,61 @@ class QueryIndex:
         self._path_cache = {}
         self._node_children = None
         self._node_function = None
+        self._nav_tables = None
+        self._nav_tables_loaded = False
+
+    # -- 导航表（PC_CELLS/LINE_RUNS；只有 nav 快路径首次使用时才解压/校验）-------------------
+    def nav_tables(self):
+        """返回 dict(offsets, cells, line_start, line_id, static_count, instructions,
+        cell_size, checksum, pcCellPairs, lineRuns) 或 None（旧索引无导航表）。
+
+        与 window/timeline 的 `_prepare()` 无关：冷窗口查询不会解压这两张大表。
+        """
+        if self._nav_tables_loaded:
+            return self._nav_tables
+        self._nav_tables_loaded = True
+        nav = self.meta.get('nav')
+        if nav is None:
+            return None
+        arrays = self.arrays
+        missing = [name for name in NAV_TABLE_NAMES if name not in arrays]
+        if missing:
+            raise QueryIndexError('查询索引声明了导航表但缺少：%s' % ', '.join(missing))
+        offsets = np.asarray(arrays['pc_cell_offsets'])
+        cells = np.asarray(arrays['pc_cells'])
+        line_start = np.asarray(arrays['line_start'])
+        line_id = np.asarray(arrays['line_id'])
+        static_count = int(self.meta['staticCount'])
+        if offsets.shape != (static_count + 1,):
+            raise QueryIndexError('导航表 pc_cell_offsets 形状 %r≠(%d,)'
+                                  % (tuple(offsets.shape), static_count + 1))
+        if int(offsets[0]) != 0 or (len(offsets) > 1 and np.any(np.diff(offsets) < 0)):
+            raise QueryIndexError('导航表 pc_cell_offsets 非单调')
+        if int(offsets[-1]) != len(cells):
+            raise QueryIndexError('导航表 pc_cells 数量与偏移不符')
+        if len(line_start) != len(line_id):
+            raise QueryIndexError('导航表 line_start/line_id 长度不一致')
+        if len(line_start):
+            if int(line_start[0]) != 0 or np.any(np.diff(line_start) <= 0):
+                raise QueryIndexError('导航表 line_start 未严格递增')
+            if int(line_start[-1]) >= int(self.meta['instructions']):
+                raise QueryIndexError('导航表 line_start 越界')
+        if int(nav.get('pcCellPairs') or -1) != len(cells) \
+                or int(nav.get('lineRuns') or -1) != len(line_start):
+            raise QueryIndexError('导航表数量与 meta.nav 不符')
+        checksum = zlib.crc32(offsets.astype(np.uint32).tobytes())
+        checksum = zlib.crc32(cells.astype(np.uint32).tobytes(), checksum)
+        checksum = zlib.crc32(line_start.astype(np.uint32).tobytes(), checksum)
+        checksum = zlib.crc32(line_id.astype(np.uint32).tobytes(), checksum) & 0xFFFFFFFF
+        if int(nav.get('checksum') or -1) != checksum:
+            raise QueryIndexError('导航表内容 CRC32 与 meta.nav 不符（表损坏/被改写）')
+        self._nav_tables = dict(
+            offsets=offsets.astype(np.int64), cells=cells.astype(np.int64),
+            line_start=line_start.astype(np.int64), line_id=line_id.astype(np.int64),
+            static_count=static_count, instructions=int(self.meta['instructions']),
+            cell_size=int(nav.get('cellSize') or 0), checksum=checksum,
+            pcCellPairs=int(len(cells)), lineRuns=int(len(line_start)))
+        return self._nav_tables
 
     # -- 载入派生量（默认视图不触发；算法路径首次调用时载入）---------------------------------
     def prepare(self):
@@ -1848,10 +1978,12 @@ class _SinkView:
         pass
 
 
-def build_index(view, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None):
+def build_index(view, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None,
+                with_nav=True):
     """构建索引负载：语义表 + 默认视图，返回 {payload, meta, arrays, 计时与体积}。"""
     started = time.perf_counter()
-    built = build_tables(view, cell_size=cell_size, progress=bool(progress))
+    built = build_tables(view, cell_size=cell_size, progress=bool(progress),
+                         with_nav=with_nav)
     arrays, meta = built['arrays'], built['meta']
     meta['format'] = QUERY_INDEX_FORMAT
     meta['version'] = QUERY_INDEX_VERSION
@@ -1882,10 +2014,10 @@ def build_index(view, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None):
 
 
 def build_in_sink(sink, static, strings, counts, first_seq, last_seq,
-                  cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None):
+                  cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None, with_nav=True):
     """`trace_store_write.write(build_query_index=True)` 用：把 12 号块加入 sink。"""
     view = _SinkView(sink, static, strings, counts, first_seq, last_seq)
-    result = build_index(view, cell_size=cell_size, progress=progress)
+    result = build_index(view, cell_size=cell_size, progress=progress, with_nav=with_nav)
     sink.add(trace_store.BLK_QUERY, result['payload'], int(result['meta']['cells']))
     return result
 
@@ -1904,7 +2036,8 @@ def _index_meta(payload_meta, result):
     return meta
 
 
-def build_store_index(store_dir, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None):
+def build_store_index(store_dir, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=None,
+                       with_nav=True):
     """给已发布 store 建立查询索引：写新 generation（复制块 + 替换 meta + 追加 12 号块），
     最后原子发布 manifest；旧 generation 保留（现有语义）。失败不改变当前代。"""
     started = time.perf_counter()
@@ -1915,7 +2048,8 @@ def build_store_index(store_dir, cell_size=DEFAULT_CELL_INSTRUCTIONS, progress=N
         meta = dict(store.meta or {})
         if not meta:
             raise trace_store.TraceStoreError('store 缺少 meta 块，拒绝建查询索引')
-        result = build_index(store, cell_size=cell_size, progress=progress)
+        result = build_index(store, cell_size=cell_size, progress=progress,
+                             with_nav=with_nav)
         index_meta = _index_meta(result['meta'], result)
         generation_tag = secrets.randbits(63) or 1
         generation = 'g-%s-%s' % (time.strftime('%Y%m%dT%H%M%S'), secrets.token_hex(4))
@@ -1989,12 +2123,18 @@ def index_summary(store):
     if index is None:
         return None
     meta = index.meta
+    nav = meta.get('nav') or None
     return dict(version=int(meta.get('version') or 0),
                 cellSize=int(meta.get('cellSize') or 0),
                 cells=int(meta.get('cells') or 0),
                 segmentCount=int(meta.get('segmentCount') or 0),
                 functionSegments=int(meta.get('functionSegments') or 0),
                 defaultViews=sorted((meta.get('defaultViews') or {})),
+                # 块 12 导航表（t14）：R2 原生 builder 同遍产出；旧索引为 None（回退 sidecar）
+                nav=(None if nav is None else dict(
+                    cellSize=int(nav.get('cellSize') or 0),
+                    pcCellPairs=int(nav.get('pcCellPairs') or 0),
+                    lineRuns=int(nav.get('lineRuns') or 0))),
                 builtBy=((store.meta.get('queryIndex') or {}).get('builtBy')))
 
 

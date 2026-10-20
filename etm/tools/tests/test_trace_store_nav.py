@@ -197,7 +197,7 @@ class NavCase(unittest.TestCase):
         cls.store_dir = root / 'store'
         trace_store.write(cls.record, cls.store_dir, verify_elements=False,
                           verify_image=False, hash_inputs=False)
-        trace_store_index.build_store_index(cls.store_dir)
+        trace_store_index.build_store_index(cls.store_dir, with_nav=True)
         cls.nav_summary = trace_store_nav.build_nav_index(cls.store_dir)
         cls.fast = trace_store.TraceStore(cls.store_dir, verify='sizes')
         os.environ['TRACE_STORE_SLOW'] = '1'
@@ -205,11 +205,19 @@ class NavCase(unittest.TestCase):
             cls.slow = trace_store.TraceStore(cls.store_dir, verify='sizes')
         finally:
             os.environ.pop('TRACE_STORE_SLOW', None)
+        # 旧记录：块 12 存在但无 PC_CELLS/LINE_RUNS → 必须回退 sidecar（兼容路径）
+        cls.legacy_dir = root / 'store-legacy'
+        trace_store.write(cls.record, cls.legacy_dir, verify_elements=False,
+                          verify_image=False, hash_inputs=False)
+        trace_store_index.build_store_index(cls.legacy_dir, with_nav=False)
+        cls.legacy_nav = trace_store_nav.build_nav_index(cls.legacy_dir)
+        cls.legacy = trace_store.TraceStore(cls.legacy_dir, verify='sizes')
 
     @classmethod
     def tearDownClass(cls):
         cls.fast.close()
         cls.slow.close()
+        cls.legacy.close()
 
     def _compare(self, **kwargs):
         got = self.fast.navigate(**kwargs)
@@ -223,10 +231,51 @@ class NavCase(unittest.TestCase):
         self.assertIsNone(self.slow.query_index)
         status = trace_store_nav.nav_status(self.fast)
         self.assertTrue(status['available'], status)
+        self.assertEqual(status['source'], 'block12',
+                         '块 12 有 PC_CELLS/LINE_RUNS 时必须优先使用')
         self.assertGreater(status['pcCellPairs'], 0)
         self.assertGreater(status['lineRuns'], 0)
+        self.assertEqual(self.nav_summary['source'], 'block12')
+        self.assertFalse(trace_store_nav.nav_sidecar_path(self.fast).is_file(),
+                         '块 12 已内置导航表时不应重复写 sidecar')
         self.assertEqual(self.nav_summary['instructions'],
                          self.fast.counts['instructions'])
+
+    def test_block12_tables_match_sidecar_reference(self):
+        """块 12 内置表与 sidecar 参考（同口径构建）逐数组一致。"""
+        tables = self.fast.query_index.nav_tables()
+        self.assertIsNotNone(tables)
+        legacy_tables = self.legacy.query_index.nav_tables()
+        self.assertIsNone(legacy_tables, 'with_nav=False 的索引不应有导航表')
+        reference = trace_store_nav._load_nav_index(self.legacy)
+        self.assertIsNotNone(reference, trace_store_nav.nav_status(self.legacy))
+        self.assertEqual(reference.source, 'sidecar')
+        self.assertEqual(int(tables['pcCellPairs']), len(reference.cells))
+        self.assertEqual(int(tables['lineRuns']), len(reference.line_start))
+        import numpy as np
+        self.assertEqual(np.asarray(tables['offsets']).tolist(),
+                         np.asarray(reference.offsets).tolist())
+        self.assertEqual(np.asarray(tables['cells']).tolist(),
+                         np.asarray(reference.cells).tolist())
+        self.assertEqual(np.asarray(tables['line_start']).tolist(),
+                         np.asarray(reference.line_start).tolist())
+        self.assertEqual(np.asarray(tables['line_id']).tolist(),
+                         np.asarray(reference.line_id).tolist())
+        # 逐指令对照：两套表对同一 seq 的导航结果必须一致
+        for seq in (0, 1, self.fast.last_seq // 2, self.fast.last_seq):
+            for mode in ('call', 'return', 'exception', 'issue', 'source'):
+                for direction in (1, -1):
+                    self.assertEqual(
+                        self.fast.navigate(seq=seq, direction=direction, mode=mode),
+                        self.legacy.navigate(seq=seq, direction=direction, mode=mode),
+                        '块 12 表与 sidecar 结果不一致：seq=%r mode=%r' % (seq, mode))
+
+    def test_legacy_store_uses_sidecar(self):
+        status = trace_store_nav.nav_status(self.legacy)
+        self.assertTrue(status['available'], status)
+        self.assertEqual(status['source'], 'sidecar')
+        self.assertTrue(trace_store_nav.nav_sidecar_path(self.legacy).is_file())
+        self.assertEqual(self.legacy_nav['source'], 'sidecar')
 
     def test_instruction_and_nav_exhaustive(self):
         last = self.fast.last_seq
@@ -335,17 +384,17 @@ class NavCase(unittest.TestCase):
             trace_store_nav._decode_cell = original_decode
 
     def test_fallback_without_sidecar(self):
-        path = trace_store_nav.nav_sidecar_path(self.fast)
+        path = trace_store_nav.nav_sidecar_path(self.legacy)
         backup = path.with_name(path.name + '.bak')
         shutil.move(str(path), str(backup))
         try:
-            fresh = trace_store.TraceStore(self.store_dir, verify='sizes')
+            fresh = trace_store.TraceStore(self.legacy_dir, verify='sizes')
             try:
                 self.assertFalse(trace_store_nav.nav_status(fresh)['available'])
-                pc = self.fast.static[0].pc
-                fast_result = fresh.navigate(seq=self.fast.last_seq // 2, direction=1,
+                pc = self.legacy.static[0].pc
+                fast_result = fresh.navigate(seq=self.legacy.last_seq // 2, direction=1,
                                              mode='instruction', pc=pc)
-                expected = self.slow.navigate(seq=self.fast.last_seq // 2, direction=1,
+                expected = self.slow.navigate(seq=self.legacy.last_seq // 2, direction=1,
                                               mode='instruction', pc=pc)
                 self.assertEqual(fast_result, expected)
                 # instruction/NAV 不依赖 nav sidecar，仍走快路径
@@ -358,35 +407,35 @@ class NavCase(unittest.TestCase):
             shutil.move(str(backup), str(path))
 
     def test_corrupt_sidecar_falls_back(self):
-        path = trace_store_nav.nav_sidecar_path(self.fast)
+        path = trace_store_nav.nav_sidecar_path(self.legacy)
         raw = bytearray(path.read_bytes())
         raw[9:13] = (999).to_bytes(4, 'little')
         path.write_bytes(bytes(raw))
         try:
-            fresh = trace_store.TraceStore(self.store_dir, verify='sizes')
+            fresh = trace_store.TraceStore(self.legacy_dir, verify='sizes')
             try:
                 self.assertFalse(trace_store_nav.nav_status(fresh)['available'])
-                pc = self.fast.static[0].pc
+                pc = self.legacy.static[0].pc
                 got = fresh.navigate(seq=5, direction=1, mode='instruction', pc=pc)
                 expected = self.slow.navigate(seq=5, direction=1, mode='instruction', pc=pc)
                 self.assertEqual(got, expected)
             finally:
                 fresh.close()
         finally:
-            self.nav_summary = trace_store_nav.build_nav_index(self.store_dir)
+            self.legacy_nav = trace_store_nav.build_nav_index(self.legacy_dir)
 
     def test_corrupt_payload_sidecar_falls_back(self):
-        path = trace_store_nav.nav_sidecar_path(self.fast)
+        path = trace_store_nav.nav_sidecar_path(self.legacy)
         raw = bytearray(path.read_bytes())
         raw[-1] ^= 0xFF                      # 改坏数组内容（header 结构仍合法）
         path.write_bytes(bytes(raw))
         try:
-            fresh = trace_store.TraceStore(self.store_dir, verify='sizes')
+            fresh = trace_store.TraceStore(self.legacy_dir, verify='sizes')
             try:
                 status = trace_store_nav.nav_status(fresh)
                 self.assertFalse(status['available'], status)
                 self.assertIn('CRC32', status['error'])
-                pc = self.fast.static[0].pc
+                pc = self.legacy.static[0].pc
                 got = fresh.navigate(seq=2, direction=1, mode='instruction', pc=pc)
                 expected = self.slow.navigate(seq=2, direction=1, mode='instruction',
                                               pc=pc)
@@ -394,23 +443,23 @@ class NavCase(unittest.TestCase):
             finally:
                 fresh.close()
         finally:
-            trace_store_nav.build_nav_index(self.store_dir)
+            trace_store_nav.build_nav_index(self.legacy_dir)
 
     def test_stale_generation_sidecar_ignored(self):
-        path = trace_store_nav.nav_sidecar_path(self.fast)
+        path = trace_store_nav.nav_sidecar_path(self.legacy)
         raw = bytearray(path.read_bytes())
         tag = int.from_bytes(raw[12:20], 'little') ^ 0xFFFF
         raw[12:20] = tag.to_bytes(8, 'little')
         path.write_bytes(bytes(raw))
         try:
-            fresh = trace_store.TraceStore(self.store_dir, verify='sizes')
+            fresh = trace_store.TraceStore(self.legacy_dir, verify='sizes')
             try:
                 status = trace_store_nav.nav_status(fresh)
                 self.assertFalse(status['available'], status)
             finally:
                 fresh.close()
         finally:
-            trace_store_nav.build_nav_index(self.store_dir)
+            trace_store_nav.build_nav_index(self.legacy_dir)
 
     def test_no_index_store_falls_back(self):
         no_index = TMP_ROOT / 'medium-noindex'

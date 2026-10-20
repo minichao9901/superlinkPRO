@@ -329,6 +329,57 @@ class IndexCase(unittest.TestCase):
         finally:
             store.close()
 
+    # -- 块 12 导航表（t14）：PC_CELLS / LINE_RUNS ------------------------------------------
+    def test_query_index_contains_nav_tables(self):
+        """新构建的块 12 应带 PC_CELLS/LINE_RUNS，且与 sidecar 参考同口径。"""
+        index = self.fast.query_index
+        self.assertIsNotNone(index)
+        self.assertIsNotNone(index.meta.get('nav'))
+        tables = index.nav_tables()
+        self.assertIsNotNone(tables)
+        self.assertEqual(tables['static_count'], len(self.fast.static))
+        self.assertEqual(tables['instructions'], int(self.fast.counts['instructions']))
+        self.assertGreater(tables['pcCellPairs'], 0)
+        self.assertGreater(tables['lineRuns'], 0)
+        self.assertEqual(int(tables['offsets'][0]), 0)
+        self.assertEqual(int(tables['offsets'][-1]), tables['pcCellPairs'])
+        self.assertEqual(int(tables['line_start'][0]), 0)
+        self.assertEqual(len(tables['line_id']), tables['lineRuns'])
+
+    def test_nav_tables_checksum_mismatch_rejected(self):
+        """meta.nav.checksum 不符 → nav_tables() 明确拒绝（nav 侧回退 sidecar/慢路径）。"""
+        index = self.fast.query_index
+        nav = index.meta['nav']
+        original = nav['checksum']
+        try:
+            nav['checksum'] = (int(original) ^ 1) & 0xFFFFFFFF
+            index._nav_tables_loaded = False
+            index._nav_tables = None
+            with self.assertRaises(trace_store_index.QueryIndexError):
+                index.nav_tables()
+        finally:
+            nav['checksum'] = original
+            index._nav_tables_loaded = False
+            index._nav_tables = None
+        self.assertIsNotNone(index.nav_tables())
+
+    def test_nav_tables_absent_in_legacy_index(self):
+        """with_nav=False 的索引（等价旧块 12）没有导航表，但窗口查询照常。"""
+        legacy = self.root / 'record-legacy-nav'
+        shutil.copytree(self.record, legacy)
+        store_dir = legacy / 'store'
+        trace_store_index.build_store_index(store_dir, with_nav=False)
+        store = trace_store.TraceStore(store_dir, verify='sizes')
+        try:
+            self.assertIsNotNone(store.query_index)
+            self.assertIsNone(store.query_index.nav_tables())
+            self.assertIsNone(store.query_index.meta.get('nav'))
+            self.assertEqual(_dumps(store.window()), _dumps(self.slow.window()))
+            self.assertEqual(_dumps(store.function_timeline()),
+                             _dumps(self.slow.function_timeline()))
+        finally:
+            store.close()
+
     # -- 回退路径 ---------------------------------------------------------------------------
     def test_slow_env_forces_slow_path(self):
         self.assertIsNone(self.slow.query_index)

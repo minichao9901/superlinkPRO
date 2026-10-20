@@ -46,6 +46,8 @@ VALID_MODES = ('instruction', 'call', 'return', 'exception', 'issue', 'source')
 NAV_MODES = {'call': trace_store.NAV_CALL, 'return': trace_store.NAV_RETURN,
              'exception': trace_store.NAV_EXCEPTION, 'issue': trace_store.NAV_ISSUE}
 SIDECAR_SUFFIX = '.nav'
+# 诊断开关：=sidecar 时跳过块 12 内置表、强制走 sidecar（对照/复现用；不改变结果）。
+SOURCE_ENV = 'TRACE_STORE_NAV_SOURCE'
 
 
 class NavIndexError(ValueError):
@@ -78,7 +80,7 @@ def _decode_run_record(store, payload, begin, finish):
     return seq, count, identifiers
 
 
-def build_nav_index(store_or_dir, persist=True, progress=None):
+def build_nav_index(store_or_dir, persist=True, progress=None, force_sidecar=False):
     """构建 nav sidecar 并返回摘要；已存在且自洽时直接复用。
 
     ``persist=False`` 时只在内存返回（测试/诊断用，不写文件）。
@@ -91,6 +93,30 @@ def build_nav_index(store_or_dir, persist=True, progress=None):
         owns_store = True
     started = time.perf_counter()
     try:
+        block_tables = None
+        index = getattr(store, 'query_index', None)
+        if index is not None and not force_sidecar:
+            try:
+                block_tables = index.nav_tables()
+            except Exception:                       # noqa: BLE001 - 坏表按“无表”处理
+                block_tables = None
+        if block_tables:
+            summary = dict(store=str(store.folder), generation=store.generation,
+                           generationTag='0x%016x' % int(store.container.generation_tag),
+                           instructions=int(block_tables['instructions']),
+                           staticCount=int(block_tables['static_count']),
+                           pcCellPairs=int(block_tables['pcCellPairs']),
+                           lineRuns=int(block_tables['lineRuns']),
+                           cellSize=int(block_tables['cell_size']),
+                           source='block12', sidecarWritten=False,
+                           buildSeconds=round(time.perf_counter() - started, 3),
+                           bytes=int(block_tables['offsets'].nbytes
+                                     + block_tables['cells'].nbytes
+                                     + block_tables['line_start'].nbytes
+                                     + block_tables['line_id'].nbytes))
+            if persist:
+                summary['note'] = '块 12 已内置 PC_CELLS/LINE_RUNS，不重复写 sidecar'
+            return summary
         static = store.static
         static_count = len(static)
         instructions = int(store.counts.get('instructions') or 0)
@@ -188,7 +214,7 @@ def build_nav_index(store_or_dir, persist=True, progress=None):
                        generationTag='0x%016x' % int(store.container.generation_tag),
                        instructions=instructions, staticCount=static_count,
                        pcCellPairs=pair_count, lineRuns=len(line_starts),
-                       cellSize=CELL_INSTRUCTIONS,
+                       cellSize=CELL_INSTRUCTIONS, source='sidecar',
                        buildSeconds=round(time.perf_counter() - started, 3))
         if persist:
             path = nav_sidecar_path(store)
@@ -224,10 +250,10 @@ def nav_sidecar_path(store):
 
 class NavData:
     __slots__ = ('offsets', 'cells', 'line_start', 'line_id', 'static_count',
-                 'instructions', 'cell_size', 'generation_tag', 'path', 'bytes')
+                 'instructions', 'cell_size', 'generation_tag', 'path', 'bytes', 'source')
 
     def __init__(self, offsets, cells, line_start, line_id, static_count, instructions,
-                 cell_size, generation_tag, path, size):
+                 cell_size, generation_tag, path, size, source='sidecar'):
         self.offsets = offsets
         self.cells = cells
         self.line_start = line_start
@@ -238,6 +264,7 @@ class NavData:
         self.generation_tag = generation_tag
         self.path = path
         self.bytes = size
+        self.source = source
 
     def cells_of(self, static_id):
         low = int(self.offsets[static_id])
@@ -251,11 +278,50 @@ class NavData:
         return position
 
 
+def _nav_from_block12(store):
+    """块 12 内置 PC_CELLS/LINE_RUNS 时构造 NavData；无表返回 None，表坏抛 NavIndexError。"""
+    if os.environ.get(SOURCE_ENV, '').strip().lower() == 'sidecar':
+        return None
+    index = getattr(store, 'query_index', None)
+    if index is None:
+        return None
+    try:
+        tables = index.nav_tables()
+    except Exception as error:                       # noqa: BLE001 - 显式回退 sidecar/慢路径
+        raise NavIndexError('块 12 导航表不可用：%s' % error)
+    if not tables:
+        return None
+    if int(tables['cell_size']) != CELL_INSTRUCTIONS:
+        raise NavIndexError('块 12 导航表 cellSize 不符：%d' % int(tables['cell_size']))
+    if int(tables['static_count']) != len(store.static):
+        raise NavIndexError('块 12 导航表 staticCount 不符')
+    if int(tables['instructions']) != int(store.counts.get('instructions') or 0):
+        raise NavIndexError('块 12 导航表指令数不符')
+    return NavData(tables['offsets'], tables['cells'], tables['line_start'],
+                   tables['line_id'], int(tables['static_count']),
+                   int(tables['instructions']), int(tables['cell_size']),
+                   int(store.container.generation_tag),
+                   'block12:%s' % store.generation,
+                   int(tables['offsets'].nbytes + tables['cells'].nbytes
+                       + tables['line_start'].nbytes + tables['line_id'].nbytes),
+                   source='block12')
+
+
 def _load_nav_index(store):
-    """加载并缓存 nav sidecar；缺失/损坏/代不符返回 None 并记录原因。"""
+    """加载导航索引：块 12 内置表优先，旧记录回退 sidecar；都不可用返回 None。"""
     cached = getattr(store, '_nav_data', None)
     if cached is not None:
         return cached
+    block_error = None
+    try:
+        data = _nav_from_block12(store)
+    except NavIndexError as error:
+        data = None
+        block_error = str(error)
+    if data is not None:
+        setattr(store, '_nav_data', data)
+        setattr(store, '_nav_error', None)
+        return data
     path = nav_sidecar_path(store)
     error = None
     if not path.is_file():
@@ -311,10 +377,12 @@ def _load_nav_index(store):
             if actual != checksum:
                 raise NavIndexError('导航索引内容 CRC32 不符（文件损坏/被改写）')
             data = NavData(offsets, cells, line_start, line_id, static_count,
-                           instructions, cell_size, tag, path, len(raw))
+                           instructions, cell_size, tag, path, len(raw), source='sidecar')
         except Exception as error_value:          # noqa: BLE001 - 一律显式回退慢路径
             data = None
             error = str(error_value)
+    if data is None and block_error:
+        error = '%s；块 12：%s' % (error, block_error)
     setattr(store, '_nav_data', data)
     setattr(store, '_nav_error', error)
     return data
@@ -325,7 +393,9 @@ def nav_status(store):
     data = _load_nav_index(store)
     error = getattr(store, '_nav_error', None)
     if data is not None:
-        return dict(available=True, path=str(data.path), bytes=data.bytes,
+        return dict(available=True, source=data.source, path=str(data.path),
+                    bytes=data.bytes, staticCount=data.static_count,
+                    instructions=data.instructions, cellSize=data.cell_size,
                     pcCellPairs=int(data.offsets[-1]), lineRuns=len(data.line_start),
                     generationTag='0x%016x' % data.generation_tag)
     return dict(available=False, error=error)

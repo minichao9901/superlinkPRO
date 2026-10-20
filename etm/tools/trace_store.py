@@ -2363,12 +2363,18 @@ class TraceStore:
         if index is None:
             return dict(available=False, error=self.query_index_error)
         meta = index.meta
+        nav = meta.get('nav') or None
         return dict(available=True, version=int(meta.get('version') or 0),
                     cellSize=int(meta.get('cellSize') or 0),
                     cells=int(meta.get('cells') or 0),
                     segmentCount=int(meta.get('segmentCount') or 0),
                     functionSegments=int(meta.get('functionSegments') or 0),
-                    defaultViews=sorted((meta.get('defaultViews') or {})))
+                    defaultViews=sorted((meta.get('defaultViews') or {})),
+                    # 块 12 导航表（t14）：旧索引无此表（None）→ nav 回退 sidecar
+                    nav=(None if nav is None else dict(
+                        cellSize=int(nav.get('cellSize') or 0),
+                        pcCellPairs=int(nav.get('pcCellPairs') or 0),
+                        lineRuns=int(nav.get('lineRuns') or 0))))
 
     # -- page ---------------------------------------------------------------------------------
     def page(self, view='events', offset=0, limit=150, search='', hide_skipped=False,
