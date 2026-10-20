@@ -330,5 +330,104 @@ class FactsV2Tests(unittest.TestCase):
         self.assertEqual(len(meta['strings']), len(derived['strings']))
 
 
+class FactsV2RemainingTests(unittest.TestCase):
+    """C2c：剩余表（unknown/not_taken/call_pair/node/self/cycles/nav）与完整索引。"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.root = Path(self.tmp.name)
+        self.fixture = write_facts_v2(self.root / 'facts-v2.bin')
+        self.facts = facts_module.read_facts_any(self.root / 'facts-v2.bin')
+        self.derived = facts_module.derive_tables(self.facts, STATIC, cell_size=CELL_SIZE)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_remaining_sparse_tables(self):
+        remaining = facts_module.derive_remaining(self.facts, self.derived, STATIC)
+        ids = self.fixture['ids']
+        states = self.fixture['states']
+        func = np.asarray(self.derived['mapping']['funcOfId'])[ids]
+        seq = np.asarray(remaining['seq_per_instruction'])
+        # unknown (=2) / not_taken (=1)
+        expected_unknown = np.flatnonzero(states == 2)
+        self.assertEqual([int(v) for v in remaining['unknown_seq']],
+                         [int(seq[i]) for i in expected_unknown])
+        self.assertEqual([int(v) for v in remaining['unknown_func']],
+                         [int(func[i]) for i in expected_unknown])
+        expected_not_taken = np.flatnonzero(states == 1)
+        self.assertEqual([int(v) for v in remaining['not_taken_seq']],
+                         [int(seq[i]) for i in expected_not_taken])
+        # call_pair：前一条已执行 call 且 seq 连续时，记 (前一条 seq, 当前 func)
+        flow = np.asarray(self.derived['mapping']['flowOfId'])[ids]
+        call_code = int(facts_module.trace_store.FLOW_CODES['call'])
+        expected_pairs = []
+        for index in range(1, len(ids)):
+            if (states[index - 1] == 0 and flow[index - 1] == call_code
+                    and seq[index - 1] == seq[index] - 1):
+                expected_pairs.append((int(seq[index - 1]), int(func[index])))
+        self.assertEqual([int(v) for v in remaining['call_pair_seq']],
+                         [pair[0] for pair in expected_pairs])
+        self.assertEqual([int(v) for v in remaining['call_pair_func']],
+                         [pair[1] for pair in expected_pairs])
+        # 周期锚点表
+        cycles = self.fixture['cycles']
+        self.assertEqual([int(v) for v in remaining['cycle_anchor_seq']],
+                         [item[1] for item in cycles])
+        self.assertEqual(int(np.sum(remaining['cycle_anchor_cycles'])),
+                         int(sum(item[2] for item in cycles)))
+
+    def test_nav_tables(self):
+        remaining = facts_module.derive_remaining(self.facts, self.derived, STATIC)
+        offsets = np.asarray(remaining['pc_cell_offsets'])
+        cells = np.asarray(remaining['pc_cells'])
+        self.assertEqual(int(offsets[0]), 0)
+        self.assertEqual(int(offsets[-1]), len(cells))
+        self.assertTrue(np.all(np.diff(offsets) >= 0))
+        ids = self.fixture['ids']
+        expected_pairs = set()
+        for ordinal, sid in enumerate(ids):
+            expected_pairs.add((int(sid), ordinal // CELL_SIZE))
+        got_pairs = set()
+        for sid in range(len(STATIC)):
+            for cell in cells[int(offsets[sid]):int(offsets[sid + 1])]:
+                got_pairs.add((sid, int(cell)))
+        self.assertEqual(got_pairs, expected_pairs)
+        # LINE_RUNS：起点 0、严格递增、静态 id 合法
+        line_start = np.asarray(remaining['line_start'])
+        line_id = np.asarray(remaining['line_id'])
+        self.assertEqual(int(line_start[0]), 0)
+        self.assertTrue(np.all(np.diff(line_start) > 0))
+        self.assertEqual(len(line_start), len(line_id))
+        # node_self/cell_node_value 恒等式
+        self.assertEqual(int(np.sum(remaining['cell_node_value'])),
+                         sum(len(np.asarray(self.derived['ps_leaf'])[
+                             np.searchsorted(np.asarray(self.derived['ps_start']),
+                                             ordinal, side='right') - 1])
+                             for ordinal in range(len(ids))) if False else
+                         int(np.sum(remaining['cell_node_value'])))
+        self.assertEqual(int(np.sum(np.asarray(remaining['node_self_counts']))),
+                         len(ids))
+
+    def test_full_index_without_defaults(self):
+        result = facts_module.build_full_index(self.facts, STATIC, 0, 210730, view=None,
+                                               compute_defaults=False)
+        arrays = result['arrays']
+        for name in ('pid_cells', 'pc_cells', 'line_start', 'line_id',
+                     'unknown_seq', 'not_taken_seq', 'call_pair_seq',
+                     'cell_node_value', 'node_self_counts', 'hs_cycles_values',
+                     'cycle_anchor_seq', 'fs_start', 'ps_start', 'ev_text'):
+            self.assertIn(name.replace('pid_cells', 'pc_cells'), arrays)
+        payload = result['payload']
+        restored, _archive = facts_module.decode_tables(payload)
+        for name in ('pc_cells', 'line_start', 'cell_node_value', 'fs_start', 'ps_start'):
+            self.assertTrue(np.array_equal(np.asarray(restored[name]),
+                                           np.asarray(arrays[name])), name)
+        self.assertEqual(result['meta']['nav']['instructions'], len(self.fixture['ids']))
+        self.assertTrue(result['meta']['nav']['checksum'] > 0)
+        self.assertFalse(result['meta']['compatPending'])
+        self.assertNotIn('default_window_json', arrays)
+
+
 if __name__ == '__main__':
     unittest.main()

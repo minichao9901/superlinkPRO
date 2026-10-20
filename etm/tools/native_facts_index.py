@@ -14,10 +14,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import struct
 import sys
 import time
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -580,9 +582,13 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
         ev_text = np.asarray([string_id(evtexts[int(value)])
                               if int(value) < len(evtexts) else 0
                               for value in events['ev_text_ids']], np.int32)
-        h_file = np.asarray([-1 if entry.get('file') is None
-                             else string_id(entry.get('file'))
-                             for entry in static_entries], np.int32)
+        function_index = mapping['functionIndex']
+        ev_next_func = np.asarray([
+            -1 if int(value) < 0 else function_index.get(labels[int(value)], -1)
+            for value in events['ev_next_func']], np.int32)
+        # h_file 是**每热点**的 file 字符串下标（v1 口径），不是每静态项
+        h_file = np.asarray([-1 if name is None else string_id(name)
+                             for name in mapping['hotspotFile']], np.int32)
         extra = dict(fs_start=fs_start, fs_count=fs_count, fs_func=fs_func,
                      ps_start=ps_start, ps_count=ps_count, ps_leaf=ps_leaf,
                      cell_anchor_block=anchor_block, cell_anchor_offset=anchor_offset,
@@ -590,7 +596,7 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
                      node_parent=node_parent, node_label=node_label,
                      ev_seq=events['ev_seq'], ev_type=events['ev_type'],
                      ev_flags=events['ev_flags'], ev_payload=events['ev_payload'],
-                     ev_next_func=events['ev_next_func'], ev_text=ev_text,
+                     ev_next_func=ev_next_func, ev_text=ev_text,
                      h_file=h_file, strings=strings, version=VERSION_V2,
                      nodes_raw=facts['nodes'], labels_raw=labels,
                      event_details=dict(prevFunc=np.asarray(facts['events']['prevFunc'],
@@ -648,6 +654,280 @@ def derive_cell(facts, static_entries, cell, cell_size=4096, counters=None):
                 cell_executed=int(counts[0]), cell_unknown=int(counts[2]),
                 cell_not_taken=int(counts[1]), cell_cycles=cell_cycles,
                 cell_cycle_runs=cycle_runs, cell_first_seq=first_seq)
+
+
+# ---------------------------------------------------------------------------------------------
+# C2c：默认/随机查询与导航所需的剩余表（unknown/not_taken/call_pair、node/self/cycles、nav）
+# ---------------------------------------------------------------------------------------------
+
+def _seq_per_instruction(runs, total):
+    """每条指令的 seq：所在 RUN 的 startSeq + (ordinal - startOrdinal)（RUNS 连续覆盖）。"""
+    runs = runs_array(runs)
+    order = np.argsort(np.asarray(runs['startOrdinal'], np.int64))
+    starts = np.asarray(runs['startOrdinal'], np.int64)[order]
+    counts = np.asarray(runs['count'], np.int64)[order]
+    start_seqs = np.asarray(runs['startSeq'], np.int64)[order]
+    base = start_seqs - starts
+    run_index = np.repeat(np.arange(len(starts)), counts)
+    if run_index.size != total:
+        raise FactsError('RUNS 的指令总数 %d 与 instructionCount %d 不符'
+                         % (run_index.size, total))
+    return base[run_index] + np.arange(total, dtype=np.int64)
+
+
+def _node_chains(nodes):
+    """每个节点的祖先链（含自身，根在前）。"""
+    parent = np.asarray(nodes['parent'], np.int64)
+    chains = [None] * len(parent)
+    for node in range(len(parent)):
+        chain = []
+        current = node
+        guard = 0
+        while current >= 0:
+            chain.append(current)
+            current = int(parent[current])
+            guard += 1
+            if guard > 10_000:
+                raise FactsError('节点父链异常')
+        chains[node] = tuple(reversed(chain))
+    return chains
+
+
+def derive_remaining(facts, derived, static_entries):
+    """派生默认/随机查询与导航所需剩余表（全部 NumPy 批量归约）。"""
+    if facts.get('version') != VERSION_V2:
+        raise FactsError('剩余表派生需要 facts v2（PATH_RUNS/NODES/EVENTS）')
+    started = time.perf_counter()
+    ids = np.asarray(facts['ids'])
+    states = np.asarray(facts['states'])
+    total = int(ids.size)
+    cell_size = int(derived['cellSize'])
+    cells = int(derived['cells'])
+    mapping = derived['mapping']
+    runs = runs_array(facts['runs'])
+    seq = _seq_per_instruction(runs, total)
+    func = np.asarray(mapping['funcOfId'], np.int64)[ids]
+    flow = np.asarray(mapping['flowOfId'], np.int64)[ids]
+    executed = states == 0
+    unknown_mask = states == 2
+    not_taken_mask = states == 1
+    call_flow = int(trace_store.FLOW_CODES['call'])
+    call_mask = (executed[:-1] & (flow[:-1] == call_flow) & (seq[:-1] == seq[1:] - 1))
+    ordinal = np.arange(total, dtype=np.int64)
+    cell = ordinal // cell_size
+    ps_start = np.asarray(derived['ps_start'], np.int64)
+    ps_leaf = np.asarray(derived['ps_leaf'], np.int64)
+    segment = np.searchsorted(ps_start, ordinal, side='right') - 1
+    leaf_per_insn = ps_leaf[segment]
+    nodes = facts['nodes']
+    node_count = len(nodes)
+    node_parent = np.asarray(nodes['parent'], np.int32)
+    chains = _node_chains(nodes)
+    anchors = cycles_array(facts['cycles'])
+    anchor_ordinal = np.asarray(anchors['ordinal'], np.int64)
+    anchor_cycles = np.asarray(anchors['cycles'], np.int64)
+    anchor_cell = anchor_ordinal // cell_size
+    anchor_leaf = leaf_per_insn[anchor_ordinal]
+    anchor_hotspot = np.asarray(mapping['hotspotOfId'], np.int64)[ids[anchor_ordinal]]
+    hotspot_count = int(np.asarray(derived['cell_hotspot_count']).shape[1])
+    # hs_cycles：按 (cell, hotspot) 聚合周期（整数）
+    key = anchor_cell * hotspot_count + anchor_hotspot
+    unique, inverse = np.unique(key, return_inverse=True)
+    sums = np.zeros(len(unique), np.int64)
+    np.add.at(sums, inverse, anchor_cycles)
+    hs_cells = (unique // hotspot_count).astype(np.int32)
+    hs_hotspots = (unique % hotspot_count).astype(np.int32)
+    # cell_node_value：每条指令按其 path 叶的祖先链计入 cell
+    pair = cell * node_count + leaf_per_insn
+    unique_pair, counts_pair = np.unique(pair, return_counts=True)
+    unique_cell = (unique_pair // node_count).astype(np.int64)
+    unique_leaf = (unique_pair % node_count).astype(np.int64)
+    cell_node_value = np.zeros((cells, node_count), np.uint16)
+    cell_node_value_cycles = np.zeros((cells, node_count), np.int64)
+    node_self_counts = np.zeros((cells, node_count), np.int32)
+    node_self_cycles = np.zeros((cells, node_count), np.int64)
+    np.add.at(node_self_counts, (unique_cell, unique_leaf), counts_pair.astype(np.int32))
+    # 周期锚点：祖先链累加 + 叶 self
+    unique_anchor_pair, anchor_pair_inverse = np.unique(anchor_cell * node_count + anchor_leaf,
+                                                       return_inverse=True)
+    anchor_pair_sums = np.zeros(len(unique_anchor_pair), np.int64)
+    np.add.at(anchor_pair_sums, anchor_pair_inverse, anchor_cycles)
+    for pair_index, pair_value in enumerate(unique_anchor_pair):
+        cell_index = int(pair_value // node_count)
+        leaf = int(pair_value % node_count)
+        node_self_cycles[cell_index, leaf] += int(anchor_pair_sums[pair_index])
+    for pair_index, pair_value in enumerate(unique_pair):
+        cell_index = int(pair_value // node_count)
+        leaf = int(pair_value % node_count)
+        count = int(counts_pair[pair_index])
+        for node in chains[leaf]:
+            cell_node_value[cell_index, node] = (int(cell_node_value[cell_index, node])
+                                                 + count)
+    for anchor_index in range(len(anchor_ordinal)):
+        cell_index = int(anchor_cell[anchor_index])
+        leaf = int(anchor_leaf[anchor_index])
+        value = int(anchor_cycles[anchor_index])
+        for node in chains[leaf]:
+            cell_node_value_cycles[cell_index, node] += value
+    # nav 表：PC_CELLS（每个静态 id 出现在哪些 cell）+ LINE_RUNS（file/line 变化）
+    sid_cell = ids.astype(np.int64) * cells + cell
+    unique_sid_cell = np.unique(sid_cell)
+    sid_values = unique_sid_cell // cells
+    cell_values = unique_sid_cell % cells
+    offsets = np.zeros(len(static_entries) + 1, np.uint32)
+    if len(sid_values):
+        counts_per_sid = np.bincount(sid_values, minlength=len(static_entries))
+        offsets[1:] = np.cumsum(counts_per_sid).astype(np.uint32)
+    pc_cells = cell_values.astype(np.uint32)
+    line_keys = np.empty(len(static_entries), np.int32)
+    line_key_index = {}
+    for index, entry in enumerate(static_entries):
+        line = entry.get('line')
+        key_value = (0,) if line is None else (1, entry.get('file'), line)
+        line_keys[index] = line_key_index.setdefault(key_value, len(line_key_index))
+    instruction_line_key = line_keys[ids]
+    change = np.flatnonzero(instruction_line_key[1:] != instruction_line_key[:-1]) + 1
+    line_start = np.concatenate(([0], change)).astype(np.uint32)
+    line_id = ids[line_start].astype(np.uint32)
+    timings = dict(remainingSeconds=round(time.perf_counter() - started, 4))
+    return dict(
+        seq_per_instruction=seq,
+        unknown_seq=seq[unknown_mask].astype(np.int32),
+        unknown_func=func[unknown_mask].astype(np.int16),
+        not_taken_seq=seq[not_taken_mask].astype(np.int32),
+        not_taken_func=func[not_taken_mask].astype(np.int16),
+        call_pair_seq=seq[:-1][call_mask].astype(np.int32),
+        call_pair_func=func[1:][call_mask].astype(np.int16),
+        cell_node_value=cell_node_value,
+        cell_node_value_cycles=cell_node_value_cycles,
+        node_self_cells=np.nonzero((node_self_counts != 0)
+                                   | (node_self_cycles != 0))[0].astype(np.int32),
+        node_self_nodes=np.nonzero((node_self_counts != 0)
+                                   | (node_self_cycles != 0))[1].astype(np.int32),
+        node_self_counts=node_self_counts[(node_self_counts != 0)
+                                          | (node_self_cycles != 0)].astype(np.int32),
+        node_self_cycles=node_self_cycles[(node_self_counts != 0)
+                                          | (node_self_cycles != 0)].astype(np.int64),
+        hs_cycles_cells=hs_cells, hs_cycles_hotspots=hs_hotspots,
+        hs_cycles_values=sums.astype(np.int64),
+        cycle_anchor_seq=np.asarray(anchors['seq'], np.int32),
+        cycle_anchor_hotspot=anchor_hotspot.astype(np.int32),
+        cycle_anchor_cycles=anchor_cycles.astype(np.int64),
+        pc_cell_offsets=offsets, pc_cells=pc_cells,
+        line_start=line_start, line_id=line_id,
+        nav_meta=dict(cellSize=cell_size, staticCount=len(static_entries),
+                      instructions=total, pcCellPairs=int(len(pc_cells)),
+                      lineRuns=int(len(line_start))),
+        node_parent=node_parent,
+        timings=timings)
+
+
+def build_full_index(facts, static_entries, first_seq, last_seq, view=None,
+                     cell_size=4096, batch=1_000_000, compute_defaults=True):
+    """完整索引：C2 表 + C2b 表 + C2c 剩余表 + 默认视图，返回 (arrays, meta, timings, payload)。"""
+    started = time.perf_counter()
+    counters = Counters()
+    derived = derive_tables(facts, static_entries, cell_size=cell_size, batch=batch,
+                            counters=counters)
+    timings = dict(derived['timings'])
+    remaining = derive_remaining(facts, derived, static_entries)
+    timings.update(remaining['timings'])
+    tables = derived_arrays(derived)
+    for name in ('cell_node_value', 'cell_node_value_cycles', 'node_self_cells',
+                 'node_self_nodes', 'node_self_counts', 'node_self_cycles',
+                 'hs_cycles_cells', 'hs_cycles_hotspots', 'hs_cycles_values',
+                 'pc_cell_offsets', 'pc_cells', 'line_start', 'line_id',
+                 'unknown_seq', 'unknown_func', 'not_taken_seq', 'not_taken_func',
+                 'call_pair_seq', 'call_pair_func', 'cycle_anchor_seq',
+                 'cycle_anchor_hotspot', 'cycle_anchor_cycles'):
+        tables[name] = np.asarray(remaining[name])
+    # v1 的 hotspot id 按**指令首次出现顺序**分配；本实现按静态项顺序，这里重排到 v1 口径，
+    # 使 window/analysis.hotspots 的顺序与 v1 一致（数值本身不变）。
+    ids = np.asarray(facts['ids'])
+    mapping = derived['mapping']
+    unique_ids, first_positions = np.unique(ids, return_index=True)
+    order = unique_ids[np.argsort(first_positions)]
+    our_hotspots = np.asarray(mapping['hotspotOfId'], np.int64)[order]
+    permutation = np.full(len(mapping['hotspotFunc']), -1, np.int64)
+    next_id = 0
+    for value in our_hotspots:
+        if permutation[value] < 0:
+            permutation[value] = next_id
+            next_id += 1
+    if next_id != len(mapping['hotspotFunc']):
+        raise FactsError('hotspot 重排数量不符：%d≠%d' % (next_id, len(mapping['hotspotFunc'])))
+    inverse = np.argsort(permutation)
+
+    def reorder_columns(matrix):
+        matrix = np.asarray(matrix)
+        out = np.empty_like(matrix)
+        out[:, permutation] = matrix
+        return out
+
+    for name in ('cell_hotspot_count', 'cell_hotspot_unknown', 'cell_hotspot_first'):
+        tables[name] = reorder_columns(tables[name])
+    tables['h_func'] = np.asarray(mapping['hotspotFunc'])[inverse].astype(np.int16)
+    if 'h_file' in tables:
+        tables['h_file'] = np.asarray(tables['h_file'])[inverse].astype(np.int32)
+    tables['h_line'] = np.asarray(mapping['hotspotLine'])[inverse].astype(np.int32)
+    tables['st_hotspot'] = permutation[np.asarray(mapping['hotspotOfId'])].astype(np.int32)
+    remaining['hs_cycles_hotspots'] = permutation[
+        np.asarray(remaining['hs_cycles_hotspots'], np.int64)].astype(np.int32)
+    tables['hs_cycles_hotspots'] = remaining['hs_cycles_hotspots']
+    # 事件文本需要 strings 池（derived 已建）
+    strings = list(derived['strings'])
+    meta = dict(cellSize=int(cell_size), instructions=int(derived['instructions']),
+                events=int(facts['header'].get('eventCount') or 0),
+                cells=int(derived['cells']),
+                staticCount=len(static_entries),
+                functionCount=len(derived['mapping']['functionNames']),
+                hotspotCount=int(np.asarray(derived['cell_hotspot_count']).shape[1]),
+                nodeCount=len(facts['nodes']), segmentCount=len(derived['ps_start']),
+                functionSegments=len(derived['fs_start']),
+                firstSeq=int(first_seq), lastSeq=int(last_seq),
+                strings=strings,
+                functionNames=list(derived['mapping']['functionNames']),
+                format='etm-trace-store-query-index', version=1, container='v2',
+                source='native-facts-numpy')
+    nav = remaining['nav_meta']
+    checksum = zlib.crc32(np.ascontiguousarray(tables['pc_cell_offsets'],
+                                               dtype=np.uint32).tobytes())
+    checksum = zlib.crc32(np.ascontiguousarray(tables['pc_cells'],
+                                               dtype=np.uint32).tobytes(), checksum)
+    checksum = zlib.crc32(np.ascontiguousarray(tables['line_start'],
+                                               dtype=np.uint32).tobytes(), checksum)
+    checksum = zlib.crc32(np.ascontiguousarray(tables['line_id'],
+                                               dtype=np.uint32).tobytes(), checksum)
+    nav['checksum'] = checksum & 0xFFFFFFFF
+    meta['nav'] = nav
+    tables['node_parent'] = remaining['node_parent'].astype(np.int32)
+    # node_label 已由 derived 提供（本地 strings 下标）
+    timings['tablesSeconds'] = round(time.perf_counter() - started, 4)
+    if compute_defaults:
+        phase = time.perf_counter()
+        index = trace_store_index.QueryIndex(tables, meta, view)
+        window = index.window(None, None, trace_store_index.DEFAULT_WINDOW_BINS)
+        timeline = index.function_timeline(None, None,
+                                           bins=trace_store_index.DEFAULT_TIMELINE_BINS)
+        meta['defaultViews'] = {}
+        for name, value, bins in (
+                ('window', window, trace_store_index.DEFAULT_WINDOW_BINS),
+                ('timeline', timeline, trace_store_index.DEFAULT_TIMELINE_BINS)):
+            text = json.dumps(value, ensure_ascii=False)
+            tables['default_%s_json' % name] = np.frombuffer(text.encode('utf-8'), np.uint8)
+            meta['defaultViews'][name] = dict(
+                bins=int(bins), bytes=len(text.encode('utf-8')),
+                sha256=hashlib.sha256(text.encode('utf-8')).hexdigest())
+        timings['defaultViewsSeconds'] = round(time.perf_counter() - phase, 4)
+    meta['tables'] = sorted(tables)
+    meta['coverage'] = [int(first_seq), int(last_seq)]
+    meta['compatPending'] = [name for name in COMPAT_PENDING if name not in tables]
+    phase = time.perf_counter()
+    payload = trace_store_index.encode_payload_v2(tables, meta)
+    timings['encodeSeconds'] = round(time.perf_counter() - phase, 4)
+    timings['totalSeconds'] = round(time.perf_counter() - started, 4)
+    return dict(arrays=tables, meta=meta, timings=timings, payload=payload,
+                counters=counters.as_dict(), derived=derived, remaining=remaining)
 
 
 # ---------------------------------------------------------------------------------------------
