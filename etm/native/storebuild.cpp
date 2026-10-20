@@ -1992,10 +1992,12 @@ class BuildVisitor : public NativeVisitor {
         std::vector<int32_t> cell_cycle_runs(cell_count, 0);
         struct FactRun { uint64_t ordinal, seq; uint32_t count, block, offset; uint8_t tail; };
         struct FactCycle { uint64_t ordinal, seq, cycles; uint32_t span; };
+        struct FactEvent { uint64_t seq, payload; uint32_t flags; uint8_t type; };
         std::vector<FactRun> fact_runs;
         std::vector<FactCycle> fact_cycles;
         std::vector<uint32_t> fact_ids;
         std::vector<uint8_t> fact_states;
+        std::vector<FactEvent> fact_events;
         std::vector<int16_t> anchor_block(cell_count, -1);
         std::vector<int32_t> anchor_offset(cell_count, -1);
         std::vector<int16_t> anchor_skip(cell_count, 0);
@@ -2018,9 +2020,20 @@ class BuildVisitor : public NativeVisitor {
                 if (offset + length > block.size()) fail(kExitConsistency, "v2 index sequence 截断");
                 if (type == 2) {
                     size_t cursor = 0;
-                    const uint32_t event_seq = static_cast<uint32_t>(
-                        read_uv(block.data() + offset, static_cast<size_t>(length), cursor));
-                    event_seqs.push_back(event_seq);
+                    const uint64_t event_seq = read_uv(block.data() + offset,
+                                                       static_cast<size_t>(length), cursor);
+                    const uint64_t event_type = read_uv(block.data() + offset,
+                                                        static_cast<size_t>(length), cursor);
+                    (void)read_uv(block.data() + offset, static_cast<size_t>(length), cursor);
+                    const uint64_t event_payload = read_uv(block.data() + offset,
+                                                           static_cast<size_t>(length), cursor);
+                    (void)read_uv(block.data() + offset, static_cast<size_t>(length), cursor);
+                    (void)read_uv(block.data() + offset, static_cast<size_t>(length), cursor);
+                    const uint64_t event_flags = read_uv(block.data() + offset,
+                                                         static_cast<size_t>(length), cursor);
+                    event_seqs.push_back(static_cast<uint32_t>(event_seq));
+                    fact_events.push_back(FactEvent{event_seq, event_payload,
+                        static_cast<uint32_t>(event_flags), static_cast<uint8_t>(event_type)});
                 }
                 if (type == 1) {
                     const uint8_t* data = block.data() + offset;
@@ -2231,6 +2244,8 @@ class BuildVisitor : public NativeVisitor {
             std::memcpy(header + 16, &instruction_count, 8);
             std::memcpy(header + 24, &run_count, 8);
             std::memcpy(header + 32, &cycle_count, 8);
+            const uint64_t event_count = fact_events.size();
+            std::memcpy(header + 48, &event_count, 8);
             std::fwrite(header, 1, 64, out);
             for (const FactRun& run : fact_runs) {
                 uint8_t row[32] = {};
@@ -2252,9 +2267,20 @@ class BuildVisitor : public NativeVisitor {
                 std::memcpy(row + 24, &cycle.span, 4);
                 std::fwrite(row, 1, 32, out);
             }
+            for (const FactEvent& event : fact_events) {
+                uint8_t row[32] = {};
+                std::memcpy(row + 0, &event.seq, 8);
+                std::memcpy(row + 8, &event.payload, 8);
+                std::memcpy(row + 16, &event.flags, 4);
+                row[20] = event.type;
+                const int16_t next_func = -1;
+                std::memcpy(row + 22, &next_func, 2);
+                std::fwrite(row, 1, 32, out);
+            }
             std::fflush(out);
             out_bytes_ = 64 + fact_runs.size() * 32 + fact_ids.size() * 4
-                + fact_states.size() + fact_cycles.size() * 32;
+                + fact_states.size() + fact_cycles.size() * 32
+                + fact_events.size() * 32;
             std::fclose(out);
             output_.facts_bytes = out_bytes_;
             output_.facts_seconds = chrono_seconds(started);
