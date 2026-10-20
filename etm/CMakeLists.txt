@@ -42,3 +42,18 @@ if(SQLite3_FOUND)
     target_link_options(etm_index PRIVATE -municode -static -static-libgcc -static-libstdc++)
   endif()
 endif()
+
+# R2 原生 store builder（M0/M1：prescan + native.bin 诊断；不依赖 OpenCSD/SQLite/Python）。
+add_executable(etm_storebuild native/storebuild.cpp)
+set_property(TARGET etm_storebuild PROPERTY CXX_STANDARD 17)
+if(MINGW)
+  target_link_libraries(etm_storebuild PRIVATE psapi)
+  target_link_options(etm_storebuild PRIVATE -static -static-libgcc -static-libstdc++)
+endif()
+execute_process(COMMAND git rev-parse --short=12 HEAD
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  OUTPUT_VARIABLE ETM_STOREBUILD_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+if(NOT ETM_STOREBUILD_SHA)
+  set(ETM_STOREBUILD_SHA "unknown")
+endif()
+target_compile_definitions(etm_storebuild PRIVATE ETM_STOREBUILD_SHA="${ETM_STOREBUILD_SHA}")
