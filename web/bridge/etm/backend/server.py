@@ -32,7 +32,7 @@ from trace_store_adapter import (BACKEND_TRACE, MANIFEST_NAME as STORE_MANIFEST_
                                 backend_for as record_backend,
                                 capture_start_from_store, read_sources as store_read_sources)
 from stream_store import attach_streams, JsonLines
-from decode_stream import decode_capture_stream, decode_stream, export_simplified_stream
+from decode_stream import decode_capture_stream, decode_stream, export_simplified_stream, store_write_enabled
 from slice_merge import merge_slice_events, aggregate_slices
 from breakpoint_resolver import resolve_breakpoint
 from source_export import base as source_base, simplified_html
@@ -776,7 +776,8 @@ def _decode_job(jid, sid):
             raise ValueError('这是长窗（自动分窗）记录，不能按单窗重解；请重新采集，或直接用已完成的切片产物。')
         sources = load_json(folder/'sources.json') if (folder / 'sources.json').exists() else None
         raw=folder/m['input']
-        streamed=bool(raw.suffix.lower() in ('.bin','.kvdat') or m.get('seconds',0)>.02 or raw.stat().st_size>50*1024*1024)
+        # 显式启用融合写出时，短 CSV 也必须进入同一条链路，不能被旧的小记录分支绕过。
+        streamed=bool(store_write_enabled() or raw.suffix.lower() in ('.bin','.kvdat') or m.get('seconds',0)>.02 or raw.stat().st_size>50*1024*1024)
         if streamed:
             if raw.suffix.lower() in ('.csv','.kvdat'):
                 r=decode_capture_stream(raw,folder/'firmware.elf',folder,m['config'],sources,

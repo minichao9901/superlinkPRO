@@ -45,6 +45,7 @@ class PortableTests(unittest.TestCase):
         self.results.append(dict(command=command,exitCode=result.returncode,stdout=result.stdout,stderr=result.stderr));return result
     def test_independent_startup_and_assets(self):
         self.assertTrue(self.metadata['portable']);self.assertEqual(self.api('etm/integration.json')['protocol'],1)
+        self.assertEqual(self.metadata['engine'],'native') # 旧的仅 port 配置也必须启用优化。
         manifest=json.loads((self.home/'package-manifest.json').read_text(encoding='utf8'));self.assertEqual(self.metadata['version'],manifest['version'])
         with urlopen(self.base) as response:html=response.read().decode()
         self.assertNotIn('id="g-etm-root"',html);self.assertNotIn('id="g-etm-serial-root"',html)
@@ -77,6 +78,8 @@ class PortableTests(unittest.TestCase):
         backups=list(isolated.glob('demo-recovery-*'));self.assertEqual(len(backups),1);self.assertEqual((backups[0]/'user-evidence.txt').read_text(),'preserve')
     def test_reuse_and_invalid_ports(self):
         self.assertEqual(self.run_exe('--no-browser').returncode,0)
+        self.assertEqual(self.run_exe('--no-browser','--engine','python').returncode,1)
+        self.assertEqual(self.api('etm-launcher.json')['engine'],'native')
         self.assertEqual(self.run_exe('--port','70000','--check').returncode,1)
         with socket.socket() as listener:
             listener.bind(('127.0.0.1',0));listener.listen()
@@ -95,6 +98,8 @@ class PortableTests(unittest.TestCase):
             time.sleep(.2)
         self.assertEqual(state['state'],'done',state.get('error'))
         actual=self.api('etm/api/browse/'+sid+'/overview')['summary']['instructions'];self.assertEqual(actual,expected)
+        store=json.loads((self.home/'data/records'/sid/'store/manifest.json').read_text(encoding='utf8'))
+        self.assertEqual(store['engine']['name'],'native');self.assertIs(store['engine']['fallback'],False)
         self.results.append(dict(demoInstructions=actual,job=job,decodeState=state['state']))
     def test_redownload_excludes_user_records(self):
         metadata=self.api('bridge/etm/downloads/manifest.json')

@@ -12,13 +12,14 @@ for(const [name,embedded] of Object.entries(ETM_SCRIPTS)){
 }
 for(const port of ['evil & calc',-1,1023,65536,8878.5])assert.throws(()=>etmKitConfig({port}));
 assert.equal(etmKitConfig({port:8878}).port,8878);
+assert.equal(etmKitConfig().engine,'native');
 const config={port:8880};
 const files=etmKitFiles(config);
 assert.equal(files.length,5);
 const ps=files.find(f=>f.name.endsWith('.ps1'));
 assert.equal(new TextDecoder('utf8',{ignoreBOM:true}).decode(ps.data).charCodeAt(0),0xfeff,'Windows PowerShell requires UTF8 BOM');
 for(const f of files.filter(f=>f.name.endsWith('.bat')))assert(!/[^\r]\n/.test(f.text));
-assert.deepEqual(JSON.parse(files.find(f=>f.name.endsWith('.json')).text),config);
+assert.deepEqual(JSON.parse(files.find(f=>f.name.endsWith('.json')).text),{...config,engine:'native'});
 if(process.env.VALIDATION_DIR){
   const root=process.env.VALIDATION_DIR;
   for(const file of files){

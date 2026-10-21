@@ -5,10 +5,22 @@ from urllib.request import urlopen
 from flask import send_file
 from werkzeug.serving import make_server
 
-VERSION='1.0.14-native.8'
+VERSION='1.0.14-native.9'
 HERE=Path(__file__).resolve().parent
 for stream in (sys.stdout,sys.stderr):
     if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf8',errors='replace')
+
+def configure_engine(cli_engine,config):
+    """便携入口默认启用完整优化链路；命令行优先于包配置。"""
+    engine=cli_engine if cli_engine is not None else config.get('engine','native')
+    if engine not in ('python','native','auto'):raise ValueError('engine 必须为 python、native 或 auto')
+    # auto 与默认值一致；缺失能力时明确报错，不静默切换较慢的引擎。
+    if engine=='auto':engine='native'
+    # 避免开发机残留的实验环境开关改变双击启动的行为；只影响本进程。
+    os.environ.update(ETM_STORE_WRITE='1',ETM_STORE_ENGINE=engine,
+                      ETM_DECODE_ENGINE='fast',ETM_NATIVE_FORMAT='binary',
+                      ETM_STORE_ENGINE_FALLBACK='0')
+    return engine
 
 def load_module(name,path):
     spec=importlib.util.spec_from_file_location(name,path);module=importlib.util.module_from_spec(spec)
@@ -80,12 +92,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port',type=int);parser.add_argument('--config',type=Path,default=home/'etm.config.json')
     parser.add_argument('--data-dir',type=Path,default=home/'data');parser.add_argument('--check',action='store_true');parser.add_argument('--no-browser',action='store_true')
-    parser.add_argument('--engine',choices=['python','native','auto'],help='显式选择解码引擎；native 为待真机验收的实验路径')
+    parser.add_argument('--engine',choices=['python','native','auto'],help='解码引擎：默认 native（完整优化链路），python 用于对照排查；auto 同 native')
     args=parser.parse_args();config=json.loads(args.config.read_text(encoding='utf-8-sig')) if args.config.exists() else {}
-    engine=args.engine or config.get('engine')
-    if engine is not None:
-        if engine not in ('python','native','auto'):raise ValueError('engine 必须为 python、native 或 auto')
-        os.environ.update(ETM_STORE_WRITE='1',ETM_STORE_ENGINE=engine)
+    engine=configure_engine(args.engine,config)
     port=args.port if args.port is not None else int(config.get('port',8878))
     if not 1024<=port<=65535:raise ValueError('端口必须在 1024～65535 之间')
     data=args.data_dir.resolve();backend=runtime/'backend';toolbox=home/'toolbox'
@@ -99,7 +108,7 @@ def main():
     sys.modules['decode_trace'].ROOT=backend
     package_id=json.loads((home/'package-manifest.json').read_text(encoding='utf8'))['packageId']
     app=application.app
-    app.view_functions['launcher_info']=lambda:dict(protocol=1,portable=True,version=VERSION,packageId=package_id,port=port,dataDirectory=str(data))
+    app.view_functions['launcher_info']=lambda:dict(protocol=1,portable=True,version=VERSION,packageId=package_id,port=port,dataDirectory=str(data),engine=engine)
     archive_guard=threading.Lock()
     def download_package():
         with archive_guard:return send_file(package_archive(home,data),as_attachment=True,download_name='etm-bridge-win64.zip')
@@ -109,7 +118,7 @@ def main():
             archive=package_archive(home,data)
             return dict(version=VERSION,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),packageId=package_id)
     app.add_url_rule('/bridge/etm/downloads/manifest.json','portable_download_manifest',download_manifest)
-    print(f'ETM 桥 {VERSION}；数据目录：{data}',flush=True)
+    print(f'ETM 桥 {VERSION}；解码引擎：{engine}；数据目录：{data}',flush=True)
     if args.check:
         seed_demo(backend,records);print('环境预检通过；运行环境、网页与解码器完整。',flush=True);return
     url=f'http://127.0.0.1:{port}/'
@@ -117,6 +126,7 @@ def main():
         with urlopen(url+'etm-launcher.json',timeout=1) as response:existing=json.load(response)
     except Exception:existing={}
     if existing.get('portable') and existing.get('packageId')==package_id and existing.get('dataDirectory')==str(data):
+        if existing.get('engine')!=engine:raise ValueError('已有工作台使用不同解码引擎，请先退出已有工作台再重新启动；不会停止已有服务')
         print('同版本工作台已运行：'+url+'#etm',flush=True)
         if not args.no_browser:webbrowser.open(url+'#etm')
         return

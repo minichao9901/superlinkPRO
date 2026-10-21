@@ -82,7 +82,7 @@
     "app/gen/bridge-kit.js": "ff664ad92bdbceb2e3251e4398edc80511a2d8b5c10d6d0595fa22e1f23dd3d7",
     "app/gen/bridge-src.js": "6dff9d3d0bd55eed5048711c2cb1f44eea528d64e99a2605be5ee6708cd66146",
     "app/gen/etm-kit-src.js": "97fb8184723d159fde6ae7908a7c4c619e422bf6d5c03215806ec0b2331ca515",
-    "app/gen/etm-kit.js": "87e6708fdcf379722642957c3be763dc5c3975e82163394d255dc7a2e9dcb470",
+    "app/gen/etm-kit.js": "bf1c0d35deb17ad406feb207f872d75afaff215d22f6b5032c60b3fb858acbf9",
     "app/gen/fixes.js": "3360f40e10765cc7b338b00c4a4b8686b488bbb0061ba465e370a90e54ab299c",
     "app/gen/model.js": "c506cdf7e8a09c2ea890eca63a09eec6c785211671baa61c72c10ea5b0f74687",
     "app/gen/templates.js": "f3ca98800fb32d41bcb729c977097be22b141ca864e7f1b8070fbb62ccc15322",
@@ -173,6 +173,6 @@
     "app/ui/workspace.js": "25b6ce94e5d90302a37e6cec2b7e35c975af95ce29bef1094a4493f3890fc0b7",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "d07964918d95e7b679dfede24bab87a74b5e221f9b8a6abacc5e00ef7e99371f",
-  "outputBytes": 1333250
+  "outputSha256": "d1eeda1ae20bf45ccc8f8962e2986de30b2ad1513df4db643e2c5fcecbdc1f32",
+  "outputBytes": 1333497
 }

@@ -7,9 +7,16 @@
 ## 使用
 
 源码运行时显式设置 `ETM_STORE_WRITE=1`、`ETM_STORE_ENGINE=native`。
-便携包可以运行 `etm-bridge.exe --engine native --no-browser`，或者在
-`etm.config.json` 中加入 `"engine": "native"`。缺少原生程序或能力不匹配会报错，
-不会把回退结果当作原生成功。移除该选项即可恢复原有默认路径。
+从 **1.0.14-native.9** 起，便携 EXE 默认启用完整原生优化链路，双击 BAT 即可，
+不需要环境变量或 `--engine native`。随包 `etm.config.json` 显式写入 `"engine": "native"`；
+配置缺失或旧配置仅含端口时同样默认 native。启动日志与 `/etm-launcher.json` 显示实际选择。
+缺少原生程序或能力不匹配会报错，不会静默回退。
+
+需要对照排查时，运行 `etm-bridge.exe --engine python`，或把配置的 engine 改为 python，
+退出并重新启动工作台。优先级为命令行、配置、默认 native；auto 等同 native。
+便携入口统一启用融合写出、二进制输出和 fast 展开，覆盖当前进程继承的旧实验开关，
+不修改系统环境变量。已有记录不会自动重解码；新解码使用所选引擎，兼容的已建查询索引
+会自动使用数值行锚点优化。源码独立服务的环境变量默认行为保持不变。
 
 单次采集默认上限保持 **200ms**。尚未完成连续 500ms／1s 的 H743、akaLinkPro、
 Kingst 真机验收；合成规模测试不能替代真机采集。实验包仅在验证目录保存，

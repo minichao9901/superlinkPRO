@@ -4,6 +4,8 @@
 
 启动文件小包包含 BAT、PowerShell、端口配置和说明，仅用于已解压完整包。它不单独包含运行环境。采集结果存放在完整包同目录的 `data/records`；升级前请保留 `data`。桥只监听 `127.0.0.1`，按 Ctrl+C 退出。
 
+从 `1.0.14-native.9` 起，EXE 默认启用原生解码及完整查询优化，双击启动即可；缺失配置或旧的仅端口配置也会启用。启动日志及 `/etm-launcher.json` 的 engine 字段可核对选择。需要对照时可设置 `engine: "python"` 或传入 `--engine python`，退出旧工作台后重启生效。详见仓库 `docs/etm-native-engine.md`；尚未完成新的真机验收，采集上限仍为 200ms。
+
 ## 仓库结构
 
 - `backend/`：从已验收 ETM 版本复制的运行源码、网页、解码器、单个 Demo 和示例 ELF；不包含 SDK 或用户记录。

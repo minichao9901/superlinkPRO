@@ -38,6 +38,20 @@ class LifecycleTests(unittest.TestCase):
             try:server.decode_job(jid,sid)
             except SystemExit:pass
         self.assertEqual(server.jobs[jid]['state'],'error')
+    def test_short_csv_honors_store_engine_instead_of_legacy_size_threshold(self):
+        sid='short-csv';server.save(sid,dict(input='capture.csv',seconds=.001,config={}))
+        (server.directory(sid)/'capture.csv').write_text('small waveform')
+        for engine,enabled in [('native','1'),('python','1'),('python','0')]:
+            with self.subTest(engine=engine,enabled=enabled),patch.dict(os.environ,ETM_STORE_ENGINE=engine,ETM_STORE_WRITE=enabled):
+                jid=server.new_job(sid,'queued')
+                with patch.object(server,'decode_capture_stream',side_effect=ValueError('stream selected')) as stream,patch.object(server,'decode_capture',side_effect=ValueError('legacy selected')) as legacy:
+                    server.decode_job(jid,sid)
+                if enabled=='1':
+                    stream.assert_called_once();legacy.assert_not_called()
+                    self.assertEqual(server.jobs[jid]['error'],'stream selected')
+                else:
+                    legacy.assert_called_once();stream.assert_not_called()
+                    self.assertEqual(server.jobs[jid]['error'],'legacy selected')
     def test_concurrent_capture_admission_is_atomic(self):
         real=server.new_job
         def delayed(*args,**kwargs):time.sleep(.025);return real(*args,**kwargs)

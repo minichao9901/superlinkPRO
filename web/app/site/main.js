@@ -1720,7 +1720,7 @@ try {
   & $exe @arguments
   exit $LASTEXITCODE
 } catch {Write-Host ('[错误] '+$_.Exception.Message) -ForegroundColor Red;exit 1}
-`,sha256:"9493ce009cca48ed445096f90adaade07c2c25f76a3895b52870ad4f87ca18eb"}};var ef=new URL("../gen/etm-kit.js",import.meta.url).href,Q1="etm-bridge-kit",sf=new URL("../../bridge/etm/downloads/etm-bridge-win64.zip",ef),rf=new URL("../../bridge/etm/downloads/manifest.json",ef);function Ku(n={}){let t=Number(n.port||8878);if(!Number.isInteger(t)||t<1024||t>65535)throw new Error("ETM 端口必须在 1024～65535 之间");return{port:t}}d(Ku,"etmKitConfig");function nf(n={}){let t=Ku(n),e=d(i=>`@echo off
+`,sha256:"9493ce009cca48ed445096f90adaade07c2c25f76a3895b52870ad4f87ca18eb"}};var ef=new URL("../gen/etm-kit.js",import.meta.url).href,Q1="etm-bridge-kit",sf=new URL("../../bridge/etm/downloads/etm-bridge-win64.zip",ef),rf=new URL("../../bridge/etm/downloads/manifest.json",ef);function Ku(n={}){let t=Number(n.port||8878);if(!Number.isInteger(t)||t<1024||t>65535)throw new Error("ETM 端口必须在 1024～65535 之间");return{port:t,engine:"native"}}d(Ku,"etmKitConfig");function nf(n={}){let t=Ku(n),e=d(i=>`@echo off
 setlocal EnableExtensions
 chcp 65001 >nul
 cd /d "%~dp0"
@@ -1739,6 +1739,8 @@ exit /b %RESULT%
 双击 check-tools.bat 检查包是否完整；双击 start-etm-bridge.bat 启动并自动打开网页。
 默认端口 8878；本次启动文件端口 ${t.port}，可在 etm.config.json 修改。
 完整包使用默认端口；需要其他端口时，可用本次启动文件覆盖完整包内配置。
+从 1.0.14-native.9 起，完整包默认开启原生解码及完整查询优化，无需设置环境变量或启动参数。
+排查时可在 etm.config.json 中将 engine 改为 python；退出并重新启动工作台后生效。
 采集记录保存在包内 data/records，保留它们即可再次分析；更新完整包前请保留 data 目录。
 退出按 Ctrl+C；同版本桥已运行时会复用，其他服务占用端口时会报错，不会停止已有服务。
 
