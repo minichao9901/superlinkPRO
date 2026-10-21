@@ -1108,6 +1108,10 @@ class Frontend {
         std::vector<int> valid_phases;
         std::vector<std::pair<int, std::string>> failures;
         for (int index = 0; index < 2; ++index) {
+            if (!phase_errors_[index].empty()) {
+                failures.emplace_back(index, phase_errors_[index]);
+                continue;
+            }
             try {
                 demux_result_[static_cast<size_t>(index)] =
                     demuxers_[static_cast<size_t>(index)].finish();
@@ -1357,7 +1361,13 @@ class Frontend {
         }
         if (demux_enabled_) {
             auto start = std::chrono::steady_clock::now();
-            demuxers_[phase].feed(buffer.data() + fed, buffer.size() - fed);
+            try {
+                demuxers_[phase].feed(buffer.data() + fed, buffer.size() - fed);
+            } catch (const std::runtime_error& error) {
+                // A rejected byte phase must not abort the other candidate.
+                // Keep its original diagnostic for the final unique-phase check.
+                phase_errors_[phase] = error.what();
+            }
             counters_.demux_seconds += secondsSince(start);
         }
         phase_fed_[phase] = buffer.size();
@@ -1392,6 +1402,7 @@ class Frontend {
     std::vector<unsigned char> phase_heads_[2];
     SyncCounter sync_[2];
     TpuDemux demuxers_[2];
+    std::string phase_errors_[2];
     DemuxResult demux_result_[2];
     FrontendCounters counters_;
     bool demux_enabled_ = true;

@@ -60,6 +60,17 @@ def build_stream():
             + FSYNC + trace_frame(b'tail') + FSYNC[:2])
 
 
+def phase_isolation_stream(phase=0):
+    # An accidental FSYNC in the wrong byte phase occurs before the genuine
+    # sync in the selected phase. The wrong phase then hits a malformed frame.
+    raw = bytes([0xf0, 0xff, 0xff, 0xff, 0x07]) + bytes(8)
+    raw += FSYNC + trace_frame(b'isolation') + FSYNC + trace_frame(b'tail')
+    if phase:
+        nibbles = [0] + [n for byte in raw for n in (byte & 15, byte >> 4)] + [0]
+        raw = bytes(nibbles[i] | (nibbles[i+1] << 4) for i in range(0,len(nibbles),2))
+    return raw
+
+
 def build_tracks(payload, initial_clock=0, data_glitches=(), half_ticks=HALF_TICKS):
     """把字节流摊成 DDR nibble，再生成各通道的“电平跳变”列表（采样位置 = tick）。
 
@@ -303,6 +314,24 @@ class DemuxChunkTests(unittest.TestCase):
 
 
 class PhaseSelectionTests(unittest.TestCase):
+    def test_malformed_other_phase_does_not_reject_a_valid_phase(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for phase in (0, 1):
+                tracks, initial = build_tracks(phase_isolation_stream(phase))
+                path = write_kvdat(Path(directory)/('phase-%d.kvdat'%phase), tracks, initial)
+                expected = reference(path)
+                self.assertEqual([row[0] for row in expected['valid']], [phase])
+                self.assertEqual(len(expected['failures']), 1)
+                for chunk in (1, 13, 4096):
+                    frontend = Frontend(path, CONFIG, chunk_bytes=chunk)
+                    try:
+                        actual = frontend.run()
+                        self.assertEqual(actual['phase'], phase)
+                        self.assertEqual(actual['tpiu'], expected['candidates'][phase])
+                        self.assertEqual(actual['streams'], expected['valid'][0][2])
+                    finally:
+                        frontend.close()
+
     def test_single_valid_candidate_selected(self):
         raw = build_stream()
         demuxers = [TpuFraming(), TpuFraming()]

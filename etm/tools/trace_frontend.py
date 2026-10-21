@@ -1410,7 +1410,13 @@ class Frontend:
             self.candidate_syncs[phase] += window.count(FSYNC)
             self.candidate_tails[phase] = window[-3:]
             started = time.perf_counter()
-            self.demuxers[phase].feed(chunk)
+            try:
+                self.demuxers[phase].feed(chunk)
+            except FrontendError:
+                # TpuFraming retains the error; select_phase must inspect both
+                # candidates before deciding whether the whole input is invalid.
+                if self.demuxers[phase].mode != 'failed':
+                    raise
             self._counter['demux_bytes'] += len(chunk)
             self._timing['demux'] += time.perf_counter() - started
 

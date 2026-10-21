@@ -75,6 +75,22 @@ class VersionHandshakeTests(unittest.TestCase):
 
 
 class RecordEquivalenceTests(unittest.TestCase):
+    def test_one_malformed_candidate_does_not_abort_the_valid_phase(self):
+        from test_trace_frontend import (phase_isolation_stream, build_tracks,
+                                         write_kvdat, reference)
+        with tempfile.TemporaryDirectory() as directory:
+            for phase in (0, 1):
+                tracks, initial = build_tracks(phase_isolation_stream(phase))
+                path = write_kvdat(Path(directory)/('phase-%d.kvdat'%phase), tracks, initial)
+                expected = reference(path)
+                self.assertEqual([row[0] for row in expected['valid']], [phase])
+                for chunk in (1, 13, 4096):
+                    prefix=Path(directory)/('out-%d-%d'%(phase,chunk))
+                    actual=nf.run(path, CONFIG_10MS,chunk_bytes=chunk,out_prefix=prefix)
+                    self.assertEqual(actual['phase'],phase)
+                    self.assertEqual(Path(str(prefix)+'.tpiu.bin').read_bytes(),expected['candidates'][phase])
+                    self.assertEqual(Path(str(prefix)+'.id2.bin').read_bytes(),expected['valid'][0][2][2])
+
     def setUp(self):
         require_native(self)
 
@@ -133,9 +149,14 @@ class RecordEquivalenceTests(unittest.TestCase):
         whole = SYNTHETIC_DIR / 'capture-synthetic-1s.kvdat'
         if not whole.exists():
             self.skipTest('缺少 t3 合成 1 s 整段文件')
+        from trace_frontend import PhaseSelectionError
+        with self.assertRaises(PhaseSelectionError) as reference_error:
+            nf.run_reference(whole, CONFIG_200MS)
+        self.assertEqual(reference_error.exception.valid_count, 0)
+        self.assertEqual(len(reference_error.exception.failures), 2)
         with self.assertRaises(nf.NativeFrontendError) as caught:
             nf.run(whole, CONFIG_200MS, chunk_bytes=1 << 20)
-        self.assertIn('TPIU 帧内完整同步', str(caught.exception))
+        self.assertIn(str(reference_error.exception), str(caught.exception))
 
 
 class RejectionTests(unittest.TestCase):
