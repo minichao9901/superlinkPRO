@@ -1114,6 +1114,179 @@ class QueryIndex:
         self._node_function = None
         self._nav_tables = None
         self._nav_tables_loaded = False
+        self._row_state = None
+
+    def indexed_events(self, start, end):
+        """Materialize rows using numeric anchors and persisted path segments.
+
+        This is a row reader, not a CallTracker state checkpoint. It must never
+        be used to resume stateful execution analysis. Unsupported old stores
+        return None before yielding; corrupt rows raise rather than duplicating
+        a partially returned page through a late fallback.
+        """
+        store = self._open_store()
+        if (self.first_seq != 0 or self.total_instructions < 1
+                or not (store.meta.get('seq') or {}).get('contiguous', True)):
+            return None
+        if self._row_state is None:
+            names = ('cell_anchor_block', 'cell_anchor_offset', 'cell_anchor_skip',
+                     'cell_first_seq', 'ps_start', 'ps_count', 'ps_leaf',
+                     'node_parent', 'node_label')
+            if any(name not in self.arrays for name in names):
+                return None
+            tables = {name: np.asarray(self.arrays[name]) for name in names}
+            if any(a.ndim != 1 or a.dtype.kind not in 'iu' for a in tables.values()):
+                raise QueryIndexError('行定位索引表形状或类型无效')
+            if self.cell_size < 1:
+                raise QueryIndexError('行定位单元格大小无效')
+            cells = (self.total_instructions + self.cell_size - 1) // self.cell_size
+            if (self.total_instructions + len(self.event_seqs)
+                    != int(store.counts['events']) or int(self.meta['staticCount']) != len(store.static)):
+                raise QueryIndexError('行定位索引计数不符')
+            blocks, offsets, skips, seqs = (tables[name] for name in names[:4])
+            if (any(len(tables[name]) != cells for name in names[:4])
+                    or np.any(blocks < 0) or np.any(blocks >= len(store.sequence_blocks))
+                    or np.any(offsets < 0) or np.any(skips < 0)
+                    or np.any(skips >= trace_store.MAX_RUN_INSTRUCTIONS)):
+                raise QueryIndexError('行定位单元格锚点无效')
+            if not np.array_equal(seqs, self.seq_of_insn(np.arange(cells, dtype=np.int64) * self.cell_size)):
+                raise QueryIndexError('行定位单元格首序号无效')
+            starts, counts, leaves = (tables[name] for name in names[4:7])
+            parents, labels = (tables[name] for name in names[7:])
+            if (not len(starts) or len(starts) != len(counts) or len(starts) != len(leaves)
+                    or int(starts[0]) != 0 or np.any(counts < 1)
+                    or np.any(starts[1:] != starts[:-1].astype(np.int64) + counts[:-1])
+                    or int(starts[-1]) + int(counts[-1]) != self.total_instructions
+                    or not len(parents) or len(labels) != len(parents)
+                    or int(parents[0]) != -1 or np.any(parents[1:] < 0)
+                    or np.any(parents[1:] >= np.arange(1, len(parents)))
+                    or np.any(labels[1:] < 0) or np.any(labels[1:] >= len(self.strings))
+                    or np.any(leaves < 0) or np.any(leaves >= len(parents))):
+                raise QueryIndexError('行定位路径索引无效')
+            # Publish complete immutable tables together; readers can overlap
+            # a cold window preparation without observing half-built state.
+            self._row_state = (tables, {})
+        return self._indexed_events(start, end, self._row_state)
+
+    def _indexed_events(self, start, end, state):
+        store = self._open_store()
+        tables, paths = state
+        end = self.last_seq if end is None else min(self.last_seq, int(end))
+        start = max(self.first_seq, int(start))
+        stats = dict(path='indexed-rows', skippedInstructions=0, decodedIds=0,
+                     records=0, returned=0, cell=None)
+        store._row_last_stats = stats
+        if start > self.last_seq or end < start:
+            return
+        events_before = int(np.searchsorted(self.event_seqs, start, side='left'))
+        ordinal = start - events_before
+        is_event = events_before < len(self.event_seqs) and int(self.event_seqs[events_before]) == start
+        # For a boundary event choose the preceding instruction's cell, since
+        # the next cell's RUN anchor might already lie beyond that event.
+        cell = max(0, ordinal - int(is_event)) // self.cell_size
+        cell = min(cell, len(tables['cell_anchor_block']) - 1)
+        stats['cell'] = cell
+        block = int(tables['cell_anchor_block'][cell])
+        position = int(tables['cell_anchor_offset'][cell])
+        skip = int(tables['cell_anchor_skip'][cell])
+        instruction = cell * self.cell_size
+        anchored = True
+        if start < int(tables['cell_first_seq'][0]):
+            block, position, skip, instruction, anchored = 0, 0, 0, 0, False
+        segment = max(0, int(np.searchsorted(tables['ps_start'], instruction, side='right')) - 1)
+        expected_seq = None
+        for block_ordinal in range(block, len(store.sequence_blocks)):
+            payload = store._sequence_payload(block_ordinal)
+            if not 0 <= position < len(payload):
+                raise QueryIndexError('行定位锚点偏移越界')
+            for kind, begin, finish in store._records(payload, position):
+                stats['records'] += 1
+                cursor = begin
+                if kind == trace_store.REC_CHECKPOINT:
+                    continue
+                seq, cursor = trace_store._dvar(payload, cursor)
+                if kind == trace_store.REC_EVENT:
+                    if skip or anchored:
+                        raise QueryIndexError('行定位锚点没有指向展开段')
+                    etype = payload[cursor];cursor += 1
+                    values = []
+                    for _ in range(6):
+                        value, cursor = trace_store._dvar(payload, cursor);values.append(value)
+                    if cursor != finish or etype not in trace_store.EVENT_TYPES:
+                        raise QueryIndexError('行定位边界事件无效')
+                    if expected_seq is not None and seq != expected_seq:
+                        raise QueryIndexError('行定位事件序号不连续')
+                    expected_seq = seq + 1
+                    if seq > end:return
+                    if seq >= start:
+                        offset, data, lo, hi, flags, text_id = values
+                        stats['returned'] += 1
+                        yield dict(kind='event', seq=seq, type=etype, offset=offset,
+                                   text=store._string(text_id), payload=data,
+                                   start=lo, end=hi, flags=flags)
+                    continue
+                if kind != trace_store.REC_RUN:
+                    raise QueryIndexError('行定位未知序列记录')
+                count, cursor = trace_store._dvar(payload, cursor)
+                tail = payload[cursor];cursor += 1
+                offset, cursor = trace_store._dvar(payload, cursor)
+                cycles, cursor = trace_store._dvar(payload, cursor)
+                span, cursor = trace_store._dvar(payload, cursor)
+                unknown, cursor = trace_store._dvar(payload, cursor)
+                identifier, cursor = trace_store._dvar(payload, cursor)
+                if (not 1 <= count <= trace_store.MAX_RUN_INSTRUCTIONS or not 0 <= skip < count
+                        or tail not in trace_store.TAIL_VALUES
+                        or (cycles == 0 and span != 0)
+                        or (cycles and not 1 <= span <= trace_store.MAX_RUN_INSTRUCTIONS)):
+                    raise QueryIndexError('行定位展开段无效')
+                if anchored:
+                    if seq + skip != int(tables['cell_first_seq'][cell]):
+                        raise QueryIndexError('行定位锚点序号不符')
+                    anchored = False
+                elif expected_seq is not None and seq != expected_seq:
+                    raise QueryIndexError('行定位展开段序号不连续')
+                ids = [identifier]
+                for _ in range(count - 1):
+                    delta, cursor = trace_store._dzvar(payload, cursor)
+                    identifier += delta;ids.append(identifier)
+                stats['decodedIds'] += count
+                if cursor != finish or any(not 0 <= value < len(store.static) for value in ids):
+                    raise QueryIndexError('行定位静态指令引用无效')
+                if sum(store.static[value].predicated for value in ids[:-1]) != unknown:
+                    raise QueryIndexError('行定位内部谓词计数不符')
+                for run_index in range(skip, count):
+                    row_seq = seq + run_index
+                    if row_seq > end:return
+                    if row_seq < start:
+                        stats['skippedInstructions'] += 1
+                    else:
+                        entry = store.static[ids[run_index]]
+                        is_tail = run_index == count - 1
+                        executed = None if entry.predicated else (trace_store.TAIL_VALUES[tail] if is_tail else True)
+                        while (segment + 1 < len(tables['ps_start'])
+                               and int(tables['ps_start'][segment + 1]) <= instruction):
+                            segment += 1
+                        leaf = int(tables['ps_leaf'][segment])
+                        path = paths.get(leaf)
+                        if path is None:
+                            labels = [];node = leaf
+                            while node > 0:
+                                labels.append(self.strings[int(tables['node_label'][node])])
+                                if len(labels) > trace_store.MAX_CALL_DEPTH:
+                                    raise QueryIndexError('行定位调用路径深度越界')
+                                node = int(tables['node_parent'][node])
+                            path = tuple(reversed(labels))
+                            if len(paths) < 200000:paths[leaf] = path
+                        stats['returned'] += 1
+                        yield store._instruction_event(row_seq, offset, entry, executed,
+                                                       cycles if is_tail else 0,
+                                                       span if is_tail else 0, path=path)
+                    instruction += 1
+                skip = 0
+                expected_seq = seq + count
+            position = 0
+        if stats['returned'] == 0 or (expected_seq is not None and expected_seq <= end):
+            raise QueryIndexError('行定位序列提前结束')
 
     # -- 导航表（PC_CELLS/LINE_RUNS；只有 nav 快路径首次使用时才解压/校验）-------------------
     def nav_tables(self):
