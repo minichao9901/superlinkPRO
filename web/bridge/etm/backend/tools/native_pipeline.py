@@ -137,8 +137,12 @@ def write(record_dir, store_dir, **options):
         static_dict.write_static_dict(dictionary, entries, elf_sha)
         mark('prescanAndStatic')
         facts_path = work / 'facts.bin'
+        index_facts_path = (work / 'index-facts.bin' if 'index-facts-v1' in
+                            (options.get('native_capabilities') or {}).get('capabilities', []) else None)
         built = native.build(native_path, dictionary, directory, generation=generation,
-                             generation_tag=tag, analysis=True, facts_out=facts_path)
+                             generation_tag=tag, analysis=True, facts_out=facts_path,
+                             reserve_instructions=scan.get('rangeInstructions'),
+                             index_facts_out=index_facts_path)
         if 'diagnostics' not in built:
             raise writer.NativeStorebuildUnavailable('原生 builder 缺少完整质量诊断，请重新构建')
         writer._validate_native_build_result(built,
@@ -163,6 +167,9 @@ def write(record_dir, store_dir, **options):
         core = ts.TraceStore(private)
         facts = native_facts_index.read_facts_any(facts_path)
         entries = _entries(core)  # facts IDs use core order, not the PC-sorted transport dictionary.
+        if index_facts_path is not None:
+            facts['indexFacts'] = native_facts_index.read_index_facts(
+                index_facts_path, facts, entries, native_sha)
         full = native_facts_index.build_full_index(facts, entries, core.first_seq, core.last_seq,
                                                    view=core, static_first_seen=True)
         if full['meta']['compatPending']:
@@ -209,7 +216,8 @@ def write(record_dir, store_dir, **options):
                     packetText=dict(available=False,reason='按需重放原始 ETM 生成包说明'))
         stored_summary = dict(decoded,eventCount=counts['events'],packetCount=counts['packets'],
                               sourceFiles=list(source_data),firstSeq=core.summary['firstSeq'])
-        sink = ts._BlockSink(work / 'publish.payload')
+        sink = ts._BlockSink(work / 'publish.payload', expected_blocks=
+                             sum(b.block_type != ts.BLK_QUERY for b in core.container.blocks) + 1)
         try:
             replacements={ts.BLK_META:meta,ts.BLK_SUMMARY:stored_summary,ts.BLK_SOURCES:source_data,ts.BLK_ISSUES:issues}
             for ordinal, block in enumerate(core.container.blocks):

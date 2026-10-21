@@ -252,10 +252,12 @@ def build_local_index(store_dir, build_result):
 
 def build(native, static, out_dir, generation=None, generation_tag=None, result=None,
           timeout=DEFAULT_TIMEOUT, binary=None, analysis=False, local_index=False,
-          facts_out=None, native_index=False):
+          facts_out=None, native_index=False, reserve_instructions=None, index_facts_out=None, profile_detail=False):
     """调用原生 build（blocks 1-11；块 12/默认视图留给 t21）。
 
-    ``facts_out`` 触发 facts v2（ETMFACT2）写出；``native_index`` 同时把原生块 12
+    ``facts_out`` 触发 facts v3 写出；index_facts_out 请求同遍数值归约。
+    profile_detail 开启逐 RUN 计时（正常路径仅记录阶段总时间）。
+    ``native_index`` 同时把原生块 12
     payload 写进 store（用于 anchor/PC/line 对照，不影响默认视图）。
     """
     native = Path(native)
@@ -276,6 +278,12 @@ def build(native, static, out_dir, generation=None, generation_tag=None, result=
         args.extend(['--facts-out', str(facts_out)])
     if native_index:
         args.append('--native-index')
+    if profile_detail:
+        args.append('--profile')
+    if index_facts_out is not None:
+        args.extend(['--index-facts-out', str(index_facts_out)])
+    if reserve_instructions:
+        args.extend(['--reserve-instructions', str(int(reserve_instructions))])
     if not local_index:
         return _run_json_command(args, result, timeout, binary=binary)
     first = _run_json_command(args, result, timeout, binary=binary)

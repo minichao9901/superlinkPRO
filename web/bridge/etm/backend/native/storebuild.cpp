@@ -39,6 +39,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <tuple>
 #include <vector>
 
 #if defined(_WIN32)
@@ -183,6 +184,18 @@ class FastReader {
         buffer_.resize(capacity);
     }
     uint64_t size() const { return size_; }
+    void hash_blocks(FastSha256* hash) { hash_ = hash; }
+    const uint8_t* view(size_t size, std::vector<uint8_t>& scratch) {
+        if (position_ == available_ && !fill()) return nullptr;
+        if (size <= available_ - position_) {
+            const auto* result = reinterpret_cast<const uint8_t*>(buffer_.data() + position_);
+            position_ += size;
+            return result;
+        }
+        scratch.resize(size);
+        return read(scratch.data(), size) ? scratch.data() : nullptr;
+    }
+
     bool read(void* data, size_t size) {
         auto* out = static_cast<uint8_t*>(data);
         while (size) {
@@ -211,8 +224,12 @@ class FastReader {
 
   private:
     bool fill() {
-        file_.read(buffer_.data(), static_cast<std::streamsize>(buffer_.size()));
+        const uint64_t remaining = size_ - loaded_;
+        if (!remaining) return false;
+        file_.read(buffer_.data(), static_cast<std::streamsize>(std::min<uint64_t>(remaining, buffer_.size())));
         available_ = static_cast<size_t>(file_.gcount());
+        loaded_ += available_;
+        if (hash_ && available_) hash_->update(buffer_.data(), available_);
         position_ = 0;
         return available_ > 0;
     }
@@ -220,7 +237,8 @@ class FastReader {
     std::vector<char> buffer_;
     size_t position_ = 0;
     size_t available_ = 0;
-    uint64_t size_ = 0;
+    uint64_t size_ = 0, loaded_ = 0;
+    FastSha256* hash_ = nullptr;
 };
 
 double chrono_seconds(std::chrono::steady_clock::time_point start) {
@@ -669,9 +687,11 @@ NativeCounters read_native(const std::string& name, bool collect_ranges,
     NativeCounters counters;
     counters.native_bytes = file_size;
     FastSha256 sha;
+    const bool block_hash = compute_sha && !limit_records;
+    if (block_hash) file.hash_blocks(&sha);
     uint8_t header_bytes[kNativeHeaderBytes];
     if (!file.read(header_bytes, sizeof(header_bytes))) fail(kExitInput, "native.bin 头部被截断");
-    if (compute_sha) sha.update(header_bytes, sizeof(header_bytes));
+    if (compute_sha && !block_hash) sha.update(header_bytes, sizeof(header_bytes));
     if (std::memcmp(header_bytes, "ETMNAT01", 8) != 0) fail(kExitInput, "native.bin magic 不符");
     NativeHeader& header = counters.header;
     header.schema = read_u16(header_bytes + 8);
@@ -705,7 +725,7 @@ NativeCounters read_native(const std::string& name, bool collect_ranges,
         if (file_size - position < 5) fail(kExitInput, "native.bin 记录头被截断");
         uint8_t record_header[5];
         if (!file.read(record_header, sizeof(record_header))) fail(kExitInput, "native.bin 记录头读取失败");
-        if (compute_sha) sha.update(record_header, sizeof(record_header));
+        if (compute_sha && !block_hash) sha.update(record_header, sizeof(record_header));
         const uint8_t kind = record_header[0];
         const uint32_t record_bytes = read_u32(record_header + 1);
         const uint32_t minimum = kind == kRecordElement ? kElementHeaderBytes
@@ -716,11 +736,9 @@ NativeCounters read_native(const std::string& name, bool collect_ranges,
         if (record_bytes > 64u * 1024u * 1024u) fail(kExitInput, "native.bin 记录过大");
         if (position + record_bytes > file_size) fail(kExitInput, "native.bin 记录被截断");
         const uint32_t body_bytes_record = record_bytes - 5;
-        body.resize(body_bytes_record);
-        if (body_bytes_record && !file.read(body.data(), body_bytes_record)) {
-            fail(kExitInput, "native.bin 记录内容读取失败");
-        }
-        if (compute_sha) sha.update(body.data(), body.size());
+        const uint8_t* body_data = file.view(body_bytes_record, body);
+        if (!body_data) fail(kExitInput, "native.bin 记录内容读取失败");
+        if (compute_sha && !block_hash) sha.update(body_data, body_bytes_record);
         uint64_t record_end = position + record_bytes;
         position = record_end;
         ++counters.saw_records;
@@ -728,9 +746,9 @@ NativeCounters read_native(const std::string& name, bool collect_ranges,
         if (status_seen) fail(kExitInput, "native.bin 状态记录之后仍有记录");
         if (kind == kRecordPacket) {
             ++counters.saw_packets;
-            const uint32_t type_code = read_u32(body.data());
-            const uint64_t offset = read_u64(body.data() + 5);
-            const uint32_t size = read_u32(body.data() + 13);
+            const uint32_t type_code = read_u32(body_data);
+            const uint64_t offset = read_u64(body_data + 5);
+            const uint32_t size = read_u32(body_data + 13);
             if (offset < counters.previous_packet_offset)
                 fail(kExitInput, "native.bin packet offsets are not ordered");
             counters.previous_packet_offset = offset;
@@ -755,7 +773,7 @@ NativeCounters read_native(const std::string& name, bool collect_ranges,
                 // 包 raw 应取 kPacketHeaderBytes - 5；-5 遗漏会多读 5 字节、越过
                 // body.size() 读到上一记录残留（t45 发现的 packets 块非确定性来源）。
                 visitor->on_packet(static_cast<uint32_t>(offset), size, type_code,
-                                   body.data() + (kPacketHeaderBytes - 5));
+                                   body_data + (kPacketHeaderBytes - 5));
             }
             continue;
         }
@@ -766,16 +784,16 @@ NativeCounters read_native(const std::string& name, bool collect_ranges,
             } else if (!is_last) {
                 fail(kExitInput, "native.bin 状态记录不是最后一条");
             }
-            const uint32_t processed = read_u32(body.data());
-            const int32_t error_code = static_cast<int32_t>(read_u32(body.data() + 4));
-            const uint32_t library_bytes = read_u32(body.data() + 8);
-            const uint32_t error_bytes = read_u32(body.data() + 12);
-            const uint64_t element_count = read_u64(body.data() + 16);
-            const uint64_t packet_count = read_u64(body.data() + 24);
+            const uint32_t processed = read_u32(body_data);
+            const int32_t error_code = static_cast<int32_t>(read_u32(body_data + 4));
+            const uint32_t library_bytes = read_u32(body_data + 8);
+            const uint32_t error_bytes = read_u32(body_data + 12);
+            const uint64_t element_count = read_u64(body_data + 16);
+            const uint64_t packet_count = read_u64(body_data + 24);
             if (record_bytes != kStatusHeaderBytes + library_bytes + error_bytes) {
                 fail(kExitInput, "native.bin 状态记录长度与字符串长度不符");
             }
-            const char* text = reinterpret_cast<const char*>(body.data() + 32);
+            const char* text = reinterpret_cast<const char*>(body_data + 32);
             counters.status.processed = processed;
             counters.status.last_error_code = error_code;
             counters.status.library.assign(text, library_bytes);
@@ -793,27 +811,26 @@ NativeCounters read_native(const std::string& name, bool collect_ranges,
         // 元素
         ++counters.saw_elements;
         if (body_bytes_record < kElementHeaderBytes - 5) fail(kExitInput, "native.bin 元素记录过短");
-        const uint8_t etype = body[0];
-        const uint8_t last_executed = body[3];
-        const uint8_t last_conditional = body[4];
-        const uint8_t flags8 = body[5];
-        const uint32_t flags = read_u32(body.data() + 6);
-        const uint32_t cycle_count = read_u32(body.data() + 10);
-        const uint32_t payload = read_u32(body.data() + 14);
-        const uint64_t start = read_u64(body.data() + 30);
-        const uint64_t end = read_u64(body.data() + 38);
-        const uint16_t text_bytes = read_u16(body.data() + 54);
-        const uint64_t element_offset = read_u64(body.data() + 22);
+        const uint8_t etype = body_data[0];
+        const uint8_t last_executed = body_data[3];
+        const uint8_t last_conditional = body_data[4];
+        const uint8_t flags8 = body_data[5];
+        const uint32_t flags = read_u32(body_data + 6);
+        const uint32_t cycle_count = read_u32(body_data + 10);
+        const uint32_t payload = read_u32(body_data + 14);
+        const uint64_t start = read_u64(body_data + 30);
+        const uint64_t end = read_u64(body_data + 38);
+        const uint16_t text_bytes = read_u16(body_data + 54);
+        const uint64_t element_offset = read_u64(body_data + 22);
+        if (text_bytes != body_bytes_record - (kElementHeaderBytes - 5))
+            fail(kExitInput, "native.bin 元素文字长度与记录长度不符");
         std::string element_text;
         if (text_bytes) {
-            element_text.assign(reinterpret_cast<const char*>(body.data() + (kElementHeaderBytes - 5)),
+            element_text.assign(reinterpret_cast<const char*>(body_data + (kElementHeaderBytes - 5)),
                                 text_bytes);
         }
         (void)last_conditional;
         if (last_executed > 1) fail(kExitInput, "native.bin lastExecuted 非法");
-        if (text_bytes != body_bytes_record - (kElementHeaderBytes - 5)) {
-            fail(kExitInput, "native.bin 元素文字长度与记录长度不符");
-        }
         if (bool(flags8 & 0x08) != bool(text_bytes)) fail(kExitInput, "native.bin 元素 has_text 标志不一致");
         counters.type_counts[etype]++;
         counters.text_bytes += text_bytes;
@@ -1785,7 +1802,7 @@ std::string Tracker::analysis_json() const {
     return out.str();
 }
 
-// ── C1d facts v2：执行路径事实（trace_store_index._PathTracker 等价）──────────
+// Execution path state shared by online facts and the replay oracle.
 //
 // 参考实现：etm/tools/trace_store_index.py 的 `_PathTracker` + `build_tables()` 的
 // `ps_start/ps_count/ps_leaf` 与 `node_parent/node_label`。facts v2 只输出路径编号
@@ -2083,6 +2100,298 @@ class FactsSink {
     bool committed_ = false;
 };
 
+// Facts are collected alongside the core sequence, with no second decoding
+// pass. The explicit --native-index path remains an independent replay oracle.
+struct ExecutionFacts {
+    struct FactRun { uint64_t ordinal, seq; uint32_t count, block, offset, skip; uint8_t tail; };
+    struct FactCycle { uint64_t ordinal, seq, cycles; uint32_t span; };
+    struct FactEvent { uint64_t seq, payload; uint32_t flags; uint8_t type;
+                       int16_t next_func; int16_t prev_func; int16_t depth;
+                       int32_t prev_seq; uint32_t text_id; };
+    struct FactPathRun { uint64_t start; uint32_t count, leaf; };
+    std::vector<FactRun> fact_runs;
+    std::vector<FactCycle> fact_cycles;
+    std::vector<uint32_t> fact_ids;
+    std::vector<uint8_t> fact_states;
+    std::vector<FactEvent> fact_events;
+    std::vector<FactPathRun> fact_path_runs;
+    FactsLabelTable fact_labels;
+    std::vector<std::string> fact_event_texts;
+    std::unordered_map<std::string, uint32_t> fact_event_text_ids;
+    std::unique_ptr<PathTracker> fact_path;
+    std::vector<std::string> fact_function_text;
+    std::vector<uint32_t> fact_function_label;
+    bool index_facts_enabled = false;
+    uint32_t hotspot_count = 0;
+    std::vector<uint32_t> hotspot_of_id, line_of_id, pc_last_cell;
+    std::vector<std::vector<uint32_t>> pc_cells_by_id;
+    std::vector<uint32_t> cell_unknown, cell_not_taken;
+    std::vector<uint32_t> hotspot_counts, hotspot_unknown, hotspot_first;
+    std::vector<uint32_t> line_starts, line_ids;
+    uint32_t previous_line = 0xFFFFFFFFu;
+    uint64_t segment_start = 0;
+    uint32_t segment_leaf = 0;
+    uint32_t last_function = 0xFFFFFFFFu;
+    int64_t pending_event = -1;
+    uint64_t pending_seq = 0;
+    int32_t previous_event_seq = -1;
+
+    void initialize(const StaticDict& dict, const std::vector<const StaticEntry*>& static_entries_) {
+        const size_t static_count = static_entries_.size();
+        fact_function_text.resize(static_count);
+        fact_function_label.resize(static_count);
+        fact_labels.intern(std::string());
+        fact_event_texts.push_back(std::string());
+        fact_event_text_ids.emplace(std::string(), 0);
+        for (size_t id = 0; id < static_count; ++id) {
+            const StaticEntry* entry = static_entries_[id];
+            std::string function = entry ? ((dict.has_extension && (entry->flags & 2)) ? dict.text(*entry, 0) : std::string()) : std::string();
+            if (function.empty()) function = "(未知函数)";
+            fact_function_text[id] = function;
+            fact_function_label[id] = fact_labels.intern(function);
+            if (fact_function_label[id] >= 0x7FFFu) {
+                fail(kExitConsistency, "facts 函数标签 id 超出 i16");
+            }
+        }
+        fact_path.reset(new PathTracker(fact_labels));
+    }
+    void enable_index_facts(const StaticDict& dict,
+                            const std::vector<const StaticEntry*>& entries, uint64_t reserve) {
+        index_facts_enabled = true;
+        std::map<std::tuple<std::string, bool, std::string, bool, int64_t>, uint32_t> hotspots;
+        std::map<std::tuple<bool, bool, std::string, int64_t>, uint32_t> lines;
+        hotspot_of_id.resize(entries.size());
+        line_of_id.resize(entries.size());
+        pc_last_cell.assign(entries.size(), 0xFFFFFFFFu);
+        pc_cells_by_id.resize(entries.size());
+        for (size_t id = 0; id < entries.size(); ++id) {
+            const auto& entry = *entries[id];
+            const bool has_file = dict.has_extension && (entry.flags & 4);
+            const bool has_line = dict.has_extension && (entry.flags & 8);
+            const std::string file = has_file ? dict.text(entry, 1) : std::string();
+            const auto key = std::make_tuple(fact_function_text[id], has_file, file,
+                                             has_line, has_line ? entry.line : 0);
+            hotspot_of_id[id] = hotspots.emplace(key, static_cast<uint32_t>(hotspots.size())).first->second;
+            const auto line = std::make_tuple(has_line, has_line && has_file,
+                                              has_line ? file : std::string(), has_line ? entry.line : 0);
+            line_of_id[id] = lines.emplace(line, static_cast<uint32_t>(lines.size())).first->second;
+        }
+        hotspot_count = static_cast<uint32_t>(hotspots.size());
+        const size_t cells = static_cast<size_t>((std::min<uint64_t>(reserve, 64ull << 20) + 4095) / 4096);
+        cell_unknown.reserve(cells);cell_not_taken.reserve(cells);
+        hotspot_counts.reserve(cells * hotspot_count);
+        hotspot_unknown.reserve(cells * hotspot_count);
+        hotspot_first.reserve(cells * hotspot_count);
+    }
+    void index_instruction(const StaticEntry& entry, uint8_t state, uint64_t ordinal) {
+        const uint32_t cell = static_cast<uint32_t>(ordinal / 4096);
+        if (ordinal % 4096 == 0) {
+            cell_unknown.push_back(0);cell_not_taken.push_back(0);
+            const size_t size = cell_unknown.size() * hotspot_count;
+            hotspot_counts.resize(size, 0);hotspot_unknown.resize(size, 0);hotspot_first.resize(size, 0);
+        }
+        cell_unknown[cell] += state == 2;
+        cell_not_taken[cell] += state == 1;
+        const size_t key = static_cast<size_t>(cell) * hotspot_count + hotspot_of_id[entry.id];
+        if (!hotspot_counts[key]) hotspot_first[key] = (entry.id << 12) | static_cast<uint32_t>(ordinal % 4096);
+        ++hotspot_counts[key];hotspot_unknown[key] += entry.predicated != 0;
+        if (pc_last_cell[entry.id] != cell) {
+            pc_cells_by_id[entry.id].push_back(cell);pc_last_cell[entry.id] = cell;
+        }
+        const uint32_t line = line_of_id[entry.id];
+        if (line != previous_line) {
+            line_starts.push_back(static_cast<uint32_t>(ordinal));line_ids.push_back(entry.id);previous_line = line;
+        }
+    }
+    void write_index_facts(const std::string& path, const BuildOutput& output) {
+        if (fact_ids.size() > 0x7FFFFFFFull || hotspot_count == 0)
+            fail(kExitConsistency, "数值索引事实尺寸超出支持范围");
+        std::vector<uint32_t> pc_offsets(pc_cells_by_id.size() + 1, 0);
+        uint64_t pairs = 0;
+        for (size_t id = 0; id < pc_cells_by_id.size(); ++id) {
+            pc_offsets[id] = static_cast<uint32_t>(pairs);pairs += pc_cells_by_id[id].size();
+        }
+        if (pairs > 0xFFFFFFFFull) fail(kExitConsistency, "PC cell 数量溢出");
+        pc_offsets.back() = static_cast<uint32_t>(pairs);
+        uint8_t header[128] = {};
+        std::memcpy(header, "ETMIDXF1", 8);
+        const uint32_t version = 1, bytes = 128, size = 4096;
+        const uint32_t statics = static_cast<uint32_t>(hotspot_of_id.size());
+        const uint64_t instructions = fact_ids.size(), lines = line_starts.size();
+        std::memcpy(header + 8, &version, 4);std::memcpy(header + 12, &bytes, 4);
+        std::memcpy(header + 16, &instructions, 8);std::memcpy(header + 24, &size, 4);
+        std::memcpy(header + 28, &statics, 4);std::memcpy(header + 32, &hotspot_count, 4);
+        std::memcpy(header + 40, &lines, 8);std::memcpy(header + 48, &pairs, 8);
+        if (output.native_sha256.size() != 64) fail(kExitConsistency, "索引事实缺少输入指纹");
+        std::memcpy(header + 56, output.native_sha256.data(), 64);
+        FactsSink sink(path);sink.put_bytes(header, sizeof(header));
+        auto write = [&](const std::vector<uint32_t>& values) {
+            sink.put_bytes(values.data(), values.size() * sizeof(uint32_t));
+        };
+        write(hotspot_of_id);write(cell_unknown);write(cell_not_taken);
+        write(hotspot_counts);write(hotspot_unknown);write(hotspot_first);write(pc_offsets);
+        for (const auto& values : pc_cells_by_id) write(values);
+        write(line_starts);write(line_ids);sink.commit();
+    }
+    void close_segment(uint64_t end) {
+        if (end > segment_start) {
+            const uint64_t count = end - segment_start;
+            if (count > 0xFFFFFFFFull) fail(kExitConsistency, "facts 路径区间过长");
+            fact_path_runs.push_back(FactPathRun{segment_start, static_cast<uint32_t>(count), segment_leaf});
+        }
+        segment_start = end;
+        segment_leaf = fact_path->leaf();
+    }
+    uint32_t text_id(const std::string& text) {
+        auto found = fact_event_text_ids.find(text);
+        if (found != fact_event_text_ids.end()) return found->second;
+        if (fact_event_texts.size() >= 0xFFFFFFFFu) fail(kExitConsistency, "facts 文本数量越界");
+        const uint32_t id = static_cast<uint32_t>(fact_event_texts.size());
+        fact_event_texts.push_back(text);
+        fact_event_text_ids.emplace(text, id);
+        return id;
+    }
+    void event(uint64_t seq, uint16_t type, uint32_t flags, uint64_t payload,
+               uint64_t end, const std::string& text) {
+        fact_path->feed_event(type, flags, payload, end);
+        if (fact_path->dirty()) { close_segment(fact_ids.size()); fact_path->clear_dirty(); }
+        if (fact_path->context_depth() > 0x7FFFu || seq > 0x7FFFFFFFull)
+            fail(kExitConsistency, "facts 事件深度/序号超出可表示范围");
+        FactEvent item{seq, payload, flags, static_cast<uint8_t>(type), -1,
+            last_function == 0xFFFFFFFFu ? static_cast<int16_t>(-1) : static_cast<int16_t>(last_function),
+            static_cast<int16_t>(fact_path->context_depth()), previous_event_seq, text_id(text)};
+        if (type == 9) { pending_event = static_cast<int64_t>(fact_events.size()); pending_seq = seq; }
+        else pending_event = -1;
+        previous_event_seq = static_cast<int32_t>(seq);
+        fact_events.push_back(item);
+    }
+    void instruction(const StaticEntry& entry, uint8_t state, uint64_t seq,
+                     uint32_t block, uint32_t offset, uint32_t skip) {
+        const uint64_t ordinal = fact_ids.size();
+        if (index_facts_enabled) index_instruction(entry, state, ordinal);
+        if (ordinal % 4096 == 0)
+            fact_runs.push_back(FactRun{ordinal, seq, 4096, block, offset, skip, 2});
+        fact_path->feed_instruction(fact_function_text[entry.id], state, entry.flow, entry.pc, entry.size);
+        if (fact_path->dirty()) { close_segment(ordinal); fact_path->clear_dirty(); }
+        last_function = fact_function_label[entry.id];
+        if (pending_event >= 0) {
+            if (pending_seq + 1 == seq)
+                fact_events[static_cast<size_t>(pending_event)].next_func = static_cast<int16_t>(last_function);
+            pending_event = -1;
+        }
+        fact_ids.push_back(entry.id);
+        fact_states.push_back(state);
+    }
+    void finish(uint64_t instructions) {
+        if (fact_ids.size() != instructions || fact_states.size() != instructions)
+            fail(kExitConsistency, "在线 facts 指令数不符");
+        close_segment(instructions);
+        if (!fact_runs.empty()) fact_runs.back().count = static_cast<uint32_t>(instructions - fact_runs.back().ordinal);
+        uint64_t covered = 0;
+        for (const auto& run : fact_path_runs) {
+            if (run.start != covered) fail(kExitConsistency, "在线 facts 路径不连续");
+            covered += run.count;
+        }
+        if (covered != instructions) fail(kExitConsistency, "在线 facts 路径未覆盖全部指令");
+    }
+    void write(const std::string& path, BuildOutput& output) {
+        const auto started = std::chrono::steady_clock::now();
+        std::error_code dir_error;
+        fs::create_directories(fs::u8path(path).parent_path(), dir_error);
+        FactsSink sink(path);
+        const uint64_t instruction_count = fact_ids.size();
+        const uint64_t run_count = fact_runs.size();
+        const uint64_t cycle_count = fact_cycles.size();
+        const uint64_t path_run_count = fact_path_runs.size();
+        const uint64_t event_count = fact_events.size();
+        const auto& nodes = fact_path->nodes();
+        const uint64_t node_count = nodes.size();
+        const uint64_t label_count = fact_labels.values.size();
+        const uint64_t text_count = fact_event_texts.size();
+        if (label_count > 0xFFFFFFFFull || text_count > 0xFFFFFFFFull
+                || node_count > 0x7FFFFFFFull || path_run_count > 0xFFFFFFFFull) {
+            fail(kExitConsistency, "facts v2 计数超出可表示范围");
+        }
+        uint8_t header[64] = {};
+        std::memcpy(header, "ETMFACT3", 8);
+        const uint32_t version = 3, header_bytes = 64;
+        std::memcpy(header + 8, &version, 4);
+        std::memcpy(header + 12, &header_bytes, 4);
+        std::memcpy(header + 16, &instruction_count, 8);
+        std::memcpy(header + 24, &run_count, 8);
+        std::memcpy(header + 32, &cycle_count, 8);
+        std::memcpy(header + 40, &path_run_count, 8);
+        std::memcpy(header + 48, &event_count, 8);
+        std::memcpy(header + 56, &node_count, 8);
+        sink.put_bytes(header, 64);
+        for (const FactRun& run : fact_runs) {
+            sink.put_u64(run.ordinal);
+            sink.put_u64(run.seq);
+            sink.put_u32(run.count);
+            sink.put_u32(run.block);
+            sink.put_u32(run.offset);
+            sink.put_u8(run.tail);          // v1 前 32B 的 tailState 位置
+            sink.put_u8(0);
+            sink.put_u8(0);
+            sink.put_u8(0);
+            sink.put_u32(run.skip);         // v2 显式 runSkip
+            sink.put_u32(0);
+        }
+        sink.put_bytes(fact_ids.data(), fact_ids.size() * sizeof(uint32_t));
+        sink.put_bytes(fact_states.data(), fact_states.size());
+        for (const FactCycle& cycle : fact_cycles) {
+            sink.put_u64(cycle.ordinal);
+            sink.put_u64(cycle.seq);
+            sink.put_u64(cycle.cycles);
+            sink.put_u32(cycle.span);
+            sink.put_u32(0);
+        }
+        for (const FactEvent& event : fact_events) {
+            sink.put_u64(event.seq);
+            sink.put_u64(event.payload);
+            sink.put_u32(event.flags);
+            sink.put_u8(event.type);
+            sink.put_u8(0);
+            sink.put_bytes(&event.next_func, 2);
+            sink.put_bytes(&event.prev_func, 2);
+            sink.put_bytes(&event.depth, 2);
+            sink.put_i32(event.prev_seq);
+            sink.put_u32(event.text_id);
+            sink.put_u32(0);
+        }
+        for (const FactPathRun& run : fact_path_runs) {
+            sink.put_u64(run.start);
+            sink.put_u32(run.count);
+            sink.put_u32(run.leaf);
+        }
+        for (const auto& node : nodes) {
+            sink.put_i32(node.first);
+            sink.put_u32(node.second);
+        }
+        sink.put_u64(label_count);
+        for (const std::string& label : fact_labels.values) {
+            sink.put_varint(label.size());
+            sink.put_bytes(label.data(), label.size());
+        }
+        sink.put_u64(text_count);
+        for (const std::string& text : fact_event_texts) {
+            sink.put_varint(text.size());
+            sink.put_bytes(text.data(), text.size());
+        }
+        sink.commit();
+        const uint64_t out_bytes = sink.bytes();
+        output.facts_bytes = out_bytes;
+        output.facts_seconds = chrono_seconds(started);
+        output.facts_path_runs = path_run_count;
+        output.facts_nodes = node_count;
+        output.facts_labels = label_count;
+        output.facts_events = event_count;
+        output.facts_texts = text_count;
+        const uint64_t peak_after_facts = peak_rss_bytes();
+        if (peak_after_facts > output.peak_rss) output.peak_rss = peak_after_facts;
+    }
+};
+
 struct V2Table {
     std::string name;
     uint8_t dtype = 4;       // 4=u32
@@ -2167,6 +2476,12 @@ int64_t read_sv(const uint8_t* data, size_t size, size_t& position) {
 }
 class BuildVisitor : public NativeVisitor {
   public:
+    struct RangePlan {
+        std::vector<const StaticEntry*> entries;
+        std::vector<uint8_t> deltas;
+        uint32_t predicated_count = 0;
+    };
+
     BuildVisitor(const StaticDict& dict, BuildOutput& output, bool need_tracker = true)
         : dict_(dict), output_(output), need_tracker_(need_tracker) {
         strings_.values.push_back("");
@@ -2195,7 +2510,7 @@ class BuildVisitor : public NativeVisitor {
         packet_previous_offset_ = offset;
         ++output_.packets;
     }
-    const std::vector<const StaticEntry*>& range_entries(uint64_t start, uint64_t end,
+    const RangePlan& range_entries(uint64_t start, uint64_t end,
                                                          uint32_t payload) {
         const uint64_t key = (start << 32) | end;
         auto found = range_cache_.find(key);
@@ -2221,7 +2536,13 @@ class BuildVisitor : public NativeVisitor {
         if (pc != end || entries.size() != payload) {
             fail(kExitRangeMismatch, "范围走查与 payload/end 不符");
         }
-        auto inserted = range_cache_.emplace(key, std::move(entries));
+        RangePlan plan;
+        for (size_t index = 0; index < entries.size(); ++index) {
+            plan.predicated_count += entries[index]->predicated != 0;
+            if (index) wzv(plan.deltas, static_cast<int64_t>(entries[index]->id) - entries[index - 1]->id);
+        }
+        plan.entries = std::move(entries);
+        auto inserted = range_cache_.emplace(key, std::move(plan));
         return inserted.first->second;
     }
 
@@ -2235,8 +2556,8 @@ class BuildVisitor : public NativeVisitor {
             if (pending_.offset == offset && previous_tail_code == 0
                     && pending_.cycles == 0) {
                 const auto& entries = range_entries(start, end, payload);
-                pending_.segments.push_back(PendingSegment{&entries, offset, payload,
-                                                           last_executed});
+                pending_.segments.push_back(PendingSegment{&entries.entries, offset, payload,
+                                                           last_executed, &entries});
                 pending_.last_executed = last_executed;
                 pending_.cycles = cycles;
                 pending_.span = cycles ? payload : 0;
@@ -2255,7 +2576,7 @@ class BuildVisitor : public NativeVisitor {
         pending_.span = cycles ? payload : 0;
         pending_.payload = payload;
         pending_.segments.clear();
-        pending_.segments.push_back(PendingSegment{&entries, offset, payload, last_executed});
+        pending_.segments.push_back(PendingSegment{&entries.entries, offset, payload, last_executed, &entries});
     }
     void on_cycle(uint32_t offset, uint32_t cycles, uint32_t payload) override {
         (void)offset;
@@ -2305,6 +2626,7 @@ class BuildVisitor : public NativeVisitor {
         nav_event_.push_back(seq);
         if (is_gap_type(etype) || (etype == 2 && payload)) ++output_.gaps;
         if (need_tracker_) tracker_.feed_event(etype, flags, payload, end);
+        if (online_facts_) online_facts_->event(seq, etype, flags, payload, end, text);
     }
     void on_other(uint16_t etype, uint32_t offset) override {
         (void)etype; (void)offset;
@@ -2336,8 +2658,31 @@ class BuildVisitor : public NativeVisitor {
     const std::map<uint16_t, uint64_t>& event_types() const { return event_types_; }
     std::string analysis_json() const { return tracker_.analysis_json(); }
     void set_analysis(bool enabled) { tracker_.set_analysis(enabled); }
-    void set_facts_out(const std::string& path) { facts_out_ = path; }
+    void set_profile_detail(bool enabled) { profile_detail_ = enabled; }
+    void set_facts_out(const std::string& path, bool online = true, uint64_t reserve = 0) {
+        facts_out_ = path;
+        if (online) {
+            online_facts_ = std::make_unique<ExecutionFacts>();
+            online_facts_->initialize(dict_, static_entries_);
+            // A prescan hint avoids repeated large vector reallocations. Cap
+            // eager allocation; larger valid inputs can still grow normally.
+            const size_t capacity = static_cast<size_t>(std::min<uint64_t>(reserve, 64ull << 20));
+            online_facts_->fact_ids.reserve(capacity);
+            online_facts_->fact_states.reserve(capacity);
+        }
+    }
+    void set_index_facts_out(const std::string& path, uint64_t reserve) {
+        if (!online_facts_) fail(kExitUsage, "--index-facts-out 需要在线 facts，不能与 --native-index 同用");
+        index_facts_out_ = path;
+        online_facts_->enable_index_facts(dict_, static_entries_, reserve);
+    }
     std::vector<uint8_t> build_native_index(bool emit_index = true) {
+        if (!emit_index && online_facts_) {
+            online_facts_->finish(output_.instructions);
+            online_facts_->write(facts_out_, output_);
+            if (!index_facts_out_.empty()) online_facts_->write_index_facts(index_facts_out_, output_);
+            return {};
+        }
         const size_t static_count = static_entries_.size();
         std::vector<uint32_t> pc_offsets(static_count + 1, 0);
         std::vector<std::vector<uint32_t>> pc_cells(static_count);
@@ -2353,40 +2698,24 @@ class BuildVisitor : public NativeVisitor {
         std::vector<int32_t> cell_unknown(cell_count, 0), cell_not_taken(cell_count, 0);
         std::vector<int64_t> cell_cycles(cell_count, 0), cell_first_seq(cell_count, -1);
         std::vector<int32_t> cell_cycle_runs(cell_count, 0);
-        struct FactRun { uint64_t ordinal, seq; uint32_t count, block, offset, skip; uint8_t tail; };
-        struct FactCycle { uint64_t ordinal, seq, cycles; uint32_t span; };
-        struct FactEvent { uint64_t seq, payload; uint32_t flags; uint8_t type;
-                           int16_t next_func; int16_t prev_func; int16_t depth;
-                           int32_t prev_seq; uint32_t text_id; };
-        struct FactPathRun { uint64_t start; uint32_t count, leaf; };
-        std::vector<FactRun> fact_runs;
-        std::vector<FactCycle> fact_cycles;
-        std::vector<uint32_t> fact_ids;
-        std::vector<uint8_t> fact_states;
-        std::vector<FactEvent> fact_events;
-        std::vector<FactPathRun> fact_path_runs;
-        FactsLabelTable fact_labels;
-        std::vector<std::string> fact_event_texts;
-        std::unordered_map<std::string, uint32_t> fact_event_text_ids;
-        std::unique_ptr<PathTracker> fact_path;
-        std::vector<std::string> fact_function_text(static_count);
-        std::vector<uint32_t> fact_function_label(static_count, 0);
-        if (!facts_out_.empty()) {
-            fact_labels.intern(std::string());
-            fact_event_texts.push_back(std::string());
-            fact_event_text_ids.emplace(std::string(), 0);
-            for (size_t id = 0; id < static_count; ++id) {
-                const StaticEntry* entry = static_entries_[id];
-                std::string function = entry ? entry_text(*entry, 0) : std::string();
-                if (function.empty()) function = "(未知函数)";
-                fact_function_text[id] = function;
-                fact_function_label[id] = fact_labels.intern(function);
-                if (fact_function_label[id] >= 0x7FFFu) {
-                    fail(kExitConsistency, "facts 函数标签 id 超出 i16");
-                }
-            }
-            fact_path.reset(new PathTracker(fact_labels));
-        }
+        ExecutionFacts facts;
+        using FactRun = ExecutionFacts::FactRun;
+        using FactCycle = ExecutionFacts::FactCycle;
+        using FactEvent = ExecutionFacts::FactEvent;
+        using FactPathRun = ExecutionFacts::FactPathRun;
+        auto& fact_runs = facts.fact_runs;
+        auto& fact_cycles = facts.fact_cycles;
+        auto& fact_ids = facts.fact_ids;
+        auto& fact_states = facts.fact_states;
+        auto& fact_events = facts.fact_events;
+        auto& fact_path_runs = facts.fact_path_runs;
+        auto& fact_labels = facts.fact_labels;
+        auto& fact_event_texts = facts.fact_event_texts;
+        auto& fact_event_text_ids = facts.fact_event_text_ids;
+        auto& fact_path = facts.fact_path;
+        auto& fact_function_text = facts.fact_function_text;
+        auto& fact_function_label = facts.fact_function_label;
+        if (!facts_out_.empty()) facts.initialize(dict_, static_entries_);
         uint64_t fact_segment_start = 0;
         uint32_t fact_segment_leaf = 0;
         uint32_t fact_last_function = 0xFFFFFFFFu;
@@ -2719,103 +3048,7 @@ class BuildVisitor : public NativeVisitor {
         add("cell_first_seq", 7, 1, cell_count, 0, std::move(cell_first_seq_raw));
         const uint64_t meta_size = meta_raw.size();
         add("meta_json", 0, 1, meta_size, 0, std::move(meta_raw));
-        if (!facts_out_.empty()) {
-            const auto started = std::chrono::steady_clock::now();
-            const std::string path = facts_out_;
-            std::error_code dir_error;
-            fs::create_directories(fs::u8path(path).parent_path(), dir_error);
-            FactsSink sink(path);
-            const uint64_t instruction_count = fact_ids.size();
-            const uint64_t run_count = fact_runs.size();
-            const uint64_t cycle_count = fact_cycles.size();
-            const uint64_t path_run_count = fact_path_runs.size();
-            const uint64_t event_count = fact_events.size();
-            const auto& nodes = fact_path->nodes();
-            const uint64_t node_count = nodes.size();
-            const uint64_t label_count = fact_labels.values.size();
-            const uint64_t text_count = fact_event_texts.size();
-            if (label_count > 0xFFFFFFFFull || text_count > 0xFFFFFFFFull
-                    || node_count > 0x7FFFFFFFull || path_run_count > 0xFFFFFFFFull) {
-                fail(kExitConsistency, "facts v2 计数超出可表示范围");
-            }
-            uint8_t header[64] = {};
-            std::memcpy(header, "ETMFACT3", 8);
-            const uint32_t version = 3, header_bytes = 64;
-            std::memcpy(header + 8, &version, 4);
-            std::memcpy(header + 12, &header_bytes, 4);
-            std::memcpy(header + 16, &instruction_count, 8);
-            std::memcpy(header + 24, &run_count, 8);
-            std::memcpy(header + 32, &cycle_count, 8);
-            std::memcpy(header + 40, &path_run_count, 8);
-            std::memcpy(header + 48, &event_count, 8);
-            std::memcpy(header + 56, &node_count, 8);
-            sink.put_bytes(header, 64);
-            for (const FactRun& run : fact_runs) {
-                sink.put_u64(run.ordinal);
-                sink.put_u64(run.seq);
-                sink.put_u32(run.count);
-                sink.put_u32(run.block);
-                sink.put_u32(run.offset);
-                sink.put_u8(run.tail);          // v1 前 32B 的 tailState 位置
-                sink.put_u8(0);
-                sink.put_u8(0);
-                sink.put_u8(0);
-                sink.put_u32(run.skip);         // v2 显式 runSkip
-                sink.put_u32(0);
-            }
-            for (uint32_t identifier : fact_ids) sink.put_u32(identifier);
-            sink.put_bytes(fact_states.data(), fact_states.size());
-            for (const FactCycle& cycle : fact_cycles) {
-                sink.put_u64(cycle.ordinal);
-                sink.put_u64(cycle.seq);
-                sink.put_u64(cycle.cycles);
-                sink.put_u32(cycle.span);
-                sink.put_u32(0);
-            }
-            for (const FactEvent& event : fact_events) {
-                sink.put_u64(event.seq);
-                sink.put_u64(event.payload);
-                sink.put_u32(event.flags);
-                sink.put_u8(event.type);
-                sink.put_u8(0);
-                sink.put_bytes(&event.next_func, 2);
-                sink.put_bytes(&event.prev_func, 2);
-                sink.put_bytes(&event.depth, 2);
-                sink.put_i32(event.prev_seq);
-                sink.put_u32(event.text_id);
-                sink.put_u32(0);
-            }
-            for (const FactPathRun& run : fact_path_runs) {
-                sink.put_u64(run.start);
-                sink.put_u32(run.count);
-                sink.put_u32(run.leaf);
-            }
-            for (const auto& node : nodes) {
-                sink.put_i32(node.first);
-                sink.put_u32(node.second);
-            }
-            sink.put_u64(label_count);
-            for (const std::string& label : fact_labels.values) {
-                sink.put_varint(label.size());
-                sink.put_bytes(label.data(), label.size());
-            }
-            sink.put_u64(text_count);
-            for (const std::string& text : fact_event_texts) {
-                sink.put_varint(text.size());
-                sink.put_bytes(text.data(), text.size());
-            }
-            sink.commit();
-            out_bytes_ = sink.bytes();
-            output_.facts_bytes = out_bytes_;
-            output_.facts_seconds = chrono_seconds(started);
-            output_.facts_path_runs = path_run_count;
-            output_.facts_nodes = node_count;
-            output_.facts_labels = label_count;
-            output_.facts_events = event_count;
-            output_.facts_texts = text_count;
-            const uint64_t peak_after_facts = peak_rss_bytes();
-            if (peak_after_facts > output_.peak_rss) output_.peak_rss = peak_after_facts;
-        }
+        if (!facts_out_.empty()) facts.write(facts_out_, output_);
         return emit_index ? encode_v2_payload(tables) : std::vector<uint8_t>();
     }
 
@@ -2904,21 +3137,25 @@ class BuildVisitor : public NativeVisitor {
         blocks_.back().insert(blocks_.back().end(), record.begin(), record.end());
         rotate_ = false;
     }
-    void emit_record(const std::vector<uint8_t>& record, uint64_t start_seq,
+    std::pair<uint32_t, uint32_t> emit_record(const std::vector<uint8_t>& record, uint64_t start_seq,
                      uint64_t end_seq) {
         if (rotate_) {
             if (!need_tracker_) fail(kExitConsistency, "输入需要多 sequence 块但未启用 tracker");
             start_block(expected_seq_);
         }
+        const auto location = std::make_pair(static_cast<uint32_t>(blocks_.size() - 1),
+                                             static_cast<uint32_t>(blocks_.back().size()));
         if (block_records_.back() == 1) block_first_.back() = start_seq;
         blocks_.back().insert(blocks_.back().end(), record.begin(), record.end());
         ++block_records_.back();
         block_last_.back() = end_seq;
         if (blocks_.back().size() >= (58ull << 20)) rotate_ = true;
+        return location;
     }
     void flush_pending() {
         if (!pending_.valid) return;
-        const auto flush_started = std::chrono::steady_clock::now();
+        const auto flush_started = profile_detail_ ? std::chrono::steady_clock::now()
+                                                   : std::chrono::steady_clock::time_point{};
         pending_.valid = false;
         const auto& segments = pending_.segments;
         const StaticEntry* tail = segments.back().entries->back();
@@ -2936,33 +3173,18 @@ class BuildVisitor : public NativeVisitor {
         wv(payload, pending_.cycles);
         wv(payload, pending_.span);
         uint32_t internal_unknown = 0;
-        size_t remaining = count;
-        for (const PendingSegment& segment : segments) {
-            for (const StaticEntry* entry : *segment.entries) {
-                if (remaining == 1) break;
-                if (entry->predicated) ++internal_unknown;
-                --remaining;
-            }
-            if (remaining == 1) break;
-        }
+        for (const PendingSegment& segment : segments) internal_unknown += segment.plan->predicated_count;
+        if (tail->predicated) --internal_unknown;
         wv(payload, internal_unknown);
-        size_t remaining_ids = count;
-        uint32_t previous_id = 0;
         bool first_id = true;
+        uint32_t previous_id = 0;
         for (const PendingSegment& segment : segments) {
-            for (const StaticEntry* entry : *segment.entries) {
-                if (remaining_ids == 0) break;
-                if (first_id) {
-                    wv(payload, entry->id);
-                    first_id = false;
-                } else {
-                    wzv(payload, static_cast<int64_t>(entry->id)
-                                - static_cast<int64_t>(previous_id));
-                }
-                previous_id = entry->id;
-                --remaining_ids;
-            }
-            if (remaining_ids == 0) break;
+            const auto& plan = *segment.plan;
+            const uint32_t first = plan.entries.front()->id;
+            if (first_id) { wv(payload, first);first_id = false; }
+            else wzv(payload, static_cast<int64_t>(first) - previous_id);
+            payload.insert(payload.end(), plan.deltas.begin(), plan.deltas.end());
+            previous_id = plan.entries.back()->id;
         }
         auto& record = run_record_;
         record.clear();
@@ -2970,17 +3192,24 @@ class BuildVisitor : public NativeVisitor {
         record.push_back(1);
         wv(record, payload.size());
         record.insert(record.end(), payload.begin(), payload.end());
-        emit_record(record, start_seq, start_seq + count - 1);
+        const auto location = emit_record(record, start_seq, start_seq + count - 1);
+        if (online_facts_ && pending_.cycles)
+            online_facts_->fact_cycles.push_back(ExecutionFacts::FactCycle{
+                output_.instructions + count - 1, start_seq + count - 1, pending_.cycles, pending_.span});
         ++output_.runs;
         output_.instructions += count;
         expected_seq_ += count;
         size_t position = 0;
-        const auto tracker_started = std::chrono::steady_clock::now();
+        const auto tracker_started = profile_detail_ ? std::chrono::steady_clock::now()
+                                                     : std::chrono::steady_clock::time_point{};
         for (const PendingSegment& segment : segments) {
             for (const StaticEntry* entry : *segment.entries) {
                 const bool is_tail = position + 1 == count;
                 const uint8_t executed = is_tail ? tail_code
                     : (entry->predicated ? 2 : 0);
+                if (online_facts_)
+                    online_facts_->instruction(*entry, executed, start_seq + position,
+                                              location.first, location.second, static_cast<uint32_t>(position));
                 if (executed == 2) {
                     const uint64_t seq = start_seq + position;
                     auto& issues = output_.predicate_issues;
@@ -3009,7 +3238,7 @@ class BuildVisitor : public NativeVisitor {
                 ++position;
             }
         }
-        output_.tracker_seconds += chrono_seconds(tracker_started);
+        if (profile_detail_) output_.tracker_seconds += chrono_seconds(tracker_started);
         if (tail_code == 0) ++output_.executed;
         else if (tail_code == 1) ++output_.not_taken;
         else ++output_.unknown;
@@ -3019,7 +3248,7 @@ class BuildVisitor : public NativeVisitor {
         if (output_.instructions == count && count) output_.first_instruction = start_seq;
         if (output_.min_offset == std::numeric_limits<uint64_t>::max()) output_.min_offset = pending_.offset;
         output_.max_offset = std::max<uint64_t>(output_.max_offset, pending_.offset);
-        output_.flush_seconds += chrono_seconds(flush_started);
+        if (profile_detail_) output_.flush_seconds += chrono_seconds(flush_started);
     }
     void build_blocks() {
         const auto blocks_started = std::chrono::steady_clock::now();
@@ -3130,7 +3359,7 @@ class BuildVisitor : public NativeVisitor {
     } strings_;
     std::unordered_map<std::string, uint32_t> ids_;
     std::vector<const StaticEntry*> static_entries_;
-    std::unordered_map<uint64_t, std::vector<const StaticEntry*>> range_cache_;
+    std::unordered_map<uint64_t, RangePlan> range_cache_;
     Tracker tracker_;
     std::vector<std::vector<uint8_t>> blocks_;
     std::vector<uint32_t> block_records_;
@@ -3148,6 +3377,7 @@ class BuildVisitor : public NativeVisitor {
         uint32_t offset = 0;
         uint32_t payload = 0;
         uint8_t last_executed = 0;
+        const RangePlan* plan = nullptr;
     };
     struct Pending {
         bool valid = false;
@@ -3158,6 +3388,9 @@ class BuildVisitor : public NativeVisitor {
         uint32_t payload = 0;
         std::vector<PendingSegment> segments;
     } pending_;
+    bool profile_detail_ = false;
+    std::string index_facts_out_;
+    std::unique_ptr<ExecutionFacts> online_facts_;
     std::string facts_out_;
     uint64_t out_bytes_ = 0;
     std::string event_text_;
@@ -3200,6 +3433,20 @@ void add_json_block(BuildOutput& output, uint16_t type, const std::string& json)
 }
 
 void write_store(const fs::path& path, BuildOutput& output) {
+    // Existing container flag 1 supports compressed execution sequences.
+    // Packet blocks retain record-count semantics and stay uncompressed.
+    // Compress execution blocks before writing either the private core or
+    // final generation, keeping anchor offsets in the uncompressed sequence.
+    for (auto& block : output.blocks) {
+        if (!block.flags && block.type == 3 && block.payload.size() >= (64u << 10)) {
+            auto compressed = zlib_compress(block.payload, 1);
+            if (compressed.size() < block.payload.size()) {
+                block.uncompressed = static_cast<uint32_t>(block.payload.size());
+                block.payload = std::move(compressed);
+                block.flags = 1;
+            }
+        }
+    }
     // 块顺序：strings/static/sequence/packets/nav/agg/meta/summary/sources/issues/checkpoints
     const uint64_t blocks = output.blocks.size();
     const uint64_t index_bytes = blocks * 24;
@@ -3327,7 +3574,7 @@ int main_utf8(int argc, char** argv) {
                       << ",\"buildSha\":" << quote(build_sha())
                       << ",\"formats\":{\"native\":\"trace-bin native v1\","
                          "\"staticDict\":1,\"ranges\":1}"
-                      << ",\"capabilities\":[\"prescan\",\"diagnose\",\"build\",\"facts-v3\",\"quality-diagnostics\"]"
+                      << ",\"capabilities\":[\"prescan\",\"diagnose\",\"build\",\"facts-v3\",\"quality-diagnostics\",\"index-facts-v1\"]"
                       << "}" << std::endl;
             return kExitOk;
         }
@@ -3412,6 +3659,7 @@ int main_utf8(int argc, char** argv) {
                  << ", \"seenElements\":" << counters.saw_elements
                  << ", \"seenPackets\":" << counters.saw_packets << ",\n";
             json << " \"rangeRecords\":" << counters.range_records
+                 << ", \"rangeInstructions\":" << (counters.logical_seq - counters.event_elements)
                  << ", \"uniqueRanges\":" << counters.unique_ranges
                  << ", \"duplicateRanges\":" << counters.duplicate_ranges
                  << ", \"payloadMismatches\":" << counters.payload_mismatches << ",\n";
@@ -3519,7 +3767,9 @@ int main_utf8(int argc, char** argv) {
             std::string facts_out;
             bool native_index = false;
             bool force_analysis = false;
-            uint64_t generation_tag = 0;
+            uint64_t generation_tag = 0, reserve_instructions = 0;
+            std::string index_facts_out;
+            bool profile_detail = false;
             for (int index = 2; index < argc; ++index) {
                 const std::string arg = argv[index];
                 auto next = [&](const char* label) -> std::string {
@@ -3535,6 +3785,9 @@ int main_utf8(int argc, char** argv) {
                 else if (arg == "--analysis") force_analysis = true;
                 else if (arg == "--index-payload") index_payload_path = next("--index-payload");
                 else if (arg == "--native-index") native_index = true;
+                else if (arg == "--profile") profile_detail = true;
+                else if (arg == "--index-facts-out") index_facts_out = next("--index-facts-out");
+                else if (arg == "--reserve-instructions") reserve_instructions = std::stoull(next("--reserve-instructions"));
                 else if (arg == "--facts-out") facts_out = next("--facts-out");
                 else fail(kExitUsage, "未知参数：" + arg);
             }
@@ -3552,7 +3805,9 @@ int main_utf8(int argc, char** argv) {
             (void)size_error;
             BuildVisitor visitor(dict, output, true);
             visitor.set_analysis(need_analysis);
-            if (!facts_out.empty()) visitor.set_facts_out(facts_out);
+            visitor.set_profile_detail(profile_detail);
+            if (!facts_out.empty()) visitor.set_facts_out(facts_out, !native_index, reserve_instructions);
+            if (!index_facts_out.empty()) visitor.set_index_facts_out(index_facts_out, reserve_instructions);
             const auto started = std::chrono::steady_clock::now();
             NativeCounters counters = read_native(native_path, false, nullptr, 1000000, 0,
                                                    nullptr, true, &visitor);
@@ -3691,13 +3946,14 @@ int main_utf8(int argc, char** argv) {
                    << output.unknown << ",\"notTaken\":" << output.not_taken
                    << ",\"exceptions\":" << output.exceptions << ",\"gaps\":"
                    << output.gaps << "},\n";
+            result << " \"timingDetail\":" << (profile_detail ? "true" : "false") << ",\n";
             result << " \"phases\":{\"readNative\":" << assemble_seconds
                    << ",\"assemble\":" << assemble_seconds
                    << ",\"rangeHits\":" << output.range_hits << ",\"rangeMisses\":" << output.range_misses
-                   << ",\"rangeWalk\":" << output.range_seconds
-                   << ",\"runEncode\":" << output.flush_seconds
-                   << ",\"tracker\":" << output.tracker_seconds
-                   << ",\"buildBlocks\":" << output.build_blocks_seconds
+                   << ",\"rangeWalk\":" << output.range_seconds;
+            if (profile_detail) result << ",\"runEncode\":" << output.flush_seconds
+                                       << ",\"tracker\":" << output.tracker_seconds;
+            result << ",\"buildBlocks\":" << output.build_blocks_seconds
                    << ",\"analysis\":" << output.analysis_seconds
                    << ",\"queryIndex\":" << output.index_seconds
                    << ",\"facts\":" << output.facts_seconds

@@ -886,7 +886,7 @@ def _write_native(record_dir, store_dir, **kwargs):
     if not {'facts-v3', 'quality-diagnostics'}.issubset(capabilities):
         raise NativeStorebuildUnavailable('原生 build 缺少 facts-v3/quality-diagnostics，请重新构建')
     from native_pipeline import write as native_write
-    return native_write(record_dir, store_dir, **kwargs)
+    return native_write(record_dir, store_dir, native_capabilities=info, **kwargs)
 
 
 # ---------------------------------------------------------------------------------------------
