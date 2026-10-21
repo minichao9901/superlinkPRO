@@ -892,14 +892,27 @@ def import_record():
         if suffix not in ('.csv', '.bin', '.kvdat'):
             raise ValueError('请选择 KVDAT、CSV、解复用后的 ETM BIN 或 .etmrecord。')
         filename = 'capture' + suffix
-        uploaded.save(folder / filename)
         if 'elf' not in request.files:
             raise ValueError('导入原始采集需要配套 ELF。')
-        request.files['elf'].save(folder / 'firmware.elf')
         config = json.loads(request.form.get('config', '{}'))
+        if not isinstance(config,dict) or not config:
+            raise ValueError('裸波形导入需要采集时的 ETM 配置（session.json）；无需连接目标。')
+        required=('idr','ctrl','ccer','traceid') if config.get('protocol')=='ETMv3' else tuple(DEFAULT_CONFIG)
+        missing=set(required)-set(config)
+        if missing:raise ValueError('离线采集配置缺少寄存器：'+', '.join(sorted(missing)))
+        clock=int(request.form.get('clock',0));data=json.loads(request.form.get('data','[1,2,3,4]'))
+        if (not isinstance(data,list) or len(data)!=4 or
+                any(isinstance(v,bool) or not isinstance(v,int) or not 0<=v<=15 for v in data) or
+                not 0<=clock<=15 or len(set([clock]+data))!=5):
+            raise ValueError('离线采集需要 CLK、D0～D3 五个不同的 CH0～15 通道。')
+        fraction=float(request.form.get('fraction',.25));glitch=float(request.form.get('glitchNs',0))
+        if not 0<fraction<1 or not 0<=glitch<=100:
+            raise ValueError('离线取样位置或滤波宽度无效。')
         m = dict(input=filename, name=uploaded.filename, config=decoder_config(config),
-                 configBasis='user-provided', fraction=float(request.form.get('fraction', .25)),
-                 glitchNs=float(request.form.get('glitchNs',0)) if suffix in ('.csv','.kvdat') else 0)
+                 configBasis='user-provided', targetVerified=False,clock=clock,data=data,
+                 fraction=fraction,glitchNs=glitch if suffix in ('.csv','.kvdat') else 0)
+        uploaded.save(folder / filename)
+        request.files['elf'].save(folder / 'firmware.elf')
         sources = {}
         for file in request.files.getlist('sources'):
             sources[file.filename.replace('\\', '/')] = file.read().decode('utf-8-sig', 'replace')

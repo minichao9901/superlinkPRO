@@ -8,9 +8,12 @@ import {traceSettings,traceSettingsText} from './trace-options.js';
 import {HistoryView} from './history.js';
 import {normalizeSliceRecord,renderSliceTimeline,sliceIndexForRange,sliceSeqRange} from './slices.js';
 import {COMMON_TARGETS,completeClocks,targetPort} from './clock.js';
+import {offlineSettings} from './offline-config.js';
+import {bindFilePicker} from './file-picker.js';
 const $=id=>document.getElementById(id),hex=n=>'0x'+(n>>>0).toString(16).padStart(8,'0'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const state={records:[],current:null,job:null,operation:false,elfInfo:null,elfId:null,elfFile:null,sourceFiles:{},sourceSnapshot:null,sourceCompat:false,sources:new SourceStore(),entryAddress:null,hseValues:{stm32h7b0:25,stm32h743:25,stm32f103ze:8},hseOverride:null,lastProfile:null,symbolAddress:null,pendingBreakpointRestore:[],lastTraceConfig:null,waiting:false,traceConfigDirty:false,sliceModel:null,sliceEventCount:null,capabilities:null,captureMaxSeconds:0.2,captureMaxSamples:1e8};
 const host=embeddedHost(),target=new EtmTarget(log,{host});
+state.offlineConfig=null;
 /**
  * API base（本地桥地址）的三级来源 + 默认值。见 web/docs/etm-online-bridge.md。
  *   1) `data-api-base` 属性：本地 `serve-etm.py` 注入 `/etm/api/`；静态副本的 bootstrap 也会写它；
@@ -77,6 +80,9 @@ function controls(){const busy=state.operation||!!state.job,connected=!!target.p
   $('connect').disabled=connected||busy;$('disconnect').disabled=!connected||busy;$('remove-break').disabled=busy||!target.breakpoints.items.length;$('cancel-wait').hidden=!target.entryBreak&&!state.waiting;
   $('start').disabled=!!state.failedCaptureJob||busy||!state.elfInfo||($('sync').checked&&(!target.info?.traceSupported||!connected||$('entry-before').checked&&state.entryAddress===null));$('stop').disabled=!state.failedCaptureJob&&!(state.jobKind==='capture'&&['queued','starting','armed'].includes(state.jobPhase));
   for(const id of ['open-record','choose-elf','choose-sources','import'])$(id).disabled=busy;
+  for(const id of ['choose-offline-config','apply-offline-config','offline-config-json','offline-channels','offline-fraction','offline-glitch'])$(id).disabled=busy;
+  $('clear-offline-config').disabled=busy||!state.offlineConfig;
+  $('use-readback-config').disabled=busy||!(target.config||state.lastTraceConfig);
   $('choose-sources').disabled=busy||(!state.elfInfo&&!history.result);
   for(const id of ['symbol-search','break-command','add-break'])$(id).disabled=busy||!state.elfInfo;
   for(const b of document.querySelectorAll('.symbol-row button,.breakpoint-row button,.breakpoint-row input,#break-candidates button'))b.disabled=busy;
@@ -95,7 +101,7 @@ function panel(name){for(const b of document.querySelectorAll('[data-panel]')){c
 for(const b of document.querySelectorAll('[data-panel]')){b.onclick=()=>panel(b.dataset.panel);b.onkeydown=e=>{const names=['target','clock','trace','files'],i=names.indexOf(b.dataset.panel);if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?3:(i+(e.key==='ArrowLeft'?3:1))%4;panel(names[next]);$('tab-'+names[next]).focus();}};}
 function externalDecodeConfig(){
   const config=target.config||state.lastTraceConfig;
-  if(!config)throw Error('直接采集或导入原始波形前，请先连接目标并读取 ETM 配置；不能假定 ETMv4。记录包可直接导入');
+  if(!config)throw Error('直接采集前，请先连接目标并读取 ETM 配置；不能假定 ETMv4。离线导入请在文件页载入采集配置');
   return {...config,traceid:Number($('traceid').value)};
 }
 function options(){return {traceid:Number($('traceid').value),branchBroadcast:$('branch-broadcast').checked,returnStack:$('return-stack').checked,cycleCount:$('cycles').checked,pinSpeed:Number($('pin-speed').value)};}
@@ -323,14 +329,14 @@ on('start',async()=>{const sync=$('sync').checked,tokens=$('channels').value.spl
 on('stop',async()=>{state.captureCancelled=true;const id=state.job||state.failedCaptureJob;if(id){await api('stop/'+id,{});state.failedCaptureJob=null;controls();}},{exclusive:false});
 on('decode',async()=>{if(!state.current)throw Error('请选择记录');await watchJob((await api('decode/'+state.current,{})).job);});
 function download(kind){if(!state.current)throw Error('请选择记录');const a=document.createElement('a');a.href=apiBase+'download/'+state.current+'/'+kind+(history.range&&['source','simplified','simplified-html','csv'].includes(kind)?'?fromSeq='+history.range.start+'&toSeq='+history.range.end:'');a.download='';a.click();}
-on('save-record',()=>download('record'));on('export',()=>download($('export-type').value));on('import',()=>$('capture-file').click());on('choose-elf',()=>$('elf-file').click());on('choose-sources',async()=>{
+on('save-record',()=>download('record'));on('export',()=>download($('export-type').value));on('choose-sources',async()=>{
   if(!SourceStore.supported()||state.sourceCompat){$('sources-files').click();return;}
   const store=new SourceStore(),paths=state.elfInfo?.sourceFiles||history.result?.sourceFiles||[];
   if(!paths.length)throw Error('当前 ELF 没有 DWARF 源码路径，不会扫描整个目录');
   store.setExpectedPaths(paths);
   try{await store.pick();await saveSourceStore(store);}catch(e){if(e.name==='AbortError')return;if(['SecurityError','NotSupportedError','NotAllowedError'].includes(e.name)){state.sourceCompat=true;log('此环境无法使用原生目录授权；再次点击“选择源码目录”将使用兼容选择');return;}throw e;}
 });
-$('elf-file').onchange=async()=>{if(state.operation||state.job){error(Error('请等待当前操作完成后再载入 ELF'));$('elf-file').value='';return;}try{await perform(async()=>{const file=$('elf-file').files[0];if(!file)return;const form=new FormData();form.append('elf',file);const info=await api('elf',form);if(target.probe)await target.halt();await target.breakpoints.clear();setElf(info,info.elfId,file);log('ELF 已载入，请添加断点并选择采集起点');});}finally{$('elf-file').value='';}};
+bindFilePicker($('choose-elf'),$('elf-file'),{blocked:()=>state.operation||state.job,error,id:'etm-elf',types:[{description:'ARM ELF',accept:{'application/octet-stream':['.elf','.axf']}}],consume:file=>perform(async()=>{const form=new FormData();form.append('elf',file);const info=await api('elf',form);if(target.probe)await target.halt();await target.breakpoints.clear();setElf(info,info.elfId,file);log('ELF 已载入；可连接目标采集，也可在文件页离线导入');})});
 async function saveSourceStore(store){
   const info=state.elfInfo||(state.current&&await api('record-elf/'+state.current));
   if(!info)throw Error('请先载入 ELF 或打开历史记录，才能读取配套源码');
@@ -364,7 +370,47 @@ $('sources-files').onchange=async()=>{
     await store.setExpectedPaths(info.sourceFiles);store.indexFileList(files);await saveSourceStore(store);
   }catch(e){error(e);}finally{state.operation=false;$('sources-files').value='';controls();}
 };
-$('capture-file').onchange=async()=>{if(state.operation||state.job){error(Error('请等待当前操作完成后再导入'));$('capture-file').value='';return;}try{await perform(async()=>{const f=$('capture-file').files[0];if(!f)return;const form=new FormData();form.append('capture',f);if(!f.name.toLowerCase().endsWith('.etmrecord')){if(!state.elfInfo)throw Error('导入原始 CSV/BIN 前请在调试页载入匹配 ELF；记录包可直接导入');if(state.elfFile)form.append('elf',state.elfFile);else{const response=await fetch(apiUrl(state.elfInfo.download)||apiBase+'record-firmware/'+state.elfId);if(!response.ok)throw Error('先选择匹配 ELF');form.append('elf',new Blob([await response.arrayBuffer()]),'firmware.elf');}form.append('config',JSON.stringify(externalDecodeConfig()));form.append('fraction',$('fraction').value);form.append('glitchNs',$('glitch-ns').value);for(const [name,text]of Object.entries(state.sourceFiles))form.append('sources',new Blob([text]),name);}const saved=await api('import',form);await refreshRecords();await watchJob((await api('decode/'+saved.record,{})).job);},{hardware:false});}catch(e){error(e);}finally{$('capture-file').value='';}};
+function offlinePhysical(){
+  const tokens=$('offline-channels').value.split(',');
+  if(tokens.length!==5||tokens.some(v=>!v.trim()))throw Error('离线通道需要 CLK、D0～D3 五个 CH0～15 通道');
+  return {clock:Number(tokens[0]),data:tokens.slice(1).map(Number),fraction:Number($('offline-fraction').value),glitchNs:Number($('offline-glitch').value)};
+}
+function setOfflineConfig(value,label){
+  const parsed=offlineSettings(value,offlinePhysical());
+  state.offlineConfig=parsed;
+  $('offline-channels').value=[parsed.clock,...parsed.data].join(',');
+  $('offline-fraction').value=parsed.fraction;$('offline-glitch').value=parsed.glitchNs;
+  $('offline-config-state').textContent=label+' · '+parsed.config.protocol+' · Trace ID '+parsed.config.traceid;
+  $('job-state').textContent='已载入离线采集配置，可导入原始波形；无需连接目标';
+  log('离线采集配置已载入；无需连接目标');
+}
+on('clear-offline-config',()=>{state.offlineConfig=null;$('offline-config-json').value='';$('offline-config-state').textContent='尚未载入采集配置';});
+on('apply-offline-config',()=>setOfflineConfig(JSON.parse($('offline-config-json').value.replace(/^\uFEFF/,'')),'手动配置'));
+on('use-readback-config',()=>{
+  const config=target.config||state.lastTraceConfig;
+  if(!config)throw Error('当前没有已读取的目标配置，请载入采集时的 session.json');
+  setOfflineConfig({config,clock:Number($('channels').value.split(',')[0]),data:$('channels').value.split(',').slice(1).map(Number),fraction:Number($('fraction').value),glitchNs:Number($('glitch-ns').value)},'当前回读（请确认与历史采集一致）');
+});
+bindFilePicker($('choose-offline-config'),$('offline-config-file'),{blocked:()=>state.operation||state.job,error,id:'etm-config',types:[{description:'采集配置 JSON',accept:{'application/json':['.json']}}],consume:file=>perform(async()=>{
+  if(file.size>1024*1024)throw Error('采集配置 JSON 超过 1 MiB，请选择 session.json');
+  setOfflineConfig(JSON.parse((await file.text()).replace(/^\uFEFF/,'')),file.name);
+},{hardware:false})});
+bindFilePicker($('import'),$('capture-file'),{blocked:()=>state.operation||state.job,error,id:'etm-record',types:[{description:'ETM 记录或波形',accept:{'application/octet-stream':['.kvdat','.csv','.bin','.etmrecord']}}],consume:f=>perform(async()=>{
+  const form=new FormData();form.append('capture',f);
+  if(!f.name.toLowerCase().endsWith('.etmrecord')){
+    if(!state.elfInfo)throw Error('导入原始 KVDAT/CSV/BIN 前请在调试页载入匹配 ELF；记录包可直接导入');
+    if(!state.offlineConfig)throw Error('请先载入采集时的 session.json 或填写离线采集配置；无需连接目标');
+    const settings=offlineSettings({config:state.offlineConfig.config,...offlinePhysical(),elfSha256:state.offlineConfig.elfSha256});
+    if(settings.elfSha256&&settings.elfSha256!==state.elfInfo.sha256)throw Error('当前 ELF 与采集配置中的 SHA256 不匹配，请载入采集目录里的 firmware.elf');
+    if(state.elfFile)form.append('elf',state.elfFile);
+    else{const response=await fetch(apiUrl(state.elfInfo.download)||apiBase+'record-firmware/'+state.elfId);if(!response.ok)throw Error('先选择匹配 ELF');form.append('elf',new Blob([await response.arrayBuffer()]),'firmware.elf');}
+    form.append('config',JSON.stringify(settings.config));
+    for(const key of ['clock','fraction','glitchNs'])form.append(key,String(settings[key]));
+    form.append('data',JSON.stringify(settings.data));
+    for(const [name,text]of Object.entries(state.sourceFiles))form.append('sources',new Blob([text]),name);
+  }
+  const saved=await api('import',form);await refreshRecords();await watchJob((await api('decode/'+saved.record,{})).job);
+},{hardware:false})});
 function sideButtonLabel(){$('toggle-settings').textContent=innerWidth<=780?'采集设置':document.body.classList.contains('side-hidden')?'显示控制':'收起控制';}
 $('help').onclick=()=>$('help-dialog').showModal();$('close-help').onclick=()=>$('help-dialog').close();$('toggle-settings').onclick=()=>{document.body.classList.toggle(innerWidth<=780?'settings-open':'side-hidden');sideButtonLabel();};window.addEventListener('resize',sideButtonLabel);sideButtonLabel();
 $('toggle-source').onclick=()=>{const open=document.body.classList.toggle('source-open');$('toggle-source').textContent=open?'轨迹':'源码';$('toggle-source').setAttribute('aria-expanded',String(open));};
