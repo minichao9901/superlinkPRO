@@ -10,6 +10,7 @@ import {normalizeSliceRecord,renderSliceTimeline,sliceIndexForRange,sliceSeqRang
 import {COMMON_TARGETS,completeClocks,targetPort} from './clock.js';
 import {offlineSettings} from './offline-config.js';
 import {bindFilePicker} from './file-picker.js';
+import {fetchExecutionExport,saveExportFile} from './export.js';
 const $=id=>document.getElementById(id),hex=n=>'0x'+(n>>>0).toString(16).padStart(8,'0'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const state={records:[],current:null,job:null,operation:false,elfInfo:null,elfId:null,elfFile:null,sourceFiles:{},sourceSnapshot:null,sourceCompat:false,sources:new SourceStore(),entryAddress:null,hseValues:{stm32h7b0:25,stm32h743:25,stm32f103ze:8},hseOverride:null,lastProfile:null,symbolAddress:null,pendingBreakpointRestore:[],lastTraceConfig:null,waiting:false,traceConfigDirty:false,sliceModel:null,sliceEventCount:null,capabilities:null,captureMaxSeconds:0.2,captureMaxSamples:1e8};
 const host=embeddedHost(),target=new EtmTarget(log,{host});
@@ -87,7 +88,8 @@ function controls(){const busy=state.operation||!!state.job,connected=!!target.p
   for(const id of ['symbol-search','break-command','add-break'])$(id).disabled=busy||!state.elfInfo;
   for(const b of document.querySelectorAll('.symbol-row button,.breakpoint-row button,.breakpoint-row input,#break-candidates button'))b.disabled=busy;
   $('target-profile').disabled=busy||connected;$('show-experiments').disabled=busy;
-  $('save-record').disabled=!state.current;$('decode').disabled=!state.current||busy;$('export').disabled=!state.current;
+  $('save-record').disabled=!state.current||busy;$('decode').disabled=!state.current||busy;$('export').disabled=!state.current||busy;
+  $('record-source-settings').disabled=busy;
   for(const id of ['rate','duration','threshold','fraction','glitch-ns','channels','hse','expected-cpu','expected-trace','sync','reset-before','entry-before','pin-speed','traceid','branch-broadcast','return-stack','cycles','auto-clock'])$(id).disabled=busy;
   for(const [id,option]of [['branch-broadcast','branchBroadcast'],['return-stack','returnStack'],['cycles','cycleCount']])$(id).disabled=busy||target.info?.traceOptions?.[option]===false;
   if(target.info?.profile==='stm32f103ze')$('pin-speed').disabled=true;
@@ -328,7 +330,17 @@ on('start',async()=>{const sync=$('sync').checked,tokens=$('channels').value.spl
 });
 on('stop',async()=>{state.captureCancelled=true;const id=state.job||state.failedCaptureJob;if(id){await api('stop/'+id,{});state.failedCaptureJob=null;controls();}},{exclusive:false});
 on('decode',async()=>{if(!state.current)throw Error('请选择记录');await watchJob((await api('decode/'+state.current,{})).job);});
-function download(kind){if(!state.current)throw Error('请选择记录');const a=document.createElement('a');a.href=apiBase+'download/'+state.current+'/'+kind+(history.range&&['source','simplified','simplified-html','csv'].includes(kind)?'?fromSeq='+history.range.start+'&toSeq='+history.range.end:'');a.download='';a.click();}
+async function download(kind){
+  if(!state.current)throw Error('请选择记录');
+  const execution=['source','simplified','simplified-html','csv'].includes(kind);
+  const url=apiBase+'download/'+state.current+'/'+kind+(history.range&&execution?'?fromSeq='+history.range.start+'&toSeq='+history.range.end:'');
+  if(execution){
+    $('job-state').textContent='正在生成导出文件…';
+    const file=await fetchExecutionExport(url);saveExportFile(file);
+    $('job-state').textContent='已生成 '+file.filename;log('导出已生成：'+file.filename);
+  }else{const a=document.createElement('a');a.href=url;a.download='';a.click();}
+}
+on('record-source-settings',()=>{panel('target');$('choose-sources').closest('details').open=true;$('choose-sources').focus();},{exclusive:false});
 on('save-record',()=>download('record'));on('export',()=>download($('export-type').value));on('choose-sources',async()=>{
   if(!SourceStore.supported()||state.sourceCompat){$('sources-files').click();return;}
   const store=new SourceStore(),paths=state.elfInfo?.sourceFiles||history.result?.sourceFiles||[];

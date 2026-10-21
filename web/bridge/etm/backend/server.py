@@ -1,6 +1,5 @@
 """本地 ETM 页面、Kingst 采集任务、OpenCSD 解码与记录文件服务。"""
 import base64
-import csv
 import hashlib
 import io
 import json
@@ -23,7 +22,7 @@ from flask import Flask, jsonify, request, send_file, send_from_directory, abort
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'tools/la'))
-from decode_trace import DEFAULT_CONFIG, Image, decode_capture, export_source, decoder_config
+from decode_trace import DEFAULT_CONFIG, Image, decode_capture, decoder_config
 from flow_analysis import enrich
 from kingst_la import Vis, do_export, read_glitch_settings
 from record_store import RecordStore, record_store
@@ -32,10 +31,11 @@ from trace_store_adapter import (BACKEND_TRACE, MANIFEST_NAME as STORE_MANIFEST_
                                 backend_for as record_backend,
                                 capture_start_from_store, read_sources as store_read_sources)
 from stream_store import attach_streams, JsonLines
-from decode_stream import decode_capture_stream, decode_stream, export_simplified_stream, store_write_enabled
+from decode_stream import decode_capture_stream, decode_stream, store_write_enabled
 from slice_merge import merge_slice_events, aggregate_slices
 from breakpoint_resolver import resolve_breakpoint
-from source_export import base as source_base, simplified_html
+from source_export import write_execution_export
+from werkzeug.wsgi import ClosingIterator
 from trace_port import frontend_accel
 
 app = Flask(__name__, static_folder='web', static_url_path='')
@@ -1171,61 +1171,6 @@ def stop_owned_la_locked(jid):
     # Closing the receive side wakes start even when VIS swallowed its reply.
 
 
-def export_simplified_from_store(sid, out_path):
-    """从 trace-store 流式生成「简化源码 .c」。
-
-    新格式记录没有 events.jsonl；这里逐条展开 store 事件（O(1) 内存），
-    行规则与 `decode_stream.export_simplified_stream` 相同；文件头按源码文件排序，
-    不作为可编译程序。
-    """
-    store = browse_store(sid)
-    sources = store.sources()
-    source_lines = {file: text.splitlines() for file, text in sources.items()}
-    clean = lambda text: str(text).replace('*/', '* /')          # noqa: E731
-    rows = 0
-    last = None
-    context = None
-    protocol = (store.overview() or {}).get('protocol', 'ETMv4')
-    with Path(out_path).open('w', encoding='utf-8') as out:
-        out.write('/* %s 简化源码执行流：按恢复顺序排列，不是可编译程序。 */\n' % protocol)
-        out.write('/* trace-store 流式导出（不生成 events.jsonl） */\n')
-        for file in sorted(sources):
-            out.write('/* 配套文件：' + clean(source_base(file)) + ' = ' + clean(file) + ' */\n')
-        for event in store.iter_events():
-            seq = event.get('seq', rows)
-            if event.get('kind') != 'instruction':
-                if event.get('type') in (1, 2, 3, 6, 7, 8, 9, 10):
-                    out.write('/* #' + str(seq) + ' ' + clean(event.get('text', '')) + ' */\n')
-                    rows += 1
-                    last = None
-                continue
-            file, line_no = event.get('file', ''), event.get('line')
-            function = event.get('function', '')
-            if event.get('executionState') == 'unknown' or event.get('executed') is None:
-                out.write('/* #' + str(seq) + ' 条件执行状态未知，不视为已证实执行 */\n')
-                rows += 1
-                last = context = None
-                continue
-            if not event.get('executed'):
-                continue
-            content = source_lines.get(file, [])
-            if not line_no or not 0 < line_no <= len(content):
-                out.write('/* #' + str(seq) + ' PC=0x%08x 无配套源码 */\n' % event['pc'])
-                rows += 1
-                last = None
-                continue
-            key = (function, file, line_no)
-            if key == last:
-                continue
-            if (function, file) != context:
-                out.write('/* ' + clean(function) + ' · ' + clean(source_base(file)) + ' */\n')
-                context = (function, file)
-            out.write(content[line_no - 1] + '\n')
-            rows += 1
-            last = key
-    return rows
-
-
 @app.get('/api/download/<sid>/<kind>')
 def download(sid, kind):
     folder = directory(sid)
@@ -1280,54 +1225,41 @@ def download(sid, kind):
     store_backed = bool(r.get('traceStore'))
     # 新格式记录没有可枚举的 events 列表：把它按“流式记录”处理（导出走 store 流式展开）。
     streamed = store_backed or r.get('streamed', {}).get('schema') in (2, 3)
-    if kind in ('source','simplified','simplified-html','csv') and request.args.get('fromSeq') is not None:
-        start=int(request.args['fromSeq'])
+    if kind in ('source','simplified','simplified-html','csv'):
+        start=end=None
+        if request.args.get('fromSeq') is not None:
+            start=int(request.args['fromSeq'])
+            total_end=(int((browse_store(sid).overview() or {}).get('eventCount') or 1)-1
+                       if store_backed else len(r['events'])-1)
+            end=int(request.args.get('toSeq',total_end))
+            if start<0 or end<start:raise ValueError('导出序号区间无效')
+            r={**r,'exportRange':dict(start=start,end=end)}
+        elif request.args.get('toSeq') is not None:raise ValueError('导出序号区间缺少起点')
         if store_backed:
-            total_end=int((browse_store(sid).overview() or {}).get('eventCount') or 1)-1
+            store=browse_store(sid)
+            r={**r,'sources':store.sources()}
+            # 明确从 0 开始才能使用数值行索引；None 会进入兼容状态机重放。
+            events=store.iter_events(0 if start is None else start,end)
         else:
-            total_end=len(r['events'])-1
-        end=int(request.args.get('toSeq',total_end))
-        if start<0 or end<start:raise ValueError('导出序号区间无效')
-        if streamed and end-start>=200000:
-            raise ValueError('本导出格式请选取不超过 20 万条记录的局部区间；整段可导出简化源码 .c')
-        if store_backed:
-            events=[e for e in browse_store(sid).iter_events(start,end)]
-        else:
-            events=[e for e in r['events'] if start<=e['seq']<=end]
-        r={**r,'events':events,'exportRange':dict(start=start,end=end)}
-    if streamed and request.args.get('fromSeq') is None:
-        if kind=='simplified':
-            path=folder/('export-simplified-'+uuid.uuid4().hex+'.c')
-            if store_backed:
-                export_simplified_from_store(sid,path)
-            else:
-                export_simplified_stream(folder,path)
-            response=send_file(path,as_attachment=True,download_name='etm-simplified.c',mimetype='text/plain; charset=utf-8')
-            response.call_on_close(lambda:path.unlink(missing_ok=True))
-            return response
-        if kind in ('source','simplified-html','csv'):
-            raise ValueError('长记录请先在图中选择执行区间再导出，或导出整段简化源码 .c')
-    if kind=='simplified-html':
-        return send_file(io.BytesIO(simplified_html(r).encode('utf-8')),as_attachment=True,download_name='etm-simplified.html',mimetype='text/html; charset=utf-8')
-    if kind in ('source', 'simplified'):
-        text = export_source(r, kind == 'simplified')
-        return send_file(io.BytesIO(text.encode('utf-8')), as_attachment=True,
-                         download_name='etm-' + kind + '.c', mimetype='text/plain; charset=utf-8')
+            events=(event for event in r['events'] if start is None or start<=event['seq']<=end)
+        extension,mime={'source':('c','text/plain'),'simplified':('c','text/plain'),
+                        'simplified-html':('html','text/html'),'csv':('csv','text/csv')}[kind]
+        name={'source':'etm-source.c','simplified':'etm-simplified.c',
+              'simplified-html':'etm-simplified.html','csv':'etm-execution.csv'}[kind]
+        path=folder/('export-'+uuid.uuid4().hex+'.'+extension)
+        try:
+            write_execution_export(r,events,path,kind)
+            response=send_file(path,as_attachment=True,download_name=name,mimetype=mime+'; charset=utf-8')
+        except BaseException:
+            path.unlink(missing_ok=True)
+            raise
+        # direct_passthrough 的 WSGI 文件迭代器也必须清理，包括客户端下载中断。
+        response.response=ClosingIterator(response.response,lambda:path.unlink(missing_ok=True))
+        return response
     if kind == 'json' and streamed:
         return send_file(folder/'decoded.json',as_attachment=True,download_name='decoded.json')
     if kind == 'json':
         return send_file(io.BytesIO(json.dumps(r, ensure_ascii=False).encode('utf-8')), as_attachment=True, download_name='decoded.json')
-    if kind == 'csv':
-        buffer = io.StringIO()
-        writer = csv.writer(buffer)
-        writer.writerow(['seq', 'kind', 'pc', 'executed', 'executionState', 'instruction', 'function', 'file', 'line', 'event'])
-        for e in r['events']:
-            writer.writerow([e['seq'], e['kind'], hex(e['pc']) if 'pc' in e else '', e.get('executed', ''),
-                             e.get('executionState', ''),
-                             (e.get('mnemonic', '') + ' ' + e.get('operands', '')).strip(),
-                             e.get('function', ''), e.get('file', ''), e.get('line', ''), e.get('text', '')])
-        return send_file(io.BytesIO(buffer.getvalue().encode('utf-8-sig')), as_attachment=True,
-                         download_name='etm-execution.csv')
     raise ValueError('未知导出类型。')
 
 
