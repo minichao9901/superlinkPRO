@@ -2307,7 +2307,7 @@ class TraceStore:
                     continue
                 raise TraceStoreError('未知序列记录类型：%d' % record_type)
 
-    def _instruction_event(self, seq, offset, entry, executed, cycles, cycle_span, tracker):
+    def _instruction_event(self, seq, offset, entry, executed, cycles, cycle_span, tracker=None, *, path=None):
         values = {'kind': 'instruction', 'seq': seq, 'offset': offset, 'pc': entry.pc,
                   'size': entry.size, 'bytes': entry.bytes.hex(), 'mnemonic': entry.mnemonic,
                   'operands': entry.operands, 'executed': executed,
@@ -2316,12 +2316,26 @@ class TraceStore:
                   'conditional': entry.conditional,
                   'executionState': STATE_FROM_EXECUTED[executed],
                   'executionReason': IT_REASON if executed is None else '',
-                  'callPath': list(tracker.path), 'cycles': cycles}
+                  'callPath': list(tracker.path if path is None else path), 'cycles': cycles}
         return {key: values[key] for key in self.instruction_fields}
 
     # -- 公共查询 ----------------------------------------------------------------------------
     def events(self, start=None, end=None):
         """按 seq 顺序流式展开事件字典（O(1) 内存，只重放一个检查点间隔）。"""
+        if start is not None and end is not None and end < max(self.first_seq, start):
+            raise TraceStoreError('区间结束 seq 不能小于起点')
+        if start is not None and self.query_index is not None:
+            from trace_store_index import slow_mode, QueryIndexError
+            if not slow_mode():
+                try:
+                    rows = self.query_index.indexed_events(start, end)
+                except QueryIndexError as error:
+                    self._row_index_error = str(error)
+                    self._disable_query_index('rows', error)
+                    rows = None
+                if rows is not None:
+                    yield from rows
+                    return
         yield from self._expand(start, end)
 
     def first(self):
@@ -2340,7 +2354,7 @@ class TraceStore:
         seq = int(seq)
         if not self.first_seq <= seq <= self.last_seq:
             raise TraceStoreError('记录序号不存在')
-        for item in self._expand(seq, seq):
+        for item in self.events(seq, seq):
             if item['seq'] == seq:
                 return dict(event=item, callPath=item.get('callPath', []),
                             stackBasis='历史 trace 重建，包含未证实祖先；不是当前寄存器快照')
