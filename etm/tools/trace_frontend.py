@@ -986,6 +986,7 @@ class TpuFraming:
                 self.carry = keep
                 return
             self.stats['initial_skipped_bytes'] = self.scanned + position
+            self.offset = self.stats['initial_skipped_bytes']
             self.mode = 'parse'
             self.carry = b''
             self.buffer += window[position:]

@@ -314,6 +314,20 @@ class DemuxChunkTests(unittest.TestCase):
 
 
 class PhaseSelectionTests(unittest.TestCase):
+    def test_bad_frame_diagnostic_uses_absolute_offset_after_sync_search(self):
+        for prefix_length in (1, 2, 13, 4097):
+            raw = bytes(prefix_length) + FSYNC + b'\x00\x00\xff\xff'
+            with self.assertRaises(ValueError) as expected:
+                demux(raw)
+            self.assertIn('物理偏移 %d' % (prefix_length + 6), str(expected.exception))
+            for chunk in (1, 13, 4096):
+                framing = TpuFraming()
+                with self.assertRaises(FrontendError) as actual:
+                    for start in range(0, len(raw), chunk):
+                        framing.feed(raw[start:start+chunk])
+                    framing.finish()
+                self.assertEqual(str(actual.exception), str(expected.exception))
+
     def test_malformed_other_phase_does_not_reject_a_valid_phase(self):
         with tempfile.TemporaryDirectory() as directory:
             for phase in (0, 1):

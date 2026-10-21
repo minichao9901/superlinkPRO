@@ -832,6 +832,7 @@ class TpuDemux {
                 return;
             }
             stats_.initial_skipped_bytes = scanned_ + found;
+            offset_ = stats_.initial_skipped_bytes;
             mode_ = Mode::Parse;
             carry_.clear();
             buffer_.insert(buffer_.end(), window.begin() + static_cast<std::ptrdiff_t>(found),
