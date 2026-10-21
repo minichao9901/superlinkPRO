@@ -6,7 +6,7 @@ export async function ui(){
   const {window:dom}=parseHTML(await readFile(new URL('../../bridge/etm/backend/web/index.html',import.meta.url),'utf8'));
   const window={document:dom.document,HTMLElement:dom.HTMLElement,addEventListener(){},devicePixelRatio:1};
   const {document}=window;document.body.dataset.embedded='1';
-  const $=id=>document.getElementById(id),events=[],intervals=[],requests=[],jobs=[];
+  const $=id=>document.getElementById(id),events=[],intervals=[],requests=[],jobs=[],imports=[];
   const model={halted:false,pc:0x08000590,fault:false,block:null,jobStates:['armed','done'],jobError:null};
   const saved=new Map(),globals={window,document,innerWidth:1500,ResizeObserver:class{observe(){}disconnect(){}},
     Option:function(text,value){const e=document.createElement('option');e.textContent=text;e.value=String(value);return e;},
@@ -31,7 +31,7 @@ export async function ui(){
     let data={};
     if(path==='records')data=[];
     else if(path==='elf')data=elf;
-    else if(path==='import')data={record:'raw-record'};
+    else if(path==='import'){imports.push(options.body);data={record:'raw-record'};}
     else if(path==='decode/raw-record')data={job:'decode-a'};
     else if(path==='capture'){jobs.push(options.body);data={job:'capture-a',record:'record-a'};}
     else if(path.startsWith('jobs/')){const phase=model.jobStates.length>1?model.jobStates.shift():model.jobStates[0];data={state:phase,record:'record-a',error:model.jobError||'capture failed'};}
@@ -56,7 +56,7 @@ export async function ui(){
   target.run=async()=>{events.push('run');model.halted=false;};target.restore=async()=>{events.push('restore');};target.clearEntryBreak=async()=>{};
   target.recoverDebugPort=async()=>{events.push('recover');probe._faulted=false;target.debugFault=false;model.halted=true;return target.inspect();};
   history.load=async sid=>{history.sid=sid;};
-  return {$,window,target,state,history,events,requests,jobs,model,manager,intervals,elf,
+  return {$,window,target,state,history,events,requests,jobs,imports,model,manager,intervals,elf,
     click:async id=>{const el=$(id);if(el.disabled)throw Error('Button disabled: '+id);return el.onclick();},
     upload:async()=>{Object.defineProperty($('elf-file'),'files',{configurable:true,value:[new File(['elf'],'fw.elf')]});await $('elf-file').onchange();},
     select:async()=>{await $('capture-symbol').querySelector('button').onclick();},

@@ -16,6 +16,27 @@ import server
 
 
 class ServerTests(unittest.TestCase):
+    def test_offline_raw_import_preserves_channels_without_hardware(self):
+        config=dict(protocol='ETMv3',idr=0x4114f241,ctrl=0x810,ccer=0x18800,traceid=7)
+        with patch.object(server,'elf_info',return_value={}):
+            response=self.client.post('/api/import',data={
+                'capture':(io.BytesIO(b'raw'),'capture.kvdat'),
+                'elf':(io.BytesIO(b'elf'),'firmware.elf'),'config':json.dumps(config),
+                'clock':'5','data':'[6,7,8,9]','fraction':'.6','glitchNs':'2'})
+        self.assertEqual(response.status_code,200,response.json)
+        meta=server.meta(response.json['record'])
+        self.assertEqual(meta['config'],config)
+        self.assertEqual((meta['clock'],meta['data'],meta['fraction'],meta['glitchNs']),(5,[6,7,8,9],.6,2))
+        self.assertFalse(meta['targetVerified'])
+
+    def test_offline_raw_import_rejects_missing_config_and_invalid_sampling(self):
+        for overrides in [dict(config='{}'),dict(config='{"traceid":2}'),dict(clock='1'),
+                          dict(data='[1,2,3,true]'),dict(data='[1,2,3,16]'),dict(fraction='nan'),dict(glitchNs='inf')]:
+            form=dict(capture=(io.BytesIO(b'raw'),'capture.csv'),elf=(io.BytesIO(b'elf'),'firmware.elf'),config=json.dumps(server.DEFAULT_CONFIG))
+            form.update(overrides)
+            response=self.client.post('/api/import',data=form)
+            self.assertEqual(response.status_code,400,(overrides,response.json))
+
     def test_native_record_package_round_trip_has_one_raw_member(self):
         sid='native-package';folder=server.directory(sid);folder.mkdir()
         raw=b'preserved-native-waveform';(folder/'capture.kvdat').write_bytes(raw)
@@ -159,7 +180,7 @@ class ServerTests(unittest.TestCase):
             if len(relative)==2 and local.is_file():sources.append((io.BytesIO(local.read_bytes()),file))
         response = self.client.post('/api/import', data={
             'capture': (io.BytesIO((ROOT / 'captures/trace-20261011-000319.csv').read_bytes()), 'trace.csv'),
-            'elf': (io.BytesIO(elf_path.read_bytes()), 'fw.elf'),'sources':sources})
+            'elf': (io.BytesIO(elf_path.read_bytes()), 'fw.elf'),'sources':sources,'config':json.dumps(server.DEFAULT_CONFIG)})
         self.assertEqual(response.status_code, 200, response.json)
         sid = response.json['record']
         jid = self.client.post('/api/decode/' + sid).json['job']
