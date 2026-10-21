@@ -13,10 +13,41 @@ import native_binary
 import trace_store
 import trace_store_write
 from test_trace_store_write import SyntheticCase, ELF_F103, V3_CONFIG
+from test_trace_store_write import (instruction_ranges, element_record,
+                                    status_record, build_native)
+import decode_stream
 
 
 @unittest.skipUnless(native_storebuild.binary_path().is_file(), 'native builder required')
 class NativePipelineTests(SyntheticCase):
+    def test_pending_resume_check_survives_tail_chain_or_unmatched_return(self):
+        _, ranges = instruction_ranges(self.elf)
+        block = ranges[0]
+        lo, hi = block[0].address, block[-1].address + block[-1].size
+        for event_type, flags in [(9, 1 << 12), (10, 0)]:
+            with self.subTest(event_type=event_type):
+                records = [element_record(2, 0),
+                           element_record(9, 1, end=lo + 0x1000, payload=15, flags=64),
+                           element_record(10, 2),
+                           element_record(event_type, 3, payload=5, flags=flags),
+                           element_record(5, 4, start=lo, end=hi,
+                                          payload=len(block), last_executed=1),
+                           status_record(64, 5, 0)]
+                build_native(self.native, records, 5, 0,
+                             protocol_code=2 if self.protocol == 'ETMv3' else 1)
+                self.oracle = decode_stream._expand_binary(
+                    self.oracle_dir, self.image, self.native, self.protocol,
+                    self.config, input_bytes=64)
+                expected = [json.loads(line) for line in
+                            (self.oracle_dir/'events.jsonl').read_text(encoding='utf8').splitlines()]
+                first = next(e for e in expected if e['kind'] == 'instruction')
+                self.assertEqual(first['callPath'][0], '采集前调用栈未知')
+                self.assertEqual(self.oracle['analysis']['unknownStackRestarts'], 3)
+                _, actual = self.write_store(engine='native', write_decoded=True)
+                self.assertEqual(actual['analysis'], self.oracle['analysis'])
+                with trace_store.TraceStore(self.store_dir) as store:
+                    self.assertEqual(list(store.events()), expected)
+
     def test_published_store_matches_reference_and_all_queries(self):
         result, decoded = self.write_store(engine='native', write_decoded=True)
         self.assertTrue(result['ok'])

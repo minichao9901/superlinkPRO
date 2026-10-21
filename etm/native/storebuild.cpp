@@ -1387,12 +1387,14 @@ class Tracker {
   public:
     Tracker() { root_.name = "已恢复执行区间"; }
     void set_analysis(bool enabled) { analysis_enabled_ = enabled; }
-    void clear_all() {
+    void clear_all(bool clear_expected = true) {
         stack_.clear();
         contexts_.clear();
         previous_ = TrackerPrevious();
-        has_expected_ = false;
-        expected_ = 0;
+        if (clear_expected) {
+            has_expected_ = false;
+            expected_ = 0;
+        }
         sync();
     }
     void feed_event(uint16_t etype, uint32_t flags, uint32_t payload, uint64_t end) {
@@ -1401,7 +1403,9 @@ class Tracker {
             ++unknown_restarts_;
         } else if (etype == 9) {
             if (flags & (1u << 12)) {
-                clear_all();
+                // Match PathTracker and CallTracker: a pending resume check
+                // is consumed by the next instruction, even across this reset.
+                clear_all(false);
                 ++unknown_restarts_;
             }
             TrackerContext context;
@@ -1423,7 +1427,7 @@ class Tracker {
                 has_expected_ = context.has_expected;
                 expected_ = context.expected;
             } else {
-                clear_all();
+                clear_all(false);
                 ++unknown_restarts_;
             }
             sync();
