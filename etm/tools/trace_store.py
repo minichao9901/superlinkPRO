@@ -2417,15 +2417,17 @@ class TraceStore:
             hi = lo - 1
         needle = search.lower() if search else ''
         filtered = bool(needle) or bool(hide_skipped)
-        if not filtered and start is None and end is None:
-            total = int(self.counts.get('events') or 0)
+        contiguous = bool((self.meta.get('seq') or {}).get('contiguous', True))
+        if not filtered and (contiguous or (start is None and end is None)):
+            # A plain interval of a contiguous sequence has an exact count;
+            # scanning millions of events only to count them blocks the UI.
+            total = max(0, hi - lo + 1) if contiguous else int(self.counts.get('events') or 0)
             offset = min(offset, max(0, ((total - 1) // limit) * limit)) if total else 0
             # 不整天扫描：连续 seq 记录直接从“首 seq + offset”定位，再按检查点重放少量指令。
-            contiguous = bool((self.meta.get('seq') or {}).get('contiguous', True))
-            start_seq = self.first_seq + offset if contiguous else self.first_seq
+            start_seq = lo + offset if contiguous else self.first_seq
             skip = 0 if contiguous else offset
             rows = []
-            for item in self.events(start_seq):
+            for item in self.events(start_seq, hi) if total else ():
                 if skip:
                     skip -= 1
                     continue

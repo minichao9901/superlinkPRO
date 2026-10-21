@@ -534,6 +534,31 @@ class StoreShapeTests(unittest.TestCase):
 
 
 class DirectBlockSinkTests(unittest.TestCase):
+    def test_interval_paging_counts_contiguous_sequence_without_full_scan(self):
+        from unittest.mock import patch
+        store = TraceStore.__new__(TraceStore)
+        store.first_seq = 0;store.last_seq = 19_999_999
+        store.meta = {'seq':{'contiguous':True}}
+        store.counts = {'events':20_000_000}
+        visited = []
+        def events(start, end):
+            for seq in range(start, end + 1):
+                visited.append(seq)
+                if len(visited) > 150:raise AssertionError('plain interval scanned beyond requested page')
+                yield {'seq':seq}
+        with patch.object(store, 'events', side_effect=events) as source:
+            page = store.page(start=1_000_000, end=10_000_000, offset=150, limit=150)
+            self.assertEqual(page['total'], 9_000_001)
+            self.assertEqual([r['seq'] for r in page['rows']], list(range(1_000_150, 1_000_300)))
+            source.assert_called_once_with(1_000_150, 10_000_000)
+        visited.clear()
+        with patch.object(store, 'events', side_effect=events):
+            page = store.page(start=19_999_995, end=30_000_000, offset=999999)
+            self.assertEqual(page['total'], 5)
+            self.assertEqual([r['seq'] for r in page['rows']], list(range(19_999_995,20_000_000)))
+            empty = store.page(start=30_000_000)
+            self.assertEqual(empty['total'], 0);self.assertEqual(empty['rows'], [])
+
     def test_direct_assembly_matches_buffered_bytes_and_compressed_blocks(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
