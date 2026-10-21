@@ -391,6 +391,100 @@ class NativeStorebuildCase(unittest.TestCase):
         finally:
             store.close()
 
+    def test_online_facts_equal_replay_with_cell_boundaries(self):
+        # Repeated short ranges cross multiple cells, preserving cycles, events,
+        # tail states and anchor runSkip without a second sequence scan.
+        chunks = [_element(1, offset=0, payload=1)]
+        for n in range(9000):
+            if n % 97 == 0:
+                chunks.extend([_element(9, offset=n, payload=15, flags=0x40),
+                               _element(10, offset=n, payload=0)])
+            chunks.append(_element(5, offset=n + 1, start=0x100, end=0x106,
+                                   payload=3, last_executed=n % 2))
+            if n % 5 == 0:chunks.append(_element(12, offset=n + 1, cycle=7))
+        count = len(chunks)
+        chunks.append(_status(count, 0))
+        header = struct.pack('<8sHHIIIQQQQQ', b'ETMNAT01', 1, 64, 0x01020304,
+                             1, 0, count, count, 0, sum(map(len, chunks)), 0)
+        native = self.root/'cells-native.bin'
+        native.write_bytes(header + b''.join(chunks))
+        paths = []
+        for replay in (False, True):
+            out = self.root/('replay' if replay else 'online')
+            result = nsb.build(native, self.static_ext, out, facts_out=out/'facts.bin',
+                               native_index=replay, reserve_instructions=27000, profile_detail=replay)
+            paths.append(out/'facts.bin')
+            self.assertEqual(result['counts']['instructions'], 27000)
+            self.assertEqual(result['timingDetail'], replay)
+            self.assertEqual('tracker' in result['phases'], replay)
+            import trace_store
+            container = trace_store._Container(out/'store.bin', trace_store.FILE_TRACE, 0)
+            try:
+                sequences = [(i,b) for i,b in enumerate(container.blocks) if b.block_type == trace_store.BLK_SEQUENCE]
+                self.assertTrue(any(b.flags == 1 for i,b in sequences))
+                for i,b in sequences:
+                    payload = container.block(i)
+                    if b.flags:self.assertEqual(len(payload), b.count)
+            finally:container.close()
+        self.assertEqual(paths[0].read_bytes(), paths[1].read_bytes())
+        facts = read_facts_v2(paths[0])
+        self.assertEqual([r['ordinal'] for r in facts['runs']], list(range(0, 27000, 4096)))
+        self.assertTrue(any(r['runSkip'] for r in facts['runs']))
+
+    def test_large_packet_block_retains_record_count_semantics(self):
+        import trace_store
+        packets = 20000
+        chunks = [_packet(offset=2*n) for n in range(packets)]
+        chunks.append(_element(5, offset=2*packets, start=0x100, end=0x106, payload=3, last_executed=1))
+        status = bytearray(_status(1, packets));struct.pack_into('<I', status, 5, 2*packets)
+        chunks.append(bytes(status))
+        native = self.root/'many-packets.bin'
+        native.write_bytes(struct.pack('<8sHHIIIQQQQQ', b'ETMNAT01', 1, 64, 0x01020304,
+                                       1, 0, packets+1, 1, packets, sum(map(len,chunks)), 0) + b''.join(chunks))
+        out = self.root/'many-packets'
+        nsb.build(native, self.static_ext, out)
+        container = trace_store._Container(out/'store.bin', trace_store.FILE_TRACE, 0)
+        try:
+            blocks = [b for b in container.blocks if b.block_type == trace_store.BLK_PACKETS]
+            self.assertEqual(sum(b.count for b in blocks), packets)
+            self.assertTrue(all(b.flags == 0 for b in blocks))
+        finally:container.close()
+
+    def test_online_index_facts_match_reference_and_reject_corruption(self):
+        import hashlib
+        import numpy as np
+        import native_facts_index as nf
+        import static_dict
+        out = self.root/'numeric-index'
+        result = nsb.build(self.native, self.static_ext, out, facts_out=out/'facts.bin',
+                           index_facts_out=out/'index.bin', reserve_instructions=5)
+        expected_sha = hashlib.sha256(self.native.read_bytes()).hexdigest()
+        self.assertEqual(result['inputs']['nativeSha256'], expected_sha)
+        facts = nf.read_facts_any(out/'facts.bin')
+        entries = sorted(static_dict.read_static_dict(self.static_ext)['entries'], key=lambda e:e['id'])
+        reference = nf.derive_tables(facts, entries)
+        reference_nav = nf.derive_remaining(facts, reference, entries)
+        facts['indexFacts'] = nf.read_index_facts(out/'index.bin', facts, entries, expected_sha)
+        candidate = nf.derive_tables(facts, entries)
+        candidate_nav = nf.derive_remaining(facts, candidate, entries)
+        for name in ('cell_unknown', 'cell_not_taken', 'cell_executed', 'cell_hotspot_count',
+                     'cell_hotspot_unknown', 'cell_hotspot_first'):
+            np.testing.assert_array_equal(reference[name], candidate[name], err_msg=name)
+        for name in ('pc_cell_offsets', 'pc_cells', 'line_start', 'line_id'):
+            np.testing.assert_array_equal(reference_nav[name], candidate_nav[name], err_msg=name)
+        payload = (out/'index.bin').read_bytes()
+        for name in ('version', 'reserved', 'sha', 'mapping', 'truncated', 'trailing'):
+            broken = bytearray(payload)
+            if name == 'version':broken[8] ^= 2
+            elif name == 'reserved':broken[36] = 1
+            elif name == 'sha':broken[56] ^= 1
+            elif name == 'mapping':struct.pack_into('<I', broken, 128, 999)
+            elif name == 'truncated':del broken[-1]
+            else:broken.extend(b'x')
+            path = out/(name+'.bin');path.write_bytes(broken)
+            with self.subTest(name=name), self.assertRaises(nf.FactsError):
+                nf.read_index_facts(path, facts, entries, expected_sha)
+
     def test_build_facts_v2_structure(self):
         store_root = self.root / 'facts-store'
         facts = store_root / 'facts.bin'

@@ -253,6 +253,68 @@ def read_facts_any(path):
     return data
 
 
+INDEX_FACTS_HEADER = struct.Struct('<8sIIQIIIIQQ64s8s')
+
+
+def read_index_facts(path, facts, static_entries, native_sha256):
+    """Read private, versioned numeric reductions bound to the same native input."""
+    with Path(path).open('rb') as stream:
+        if stream.seek(0, 2) < INDEX_FACTS_HEADER.size:
+            raise FactsError('index facts header 被截断')
+        raw = mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ)
+    magic, version, header, total, cell_size, statics, hotspots, reserved, lines, pairs, sha, tail = INDEX_FACTS_HEADER.unpack_from(raw)
+    if (magic, version, header, cell_size, reserved, tail) != (b'ETMIDXF1', 1, 128, 4096, 0, b'\0' * 8):
+        raise FactsError('index facts 版本/保留字段不符')
+    if total != len(facts['ids']) or statics != len(static_entries) or not 0 < hotspots <= statics:
+        raise FactsError('index facts 尺寸与核心事实不符')
+    if sha != native_sha256.encode('ascii'):
+        raise FactsError('index facts 输入 SHA256 不符')
+    cells = (total + cell_size - 1) // cell_size
+    expected = 128 + 4 * (statics + 2 * cells + 3 * cells * hotspots + statics + 1 + pairs + 2 * lines)
+    if len(raw) != expected:
+        raise FactsError('index facts 数据长度不符')
+    position = 128
+    result = dict(cellSize=cell_size, instructions=total)
+    for name, count in [('hotspot_of_id', statics), ('cell_unknown', cells),
+                        ('cell_not_taken', cells), ('hotspot_count', cells * hotspots),
+                        ('hotspot_unknown', cells * hotspots), ('hotspot_first', cells * hotspots),
+                        ('pc_cell_offsets', statics + 1), ('pc_cells', pairs),
+                        ('line_start', lines), ('line_id', lines)]:
+        result[name] = np.frombuffer(raw, '<u4', int(count), position)
+        position += int(count) * 4
+    mapping = static_maps(static_entries)
+    if not np.array_equal(result['hotspot_of_id'], mapping['hotspotOfId']):
+        raise FactsError('index facts hotspot ID 与静态字典不符')
+    if hotspots != len(mapping['hotspotFunc']):
+        raise FactsError('index facts hotspot 数量不符')
+    if np.any(result['hotspot_count'] > cell_size) or int(result['hotspot_count'].sum(dtype=np.uint64)) != total:
+        raise FactsError('index facts 指令聚合不符')
+    if np.any(result['hotspot_unknown'] > result['hotspot_count']):
+        raise FactsError('index facts 谓词计数不符')
+    if (np.any(result['cell_unknown'] > cell_size) or np.any(result['cell_not_taken'] > cell_size)
+            or np.any(result['cell_unknown'].astype(np.uint64) + result['cell_not_taken'] > cell_size)):
+        raise FactsError('index facts 状态计数不符')
+    cell_totals = result['hotspot_count'].reshape(cells, hotspots).sum(axis=1, dtype=np.uint64)
+    expected_totals = np.full(cells, cell_size, np.uint64)
+    if cells:expected_totals[-1] = total - (cells - 1) * cell_size
+    if not np.array_equal(cell_totals, expected_totals):
+        raise FactsError('index facts 单元格指令数不符')
+    if np.any((result['hotspot_first'][result['hotspot_count'] > 0] >> 12) >= statics):
+        raise FactsError('index facts 首次指令 ID 越界')
+    offsets = result['pc_cell_offsets']
+    if offsets[0] != 0 or offsets[-1] != pairs or np.any(np.diff(offsets.astype(np.int64)) < 0):
+        raise FactsError('index facts PC 索引偏移不符')
+    if np.any(result['pc_cells'] >= cells):
+        raise FactsError('index facts PC cell 越界')
+    starts = result['line_start']
+    if total and (not lines or starts[0] != 0 or np.any(starts >= total)
+                  or np.any(np.diff(starts.astype(np.int64)) <= 0)):
+        raise FactsError('index facts 源码区间不符')
+    if np.any(result['line_id'] >= statics):
+        raise FactsError('index facts 源码 ID 越界')
+    return result
+
+
 def cell_ordinals(instruction_count, cell_size):
     """每条指令的 cell 下标（不超过 20M 个整数，一次向量化）。"""
     return (np.arange(instruction_count, dtype=np.int64) // int(cell_size))
@@ -488,46 +550,54 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
     static_count = len(static_entries)
     hotspot_count = max(1, len(mapping['hotspotFunc']))
     hotspot_span = cells * hotspot_count
-    cell_hotspot_count = np.zeros(hotspot_span, np.int64)
-    cell_hotspot_unknown = np.zeros(hotspot_span, np.int64)
-    hotspot_first = np.full(hotspot_span, np.iinfo(np.uint64).max, np.uint64)
-    predicated_of_id = mapping['predicatedOfId']
-    hotspot_of_id = mapping['hotspotOfId']
+    aggregate = facts.get('indexFacts')
+    if aggregate is not None and aggregate['cellSize'] != cell_size:aggregate = None
     timings['staticMaps'] = round(time.perf_counter() - phase, 4)
-    for start in range(0, total, int(batch)):
-        counters.batches += 1
-        counters.python_loops += 1
-        stop = min(total, start + int(batch))
-        ordinal = np.arange(start, stop, dtype=np.int64)
-        cell = ordinal // int(cell_size)
-        chunk_states = states[start:stop]
-        cell_not_taken += np.bincount(cell[chunk_states == STATE_NOT_TAKEN],
-                                      minlength=cells)[:cells]
-        cell_unknown += np.bincount(cell[chunk_states == STATE_UNKNOWN],
-                                    minlength=cells)[:cells]
-        _nc(counters)
-        # 静态 id 也按批消费（原型先只校验范围；映射在 static_maps 里一次完成）
-        chunk_ids = ids[start:stop]
-        if chunk_ids.size and int(chunk_ids.max()) >= len(static_entries):
-            raise ValueError('facts 的 static_id 超出静态表范围')
-        hotspot = hotspot_of_id[chunk_ids]
-        key = cell * hotspot_count + hotspot
-        cell_hotspot_count += np.bincount(key, minlength=hotspot_span)[:hotspot_span]
-        predicated_mask = predicated_of_id[chunk_ids]
-        if np.any(predicated_mask):
-            cell_hotspot_unknown += np.bincount(key[predicated_mask],
-                                                minlength=hotspot_span)[:hotspot_span]
-        # 每个 (cell, hotspot) 的最小 cell 内偏移 + 对应 static_id（打包成 uint64 取 min）
-        # A consecutive (cell, hotspot) run can contribute only its first
-        # ordinal to the minimum. Typical source lines cover several adjacent
-        # instructions, so reduce those candidates before the scattered write.
-        first = np.empty(len(key), bool)
-        first[0] = True
-        first[1:] = key[1:] != key[:-1]
-        offsets = (ordinal[first] % int(cell_size)).astype(np.uint64)
-        packed = (offsets << np.uint64(32)) | chunk_ids[first].astype(np.uint64)
-        np.minimum.at(hotspot_first, key[first], packed)
-        _nc(counters)
+    if aggregate is not None:
+        cell_unknown[:] = aggregate['cell_unknown']
+        cell_not_taken[:] = aggregate['cell_not_taken']
+        cell_hotspot_count = aggregate['hotspot_count']
+        cell_hotspot_unknown = aggregate['hotspot_unknown']
+    else:
+        cell_hotspot_count = np.zeros(hotspot_span, np.int64)
+        cell_hotspot_unknown = np.zeros(hotspot_span, np.int64)
+        hotspot_first = np.full(hotspot_span, np.iinfo(np.uint64).max, np.uint64)
+        predicated_of_id = mapping['predicatedOfId']
+        hotspot_of_id = mapping['hotspotOfId']
+        for start in range(0, total, int(batch)):
+            counters.batches += 1
+            counters.python_loops += 1
+            stop = min(total, start + int(batch))
+            ordinal = np.arange(start, stop, dtype=np.int64)
+            cell = ordinal // int(cell_size)
+            chunk_states = states[start:stop]
+            cell_not_taken += np.bincount(cell[chunk_states == STATE_NOT_TAKEN],
+                                          minlength=cells)[:cells]
+            cell_unknown += np.bincount(cell[chunk_states == STATE_UNKNOWN],
+                                        minlength=cells)[:cells]
+            _nc(counters)
+            # 静态 id 也按批消费（原型先只校验范围；映射在 static_maps 里一次完成）
+            chunk_ids = ids[start:stop]
+            if chunk_ids.size and int(chunk_ids.max()) >= len(static_entries):
+                raise ValueError('facts 的 static_id 超出静态表范围')
+            hotspot = hotspot_of_id[chunk_ids]
+            key = cell * hotspot_count + hotspot
+            cell_hotspot_count += np.bincount(key, minlength=hotspot_span)[:hotspot_span]
+            predicated_mask = predicated_of_id[chunk_ids]
+            if np.any(predicated_mask):
+                cell_hotspot_unknown += np.bincount(key[predicated_mask],
+                                                    minlength=hotspot_span)[:hotspot_span]
+            # 每个 (cell, hotspot) 的最小 cell 内偏移 + 对应 static_id（打包成 uint64 取 min）
+            # A consecutive (cell, hotspot) run can contribute only its first
+            # ordinal to the minimum. Typical source lines cover several adjacent
+            # instructions, so reduce those candidates before the scattered write.
+            first = np.empty(len(key), bool)
+            first[0] = True
+            first[1:] = key[1:] != key[:-1]
+            offsets = (ordinal[first] % int(cell_size)).astype(np.uint64)
+            packed = (offsets << np.uint64(32)) | chunk_ids[first].astype(np.uint64)
+            np.minimum.at(hotspot_first, key[first], packed)
+            _nc(counters)
     cell_insn[:] = int(cell_size)
     if cells:cell_insn[-1] = total - (cells - 1) * int(cell_size)
     cell_executed[:] = cell_insn - cell_unknown - cell_not_taken
@@ -553,14 +623,17 @@ def derive_tables(facts, static_entries, cell_size=4096, batch=1_000_000, counte
     timings['firstSeq'] = round(time.perf_counter() - phase, 4)
 
     phase = time.perf_counter()
-    valid = hotspot_first != np.iinfo(np.uint64).max
-    first_offset = np.zeros(hotspot_span, np.uint64)
-    first_id = np.zeros(hotspot_span, np.uint64)
-    first_offset[valid] = hotspot_first[valid] >> np.uint64(32)
-    first_id[valid] = hotspot_first[valid] & np.uint64(0xFFFFFFFF)
-    cell_hotspot_first = np.zeros(hotspot_span, np.uint32)
-    cell_hotspot_first[valid] = ((first_id[valid].astype(np.uint32) << 12)
-                                 | first_offset[valid].astype(np.uint32))
+    if aggregate is not None:
+        cell_hotspot_first = aggregate['hotspot_first']
+    else:
+        valid = hotspot_first != np.iinfo(np.uint64).max
+        first_offset = np.zeros(hotspot_span, np.uint64)
+        first_id = np.zeros(hotspot_span, np.uint64)
+        first_offset[valid] = hotspot_first[valid] >> np.uint64(32)
+        first_id[valid] = hotspot_first[valid] & np.uint64(0xFFFFFFFF)
+        cell_hotspot_first = np.zeros(hotspot_span, np.uint32)
+        cell_hotspot_first[valid] = ((first_id[valid].astype(np.uint32) << 12)
+                                     | first_offset[valid].astype(np.uint32))
     _nc(counters)
     timings['hotspotFinalize'] = round(time.perf_counter() - phase, 4)
     shape = (cells, hotspot_count)
@@ -736,8 +809,6 @@ def derive_remaining(facts, derived, static_entries, materialize_seq=True):
     call_seq = seq_of(call_ordinal)
     keep = seq_of(call_ordinal + 1) == call_seq + 1
     call_ordinal, call_seq = call_ordinal[keep], call_seq[keep]
-    ordinal = np.arange(total, dtype=np.int32)
-    cell = ordinal // cell_size
     ps_start = np.asarray(derived['ps_start'], np.int64)
     ps_leaf = np.asarray(derived['ps_leaf'], np.int64)
     ps_count = np.asarray(derived['ps_count'], np.int64)
@@ -787,26 +858,35 @@ def derive_remaining(facts, derived, static_entries, materialize_seq=True):
             cell_node_value[:, node] += node_self_counts[:, leaf].astype(np.uint16)
             cell_node_value_cycles[:, node] += node_self_cycles[:, leaf]
     # nav 表：PC_CELLS（每个静态 id 出现在哪些 cell）+ LINE_RUNS（file/line 变化）
-    seen = np.zeros((cells, len(static_entries)), bool)
-    for start in range(0, total, 1_000_000):
-        stop = min(total, start + 1_000_000)
-        seen[cell[start:stop], ids[start:stop]] = True
-    sid_values, cell_values = np.nonzero(seen.T)
-    offsets = np.zeros(len(static_entries) + 1, np.uint32)
-    if len(sid_values):
-        counts_per_sid = np.bincount(sid_values, minlength=len(static_entries))
-        offsets[1:] = np.cumsum(counts_per_sid).astype(np.uint32)
-    pc_cells = cell_values.astype(np.uint32)
-    line_keys = np.empty(len(static_entries), np.int32)
-    line_key_index = {}
-    for index, entry in enumerate(static_entries):
-        line = entry.get('line')
-        key_value = (0,) if line is None else (1, entry.get('file'), line)
-        line_keys[index] = line_key_index.setdefault(key_value, len(line_key_index))
-    instruction_line_key = line_keys[ids]
-    change = np.flatnonzero(instruction_line_key[1:] != instruction_line_key[:-1]) + 1
-    line_start = np.concatenate(([0], change)).astype(np.uint32)
-    line_id = ids[line_start].astype(np.uint32)
+    aggregate = facts.get('indexFacts')
+    if aggregate is not None and aggregate['cellSize'] == cell_size:
+        offsets = aggregate['pc_cell_offsets']
+        pc_cells = aggregate['pc_cells']
+        line_start = aggregate['line_start']
+        line_id = aggregate['line_id']
+    else:
+        ordinal = np.arange(total, dtype=np.int32)
+        cell = ordinal // cell_size
+        seen = np.zeros((cells, len(static_entries)), bool)
+        for start in range(0, total, 1_000_000):
+            stop = min(total, start + 1_000_000)
+            seen[cell[start:stop], ids[start:stop]] = True
+        sid_values, cell_values = np.nonzero(seen.T)
+        offsets = np.zeros(len(static_entries) + 1, np.uint32)
+        if len(sid_values):
+            counts_per_sid = np.bincount(sid_values, minlength=len(static_entries))
+            offsets[1:] = np.cumsum(counts_per_sid).astype(np.uint32)
+        pc_cells = cell_values.astype(np.uint32)
+        line_keys = np.empty(len(static_entries), np.int32)
+        line_key_index = {}
+        for index, entry in enumerate(static_entries):
+            line = entry.get('line')
+            key_value = (0,) if line is None else (1, entry.get('file'), line)
+            line_keys[index] = line_key_index.setdefault(key_value, len(line_key_index))
+        instruction_line_key = line_keys[ids]
+        change = np.flatnonzero(instruction_line_key[1:] != instruction_line_key[:-1]) + 1
+        line_start = np.concatenate(([0], change)).astype(np.uint32)
+        line_id = ids[line_start].astype(np.uint32)
     timings = dict(remainingSeconds=round(time.perf_counter() - started, 4))
     return dict(
         seq_per_instruction=seq,
@@ -950,7 +1030,7 @@ def build_full_index(facts, static_entries, first_seq, last_seq, view=None,
                 if compute_defaults or not name.startswith('default_')]
     meta['compatPending'] = [name for name in required if name not in tables]
     phase = time.perf_counter()
-    payload = trace_store_index.encode_payload_v2(tables, meta, level=1)
+    payload = trace_store_index.encode_payload_v2(tables, meta, level=1, workers=4)
     timings['encodeSeconds'] = round(time.perf_counter() - phase, 4)
     timings['totalSeconds'] = round(time.perf_counter() - started, 4)
     return dict(arrays=tables, meta=meta, timings=timings, payload=payload,

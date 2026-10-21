@@ -41,6 +41,7 @@ import sys
 import time
 import zlib
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
@@ -151,7 +152,7 @@ def decode_payload(payload):
         raise QueryIndexError('查询索引数据无法解析：%s' % error)
 
 
-def encode_payload_v2(arrays, meta, level=6):
+def encode_payload_v2(arrays, meta, level=6, workers=1):
     """把语义表 + meta 编码成块 12 v2 负载（表目录 64B/项 + name 区 + 每表 zlib）。
 
     与 v1(npz) 的表名/dtype/shape 完全一致；C++ builder 可直接写这个容器，
@@ -172,19 +173,32 @@ def encode_payload_v2(arrays, meta, level=6):
     data_offset = V2_HEADER.size + directory_bytes + len(name_area)
     directory = bytearray()
     blobs = []
-    for name in names:
+    def encode_table(name):
         array = np.ascontiguousarray(np.asarray(payload_arrays[name]))
         if array.ndim not in (1, 2) or str(array.dtype) not in V2_DTYPE_CODES:
             raise QueryIndexError('v2 容器不支持的表形状/类型：%s %r'
                                   % (name, (array.shape, str(array.dtype))))
-        raw = array.tobytes()
+        # zlib accepts the contiguous buffer directly. Keep it alive until
+        # compression and CRC complete, avoiding a full raw bytes copy.
+        raw = memoryview(array).cast('B') if array.size else b''
         blob = zlib.compress(raw, level)
-        shape0 = int(array.shape[0])
-        shape1 = int(array.shape[1]) if array.ndim == 2 else 0
+        return (V2_DTYPE_CODES[str(array.dtype)], array.ndim, int(array.shape[0]),
+                int(array.shape[1]) if array.ndim == 2 else 0,
+                len(raw), zlib.crc32(raw) & 0xFFFFFFFF, blob)
+
+    worker_count = max(1, min(4, int(workers), len(names)))
+    if worker_count > 1:
+        # map preserves directory order and the existing byte representation;
+        # at most four independent table compressors are active at once.
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            tables = list(executor.map(encode_table, names))
+    else:
+        tables = [encode_table(name) for name in names]
+    for name, (dtype, ndim, shape0, shape1, raw_bytes, crc, blob) in zip(names, tables):
         directory += V2_ITEM.pack(
-            name_offsets[name], len(encoded[name]), V2_DTYPE_CODES[str(array.dtype)],
-            array.ndim, b'\x00' * 4, shape0, shape1, data_offset,
-            len(blob), len(raw), zlib.crc32(raw) & 0xFFFFFFFF, 0)
+            name_offsets[name], len(encoded[name]), dtype,
+            ndim, b'\x00' * 4, shape0, shape1, data_offset,
+            len(blob), raw_bytes, crc, 0)
         directory += b'\x00' * (V2_ITEM_BYTES - V2_ITEM.size)
         blobs.append(blob)
         data_offset += len(blob)
@@ -1424,57 +1438,47 @@ class QueryIndex:
         return prefix, mixed
 
     def _node_first_occurrence(self, i_lo, i_hi):
-        """范围内每个路径节点的首次出现指令序号（火焰图子节点顺序与参考实现一致）。"""
+        """Find each node once through the first occurrence of its distinct leaves."""
         first = {0: i_lo}
-        start = self.ps_start
-        count = self.ps_count
-        leaves = self.ps_leaf
-        length = len(start)
-        position = int(np.searchsorted(start, i_lo, side='right')) - 1
-        if position < 0:
-            position = 0
-        while position < length and start[position] <= i_hi:
-            seg_start = int(start[position])
-            seg_end = seg_start + int(count[position])
-            low = max(seg_start, i_lo)
-            if min(seg_end, i_hi + 1) > low:
-                for node in self.chain_of_leaf(int(leaves[position])):
-                    if node not in first:
-                        first[node] = low
-            position += 1
+        low = max(0, int(np.searchsorted(self.ps_start, i_lo, side='right')) - 1)
+        high = int(np.searchsorted(self.ps_start, i_hi, side='right'))
+        leaves, positions = np.unique(self.ps_leaf[low:high], return_index=True)
+        for slot in np.argsort(positions):
+            position = low + int(positions[slot])
+            ordinal = max(int(self.ps_start[position]), i_lo)
+            for node in self.chain_of_leaf(int(leaves[slot])):
+                first.setdefault(node, ordinal)
         return first
 
     def _bucket_paths(self, bucket_bounds, i_lo, i_hi):
-        """每个桶的 common-prefix 路径与 mixed 标记（桶按 seq 划分）。"""
+        """Common path prefixes from lexicographic extremes, preserving mixed status."""
+        # The common prefix of a set of paths equals the prefix of its
+        # lexicographically smallest and largest members. Rank text paths,
+        # rather than node IDs: distinct IDs may represent identical labels.
+        cache = getattr(self, '_path_order', None)
+        if cache is None:
+            paths = [self.path_of_leaf(node) for node in range(self.node_count)]
+            ordered = sorted(set(paths))
+            rank = {path: value for value, path in enumerate(ordered)}
+            ranks = np.asarray([rank[path] for path in paths], np.int32)
+            cache = (ranks[self.ps_leaf], ordered)
+            self._path_order = cache  # Publish both immutable components together.
+        path_ranks, ordered_paths = cache
+        ends = self.ps_start + self.ps_count
         result = []
-        start = self.ps_start
-        count = self.ps_count
-        leaves = self.ps_leaf
-        length = len(start)
-        position = int(np.searchsorted(start, i_lo, side='right')) - 1
-        if position < 0:
-            position = 0
         for low_seq, high_seq, low_insn, high_insn in bucket_bounds:
             if low_insn is None:
                 result.append(([], False))
                 continue
-            while position < length and start[position] + count[position] <= low_insn:
-                position += 1
-            probe = position
-            prefix = None
-            mixed = False
-            while probe < length and start[probe] < high_insn + 1:
-                seg_start = int(start[probe])
-                seg_end = seg_start + int(count[probe])
-                if min(seg_end, high_insn + 1) > max(seg_start, low_insn):
-                    path = self.path_of_leaf(int(leaves[probe]))
-                    if prefix is None:
-                        prefix = path
-                    elif path != prefix:
-                        mixed = True
-                        prefix = _lcp(prefix, path)
-                probe += 1
-            result.append((list(prefix or []), mixed))
+            low = int(np.searchsorted(ends, low_insn, side='right'))
+            high = int(np.searchsorted(self.ps_start, high_insn, side='right'))
+            ranks = path_ranks[low:high]
+            if not len(ranks):
+                result.append(([], False))
+                continue
+            smallest, largest = int(ranks.min()), int(ranks.max())
+            left, right = ordered_paths[smallest], ordered_paths[largest]
+            result.append((list(_lcp(left, right)), smallest != largest))
         return result
 
     def _covered_and_partial_cells(self, i_lo, i_hi):
@@ -1596,21 +1600,15 @@ class QueryIndex:
         start = self.fs_start
         count = self.fs_count
         functions = self.fs_func
-        length = len(start)
-        position = int(np.searchsorted(start, i_lo, side='right')) - 1
-        if position < 0:
-            position = 0
-        while position < length and start[position] <= i_hi:
-            seg_start = int(start[position])
-            seg_end = seg_start + int(count[position])
-            low = max(seg_start, i_lo)
-            high = min(seg_end, i_hi + 1)
-            if high > low:
-                function = int(functions[position])
-                instructions[function] += high - low
-                if first_occurrence[function] > (1 << 29):
-                    first_occurrence[function] = low
-            position += 1
+        first = max(0, int(np.searchsorted(start, i_lo, side='right')) - 1)
+        last = int(np.searchsorted(start, i_hi, side='right'))
+        selected = functions[first:last]
+        low = np.maximum(start[first:last], i_lo)
+        high = np.minimum(start[first:last] + count[first:last], i_hi + 1)
+        usable = high > low
+        # Integral counts stay integer; no Python iteration per dynamic segment.
+        np.add.at(instructions, selected[usable], high[usable] - low[usable])
+        np.minimum.at(first_occurrence, selected[usable], low[usable])
         unknown = np.zeros(function_count, np.int64)
         not_taken = np.zeros(function_count, np.int64)
         insn_seq_lo = int(self.seq_of_insn(i_lo))

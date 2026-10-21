@@ -38,8 +38,10 @@ class NativeQueryDecisionCase(unittest.TestCase):
         build_fixture(cls.root)
         cls.store_dir = cls.root / 'store'
         trace_store.write(cls.root, cls.store_dir, verify_image=False)
-        trace_store_index.build_store_index(cls.store_dir)
-        trace_store_nav.build_nav_index(cls.store_dir)
+        # Exercise the legacy sidecar contract explicitly. R2's default
+        # embedded PC/line tables otherwise bypass this fallback fixture.
+        trace_store_index.build_store_index(cls.store_dir, with_nav=False)
+        trace_store_nav.build_nav_index(cls.store_dir, force_sidecar=True)
         cls.fast = trace_store.TraceStore(cls.store_dir, verify='sizes')
         os.environ['TRACE_STORE_SLOW'] = '1'
         try:

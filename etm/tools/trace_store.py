@@ -441,8 +441,13 @@ class _Container:
 # ---------------------------------------------------------------------------------------------
 
 class _BlockSink:
-    def __init__(self, temp_path):
+    def __init__(self, temp_path, expected_blocks=None):
+        if expected_blocks is not None and not 0 < expected_blocks <= MAX_BLOCKS:
+            raise TraceStoreError('预留块数量无效')
+        self.expected_blocks = expected_blocks
+        self.payload_start = HEADER_SIZE + expected_blocks * INDEX_ENTRY_SIZE if expected_blocks is not None else 0
         self.handle = open(temp_path, 'w+b')
+        if self.payload_start:self.handle.write(bytes(self.payload_start))
         self.entries = []
         self.total = 0
 
@@ -475,7 +480,7 @@ class _BlockSink:
             raise TraceStoreError('块索引越界：%d' % index)
         offset, length = self.entries[index][0], self.entries[index][1]
         position = self.handle.tell()
-        self.handle.seek(offset)
+        self.handle.seek(self.payload_start + offset)
         data = self.handle.read(length)
         self.handle.seek(position)
         if len(data) != length:
@@ -513,6 +518,25 @@ class _BlockSink:
                          payload_bytes, file_bytes, 0, int(optional_features))
         struct.pack_into('<I', header, 48, _crc32(bytes(header[:48])))
         digest = hashlib.sha256()
+        if self.expected_blocks is not None:
+            if blocks != self.expected_blocks:
+                raise TraceStoreError('实际块数量与预留数量不符')
+            # The payload is already in its final position. Complete its
+            # directory in place, then hash the finished file before publishing.
+            self.handle.seek(0)
+            self.handle.write(header);self.handle.write(index)
+            self.handle.flush();os.fsync(self.handle.fileno())
+            self.handle.seek(0)
+            while True:
+                chunk = self.handle.read(1 << 20)
+                if not chunk:break
+                digest.update(chunk)
+            temporary = self.handle.name
+            self.handle.close()
+            if Path(temporary).stat().st_size != file_bytes:
+                raise TraceStoreError('直接写出文件长度不符')
+            os.replace(temporary, path)
+            return dict(bytes=file_bytes, sha256=digest.hexdigest(), blocks=blocks, payloadBytes=payload_bytes)
         with open(path, 'wb') as output:
             output.write(header)
             output.write(index)

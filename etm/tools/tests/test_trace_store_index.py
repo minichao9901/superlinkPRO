@@ -60,6 +60,58 @@ class TimelineIntervalTests(unittest.TestCase):
                                                          selected[0], selected[-1], actual)
                     np.testing.assert_array_equal(actual, expected)
 
+class ParallelEncodingTests(unittest.TestCase):
+    def test_parallel_encoding_is_byte_identical_including_empty_and_strided_arrays(self):
+        random = np.random.default_rng(72819)
+        arrays = {'matrix':random.integers(0, 5, (301, 111), dtype=np.int32),
+                  'strided':np.arange(9012, dtype=np.uint32)[::3],
+                  'empty':np.empty((0, 3), np.uint16),
+                  'cycles':np.array([0, 2**53 + 1, 2**62], np.int64)}
+        for level in (0, 1, 6):
+            serial = trace_store_index.encode_payload_v2(arrays, {'test':'并行编码'}, level=level)
+            parallel = trace_store_index.encode_payload_v2(arrays, {'test':'并行编码'}, level=level, workers=4)
+            self.assertEqual(serial, parallel)
+            archive = trace_store_index.decode_payload(parallel)
+            for name, value in arrays.items():np.testing.assert_array_equal(archive[name], value)
+
+
+class PathIntervalTests(unittest.TestCase):
+    def test_extremes_and_first_occurrences_match_segment_oracle(self):
+        random = np.random.default_rng(19273)
+        index = trace_store_index.QueryIndex.__new__(trace_store_index.QueryIndex)
+        # Different node IDs intentionally have identical text paths.
+        index.node_parent = np.array([-1, 0, 0, 0, 1, 2, 4])
+        index.node_label = np.array([0, 1, 1, 2, 3, 3, 4])
+        index.strings = ['', 'a', 'z', 'b', '中断']
+        index.node_count = 7
+        index._path_cache = {}
+        index._chain_cache = {}
+        index.ps_count = random.integers(1, 18, 1200)
+        index.ps_start = np.concatenate(([0], np.cumsum(index.ps_count)[:-1]))
+        index.ps_leaf = random.integers(0, 7, 1200)
+        end = int(index.ps_count.sum())
+        bounds, expected = [], []
+        for unused in range(160):
+            lo, hi = sorted(random.integers(0, end, 2))
+            bounds.append((0, 0, int(lo), int(hi)))
+            paths = []
+            first = {0: int(lo)}
+            for start, count, leaf in zip(index.ps_start, index.ps_count, index.ps_leaf):
+                if start <= hi and start + count > lo:
+                    path = index.path_of_leaf(int(leaf))
+                    paths.append(path)
+                    for node in index.chain_of_leaf(int(leaf)):
+                        first.setdefault(node, max(int(start), int(lo)))
+            prefix = list(paths[0])
+            for path in paths[1:]:
+                prefix = prefix[:next((n for n, pair in enumerate(zip(prefix, path))
+                                       if pair[0] != pair[1]), min(len(prefix), len(path)))]
+            expected.append((prefix, any(path != paths[0] for path in paths)))
+            self.assertEqual(index._node_first_occurrence(int(lo), int(hi)), first)
+        bounds.append((0, 0, None, None));expected.append(([], False))
+        self.assertEqual(index._bucket_paths(bounds, 0, end - 1), expected)
+
+
 ETM_ROOT = Path(__file__).resolve().parents[2]
 TMP_ROOT = Path(tempfile.mkdtemp(dir=str(ETM_ROOT / 'records'), prefix='_r1_index_'))
 atexit.register(shutil.rmtree, TMP_ROOT, True)

@@ -533,5 +533,40 @@ class StoreShapeTests(unittest.TestCase):
         self.assertTrue((store_dir / 'generations' / result['generation']).is_dir())
 
 
+class DirectBlockSinkTests(unittest.TestCase):
+    def test_direct_assembly_matches_buffered_bytes_and_compressed_blocks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            outputs = []
+            for expected in (None, 3):
+                sink = trace_store._BlockSink(root/('payload-'+str(expected)), expected_blocks=expected)
+                try:
+                    sink.add(trace_store.BLK_STATIC, b'abc', 1)
+                    sink.add_compressed_json(trace_store.BLK_META, {'text':'重复' * 200})
+                    compressed = trace_store.zlib.compress(b'xyz' * 500)
+                    sink.add_raw(trace_store.BLK_SEQUENCE, compressed, 1500, 1)
+                    self.assertEqual(sink.payload(0), b'abc')
+                    self.assertEqual(sink.payload(2), compressed)
+                    output = root/('store-'+str(expected))
+                    info = sink.assemble(output, 37)
+                    self.assertEqual(info['bytes'], output.stat().st_size)
+                    outputs.append(output.read_bytes())
+                    container = trace_store._Container(output, trace_store.FILE_TRACE, 37)
+                    try:self.assertEqual(container.block(2), b'xyz' * 500)
+                    finally:container.close()
+                finally:sink.close()
+            self.assertEqual(outputs[0], outputs[1])
+
+    def test_direct_block_count_failure_keeps_previous_destination(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder);destination = root/'previous.bin';destination.write_bytes(b'previous')
+            sink = trace_store._BlockSink(root/'temporary', expected_blocks=2)
+            try:
+                sink.add(trace_store.BLK_STATIC, b'abc', 1)
+                with self.assertRaises(TraceStoreError):sink.assemble(destination, 37)
+                self.assertEqual(destination.read_bytes(), b'previous')
+            finally:sink.close()
+
+
 if __name__ == '__main__':
     unittest.main()
