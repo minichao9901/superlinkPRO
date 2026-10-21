@@ -296,8 +296,14 @@ class CapabilityAndExportTests(_SandboxCase):
 
     def test_simplified_and_csv_export_stream_from_store(self):
         response = self.client.get('/api/download/%s/simplified' % self.store_sid)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('简化源码执行流', response.data.decode('utf-8'))
+        if any(text.strip() for text in server.browse_store(self.store_sid).sources().values()):
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('简化源码执行流', response.data.decode('utf-8'))
+        else:
+            # 老采集夹具可能只有 DWARF 文件路径而没有正文，不能再把注释空壳视作成功。
+            self.assertEqual(response.status_code, 400)
+            self.assertIn('配套源码文本', response.get_json()['error'])
+        response.close()
         response = self.client.get('/api/download/%s/csv' % self.store_sid,
                                    query_string={'fromSeq': 0, 'toSeq': 20})
         self.assertEqual(response.status_code, 200)

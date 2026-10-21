@@ -20,6 +20,15 @@ test('export timeout aborts the request and reports a local range remedy',async(
   assert.equal(signal.aborted,true);
 });
 
+test('large file transfer may finish after the response deadline without a false timeout',async()=>{
+  let signal;
+  const result=await fetchExecutionExport('/export',{timeout:5,fetchImpl:async(_,options)=>{
+    signal=options.signal;return {ok:true,headers:new Headers({'Content-Type':'text/csv'}),
+      blob:async()=>{await new Promise(resolve=>setTimeout(resolve,30));return new Blob(['large export']);}};
+  }});
+  assert.equal(await result.blob.text(),'large export');assert.equal(signal.aborted,false);
+});
+
 test('real export button reports backend errors and releases busy state',async()=>{
   const u=await ui(),original=globalThis.fetch;
   try{
