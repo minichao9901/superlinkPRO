@@ -2,7 +2,7 @@
 
 VALIDATION_DIR selects a persistent run; this test does not touch SWD or flash.
 """
-import hashlib,json,os,socket,subprocess,time,unittest,uuid,zipfile
+import hashlib,json,os,re,socket,subprocess,time,unittest,uuid,zipfile
 from pathlib import Path
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
@@ -112,6 +112,29 @@ class PortableTests(unittest.TestCase):
             manifest=json.loads(archive.read('etm-bridge-kit/package-manifest.json'))
             for item in manifest['files']:
                 self.assertEqual(hashlib.sha256(archive.read('etm-bridge-kit/'+item['name'])).hexdigest(),item['sha256'])
+    def test_source_exports_in_compiled_exe_and_missing_text_error(self):
+        sid='demo-spi-70-35-v1'
+        for kind,mime,filename in [('simplified','text/plain','etm-simplified.c'),
+                ('simplified-html','text/html','etm-simplified.html'),
+                ('source','text/plain','etm-source.c'),('csv','text/csv','etm-execution.csv')]:
+            with self.subTest(kind=kind),urlopen(self.base+'etm/api/download/'+sid+'/'+kind,timeout=45) as response:
+                self.assertTrue(response.headers['Content-Type'].startswith(mime))
+                self.assertIn(filename,response.headers['Content-Disposition'])
+                content=response.read()
+                if kind=='simplified-html':
+                    payload=json.loads(re.search(rb'<script id="data" type="application/json">(.*?)</script>',content,re.S)[1])
+                    self.assertTrue(any(row['kind']=='code' for row in payload['rows']))
+                self.results.append(dict(exportKind=kind,bytes=len(content),sha256=hashlib.sha256(content).hexdigest()))
+        sources=self.home/'data/records'/sid/'sources.json';saved=sources.read_bytes()
+        try:
+            sources.write_text(json.dumps({name:'' for name in json.loads(saved)}),encoding='utf8')
+            for kind in ['simplified','source','simplified-html']:
+                with self.assertRaises(HTTPError) as caught:
+                    urlopen(self.base+'etm/api/download/'+sid+'/'+kind,timeout=45)
+                self.assertEqual(caught.exception.code,400)
+                self.assertIn('配套源码文本',json.loads(caught.exception.read())['error'])
+        finally:sources.write_bytes(saved)
+
     def test_source_snapshot_refreshes_an_already_built_index(self):
         import io
         sample=self.home/'runtime/backend/demo/sample.etmrecord'

@@ -1,35 +1,47 @@
 """Simplified execution excerpts and an offline, paired source viewer."""
 import html
 import json
+import csv
+from pathlib import Path
 from pathlib import PurePosixPath
 
 def base(file):return PurePosixPath(file.replace('\\','/')).name
 
 def simplified_rows(result):
-    source_lines={file:text.splitlines() for file,text in result['sources'].items()}
-    rows=[];last=None
-    for index,event in enumerate(result['events']):
+    return list(iter_simplified_rows(result['events'],result['sources']))
+
+def iter_simplified_rows(events,sources):
+    """只保留待合并的上一行；长记录不整体展开为事件列表。"""
+    source_lines={file:text.splitlines() for file,text in sources.items()}
+    pending=None;last=None
+    for index,event in enumerate(events):
         seq=event.get('seq',index)
         if event['kind']!='instruction':
             if event['type'] in (1,2,3,6,7,8,9,10):
-                rows.append(dict(kind='event',seq=seq,endSeq=seq,text=event['text']))
+                if pending is not None:yield pending;pending=None
+                yield dict(kind='event',seq=seq,endSeq=seq,text=event['text'])
                 last=None
             continue
         number=event.get('line');file=event.get('file','');key=(event.get('function',''),file,number)
         if event.get('executionState')=='unknown' or event.get('executed') is None:
-            rows.append(dict(kind='unknown',seq=event['seq'],endSeq=event['seq'],pc=event['pc'],file=file,line=number,
-                             function=key[0],text='条件执行状态未知，不视为已证实执行'));last=None;continue
+            if pending is not None:yield pending;pending=None
+            yield dict(kind='unknown',seq=seq,endSeq=seq,pc=event['pc'],file=file,line=number,
+                       function=key[0],text='条件执行状态未知，不视为已证实执行')
+            last=None;continue
         if not event['executed']:continue
         content=source_lines.get(file,[])
         if not number or not 0<number<=len(content):
-            rows.append(dict(kind='missing',seq=event['seq'],endSeq=event['seq'],pc=event['pc'],file=file,line=number,
-                             function=key[0],text='无配套源码'));last=None;continue
+            if pending is not None:yield pending;pending=None
+            yield dict(kind='missing',seq=seq,endSeq=seq,pc=event['pc'],file=file,line=number,
+                       function=key[0],text='无配套源码')
+            last=None;continue
         if key==last:
-            rows[-1]['endSeq']=event['seq'];rows[-1]['records']+=1
+            pending['endSeq']=seq;pending['records']+=1
             continue
-        rows.append(dict(kind='code',seq=event['seq'],endSeq=event['seq'],pc=event['pc'],file=file,line=number,
-                         function=key[0],text=content[number-1],records=1));last=key
-    return rows
+        if pending is not None:yield pending
+        pending=dict(kind='code',seq=seq,endSeq=seq,pc=event['pc'],file=file,line=number,
+                     function=key[0],text=content[number-1],records=1);last=key
+    if pending is not None:yield pending
 
 def simplified_c(result):
     clean=lambda text:str(text).replace('*/','* /')
@@ -49,10 +61,76 @@ def simplified_c(result):
             lines.append('/* #'+str(row['seq'])+(f" PC=0x{row['pc']:08x}" if 'pc' in row else '')+' '+clean(row['text'])+' */');context=None
     return '\n'.join(lines)+'\n'
 
+def _json_chunks(value):
+    # 每次仅编码一行（或源码字典）；避免每个 JSON token 都触发 Python 文件写入。
+    yield json.dumps(value,ensure_ascii=False,separators=(',',':')).replace('&','\\u0026').replace('<','\\u003c').replace('>','\\u003e')
+
+def _full_source_lines(result,events):
+    clean=lambda text:str(text).replace('*/','* /')
+    yield '/* %s 源码执行流记录：按实际恢复顺序排列，不是可编译程序。 */\n' % result.get('protocol','ETMv4')
+    if result.get('exportRange'):yield '/* 导出执行序号区间 %s；不是微秒时间区间。 */\n' % result['exportRange']
+    if result.get('quality',{}).get('unprocessedBytes'):
+        yield '/* 另有 %s 字节 ETM 输入未处理；缺失的执行路径保持未知。 */\n' % result['quality']['unprocessedBytes']
+    source_lines={file:text.splitlines() for file,text in result['sources'].items()}
+    for event in events:
+        if event['kind']!='instruction':
+            if event['type'] in (1,2,3,6,7,8,9,10):yield '/* '+clean(event['text'])+' */\n'
+            continue
+        if event.get('executionState')=='unknown' or event.get('executed') is None:
+            yield '/* #%s PC=0x%08x 条件执行状态未知，不视为已证实执行 */\n' % (event['seq'],event['pc'])
+            continue
+        if not event['executed']:continue
+        file=event.get('file','');number=event.get('line');content=source_lines.get(file,[])
+        if number and 0<number<=len(content):
+            label='#%s PC=0x%08x %s · %s:%s' % (event['seq'],event['pc'],event.get('function',''),file,number)
+            yield '/* '+clean(label)+' */\n';yield content[number-1]+'\n'
+        else:yield '/* #%s PC=0x%08x 无配套源码 */\n' % (event['seq'],event['pc'])
+
+def write_execution_export(result,events,path,kind):
+    """逐事件写文件；HTML 逐简化行写 JSON，不驻留全段事件/字符串。"""
+    sources=result.get('sources',{})
+    if kind in ('source','simplified','simplified-html') and not any(text.strip() for text in sources.values()):
+        raise ValueError('当前记录尚未载入配套源码文本。请在“4 文件”点击“配套源码设置”选择对应固件的源码目录，再导出；ELF 中的文件名和行号不包含源码正文。只需指令记录可选择“执行流 CSV”。')
+    if kind not in ('source','simplified','simplified-html','csv'):raise ValueError('未知执行流导出类型')
+    with Path(path).open('w',encoding='utf-8-sig' if kind=='csv' else 'utf-8',newline='') as out:
+        if kind=='csv':
+            writer=csv.writer(out)
+            writer.writerow(['seq','kind','pc','executed','executionState','instruction','function','file','line','event'])
+            for event in events:
+                writer.writerow([event['seq'],event['kind'],hex(event['pc']) if 'pc' in event else '',event.get('executed',''),
+                    event.get('executionState',''),(event.get('mnemonic','')+' '+event.get('operands','')).strip(),
+                    event.get('function',''),event.get('file',''),event.get('line',''),event.get('text','')])
+        elif kind=='source':out.writelines(_full_source_lines(result,events))
+        elif kind=='simplified-html':
+            marker='__ETM_EXPORT_PAYLOAD_72B9A__'
+            before,separator,after=_html_document(marker,result.get('exportRange')).partition(marker)
+            assert separator
+            out.write(before);out.write('{"rows":[');first=True
+            for row in iter_simplified_rows(events,sources):
+                if not first:out.write(',')
+                out.writelines(_json_chunks(row));first=False
+            out.write('],"sources":');out.writelines(_json_chunks(sources));out.write('}');out.write(after)
+        else:
+            clean=lambda text:str(text).replace('*/','* /')
+            out.write('/* %s 简化源码执行流：按恢复顺序排列，不是可编译程序。 */\n' % result.get('protocol','ETMv4'))
+            if result.get('exportRange'):out.write('/* 导出执行序号区间 %s；不是微秒时间区间。 */\n' % result['exportRange'])
+            if result.get('quality',{}).get('unprocessedBytes'):out.write('/* ETM 输入仍有未处理字节，缺失路径保持未知。 */\n')
+            for file in sorted(sources):out.write('/* 配套文件：'+clean(base(file))+' = '+clean(file)+' */\n')
+            context=None
+            for row in iter_simplified_rows(events,sources):
+                if row['kind']=='code':
+                    key=(row['function'],row['file'])
+                    if key!=context:out.write('/* '+clean(row['function'])+' · '+clean(base(row['file']))+' */\n');context=key
+                    out.write(row['text']+'\n')
+                else:
+                    out.write('/* #'+str(row['seq'])+(' PC=0x%08x' % row['pc'] if 'pc' in row else '')+' '+clean(row['text'])+' */\n');context=None
+
 def simplified_html(result):
     rows=simplified_rows(result)
     payload=json.dumps(dict(rows=rows,sources=result['sources']),ensure_ascii=False,separators=(',',':')).replace('&','\\u0026').replace('<','\\u003c').replace('>','\\u003e')
-    bounds=result.get('exportRange')
+    return _html_document(payload,result.get('exportRange'))
+
+def _html_document(payload,bounds):
     scope=html.escape(f"#{bounds['start']}～#{bounds['end']}" if bounds else '整个已恢复记录')
     return '''<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ETM 简化执行流与源码对照</title><style>
