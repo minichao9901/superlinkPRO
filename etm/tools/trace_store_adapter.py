@@ -626,6 +626,7 @@ class TraceStoreAdapter:
         """Keep the verified generation alive while its native projection runs."""
         import native_export
         with self._leased() as store:
+            if native_export.prefer_prepared_small_range(store,start,end):return False
             return native_export.write(store,result,path,kind,start,end)
 
     def sources(self):

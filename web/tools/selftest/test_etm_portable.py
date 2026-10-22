@@ -125,6 +125,7 @@ class PortableTests(unittest.TestCase):
                     payload=json.loads(re.search(rb'<script id="data" type="application/json">(.*?)</script>',content,re.S)[1])
                     self.assertTrue(any(row['kind']=='code' for row in payload['rows']))
                 self.results.append(dict(exportKind=kind,bytes=len(content),sha256=hashlib.sha256(content).hexdigest()))
+        self.api('etm/api/browse/'+sid+'/page?limit=5') # Warm the numeric row reader.
         helper=self.home/'runtime/backend/build-native/etm_export.exe'
         unavailable=helper.with_suffix('.disabled');helper.rename(unavailable)
         try:
@@ -132,6 +133,9 @@ class PortableTests(unittest.TestCase):
                 urlopen(self.base+'etm/api/download/'+sid+'/csv',timeout=45)
             self.assertEqual(caught.exception.code,400)
             self.assertIn('缺少原生导出程序',json.loads(caught.exception.read())['error'])
+            with urlopen(self.base+'etm/api/download/'+sid+'/simplified?fromSeq=0&toSeq=20',timeout=45) as response:
+                self.assertEqual(response.status,200)
+                self.assertIn('简化源码执行流',response.read().decode('utf8'))
         finally:unavailable.rename(helper)
         sources=self.home/'data/records'/sid/'sources.json';saved=sources.read_bytes()
         try:

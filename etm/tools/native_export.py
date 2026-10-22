@@ -24,6 +24,20 @@ def binary_path():
     return decode_trace.ROOT/'build-native/etm_export.exe'
 
 
+def prefer_prepared_small_range(store,start=None,end=None):
+    """A prepared numeric reader beats process/SHA overhead for one small cell.
+
+    Explicit engine settings retain their diagnostic meaning. An old/unprepared
+    index must not send a deep selection back through state-machine replay.
+    """
+    if 'ETM_EXPORT_ENGINE' in os.environ:return False
+    index=store.query_index
+    if index is None or getattr(index,'_row_state',None) is None:return False
+    lo=store.first_seq if start is None else max(store.first_seq,int(start))
+    hi=store.last_seq if end is None else min(store.last_seq,int(end))
+    return max(0,hi-lo+1)<=4096
+
+
 def _json(value):
     return json.dumps(value,ensure_ascii=False,separators=(',',':')).replace('&','\\u0026').replace('<','\\u003c').replace('>','\\u003e')
 

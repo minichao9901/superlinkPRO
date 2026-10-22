@@ -9,11 +9,14 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import zlib
+from contextlib import contextmanager
 
 sys.path[:0]=[str(Path(__file__).resolve().parents[1]),str(Path(__file__).resolve().parent)]
 import native_export
 import source_export
 import trace_store as ts
+import trace_store_index
+import trace_store_adapter
 from test_trace_store import build_fixture
 
 
@@ -73,6 +76,25 @@ class NativeExportTests(unittest.TestCase):
         folder,self.events,_,_=build_fixture(self.root/'legacy-no-cycles',cycles=False)
         ts.write(folder,folder/'store',verify_image=False)
         with ts.TraceStore(folder/'store') as store:self.compare(store,2,len(self.events)-1)
+
+    def test_prepared_small_range_uses_index_and_explicit_native_still_works(self):
+        trace_store_index.build_store_index(self.folder/'store',container='v2')
+        with ts.TraceStore(self.folder/'store') as store,patch.dict(os.environ):
+            os.environ.pop('ETM_EXPORT_ENGINE',None)
+            self.assertFalse(native_export.prefer_prepared_small_range(store,2,15))
+            store.event(2) # Prepare actual numeric row tables, not a fake readiness flag.
+            self.assertTrue(native_export.prefer_prepared_small_range(store,2,15))
+            adapter=trace_store_adapter.TraceStoreAdapter(self.folder)
+            @contextmanager
+            def lease():yield store
+            with patch.object(adapter,'_leased',lease):
+                with patch.object(native_export,'write',side_effect=AssertionError('tiny warm request must not start native')):
+                    self.assertFalse(adapter.export_execution(self.metadata,self.root/'small','csv',2,15))
+                with patch.dict(os.environ,ETM_EXPORT_ENGINE='native'):
+                    result=dict(self.metadata,exportRange=dict(start=2,end=15))
+                    self.assertTrue(adapter.export_execution(result,self.root/'native-small','csv',2,15))
+                    source_export.write_execution_export(result,store.events(2,15),self.root/'expected-small','csv')
+                    self.assertEqual((self.root/'native-small').read_bytes(),(self.root/'expected-small').read_bytes())
 
     def test_missing_helper_only_allows_source_fallback_and_invalid_engine_is_rejected(self):
         with ts.TraceStore(self.folder/'store') as store:
