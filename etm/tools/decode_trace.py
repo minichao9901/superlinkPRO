@@ -6,7 +6,10 @@ import collections
 import hashlib
 import io
 import json
+import os
 import subprocess
+import threading
+import time
 from pathlib import Path
 
 from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_MCLASS
@@ -50,13 +53,56 @@ def string(value):
     return value.decode('utf-8', 'replace') if isinstance(value, bytes) else str(value)
 
 
+_IMAGE_CACHE = collections.OrderedDict()
+_IMAGE_CACHE_LOCK = threading.RLock()
+_IMAGE_CACHE_BYTES = 64 * 1024 * 1024
+_IMAGE_CACHE_ENTRIES = 4
+
+
 class Image:
     def __init__(self, path, sources=None):
+        started = time.perf_counter()
         self.path = Path(path)
         self.bytes = self.path.read_bytes()
+        digest = hashlib.sha256(self.bytes).hexdigest()
+        read_seconds = time.perf_counter() - started
         self.elf = ELFFile(io.BytesIO(self.bytes))
         if self.elf['e_machine'] != 'EM_ARM' or not self.elf.little_endian:
             raise ValueError('初版需要小端 ARM ELF。')
+        self.source_text = dict(sources or {})
+        enabled = os.environ.get('ETM_PREPARE_CACHE', '1').strip().lower() not in ('0', 'false', 'off')
+        hit = False
+        parse_seconds = 0.0
+        wait_started = time.perf_counter()
+        with _IMAGE_CACHE_LOCK:
+            wait_seconds = time.perf_counter() - wait_started
+            cached = _IMAGE_CACHE.get(digest) if enabled else None
+            phase = time.perf_counter()
+            if cached is None:
+                self._parse()
+                parse_seconds = time.perf_counter() - phase
+                # Cache only immutable values. ELF parser streams and source
+                # overlays belong to each Image, including on cache hits.
+                values = (tuple(self.segments), tuple(self.functions), tuple(self.starts),
+                          tuple(self.lines.items()), tuple(self.line_starts))
+                weight = len(self.bytes) * 2 + len(self.lines) * 256 + len(self.functions) * 128
+                if enabled and weight <= _IMAGE_CACHE_BYTES:
+                    _IMAGE_CACHE[digest] = (weight, values)
+                    while (len(_IMAGE_CACHE) > _IMAGE_CACHE_ENTRIES
+                           or sum(value[0] for value in _IMAGE_CACHE.values()) > _IMAGE_CACHE_BYTES):
+                        _IMAGE_CACHE.popitem(last=False)
+            else:
+                hit = True
+                _IMAGE_CACHE.move_to_end(digest)
+                _, values = cached
+                segments, functions, starts, lines, line_starts = values
+                self.segments, self.functions, self.starts = list(segments), list(functions), list(starts)
+                self.lines, self.line_starts = dict(lines), list(line_starts)
+        self.preparation = dict(cacheHit=hit, sha256=digest, readAndHashSeconds=read_seconds,
+                                parseSeconds=parse_seconds, waitSeconds=wait_seconds,
+                                totalSeconds=time.perf_counter() - started)
+
+    def _parse(self):
         self.segments = [(s['p_vaddr'], s.data()) for s in self.elf.iter_segments()
                          if s['p_type'] == 'PT_LOAD' and s['p_filesz']]
         self.functions = []
@@ -67,7 +113,6 @@ class Image:
                                     if s['st_info']['type'] == 'STT_FUNC' and s['st_size'])
         self.starts = [a for a, _, _ in self.functions]
         self.lines = {}
-        self.source_text = dict(sources or {})
         if self.elf.has_dwarf_info():
             dwarf = self.elf.get_dwarf_info()
             for cu in dwarf.iter_CUs():

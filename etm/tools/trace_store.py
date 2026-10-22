@@ -2431,6 +2431,10 @@ class TraceStore:
             hi = lo - 1
         needle = search.lower() if search else ''
         filtered = bool(needle) or bool(hide_skipped)
+        if filtered and self.query_index is not None:
+            import native_selection
+            answer = native_selection.page(self,offset,limit,search,hide_skipped,lo,hi)
+            if answer is not None:return answer
         contiguous = bool((self.meta.get('seq') or {}).get('contiguous', True))
         if not filtered and (contiguous or (start is None and end is None)):
             # A plain interval of a contiguous sequence has an exact count;
@@ -2707,6 +2711,10 @@ class TraceStore:
         （首条指令、隐藏未成立与搜索文本必须与参考逐字段一致，R1 不冒进）。
         """
         index = self.query_index
+        if index is not None and (search or hide_skipped):
+            import native_selection
+            answer = native_selection.function_timeline(self,start,end,search,hide_skipped,bins,max_functions)
+            if answer is not None:return answer
         if index is not None and not search and not hide_skipped:
             try:
                 return index.function_timeline(start, end, search, hide_skipped,

@@ -43,10 +43,13 @@ R2 设计 §3.2 的 61 B header + 字符串池 + **按 PC 升序的 16 B 条目�
 from __future__ import annotations
 
 import argparse
+import collections
 import hashlib
 import json
+import os
 import struct
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -68,6 +71,40 @@ RANGE_ELEMENT_TYPE = 5                 # OCSD_GEN_TRC_ELEM_INSTR_RANGE
 
 FIELD_NAMES = ('pc', 'size', 'flow', 'conditional', 'predicated', 'function', 'file', 'line',
                'mnemonic', 'operands', 'bytes', 'id')
+
+_ADDRESS_CACHE = collections.OrderedDict()
+_ADDRESS_CACHE_LOCK = threading.RLock()
+
+
+def _address_preparation(image):
+    from trace_store_write import _known_addresses
+    started = time.perf_counter()
+    enabled = (type(image) is Image and 'read' not in vars(image)
+               and os.environ.get('ETM_PREPARE_CACHE', '1').strip().lower() not in ('0', 'false', 'off'))
+    # Include the actual segments/function spans: callers may deliberately edit
+    # an Image for diagnostics. Never reuse context-sensitive range disassembly.
+    key = (hashlib.sha256(image.bytes).digest(), tuple(image.segments), tuple(image.functions)) if enabled else None
+    with _ADDRESS_CACHE_LOCK:
+        cached = _ADDRESS_CACHE.get(key) if enabled else None
+        if cached is not None:
+            _ADDRESS_CACHE.move_to_end(key)
+            return cached[0], cached[1], dict(addressPreparationCacheHit=True,
+                addressCacheSeconds=time.perf_counter()-started,
+                predicateAddressesSeconds=0.0, knownAddressesSeconds=0.0)
+        phase = time.perf_counter()
+        predicates = frozenset(predicate_addresses(image))
+        predicate_seconds = time.perf_counter()-phase
+        phase = time.perf_counter()
+        known = frozenset(_known_addresses(image))
+        known_seconds = time.perf_counter()-phase
+        weight = (len(predicates)+len(known))*96
+        if enabled and weight <= 16*1024*1024:
+            _ADDRESS_CACHE[key] = (predicates, known, weight)
+            while len(_ADDRESS_CACHE)>4 or sum(value[2] for value in _ADDRESS_CACHE.values())>16*1024*1024:
+                _ADDRESS_CACHE.popitem(last=False)
+        return predicates, known, dict(addressPreparationCacheHit=False,
+            addressCacheSeconds=time.perf_counter()-started,
+            predicateAddressesSeconds=predicate_seconds, knownAddressesSeconds=known_seconds)
 
 
 class StaticDictError(ValueError):
@@ -118,19 +155,14 @@ def collect_ranges(native_path, progress=None):
 def build_static_entries(ranges, elf_path, *, verify_image=True, progress=None, image=None):
     """按首次出现顺序生成静态条目（与参考 `_Assembler._static_entry` 同口径）。"""
     import decode_stream as expander
-    from trace_store_write import _known_addresses
 
     started = time.perf_counter()
     timings = {}
     phase = time.perf_counter()
     image = image or Image(str(elf_path))
     timings['loadImageSeconds'] = round(time.perf_counter() - phase, 4)
-    phase = time.perf_counter()
-    predicates = predicate_addresses(image)
-    timings['predicateAddressesSeconds'] = round(time.perf_counter() - phase, 4)
-    phase = time.perf_counter()
-    known = _known_addresses(image)
-    timings['knownAddressesSeconds'] = round(time.perf_counter() - phase, 4)
+    predicates, known, address_costs = _address_preparation(image)
+    timings.update(address_costs)
     phase = time.perf_counter()
     table = expander._InstructionTable(image, predicates, known)
     timings['instructionTableSeconds'] = round(time.perf_counter() - phase, 4)

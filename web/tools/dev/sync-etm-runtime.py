@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[2]
 FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stream.py','tools/stream_store.py','tools/slice_merge.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py','tools/kingst_record.py','tools/timeline_index.py','tools/native_index.py','tools/fast_window.py','tools/trace_store.py','tools/trace_store_write.py','tools/trace_store_adapter.py','tools/native_binary.py']
 FILES += ['tools/trace_store_index.py','tools/trace_store_nav.py','tools/native_facts_index.py',
           'tools/native_pipeline.py','tools/static_dict.py','tools/native_frontend.py',
-          'tools/native_storebuild.py','tools/trace_frontend.py','tools/native_export.py']
+          'tools/native_storebuild.py','tools/trace_frontend.py','tools/native_export.py','tools/native_selection.py']
 # 可选原生索引器：只有配置时找到 SQLite3，CMakeLists 才会生成 etm_index 目标（否则 Python 回退）。
 # FindSQLite3 模块在缓存里写的是单数 INCLUDE_DIR/LIBRARY；config 模式才可能有 SQLite3_DIR。
 SQLITE_CACHE_KEYS=('SQLite3_INCLUDE_DIR','SQLite3_LIBRARY')

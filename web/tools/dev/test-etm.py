@@ -17,6 +17,8 @@ def main():
     commands.append([sys.executable,'-m','unittest','discover','-s','tools/selftest','-p','test_etm_engine.py','-v'])
     commands.append([sys.executable,'-m','unittest','discover','-s','../etm/tools/tests','-p','test_source_export.py','-v'])
     commands.append([sys.executable,'-m','unittest','discover','-s','../etm/tools/tests','-p','test_native_export.py','-v'])
+    commands.append([sys.executable,'-m','unittest','discover','-s','../etm/tools/tests','-p','test_native_selection.py','-v'])
+    commands.append([sys.executable,'-m','unittest','discover','-s','../etm/tools/tests','-p','test_image_preparation.py','-v'])
     if args.portable:commands.append([sys.executable,'-m','unittest','discover','-s','tools/selftest','-p','test_etm_portable.py','-v'])
     rows=[]
     for index,command in enumerate(commands):

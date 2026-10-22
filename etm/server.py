@@ -768,6 +768,7 @@ def decode_job(jid,sid):
         record_failure(sid,error,'decode');change(jid,state='error',error=str(error))
 
 def _decode_job(jid, sid):
+    started=time.perf_counter()
     try:
         change(jid, state='decoding')
         folder, m = directory(sid), meta(sid)
@@ -778,6 +779,7 @@ def _decode_job(jid, sid):
         raw=folder/m['input']
         # 显式启用融合写出时，短 CSV 也必须进入同一条链路，不能被旧的小记录分支绕过。
         streamed=bool(store_write_enabled() or raw.suffix.lower() in ('.bin','.kvdat') or m.get('seconds',0)>.02 or raw.stat().st_size>50*1024*1024)
+        prepared=time.perf_counter()
         if streamed:
             if raw.suffix.lower() in ('.csv','.kvdat'):
                 r=decode_capture_stream(raw,folder/'firmware.elf',folder,m['config'],sources,
@@ -788,6 +790,7 @@ def _decode_job(jid, sid):
         else:
             r = decode_capture(raw, folder / 'firmware.elf', folder, m['config'], sources,
                                fraction=m.get('fraction', .25), clock=m.get('clock', 0), data=m.get('data', [1, 2, 3, 4]),glitch_ns=m.get('glitchNs',0))
+        decoded_at=time.perf_counter()
         r['targetSnapshot']=m.get('targetSnapshot')
         r['captureScope']=m.get('captureScope','unfiltered-window')
         r['captureStart']=(capture_start_from_store(folder / 'store', m)
@@ -808,7 +811,15 @@ def _decode_job(jid, sid):
             m['stopRequested']=True
             save(sid, m)
             return r['summary']
+        browse_started=time.perf_counter()
         if streamed:browse_store(sid).ensure()
+        if r.get('performance'):
+            performance=dict(r['performance'])
+            performance.update(jobSeconds=time.perf_counter()-started,
+                jobPhasesSeconds=dict(metadataPreparation=prepared-started,
+                    decode=decoded_at-prepared,captureStartAndMetadata=browse_started-decoded_at,
+                    browsePreparation=time.perf_counter()-browse_started))
+            save_json(folder/'decode-performance.json',performance)
         return r['summary']
     except (Exception,SystemExit) as error:
         record_failure(sid,error,'decode')

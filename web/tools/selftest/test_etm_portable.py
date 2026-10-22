@@ -18,7 +18,7 @@ class PortableTests(unittest.TestCase):
         with zipfile.ZipFile(archive) as zip:zip.extractall(cls.extracted)
         cls.home=cls.extracted/'etm-bridge-kit';cls.exe=cls.home/'etm-bridge.exe'
         cls.env=dict(os.environ,PATH=str(Path(os.environ['SystemRoot'])/'System32')+';'+os.environ['SystemRoot'])
-        for name in ['PYTHONPATH','PYTHONHOME','WEB_ETM_RECORDS','ETM_EXPORT_ENGINE']:cls.env.pop(name,None)
+        for name in ['PYTHONPATH','PYTHONHOME','WEB_ETM_RECORDS','ETM_EXPORT_ENGINE','ETM_QUERY_ENGINE','ETM_PREPARE_CACHE']:cls.env.pop(name,None)
         cls.env['PYTHONNOUSERSITE']='1'
         with socket.socket() as socket_:socket_.bind(('127.0.0.1',0));cls.port=socket_.getsockname()[1]
         (cls.home/'etm.config.json').write_text(json.dumps(dict(port=cls.port)),encoding='utf8')
@@ -98,6 +98,20 @@ class PortableTests(unittest.TestCase):
             time.sleep(.2)
         self.assertEqual(state['state'],'done',state.get('error'))
         actual=self.api('etm/api/browse/'+sid+'/overview')['summary']['instructions'];self.assertEqual(actual,expected)
+        overview=self.api('etm/api/browse/'+sid+'/overview')
+        performance=overview['performance']
+        self.assertEqual(performance['generation'],overview['traceStore']['generation'])
+        self.assertGreater(performance['jobSeconds'],0)
+        self.assertGreater(performance['decodePhasesSeconds']['openCsd'],0)
+        self.assertIn('browsePreparation',performance['jobPhasesSeconds'])
+        self.assertIn('inputBindings',performance['storePhasesSeconds'])
+        self.assertIn('cleanup',performance['storePhasesSeconds'])
+        query='etm/api/browse/'+sid+'/'
+        page=self.api(query+'page?search=main&hideSkipped=1&limit=5')
+        self.assertTrue(page['rows']);self.assertGreater(page['total'],len(page['rows']))
+        self.assertTrue(all('main' in row.get('function','').lower() for row in page['rows']))
+        timeline=self.api(query+'timeline?search=main&hideSkipped=1')
+        self.assertEqual(timeline['summary']['filteredRecords'],page['total'])
         store=json.loads((self.home/'data/records'/sid/'store/manifest.json').read_text(encoding='utf8'))
         self.assertEqual(store['engine']['name'],'native');self.assertIs(store['engine']['fallback'],False)
         self.results.append(dict(demoInstructions=actual,job=job,decodeState=state['state']))
@@ -165,6 +179,7 @@ class PortableTests(unittest.TestCase):
             time.sleep(.2)
         self.assertEqual(state['state'],'done',state.get('error'))
         overview=self.api('etm/api/browse/'+sid+'/overview')
+        self.assertTrue(overview['performance']['image']['cacheHit'])
         file=next(name for name in overview['sourceFiles'] if name.endswith('/main.c') and sources.get(name))
         from urllib.parse import quote
         source_route='etm/api/browse/'+sid+'/source?file='+quote(file,safe='')

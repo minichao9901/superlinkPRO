@@ -41,6 +41,7 @@ import hashlib
 import json
 import os
 import subprocess
+import time
 from pathlib import Path
 
 from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_MCLASS
@@ -126,8 +127,9 @@ def _write_array(handle, source, key):
     handle.write(']')
 
 
-def _run_native(id_stream, image, workdir, config):
+def _run_native(id_stream, image, workdir, config, timings=None):
     """写 etm.bin/镜像段/manifest，跑一次 OpenCSD，返回原生产物路径、协议名与格式。"""
+    started = time.perf_counter()
     protocol = 'ETMv3' if str(config.get('protocol', 'ETMv4')) == 'ETMv3' else 'ETMv4'
     (workdir / 'etm.bin').write_bytes(id_stream)
     order = V3_REG_ORDER if protocol == 'ETMv3' else REG_ORDER
@@ -141,6 +143,7 @@ def _run_native(id_stream, image, workdir, config):
     manifest_file.write_text(manifest, encoding='utf-8')
 
     fmt = native_format()
+    prepared = time.perf_counter()
     if fmt == 'binary':
         native_path = workdir / 'native.bin'
         command = [str(_native()), '--binary', str(native_path), str(workdir / 'etm.bin'),
@@ -152,7 +155,11 @@ def _run_native(id_stream, image, workdir, config):
         with native_path.open('wb') as out:
             process = subprocess.run([str(_native()), str(workdir / 'etm.bin'), str(manifest_file)],
                                      stdout=out, stderr=subprocess.PIPE, timeout=900)
+    finished = time.perf_counter()
     (workdir / 'native.log').write_bytes(process.stderr or b'')
+    if timings is not None:
+        timings.update(inputPreparationSeconds=prepared-started,openCsdSeconds=finished-prepared,
+                       totalSeconds=time.perf_counter()-started)
     if process.returncode:
         raise ValueError('OpenCSD 解码失败：' + (process.stderr or b'').decode('utf-8', 'replace')[-3000:])
     return native_path, protocol, fmt
@@ -715,6 +722,9 @@ def _store_write(workdir, image, native_bin, protocol, config, input_bytes, max_
         elf=str(image.path), config=config, input_bytes=input_bytes, image=image,
         max_events=max_events, write_decoded=True, framing=framing, physical=physical,
         capture=capture, progress=progress, progress_every=progress_every)
+    if _result.get('engine',{}).get('name')=='native':
+        decoded['performance']=dict(storePhasesSeconds=dict(_result['phases']),
+            storeDetails=_result['engine'].get('buildCosts'))
     return decoded
 
 
@@ -921,18 +931,34 @@ def decode_stream(id_stream, elf, workdir, config=None, sources=None, max_events
     不生成 events/packets/elements JSONL。`framing/physical/capture` 是可选的采集元数据，
     只在融合写出时并入记录摘要（text/binary 旧路径仍由 `decode_capture_stream` 事后补齐）。
     """
+    started = time.perf_counter()
     workdir = Path(workdir).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
     config = decoder_config(config)
+    image_started=time.perf_counter()
     image = Image(elf, sources)
-    native_path, protocol, fmt = _run_native(id_stream, image, workdir, config)
+    image_seconds=time.perf_counter()-image_started
+    native_costs={}
+    native_path, protocol, fmt = _run_native(id_stream, image, workdir, config,timings=native_costs)
     engine = expansion_engine()
     if fmt == 'binary':
         if engine == 'legacy':
             raise ValueError('原生二进制输出只支持 fast 展开引擎，请设置 ETM_DECODE_ENGINE=fast。')
         if store_write_enabled():
-            return _store_write(workdir, image, native_path, protocol, config, len(id_stream),
+            store_started=time.perf_counter()
+            result=_store_write(workdir, image, native_path, protocol, config, len(id_stream),
                                 max_events, progress_every, framing, physical, capture)
+            if 'performance' in result:
+                result['performance'].update(version=1,generation=result['traceStore']['generation'],
+                    scope='offline-decode; excludes acquisition, upload and browser rendering',
+                    decodeSeconds=time.perf_counter()-started,
+                    decodePhasesSeconds=dict(imagePreparation=image_seconds,
+                        nativeInputPreparation=native_costs['inputPreparationSeconds'],
+                        openCsd=native_costs['openCsdSeconds'],
+                        storeBuildAndIndex=time.perf_counter()-store_started),
+                    image=getattr(image,'preparation',None))
+                (workdir/'decoded.json').write_text(json.dumps(result,ensure_ascii=False),encoding='utf8')
+            return result
         return _expand_binary(workdir, image, native_path, protocol, config, len(id_stream),
                               max_events, progress_every)
     expand = _expand_legacy if engine == 'legacy' else _expand_fast
@@ -947,6 +973,7 @@ def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fra
     from tpiu_demux import demux
 
     csv_path, workdir = Path(csv_path).resolve(), Path(workdir).resolve()
+    capture_started=time.perf_counter()
     config = decoder_config(config)
     if (csv_path.suffix.lower() == '.kvdat' and store_write_enabled()
             and os.environ.get('ETM_STORE_ENGINE') == 'native'):
@@ -972,6 +999,10 @@ def decode_capture_stream(csv_path, elf, workdir, config=None, sources=None, fra
                               max_events=max_events, framing=framing, physical=physical, capture=capture)
         result['processing'] = dict(frontend='native', frontendSeconds=frontend['wallSeconds'],
                                     frontendTiming=frontend.get('timing'))
+        if 'performance' in result:
+            result['performance'].update(frontendSeconds=frontend['wallSeconds'],
+                frontendPhasesSeconds=frontend.get('timing'),
+                captureToDecodedSeconds=time.perf_counter()-capture_started)
         (workdir / 'decoded.json').write_text(json.dumps(result, ensure_ascii=False), encoding='utf8')
         for path in workdir.glob('_wave.*'):
             path.unlink()
