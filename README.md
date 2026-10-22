@@ -149,12 +149,13 @@ RTT · J-Scope 波形 · 烧录 · 源码级调试 · **ETM 执行轨迹与周�
 
 ### 2. 本地桥（离线可用）
 
-`web/bridge/etm/downloads/etm-bridge-win64.zip`（**约 25 MB 单文件**）解压后双击 `start-bridge.bat`：
-自带运行时探测，缺 Node 会自动下载便携版（不动系统），桥起来后用它托管的页面即可。
+`web/bridge/etm/downloads/etm-bridge-win64.zip`（**1.0.14-native.10，约 77.9 MB**）完整解压后双击
+`start-etm-bridge.bat`。包内自带 Python、依赖、网页和原生解码器，无需安装 Python 或 Node，
+默认启用原生优化链路。升级前退出旧工作台并保留 `data` 目录。
 
 ```text
-start-bridge.bat        # 起本地桥并托管页面
-check-tools.bat         # 环境自检（--doctor）
+start-etm-bridge.bat    # 起本地桥并打开网页
+check-tools.bat         # 检查完整包与运行资源
 ```
 
 ### 3. 烧探针固件（可选）

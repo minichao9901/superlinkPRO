@@ -1,9 +1,9 @@
 {
-  "version": "1.0.13",
+  "version": "1.0.14-native.10",
   "platform": "windows-x64",
   "file": "etm-bridge-win64.zip",
-  "bytes": 74913890,
-  "sha256": "2d8a09f2a3bee830302fdf3f6d43436a4df1081b1112a889f7e522cce5d34534",
-  "packageId": "c1a7374891f50e729313ec61b0aeb1d582b987605424f334cfd0ee577a46a5ea",
-  "sourceRevision": "8c7c48f628220d488282db1ae444b9afeefa167b"
+  "bytes": 77866474,
+  "sha256": "222a93cb8c898302cc382fd9de4e24422e3de6b4a4a03d38c80448ccee1da24b",
+  "packageId": "addc539e387a969a86ff5355a0aa6a80dedce27540826e49d5c3b5d16adc0e4b",
+  "sourceRevision": "4293067f5536de63b8d82a574ed02a60e6a6e6b5"
 }
