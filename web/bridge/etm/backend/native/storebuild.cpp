@@ -53,10 +53,26 @@ namespace fs = std::filesystem;
 
 namespace {
 
+fs::path file_path(const std::string& name) {
+    auto path = fs::u8path(name);
+#ifdef _WIN32
+    // CRT file APIs still enforce MAX_PATH without an extended absolute name.
+    // In particular, an otherwise valid facts path can exceed it after .tmp.PID.
+    auto wide = fs::absolute(path).lexically_normal().make_preferred().native();
+    if (wide.size() >= MAX_PATH && wide.compare(0, 4, L"\\\\?\\") != 0) {
+        wide = wide.compare(0, 2, L"\\\\") == 0
+                   ? L"\\\\?\\UNC\\" + wide.substr(2)
+                   : L"\\\\?\\" + wide;
+        return fs::path(wide);
+    }
+#endif
+    return path;
+}
+
 std::FILE* open_utf8_file(const std::string& name, const char* mode) {
 #ifdef _WIN32
     const std::wstring wide_mode(mode, mode + std::strlen(mode));
-    return _wfopen(fs::u8path(name).c_str(), wide_mode.c_str());
+    return _wfopen(file_path(name).c_str(), wide_mode.c_str());
 #else
     return std::fopen(name.c_str(), mode);
 #endif
@@ -2067,10 +2083,10 @@ class FactsSink {
         std::fclose(file_);
         file_ = nullptr;
         std::error_code error;
-        fs::rename(fs::u8path(temp_path_), fs::u8path(final_path_), error);
+        fs::rename(file_path(temp_path_), file_path(final_path_), error);
         if (error) {
             std::error_code ignored;
-            fs::remove(fs::u8path(temp_path_), ignored);
+            fs::remove(file_path(temp_path_), ignored);
             fail(kExitIo, "重命名 facts 输出失败：" + error.message());
         }
         committed_ = true;
@@ -2093,7 +2109,7 @@ class FactsSink {
         file_ = nullptr;
         if (!committed_) {
             std::error_code ignored;
-            fs::remove(fs::u8path(temp_path_), ignored);
+            fs::remove(file_path(temp_path_), ignored);
         }
     }
     std::string final_path_;

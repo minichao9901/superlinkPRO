@@ -1248,7 +1248,9 @@ def download(sid, kind):
               'simplified-html':'etm-simplified.html','csv':'etm-execution.csv'}[kind]
         path=folder/('export-'+uuid.uuid4().hex+'.'+extension)
         try:
-            write_execution_export(r,events,path,kind)
+            native_writer=getattr(store,'export_execution',None) if store_backed else None
+            if not native_writer or not native_writer(r,path,kind,start,end):
+                write_execution_export(r,events,path,kind)
             response=send_file(path,as_attachment=True,download_name=name,mimetype=mime+'; charset=utf-8')
         except BaseException:
             path.unlink(missing_ok=True)
