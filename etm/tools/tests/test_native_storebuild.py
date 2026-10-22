@@ -16,6 +16,7 @@
 无原生二进制时跳过需要 exe 的用例；`--version` 的验证命令由调用方执行。
 """
 import json
+import os
 import struct
 import subprocess
 import sys
@@ -547,6 +548,22 @@ class NativeStorebuildCase(unittest.TestCase):
         self.assertEqual(facts.read_bytes(), again.read_bytes())
         # 原生块 12 存在，但默认视图/块 12 的查询能力不在此任务声明
         self.assertTrue((store_root / 'store.bin').is_file())
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows CRT path length regression')
+    def test_facts_temporary_name_crosses_windows_path_limit(self):
+        # The final name fits MAX_PATH; its atomic-write suffix does not.
+        with tempfile.TemporaryDirectory(prefix='facts-long-') as temporary:
+            parent = Path(temporary).resolve() / ('目录 ' + 'x' * 100)
+            parent = parent / ('y' * (246 - len(str(parent)) - 1))
+            parent.mkdir(parents=True)
+            facts = parent / 'facts.bin'
+            self.assertEqual(len(str(facts)), 256)
+            out = Path(temporary) / 'store'
+            nsb.build(self.native, self.static_ext, out,
+                      generation='g-long-facts', generation_tag=0x11,
+                      facts_out=facts)
+            self.assertEqual(read_facts_v2(facts)['instructions'], 5)
+            self.assertFalse(list(parent.glob('*.tmp.*')))
 
     def test_facts_v2_nested_irq_depth(self):
         """异常嵌套（9/9/10/10）→ depth 0/1/2/1/0，prevFunc/路径区间覆盖跨嵌套。"""

@@ -68,6 +68,18 @@ class NativeExportTests(unittest.TestCase):
         manifest_path.write_text(json.dumps(manifest),encoding='utf8')
         with ts.TraceStore(self.folder/'store') as store:self.compare(store,3,len(self.events)-1)
 
+    @unittest.skipUnless(os.name == 'nt', 'Windows extended file path regression')
+    def test_long_temporary_plan_and_output_paths(self):
+        parent=self.root/('导出 '+ 'x'*100)
+        parent=parent/('y'*(246-len(str(parent))-1))
+        parent.mkdir(parents=True)
+        actual=parent/'native.c';expected=self.root/'reference.c'
+        with ts.TraceStore(self.folder/'store') as store:
+            self.assertTrue(native_export.write(store,self.metadata,actual,'simplified'))
+        source_export.write_execution_export(self.metadata,iter(self.events),expected,'simplified')
+        self.assertEqual(actual.read_bytes(),expected.read_bytes())
+        self.assertFalse(list(parent.glob('.etm-export-*')))
+
     def test_partial_missing_sources_keep_diagnostics(self):
         self.metadata['sources']={'main.c':'first\nsecond\n','leaf.c':''}
         with ts.TraceStore(self.folder/'store') as store:self.compare(store)

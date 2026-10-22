@@ -18,6 +18,18 @@
 #endif
 namespace fs = std::filesystem;
 using Bytes = std::vector<unsigned char>;
+static fs::path filePath(const std::string &name) {
+    auto path = fs::u8path(name);
+#ifdef _WIN32
+    auto wide = fs::absolute(path).lexically_normal().make_preferred().native();
+    if (wide.size() >= MAX_PATH && wide.compare(0, 4, L"\\\\?\\") != 0) {
+        wide =
+            wide.compare(0, 2, L"\\\\") == 0 ? L"\\\\?\\UNC\\" + wide.substr(2) : L"\\\\?\\" + wide;
+        return fs::path(wide);
+    }
+#endif
+    return path;
+}
 static void require(bool value, const char *message) {
     if (!value)
         throw std::runtime_error(message);
@@ -498,17 +510,18 @@ static int run(const std::vector<std::string> &args) {
         return 0;
     }
     require(args.size() == 4, "usage: etm_export plan.bin store.bin output");
-    auto outputPath = fs::u8path(args[3]);
-    require(fs::absolute(outputPath) != fs::absolute(fs::u8path(args[1])) &&
-                fs::absolute(outputPath) != fs::absolute(fs::u8path(args[2])),
+    auto planPath = filePath(args[1]), storePath = filePath(args[2]),
+         outputPath = filePath(args[3]);
+    require(fs::absolute(outputPath) != fs::absolute(planPath) &&
+                fs::absolute(outputPath) != fs::absolute(storePath),
             "output aliases input");
-    require(!fs::exists(outputPath) || (!fs::equivalent(outputPath, fs::u8path(args[1])) &&
-                                        !fs::equivalent(outputPath, fs::u8path(args[2]))),
+    require(!fs::exists(outputPath) ||
+                (!fs::equivalent(outputPath, planPath) && !fs::equivalent(outputPath, storePath)),
             "output aliases input file");
-    Plan plan(fs::u8path(args[1]));
+    Plan plan(planPath);
     Output out(outputPath);
     Export exporter(plan, out);
-    readStore(fs::u8path(args[2]), plan, exporter);
+    readStore(storePath, plan, exporter);
     exporter.finish();
     auto digest = out.finish();
     uint64_t selected = plan.end < plan.start
