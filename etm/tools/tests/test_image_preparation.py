@@ -82,4 +82,17 @@ class ImagePreparationTests(unittest.TestCase):
             final=dt.Image(ELF)
             self.assertFalse(final.preparation['cacheHit']);self.assertEqual(final.lines,first.lines)
 
+    def test_address_key_does_not_keep_large_image_segments_and_still_invalidates(self):
+        image=dt.Image(ELF);image.functions=[]
+        image.segments=[(0,b'\0'*(2<<20))]
+        static_dict._address_preparation(image)
+        def retained_bytes(value):
+            if isinstance(value,bytes):return len(value)
+            if isinstance(value,(tuple,list)):return sum(map(retained_bytes,value))
+            return 0
+        self.assertLess(retained_bytes(tuple(static_dict._ADDRESS_CACHE)),4096)
+        image.segments=[(0,b'\1'+image.segments[0][1][1:])]
+        _,_,cost=static_dict._address_preparation(image)
+        self.assertFalse(cost['addressPreparationCacheHit'])
+
 if __name__=='__main__':unittest.main()

@@ -83,7 +83,9 @@ def _address_preparation(image):
                and os.environ.get('ETM_PREPARE_CACHE', '1').strip().lower() not in ('0', 'false', 'off'))
     # Include the actual segments/function spans: callers may deliberately edit
     # an Image for diagnostics. Never reuse context-sensitive range disassembly.
-    key = (hashlib.sha256(image.bytes).digest(), tuple(image.segments), tuple(image.functions)) if enabled else None
+    key = (hashlib.sha256(image.bytes).digest(),
+           tuple((base, hashlib.sha256(data).digest()) for base,data in image.segments),
+           tuple(image.functions)) if enabled else None
     with _ADDRESS_CACHE_LOCK:
         cached = _ADDRESS_CACHE.get(key) if enabled else None
         if cached is not None:
@@ -97,7 +99,8 @@ def _address_preparation(image):
         phase = time.perf_counter()
         known = frozenset(_known_addresses(image))
         known_seconds = time.perf_counter()-phase
-        weight = (len(predicates)+len(known))*96
+        weight = ((len(predicates)+len(known))*96 + len(image.segments)*128 + 128
+                  + sum(192+len(name)*4 for _,_,name in image.functions))
         if enabled and weight <= 16*1024*1024:
             _ADDRESS_CACHE[key] = (predicates, known, weight)
             while len(_ADDRESS_CACHE)>4 or sum(value[2] for value in _ADDRESS_CACHE.values())>16*1024*1024:
