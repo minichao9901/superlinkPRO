@@ -5,7 +5,7 @@ from urllib.request import urlopen
 from flask import send_file
 from werkzeug.serving import make_server
 
-VERSION='1.0.14-native.10'
+VERSION='1.0.14-native.11'
 HERE=Path(__file__).resolve().parent
 for stream in (sys.stdout,sys.stderr):
     if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf8',errors='replace')
@@ -98,7 +98,7 @@ def main():
     port=args.port if args.port is not None else int(config.get('port',8878))
     if not 1024<=port<=65535:raise ValueError('端口必须在 1024～65535 之间')
     data=args.data_dir.resolve();backend=runtime/'backend';toolbox=home/'toolbox'
-    for path in [backend/'server.py',backend/'build-native/etm_decode.exe',toolbox/'index.html']:
+    for path in [backend/'server.py',backend/'build-native/etm_decode.exe',backend/'build-native/etm_export.exe',toolbox/'index.html']:
         if not path.is_file():raise ValueError('完整包缺少文件：'+str(path)+'；请重新解压完整 ZIP')
     data.mkdir(parents=True,exist_ok=True);records=data/'records';records.mkdir(exist_ok=True)
     os.environ['WEB_ETM_RECORDS']=str(records)

@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[2]
 FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stream.py','tools/stream_store.py','tools/slice_merge.py','tools/trace_port.py','tools/tpiu_demux.py','tools/flow_analysis.py','tools/record_store.py','tools/source_export.py','tools/breakpoint_resolver.py','tools/la/kingst_la.py','tools/kingst_record.py','tools/timeline_index.py','tools/native_index.py','tools/fast_window.py','tools/trace_store.py','tools/trace_store_write.py','tools/trace_store_adapter.py','tools/native_binary.py']
 FILES += ['tools/trace_store_index.py','tools/trace_store_nav.py','tools/native_facts_index.py',
           'tools/native_pipeline.py','tools/static_dict.py','tools/native_frontend.py',
-          'tools/native_storebuild.py','tools/trace_frontend.py']
+          'tools/native_storebuild.py','tools/trace_frontend.py','tools/native_export.py']
 # 可选原生索引器：只有配置时找到 SQLite3，CMakeLists 才会生成 etm_index 目标（否则 Python 回退）。
 # FindSQLite3 模块在缓存里写的是单数 INCLUDE_DIR/LIBRARY；config 模式才可能有 SQLite3_DIR。
 SQLITE_CACHE_KEYS=('SQLite3_INCLUDE_DIR','SQLite3_LIBRARY')
@@ -138,7 +138,7 @@ def main():
     # ⚠️ 不要在这里复制 `build-native/etm_decode.exe`：它是构建产物（gitignored），
     #    裸克隆里没有；旧顺序会先因为缺 exe 抛异常，后面的 cmake 自动构建永远轮不到（审查 R09）。
     #    exe 由下面最后一步 g++ 直接链接进快照。
-    paths+=['native/decoder.cpp','native/indexer.cpp','native/frontend.cpp','native/storebuild.cpp',
+    paths+=['native/decoder.cpp','native/indexer.cpp','native/frontend.cpp','native/storebuild.cpp','native/export.cpp',
             'native/SQLITE-LICENSE.txt','vendor/OpenCSD-1.8.3/LICENSE']
     for name in paths:
         target=dest/name;target.parent.mkdir(parents=True,exist_ok=True)
@@ -242,8 +242,8 @@ int main(int argc,char **argv) { return decode_main(argc,argv); }
     # These helpers are required by the explicit native engine, so build errors
     # must stop publication instead of silently shipping an older executable.
     subprocess.run(['cmake','--build',str(source/'build-native'),'--target',
-                    'etm_frontend','etm_storebuild','--config','Release'],check=True)
-    for name in ('etm_frontend.exe','etm_storebuild.exe'):
+                    'etm_frontend','etm_storebuild','etm_export','--config','Release'],check=True)
+    for name in ('etm_frontend.exe','etm_storebuild.exe','etm_export.exe'):
         shutil.copyfile(source/'build-native'/name,dest/'build-native'/name)
     # Rebuild the optional native indexer against the current source as well.
     # SQLite3 dev headers are not required for the Python fallback; a source

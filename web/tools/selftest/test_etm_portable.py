@@ -18,7 +18,7 @@ class PortableTests(unittest.TestCase):
         with zipfile.ZipFile(archive) as zip:zip.extractall(cls.extracted)
         cls.home=cls.extracted/'etm-bridge-kit';cls.exe=cls.home/'etm-bridge.exe'
         cls.env=dict(os.environ,PATH=str(Path(os.environ['SystemRoot'])/'System32')+';'+os.environ['SystemRoot'])
-        for name in ['PYTHONPATH','PYTHONHOME','WEB_ETM_RECORDS']:cls.env.pop(name,None)
+        for name in ['PYTHONPATH','PYTHONHOME','WEB_ETM_RECORDS','ETM_EXPORT_ENGINE']:cls.env.pop(name,None)
         cls.env['PYTHONNOUSERSITE']='1'
         with socket.socket() as socket_:socket_.bind(('127.0.0.1',0));cls.port=socket_.getsockname()[1]
         (cls.home/'etm.config.json').write_text(json.dumps(dict(port=cls.port)),encoding='utf8')
@@ -125,6 +125,14 @@ class PortableTests(unittest.TestCase):
                     payload=json.loads(re.search(rb'<script id="data" type="application/json">(.*?)</script>',content,re.S)[1])
                     self.assertTrue(any(row['kind']=='code' for row in payload['rows']))
                 self.results.append(dict(exportKind=kind,bytes=len(content),sha256=hashlib.sha256(content).hexdigest()))
+        helper=self.home/'runtime/backend/build-native/etm_export.exe'
+        unavailable=helper.with_suffix('.disabled');helper.rename(unavailable)
+        try:
+            with self.assertRaises(HTTPError) as caught:
+                urlopen(self.base+'etm/api/download/'+sid+'/csv',timeout=45)
+            self.assertEqual(caught.exception.code,400)
+            self.assertIn('缺少原生导出程序',json.loads(caught.exception.read())['error'])
+        finally:unavailable.rename(helper)
         sources=self.home/'data/records'/sid/'sources.json';saved=sources.read_bytes()
         try:
             sources.write_text(json.dumps({name:'' for name in json.loads(saved)}),encoding='utf8')

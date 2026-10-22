@@ -6,6 +6,8 @@
 
 从 `1.0.14-native.9` 起，EXE 默认启用原生解码及完整查询优化，双击启动即可；缺失配置或旧的仅端口配置也会启用。启动日志及 `/etm-launcher.json` 的 engine 字段可核对选择。需要对照时可设置 `engine: "python"` 或传入 `--engine python`，退出旧工作台后重启生效。详见仓库 `docs/etm-native-engine.md`；尚未完成新的真机验收，采集上限仍为 200ms。
 
+`1.0.14-native.11` 起，trace-store 的四种执行流导出默认使用随包 `etm_export.exe`，已有记录无需重解码；旧 JSONL/内联格式保留原入口。完整包缺少导出器会明确报错。开发对照可设置 `ETM_EXPORT_ENGINE=python`，不会改变解码引擎选择。
+
 ## 仓库结构
 
 - `backend/`：从已验收 ETM 版本复制的运行源码、网页、解码器、单个 Demo 和示例 ELF；不包含 SDK 或用户记录。
