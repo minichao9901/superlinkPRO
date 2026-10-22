@@ -131,7 +131,7 @@ def write(record_dir, store_dir, **options):
         if len(raw) != 25 + count * 12:
             raise ts.TraceStoreError('唯一范围表长度不符')
         ranges = list(struct.iter_unpack('<III', raw[25:]))
-        entries, _ = static_dict.build_static_entries(ranges, elf, image=image,
+        entries, static_costs = static_dict.build_static_entries(ranges, elf, image=image,
                                                        verify_image=options.get('verify_image', True))
         dictionary = work / 'static.bin'
         static_dict.write_static_dict(dictionary, entries, elf_sha)
@@ -240,8 +240,10 @@ def write(record_dir, store_dir, **options):
             for name, expected in (('firmware.elf', elf_sha), ('native.bin', native_sha)):
                 if name in inputs and inputs[name]['sha256'] != expected:
                     raise ts.TraceStoreError('输入在构建期间变化：' + name)
+        mark('inputBindings')
         engine=dict(name='native',version=built['engine']['buildSha'],fallback=False,
-                    buildCosts=dict(phases=phases,index=full['timings']))
+                    buildCosts=dict(phases=phases,index=full['timings'],static=static_costs,
+                                    image=getattr(image,'preparation',None)))
         bindings=dict(inputs=inputs,config=config,engine=engine,
                       processing=dict(traceStore=1,engine='native',nativeFormat='trace-bin native v1'))
         if not hash_inputs:bindings['inputHash']=dict(skipped=True,computed=False)
@@ -271,6 +273,7 @@ def write(record_dir, store_dir, **options):
         import gc
         gc.collect()
         ts._remove_tree(work)
+        mark('cleanup')
         return dict(ok=True,storeDir=str(store_dir),generation=generation,counts=counts,
                     elapsedSeconds=time.perf_counter()-started,phases=phases,queryIndex=index_meta,
                     storeBytes=info['bytes'],storeSha256=info['sha256'],engine=engine,

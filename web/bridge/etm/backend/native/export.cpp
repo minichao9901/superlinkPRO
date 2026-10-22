@@ -4,10 +4,12 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <deque>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <openssl/sha.h>
 #include <stdexcept>
 #include <string>
@@ -63,8 +65,10 @@ static std::string hashFile(const fs::path &path) {
 struct Reader {
     const unsigned char *data;
     size_t pos = 0, end;
-    explicit Reader(const Bytes &bytes) : data(bytes.data()), end(bytes.size()) {}
-    Reader(const unsigned char *p, size_t n) : data(p), end(n) {}
+    explicit Reader(const Bytes &bytes) : data(bytes.data()), end(bytes.size()) {
+    }
+    Reader(const unsigned char *p, size_t n) : data(p), end(n) {
+    }
     void need(size_t n) {
         require(pos <= end && n <= end - pos, "truncated export input");
     }
@@ -330,7 +334,7 @@ class Export {
         pendingCount = 1;
         hasPending = true;
     }
-    void event(uint64_t seq, size_t stringId) {
+    void event(uint64_t seq, size_t stringId, unsigned = 0) {
         ++matched;
         flush();
         hasContext = false;
@@ -363,7 +367,8 @@ struct Block {
 static bool eventType(uint64_t type) {
     return type == 1 || type == 2 || type == 3 || (type >= 6 && type <= 10);
 }
-static void readStore(const fs::path &path, const Plan &plan, Export &output) {
+template <typename P, typename Consumer>
+static void readStore(const fs::path &path, const P &plan, Consumer &output) {
     require(fs::file_size(path) == plan.storeBytes, "store size changed");
     require(hashFile(path) == plan.sha, "store SHA256 mismatch");
     std::ifstream in(path, std::ios::binary);
@@ -484,13 +489,14 @@ static void readStore(const fs::path &path, const Plan &plan, Export &output) {
                 }
                 require(predicated == unknown, "internal predicate count mismatch");
             } else if (type == 2) {
-                require(eventType(record.le(1)), "unsupported event type");
+                auto etype = record.le(1);
+                require(eventType(etype), "unsupported event type");
                 for (int i = 0; i < 5; ++i)
                     record.uv();
                 auto id = record.uv();
                 require(id < plan.eventsText.size(), "event string ID out of range");
                 if (seq >= plan.start && seq <= plan.end)
-                    output.event(seq, size_t(id));
+                    output.event(seq, size_t(id), unsigned(etype));
                 ++expected;
                 ++events;
             } else
@@ -502,11 +508,235 @@ static void readStore(const fs::path &path, const Plan &plan, Export &output) {
             "execution counts mismatch");
     require(hashFile(path) == plan.sha, "store changed during export");
 }
+
+// Selection uses the same fully checked sequence reader as exports, without
+// constructing instruction dictionaries or decoding call-stack checkpoints.
+struct SelectionPlan {
+    uint64_t mode, start, end, tag, storeBytes, first, last, events, instructions;
+    uint64_t offset, limit, hideSkipped, bins, functions;
+    std::string sha;
+    struct Static {
+        uint64_t pc, predicated, match, function;
+    };
+    std::vector<Static> entries;
+    Bytes eventsText;
+    explicit SelectionPlan(const fs::path &path) {
+        auto size = fs::file_size(path);
+        require(size >= 160 && size <= (1ull << 30), "invalid selection plan size");
+        std::ifstream file(path, std::ios::binary);
+        require(bool(file), "cannot open selection plan");
+        auto bytes = readBytes(file, 0, size_t(size));
+        unsigned char digest[32];
+        SHA256_CTX hash;
+        SHA256_Init(&hash);
+        SHA256_Update(&hash, bytes.data(), bytes.size() - 32);
+        SHA256_Final(digest, &hash);
+        require(std::memcmp(digest, bytes.data() + bytes.size() - 32, 32) == 0,
+                "selection plan SHA256 mismatch");
+        Reader r(bytes.data(), bytes.size() - 32);
+        require(std::memcmp(bytes.data(), "ETMSEL1\0", 8) == 0, "unsupported selection plan");
+        r.pos = 8;
+        require(r.le(8) == 1, "unsupported selection ABI");
+        mode = r.le(8);
+        start = r.le(8);
+        end = r.le(8);
+        tag = r.le(8);
+        storeBytes = r.le(8);
+        first = r.le(8);
+        last = r.le(8);
+        events = r.le(8);
+        instructions = r.le(8);
+        offset = r.le(8);
+        limit = r.le(8);
+        hideSkipped = r.le(8);
+        bins = r.le(8);
+        require(mode <= 1 && hideSkipped <= 1 && limit >= 1 && limit <= 500 && bins >= 240 &&
+                    bins <= 2400,
+                "invalid selection options");
+        require(first <= last && last < std::numeric_limits<uint64_t>::max() &&
+                    events == last - first + 1,
+                "unsupported selection sequence");
+        require(end < start || (start >= first && end <= last), "selection outside store bounds");
+        sha = r.str();
+        require(sha.size() == 64, "missing selection store SHA256");
+        functions = r.le(8);
+        require(functions > 0 && functions <= (1u << 20), "invalid function count");
+        auto count = r.count(4 * 8);
+        entries.reserve(count);
+        for (size_t i = 0; i < count; ++i) {
+            Static s{r.le(8), r.le(8), r.le(8), r.le(8)};
+            require(s.predicated <= 1 && s.match <= 1 && s.function < functions,
+                    "invalid selection static entry");
+            entries.push_back(s);
+        }
+        count = r.count(1);
+        eventsText.reserve(count);
+        for (size_t i = 0; i < count; ++i) {
+            auto match = r.le(1);
+            require(match <= 1, "invalid event match flag");
+            eventsText.push_back(uint8_t(match));
+        }
+        require(r.pos == r.end, "trailing selection plan data");
+    }
+};
+class Selection {
+    const SelectionPlan &plan;
+    uint64_t total = 0, executed = 0, unknown = 0, notTaken = 0, markerCount = 0;
+    std::vector<uint64_t> selected;
+    std::deque<std::pair<uint64_t, uint64_t>> tail;
+    std::map<uint64_t, std::vector<uint64_t>> functionBins;
+    std::vector<uint64_t> unknownBins, notTakenBins;
+    struct Marker {
+        uint64_t first, last;
+        std::map<unsigned, uint64_t> types;
+    };
+    std::map<uint64_t, Marker> markers;
+    size_t bin(uint64_t seq) const {
+        auto span = plan.end - plan.start + 1, relative = seq - plan.start;
+        if (relative <= std::numeric_limits<uint64_t>::max() / plan.bins)
+            return size_t(relative * plan.bins / span);
+        // Exact integer fallback for very wide coordinates, without overflow.
+        uint64_t low = 0, high = plan.bins;
+        while (high - low > 1) {
+            auto middle = (low + high) / 2;
+            auto threshold = (span / plan.bins) * middle +
+                             ((span % plan.bins) * middle + plan.bins - 1) / plan.bins;
+            if (relative >= threshold)
+                low = middle;
+            else
+                high = middle;
+        }
+        return size_t(low);
+    }
+    void match(uint64_t seq) {
+        auto rank = total++;
+        if (plan.mode != 0)
+            return;
+        if (rank >= plan.offset && rank - plan.offset < plan.limit)
+            selected.push_back(seq);
+        tail.emplace_back(rank, seq);
+        if (tail.size() > plan.limit)
+            tail.pop_front();
+    }
+    static void array(const std::vector<uint64_t> &values) {
+        std::cout << '[';
+        bool first = true;
+        for (auto value : values) {
+            if (!first)
+                std::cout << ',';
+            first = false;
+            std::cout << value;
+        }
+        std::cout << ']';
+    }
+
+  public:
+    explicit Selection(const SelectionPlan &p)
+        : plan(p), unknownBins(p.bins), notTakenBins(p.bins) {
+    }
+    void instruction(uint64_t seq, size_t id, unsigned state) {
+        const auto &entry = plan.entries[id];
+        if (!entry.match || (plan.hideSkipped && state == 0))
+            return;
+        match(seq);
+        if (plan.mode == 0)
+            return;
+        auto b = bin(seq);
+        if (state == 1) {
+            auto &values = functionBins[entry.function];
+            if (values.empty())
+                values.resize(plan.bins);
+            ++values[b];
+            ++executed;
+        } else if (state == 2) {
+            ++unknownBins[b];
+            ++unknown;
+        } else {
+            ++notTakenBins[b];
+            ++notTaken;
+        }
+    }
+    void event(uint64_t seq, size_t id, unsigned type) {
+        if (!plan.eventsText[id])
+            return;
+        match(seq);
+        if (plan.mode == 0)
+            return;
+        auto b = bin(seq);
+        auto found = markers.find(b);
+        if (found == markers.end())
+            found = markers.emplace(b, Marker{seq, seq, {}}).first;
+        found->second.last = seq;
+        ++found->second.types[type];
+        ++markerCount;
+    }
+    void finish() {
+        std::cout << "{\"protocol\":\"etm-select/1\",\"total\":" << total;
+        if (plan.mode == 0) {
+            auto offset =
+                total ? std::min(plan.offset, ((total - 1) / plan.limit) * plan.limit) : 0;
+            if (offset != plan.offset) {
+                selected.clear();
+                for (auto item : tail)
+                    if (item.first >= offset)
+                        selected.push_back(item.second);
+            }
+            std::cout << ",\"offset\":" << offset << ",\"seqs\":";
+            array(selected);
+        } else {
+            std::cout << ",\"executed\":" << executed << ",\"unknown\":" << unknown
+                      << ",\"notTaken\":" << notTaken << ",\"markerCount\":" << markerCount
+                      << ",\"unknownBins\":";
+            array(unknownBins);
+            std::cout << ",\"notTakenBins\":";
+            array(notTakenBins);
+            std::cout << ",\"functions\":[";
+            bool first = true;
+            for (const auto &item : functionBins) {
+                if (!first)
+                    std::cout << ',';
+                first = false;
+                std::cout << '[' << item.first << ',';
+                array(item.second);
+                std::cout << ']';
+            }
+            std::cout << "],\"markers\":[";
+            first = true;
+            for (const auto &item : markers) {
+                if (!first)
+                    std::cout << ',';
+                first = false;
+                const auto &m = item.second;
+                std::cout << "{\"seq\":" << m.first << ",\"startSeq\":" << m.first
+                          << ",\"endSeq\":" << m.last << ",\"types\":{";
+                bool firstType = true;
+                uint64_t count = 0;
+                for (auto t : m.types) {
+                    if (!firstType)
+                        std::cout << ',';
+                    firstType = false;
+                    std::cout << '"' << t.first << "\":" << t.second;
+                    count += t.second;
+                }
+                std::cout << "},\"count\":" << count << '}';
+            }
+            std::cout << ']';
+        }
+        std::cout << "}\n";
+    }
+};
 static int run(const std::vector<std::string> &args) {
     if (args.size() == 2 && args[1] == "--version") {
         std::cout << "{\"protocol\":\"etm-export/"
                      "1\",\"abi\":1,\"storeSchema\":1,\"formats\":[\"simplified\",\"source\","
-                     "\"simplified-html\",\"csv\"]}\n";
+                     "\"simplified-html\",\"csv\"],\"features\":[\"select-v1\"]}\n";
+        return 0;
+    }
+    if (args.size() == 4 && args[1] == "--select") {
+        SelectionPlan plan(filePath(args[2]));
+        Selection selection(plan);
+        readStore(filePath(args[3]), plan, selection);
+        selection.finish();
         return 0;
     }
     require(args.size() == 4, "usage: etm_export plan.bin store.bin output");

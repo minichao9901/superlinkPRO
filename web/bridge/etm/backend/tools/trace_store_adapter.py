@@ -603,6 +603,9 @@ class TraceStoreAdapter:
                                reason=engine.get('reason'),
                                buildCosts=engine.get('buildCosts'))
         result['traceStore'] = trace
+        performance = _read_small_json(self.folder / 'decode-performance.json')
+        if isinstance(performance,dict) and performance.get('generation') == generation:
+            result['performance'] = performance
         return result
 
     def page(self, view='events', offset=0, limit=150, search='', hide_skipped=False,
