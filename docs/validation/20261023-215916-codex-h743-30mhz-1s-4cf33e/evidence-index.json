@@ -1,0 +1,215 @@
+{
+  "runId": "20261023-215916-codex-h743-30mhz-1s-4cf33e",
+  "files": [
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\build-firmware30.log",
+      "bytes": 589,
+      "sha256": "d53766280e7e76a0e11d310e0a3e4e62eca27fd145765f9614a84e19c17a5ce0"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\capture-continuous-v4.mjs",
+      "bytes": 8588,
+      "sha256": "26563eb48d0a2ddede525c9604c3e55fa0cb730bd070ca70a5b9b0b6edc66163"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\capture-depth-checked.mjs",
+      "bytes": 9024,
+      "sha256": "6e9536be33d6ad9e13397003ba26a4b58f068bf81a27e218368047873e07fde3"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\cleanup-process-snapshot.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\cleanup-target.log",
+      "bytes": 514,
+      "sha256": "3101b819ef1b9e8f168ca568726846983d33dc2a6273b35759bb3b658ea3a382"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\cleanup-target.py",
+      "bytes": 2043,
+      "sha256": "d892e3154be274715f88a515188c823030bcdf5a3ffd817cda868d8d28339c86"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\device-after-500m.json",
+      "bytes": 159,
+      "sha256": "8b80f5daecfe0d1a4e90dd637c3b85a9b70685fc50dae825b4deb678d1397086"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\final-cdc.json",
+      "bytes": 75,
+      "sha256": "b85470a0f3b2b61a74a3b3e37762a97e4bad40646dcf13d29bf2ebd63ab3956d"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\final-cdc.log",
+      "bytes": 250,
+      "sha256": "c0ed3427835381902fb0743e302fa2dc60ef454b4297e90a2ac164f67a531334"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\final-cdc.py",
+      "bytes": 1595,
+      "sha256": "cc4dbffafe91981b0d3fb0570e64f630b33112fba9d7903c0f59b02e949a4018"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\final-pyocd-health.json",
+      "bytes": 577,
+      "sha256": "9004fb3c1e4eb033e352d5e707c3451b8ec9657f2ab18f18ba888e3c71ec84ea"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\final-target-health.log",
+      "bytes": 1303,
+      "sha256": "64f3b4af091553e06aa417a756cc430603aa79ffc45527e935a0dcbdffa5f417"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\final-target-health.mjs",
+      "bytes": 3388,
+      "sha256": "99ba2a8aa1dbc7e77a36611fccbe72c9e0038ec20b16c8a33f7d562888062a9c"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\flash-before30.json",
+      "bytes": 315,
+      "sha256": "e44fa105359afaa6cee61ea8c58dc1b71247e4c7d54284f04a45f749d497052f"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\flash-firmware30.log",
+      "bytes": 852,
+      "sha256": "4e5b5ec1e70806e0769770872d8e629c1d9c03a266340581f285d3732979487a"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\flash-firmware30.py",
+      "bytes": 2064,
+      "sha256": "abf6d709647a352c8b7384b1d41a8e49813887f7687694b174d26b0f9fae83e9"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\flash-result30.json",
+      "bytes": 641,
+      "sha256": "ae0eea018ad88931a50a7f150301bdc02b35a69221e04f1450c0d5565e0400a5"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\hardware-lease.json",
+      "bytes": 126,
+      "sha256": "b4374f1cf1f5279bb04bc58ed8181661945f5f2a2af69a09b7a387a180cc4ee2"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\physical-usb.log",
+      "bytes": 47,
+      "sha256": "a6974a05f9e06494c6b30305221c6e8609160120688bab19c2a148facf6aae02"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\physical-usb.py",
+      "bytes": 2173,
+      "sha256": "03746627f413413f945ad19e317c82d37c993b00efb55a50c8e877f1e1892042"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\reference-500m.json",
+      "bytes": 413,
+      "sha256": "8b09200a2ab3a83a4bb863d23081b9a93db0c42994c6384602a34e26bac885d9"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\reference-500m.log",
+      "bytes": 374,
+      "sha256": "32ee2cfa7636bd6eae3625b7a3e45f6c9e1b95fbfade324bc5a5f7c6f1b25908"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\reference-500m.py",
+      "bytes": 1163,
+      "sha256": "ecb266eb7a9eb90506e084686efc4bd918c4083591f039433caeae87dc04e486"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\report.md",
+      "bytes": 5952,
+      "sha256": "7bf47f18baa64d82cd4dbec1a40f8d8cf1197554f1a51b1fe765d2375707404c"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\retest-audit.json",
+      "bytes": 30533,
+      "sha256": "143684bbff12762e4d15cceb134fa72943f5920a300ae552945632d71fbfa2da"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\run-depth-checked.py",
+      "bytes": 2320,
+      "sha256": "3205dfba9eb01e6aeb69587ae4c501a5a2e96ad4e7d4a2568af62e65206516f0"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\run-monitored-v4.py",
+      "bytes": 2320,
+      "sha256": "1dce0ce00d0590e6a1730eeee28947c583c6ca2286cd613fb9b60f079861b956"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\run.json",
+      "bytes": 1157,
+      "sha256": "24fcb0afa2239dbf0f873464264d08b65775f33d2b269bac288e75521b85be4a"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\serial-load-recovered-summary.json",
+      "bytes": 191,
+      "sha256": "082131f03563a5d7203cd8e1094e36adc5b6331bbb542a18d912bcc4f6349028"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\serial-load.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\serial-load.py",
+      "bytes": 3090,
+      "sha256": "151b21123ceb250c2223c56058294116343eec2be55c995ec632c94d6f63668a"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\serve-acceptance-v2.py",
+      "bytes": 1115,
+      "sha256": "637ea9d139ab8629452fa2a0eeca1c1115d8b0f382842b72673bc01a2f517d21"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\server.log",
+      "bytes": 96487,
+      "sha256": "7004b7448a96641ef3be5b3f1cd37f2506a2bda969e8186c973181d1d46b8497"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\trace30-1s-200m-resources.json",
+      "bytes": 918,
+      "sha256": "ecdb8469eac5c88b36feabdca24bd5352dc071cc65285f7b216451e0c7e8aaf9"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\trace30-1s-200m-resources.jsonl",
+      "bytes": 203981,
+      "sha256": "a9090454e68c45e36cb69f31cd66b11112dc258ef755852b8457c7c501c83724"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\trace30-1s-200m-results.json",
+      "bytes": 818305,
+      "sha256": "510dc26b1881f924857b333b8308acd6ddecc6de70e4fd9efa0a9d7d9c20d1fb"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\trace30-1s-200m.log",
+      "bytes": 1679,
+      "sha256": "76762d54980587a69d5bf426095c1dd655849fb303337569fddfee284eff3248"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\trace30-1s-resources.json",
+      "bytes": 907,
+      "sha256": "63e3bc0b3b662b68d3e630b3b5b8cd0408a26afddfbde11dad2674c7ff787485"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\trace30-1s-resources.jsonl",
+      "bytes": 212301,
+      "sha256": "51b0abb33c08d247f885e4c96a5882c53453a81a52307803b4dab15d847c3a78"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\trace30-1s-results.json",
+      "bytes": 393840,
+      "sha256": "5f96f354f762617b82283f2366d4d7c3e8358ccaf1f8332e20e2e06f3af33903"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\trace30-1s.log",
+      "bytes": 1610,
+      "sha256": "1fbfbec9ab3bccfd2edaf0902a6d0d7b47ee177860d10f95dc1f34215f081865"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-215916-codex-h743-30mhz-1s-4cf33e\\vendor-capture-depth-explanation.txt",
+      "bytes": 4074,
+      "sha256": "4336a1d550004c26faacac8b81a1d8b2e92c733db4745663a17ef87543c890fd"
+    }
+  ]
+}
