@@ -34,6 +34,8 @@ function addrOf(s, args = {}){
   const sym = args.session?.sym;
   const r = sym?.resolve(s);
   if (r) return r;
+  const n=parseNum(s);
+  if(Number.isInteger(n)&&n>=0&&n<=0xffffffff)return {addr:n>>>0,sym:null};
   throw new Error(`认不出地址/符号：「${s}」${sym ? '' : '（还没载入 .elf，只能写十六进制地址）'}`);
 }
 
@@ -52,7 +54,11 @@ function atOf(S, addr){
  */
 function breakSpecOf(S, text){
   const sym = S.sym;
-  if (!sym) throw new Error(`认不出「${text}」：还没载入 .elf（只能写十六进制地址）`);
+  if (!sym){
+    const n=parseNum(String(text).replace(/^\*/,''));
+    if(Number.isInteger(n)&&n>=0&&n<=0xffffffff)return {addr:n>>>0,label:hex32(n)};
+    throw new Error(`认不出「${text}」：还没载入 .elf（只能写十六进制地址）`);
+  }
   if (!sym.breakSpec){
     const r = sym.resolve(text);
     if (r) return { addr: r.addr, label: r.sym?.name || '' };
@@ -660,7 +666,7 @@ function statusLine(S){
 
 function infoLine(S){
   if (!S.connected) return '未连接（后端：' + (S.backendName || '—') + '）';
-  return `后端：${S.name || 'CMSIS-DAP'}　SWD ${S.clockHz ? (S.clockHz / 1000) + ' MHz' : '默认'}　`
+  return `后端：${S.name || 'CMSIS-DAP'}　SWD ${S.clockHz ? (S.clockHz / 1000000) + ' MHz' : '默认'}　`
        + `IDCODE=0x${(S.idcode >>> 0).toString(16).toUpperCase()}`;
 }
 

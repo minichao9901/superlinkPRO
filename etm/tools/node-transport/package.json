@@ -1,0 +1,10 @@
+{
+  "name": "trace-cli-web-transport",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "linkedom": "0.18.12",
+    "usb": "3.2.1"
+  }
+}

@@ -1,4 +1,4 @@
-"""CLI-only hardware transport. Register policy lives in production target.js."""
+"""CLI transport into the existing WebUSB workbench; no pyOCD dependency."""
 from __future__ import annotations
 
 import contextlib
@@ -52,152 +52,109 @@ class HardwareLease:
         self.path.rmdir()
 
 
-def probes():
-    from pyocd.core.helpers import ConnectHelper
-    return ConnectHelper.get_all_connected_probes(blocking=False)
+class WebPipe:
+    """Local JSON pipe into the actual Web workbench. Never opens USB itself."""
+    def __init__(self, timeout=210):
+        self.timeout = timeout
+        self.process = None
+        self.sequence = 0
+
+    def __enter__(self):
+        node = shutil.which('node')
+        if not node:
+            raise RuntimeError('缺少Node.js；硬件命令使用网页驱动')
+        self.process = subprocess.Popen([node, str(Path(__file__).with_name('trace_target_cli.mjs'))],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr,
+            text=True, encoding='utf8', bufsize=1)
+        self.messages = queue.Queue()
+        def reader():
+            try:
+                for line in self.process.stdout:
+                    self.messages.put(json.loads(line))
+            except Exception as error:
+                self.messages.put(error)
+            finally:
+                self.messages.put(EOFError('网页命令子进程已退出'))
+        threading.Thread(target=reader, daemon=True).start()
+        return self
+
+    def call(self, action, **args):
+        self.sequence += 1
+        expected = self.sequence
+        self.process.stdin.write(json.dumps(dict(type='command', id=expected, action=action, **args),allow_nan=False)+'\n')
+        self.process.stdin.flush()
+        deadline=time.monotonic()+self.timeout
+        while True:
+            try:
+                value = self.messages.get(timeout=max(.01,deadline-time.monotonic()))
+            except queue.Empty:
+                raise TimeoutError('网页命令超时；操作可能仍在进行，请先web cancel并检查目标') from None
+            if isinstance(value, Exception) or value.get('id') == expected:
+                break
+        if isinstance(value, Exception):
+            raise value
+        if not value['ok']:
+            error = RuntimeError(value['error'])
+            error.details = value.get('results')
+            raise error
+        return value.get('value')
+
+    def __exit__(self, *_):
+        if self.process:
+            if self.process.poll() is None:
+                self.process.stdin.close()
+                try:
+                    self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.process.terminate()
+                    self.process.wait(timeout=5)
+            self.process.stdout.close()
 
 
-class TraceTransportDelegate:
-    """Prevent pyOCD discovery from enabling every Funnel port before target.js runs.
-
-    The local discovery-instance hook is tested with pyOCD 0.45.1. Nothing is
-    monkey-patched globally; CPU/DWT/FPB discovery still uses pyOCD's normal path.
-    """
-    def will_init_target(self, target, init_sequence):
-        from pyocd.coresight.funnel import TraceFunnel
-        def after_discoverer(_):
-            discovery = target._discoverer
-            original = discovery._create_component
-            def create(component):
-                if component.factory == TraceFunnel.factory:
-                    return
-                return original(component)
-            discovery._create_component = create
-        init_sequence.wrap_task('create_discoverer', after_discoverer)
+def web_request(request):
+    with WebPipe(timeout=960 if request.get('action')=='flash' else 210) as pipe:
+        return pipe.call('web', request=request)
 
 
-class TargetBridge:
-    """Node sends hardware RPC on stdout; Python services it with the selected pyOCD probe.
-
-    No listening port, browser, default probe choice, flash erase or reset is involved.
-    """
-    def __init__(self, probe_id, profile, hse_hz, swd_hz=1000000, timeout=60):
+class TargetBridge(WebPipe):
+    """Reuse the real page's EtmTarget and ProbeManager, not another debugger."""
+    def __init__(self, probe_id, profile, hse_hz, swd_hz=1000000, timeout=210, purpose=None):
+        super().__init__(timeout)
         self.probe_id, self.profile, self.hse_hz = probe_id, profile, hse_hz
-        self.swd_hz, self.timeout = swd_hz, timeout
-        self.process = self.session = None
-        self.recovery_state = None
+        self.swd_hz = swd_hz
+        self.purpose = purpose
         self.restore_on_close = True
         self.initialized = False
         self.cleanup_result = {}
 
     def __enter__(self):
-        from pyocd.core.helpers import ConnectHelper
-        node = shutil.which('node')
-        if not node:
-            raise RuntimeError('缺少Node.js；硬件CLI复用生产target.js配置逻辑')
-        found = [p for p in probes() if self.probe_id is None or p.unique_id == self.probe_id]
-        if len(found) != 1:
-            raise RuntimeError('必须唯一选择探针，请传 --probe；已匹配：' + str([p.unique_id for p in found]))
-        self.probe_id = found[0].unique_id
-        self.session = ConnectHelper.session_with_chosen_probe(unique_id=self.probe_id,
-            target_override=self.profile.replace('stm32h743', 'stm32h743xx').replace('stm32h7b0', 'stm32h7b0xx'),
-            frequency=self.swd_hz, options={'connect_mode': 'attach', 'auto_unlock': False,
-                                          'resume_on_disconnect': False})
+        super().__enter__()
         try:
-            self.session.delegate = TraceTransportDelegate()
-            self.session.open()
-            self.process = subprocess.Popen([node, str(Path(__file__).with_name('trace_target_cli.mjs'))],
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr,
-                text=True, encoding='utf8', bufsize=1)
-            self.messages = queue.Queue()
-            def reader():
-                try:
-                    for line in self.process.stdout:
-                        self.messages.put(json.loads(line))
-                except Exception as error:
-                    self.messages.put(error)
-                finally:
-                    self.messages.put(EOFError('目标配置子进程已退出'))
-            self.reader = threading.Thread(target=reader, daemon=True)
-            self.reader.start()
-            self.info = self.call('init', profile=self.profile, hseHz=self.hse_hz)
+            self.info = self.call('init', profile=self.profile, hseHz=self.hse_hz,
+                                  probe=self.probe_id, swdHz=self.swd_hz, purpose=self.purpose)
+            self.probe_id = self.info.pop('cliProbe', None) or self.probe_id
             self.initialized = True
             return self
         except BaseException:
-            self.__exit__(*sys.exc_info())
+            super().__exit__()
             raise
 
-    def _send(self, value):
-        self.process.stdin.write(json.dumps(value) + '\n')
-        self.process.stdin.flush()
-
-    def call(self, action, **args):
-        self._send(dict(type='command', id=1, action=action, **args))
-        deadline = time.monotonic() + self.timeout
-        while True:
-            try:
-                value = self.messages.get(timeout=max(.01, deadline-time.monotonic()))
-            except queue.Empty:
-                raise TimeoutError('目标CLI超时：' + action) from None
-            if isinstance(value, Exception):
-                raise value
-            if value.get('type') == 'hardware':
-                reply = dict(type='reply', id=value['id'])
-                try:
-                    target = self.session.target
-                    op = value['op']
-                    if op in ('read', 'write'):
-                        address = value['address']
-                        if not isinstance(address, int) or not 0 <= address <= 0xffffffff:
-                            raise ValueError('无效内存地址')
-                    if op == 'read':
-                        length = value['length']
-                        if not isinstance(length, int) or not 0 < length <= 4096:
-                            raise ValueError('内存读取长度越界')
-                        reply['value'] = target.read_memory_block8(address, length)
-                    elif op == 'write':
-                        data = bytes(value['bytes'])
-                        if not 0 < len(data) <= 512:
-                            raise ValueError('内存写入长度越界')
-                        target.write_memory_block8(address, data)
-                        target.flush()
-                    elif op == 'halt':
-                        target.halt()
-                    elif op == 'run':
-                        target.resume()
-                    else:
-                        raise ValueError('未知硬件操作')
-                except Exception as error:
-                    reply['error'] = str(error)
-                self._send(reply)
-            elif value.get('type') == 'result':
-                if not value['ok']:
-                    self.recovery_state = value.get('state')
-                    raise RuntimeError(value['error'])
-                return value.get('value')
-
-    def __exit__(self, kind, error, _tb):
+    def __exit__(self, kind, error, tb):
         cleanup = None
-        if self.process is not None:
-            try:
-                if self.process.poll() is None:
-                    self.cleanup_result = self.call('close', restore=self.restore_on_close)
-            except BaseException as failure:
-                cleanup = str(failure)
-            finally:
-                if self.process.poll() is None:
-                    self.process.terminate()
-                self.process.wait(timeout=10)
-                for stream in (self.process.stdin, self.process.stdout):
-                    if stream:
-                        stream.close()
-        if self.session is not None:
-            self.session.close()
+        try:
+            if self.initialized:
+                if kind and issubclass(kind,(KeyboardInterrupt,TimeoutError)):
+                    web_request(dict(action='cancel'))
+                self.cleanup_result = self.call('close', restore=self.restore_on_close)
+        except BaseException as failure:
+            cleanup = str(failure)
+        finally:
+            super().__exit__(kind, error, tb)
         if cleanup:
             if error is not None:
-                error.add_note('目标恢复未确认：' + cleanup)
+                error.add_note('网页目标恢复未确认：'+cleanup)
             else:
-                raise RuntimeError('目标恢复未确认：' + cleanup)
+                raise RuntimeError('网页目标恢复未确认：'+cleanup)
 
 
 class EchoLoad:

@@ -1,6 +1,6 @@
 # STM32H7B0 并行 ETM / Kingst LA 首次验证
 
-**AI/命令行入口：**`python -X utf8 etm/trace.py --help`（在合并仓库根目录运行）。
+**AI/命令行入口：**`python -X utf8 etm/trace.py --help`（在合并仓库根目录运行）。硬件复用网页的调试命令、烧录和 WebUSB 驱动，不依赖 pyOCD；支持断点起点联动采集和持久调试会话。
 配置、真机采集、原生解码、查询与导出的完整流程见
 [给AI使用的Trace CLI](../docs/trace-cli-ai.md)。CLI当前真机验收范围为H743，历史网页/固件说明保留在下文。
 

@@ -1,0 +1,234 @@
+{
+  "TestedRevision": "pre-commit-worktree",
+  "TestedBase": "216e60e53c8983431980243839d99ed6df0568f5",
+  "TestedDirty": true,
+  "cwd": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO",
+  "sourceFiles": [
+    {
+      "path": "docs/trace-cli-ai.md",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\docs\\trace-cli-ai.md",
+      "bytes": 19066,
+      "sha256": "ac8249497373cb35a1da958c192f8b76a5020300f98cb0005d42b83c2a99b417",
+      "canonicalLfSha256": "3db67c7436499f7755d9bb795244129b11324f7570477fbeb2770e0091d21d5c"
+    },
+    {
+      "path": "etm/README.md",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\README.md",
+      "bytes": 13555,
+      "sha256": "2a7f2cbc1cdc4c7b5cd8fb2208a430a0245799e904bc45d0280ffe8a1cf347f7",
+      "canonicalLfSha256": "7eed0cdafca673bf77bcf6ed0f7084fcc20c7fa6854de9e09505e3383a739a60"
+    },
+    {
+      "path": "etm/requirements-cli.txt",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\requirements-cli.txt",
+      "bytes": 114,
+      "sha256": "85e05a74dd6332b8b411dd8d979a8cf4c3f9b8fe7f3033efb23d90b111ff0413",
+      "canonicalLfSha256": "85e05a74dd6332b8b411dd8d979a8cf4c3f9b8fe7f3033efb23d90b111ff0413"
+    },
+    {
+      "path": "etm/tools/node-transport/files.mjs",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\node-transport\\files.mjs",
+      "bytes": 1163,
+      "sha256": "d5d8c7d87756ce2910516f692aee672afce38ccbf567fd81726fa7e0cdf7487c",
+      "canonicalLfSha256": "d5d8c7d87756ce2910516f692aee672afce38ccbf567fd81726fa7e0cdf7487c"
+    },
+    {
+      "path": "etm/tools/node-transport/handoff.mjs",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\node-transport\\handoff.mjs",
+      "bytes": 307,
+      "sha256": "8ad0abe3af1c4e6a0492e3e0586f9be4feeaa58b65353366165924a26442954c",
+      "canonicalLfSha256": "8ad0abe3af1c4e6a0492e3e0586f9be4feeaa58b65353366165924a26442954c"
+    },
+    {
+      "path": "etm/tools/node-transport/package-lock.json",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\node-transport\\package-lock.json",
+      "bytes": 13855,
+      "sha256": "56b6044b62517e2672243389471838ecb516f295fbd3ae734e11a948e9785c1d",
+      "canonicalLfSha256": "56b6044b62517e2672243389471838ecb516f295fbd3ae734e11a948e9785c1d"
+    },
+    {
+      "path": "etm/tools/node-transport/package.json",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\node-transport\\package.json",
+      "bytes": 183,
+      "sha256": "6a2f9292a43446ffba5c9b539f987587a44c0093165c6547b48a970d7d30d2bb",
+      "canonicalLfSha256": "6a2f9292a43446ffba5c9b539f987587a44c0093165c6547b48a970d7d30d2bb"
+    },
+    {
+      "path": "etm/tools/node-transport/usb-adapter.mjs",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\node-transport\\usb-adapter.mjs",
+      "bytes": 940,
+      "sha256": "6c402e4a16438a67e359e0245c72f7cb5699796557748bd48382bcc7041b3332",
+      "canonicalLfSha256": "6c402e4a16438a67e359e0245c72f7cb5699796557748bd48382bcc7041b3332"
+    },
+    {
+      "path": "etm/tools/node-transport/worker.mjs",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\node-transport\\worker.mjs",
+      "bytes": 9628,
+      "sha256": "c6dbcd424d8f033a8bbbf007e59c86cf0ba706ed0d92c9096e898aa2f411bee4",
+      "canonicalLfSha256": "c6dbcd424d8f033a8bbbf007e59c86cf0ba706ed0d92c9096e898aa2f411bee4"
+    },
+    {
+      "path": "etm/tools/tests/node-images.test.mjs",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\tests\\node-images.test.mjs",
+      "bytes": 1952,
+      "sha256": "1d15e9ad8cbc079285851500d2eeb1efdccf815d2a6179a69a9cedda937f506b",
+      "canonicalLfSha256": "1d15e9ad8cbc079285851500d2eeb1efdccf815d2a6179a69a9cedda937f506b"
+    },
+    {
+      "path": "etm/tools/tests/node-usb-adapter.test.mjs",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\tests\\node-usb-adapter.test.mjs",
+      "bytes": 1933,
+      "sha256": "aecb5cd2418f0f5e83318dc579203453c0fc59d3e437815da7865b29ebd54d8c",
+      "canonicalLfSha256": "aecb5cd2418f0f5e83318dc579203453c0fc59d3e437815da7865b29ebd54d8c"
+    },
+    {
+      "path": "etm/tools/tests/test_trace_cli.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\tests\\test_trace_cli.py",
+      "bytes": 7449,
+      "sha256": "10aeef2567b0c7392a2aab278e68f9636c49331c4dc1cc36ff888a7f23e06518",
+      "canonicalLfSha256": "10aeef2567b0c7392a2aab278e68f9636c49331c4dc1cc36ff888a7f23e06518"
+    },
+    {
+      "path": "etm/tools/tests/test_trace_cli_records.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\tests\\test_trace_cli_records.py",
+      "bytes": 3209,
+      "sha256": "f9a6f9c8dd6d2e095d9356a8731eb723dffcfb3dfa8456f16762bb234b3e601e",
+      "canonicalLfSha256": "f9a6f9c8dd6d2e095d9356a8731eb723dffcfb3dfa8456f16762bb234b3e601e"
+    },
+    {
+      "path": "etm/tools/tests/test_trace_cli_runtime.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\tests\\test_trace_cli_runtime.py",
+      "bytes": 3209,
+      "sha256": "9b32462bc188eea7c0e0addfdbdeb3c384ef44b5bb404e25a3ff3cbd09e7b696",
+      "canonicalLfSha256": "9b32462bc188eea7c0e0addfdbdeb3c384ef44b5bb404e25a3ff3cbd09e7b696"
+    },
+    {
+      "path": "etm/tools/tests/test_web_cli_queue.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\tests\\test_web_cli_queue.py",
+      "bytes": 3226,
+      "sha256": "757a892cdd3c0ea8659eeae72a3c9b98ce6984edd608b9933057027d45ea05de",
+      "canonicalLfSha256": "757a892cdd3c0ea8659eeae72a3c9b98ce6984edd608b9933057027d45ea05de"
+    },
+    {
+      "path": "etm/tools/trace_cli.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\trace_cli.py",
+      "bytes": 54119,
+      "sha256": "8f8310132e19b404c5ad8da6e80d4a058afcad93677a4594c68eed35a1066439",
+      "canonicalLfSha256": "61bf05337934466787eb03d94903ac0cd8d99eab3491d9ddf483fa15873edf65"
+    },
+    {
+      "path": "etm/tools/trace_cli_hardware.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\trace_cli_hardware.py",
+      "bytes": 10425,
+      "sha256": "58a52d04756fa068f4e99ed60566b293498519e7d3a163c3116b794bf3b594f8",
+      "canonicalLfSha256": "c8b53d92b999656deafa7361747f576aa78780a2b1e178ad709a0fd9bf4122e9"
+    },
+    {
+      "path": "etm/tools/trace_cli_legacy.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\trace_cli_legacy.py",
+      "bytes": 2915,
+      "sha256": "2aef0ae0ef7a3b8d52b9e91ffc6b257af03b6168b19e867f19c41b1e159659da",
+      "canonicalLfSha256": "2aef0ae0ef7a3b8d52b9e91ffc6b257af03b6168b19e867f19c41b1e159659da"
+    },
+    {
+      "path": "etm/tools/trace_cli_runtime.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\trace_cli_runtime.py",
+      "bytes": 6461,
+      "sha256": "93bab7fe8f0e54c25005f80534769c7d04be1503d6d4abe51f905b0749c7c5f6",
+      "canonicalLfSha256": "93bab7fe8f0e54c25005f80534769c7d04be1503d6d4abe51f905b0749c7c5f6"
+    },
+    {
+      "path": "etm/tools/trace_target_cli.mjs",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\trace_target_cli.mjs",
+      "bytes": 2502,
+      "sha256": "e1a63f301d0609a4b0ac7fe32b014a91ac5b54d99149fd8145560c60cca5e44f",
+      "canonicalLfSha256": "e1a63f301d0609a4b0ac7fe32b014a91ac5b54d99149fd8145560c60cca5e44f"
+    },
+    {
+      "path": "etm/tools/web_cli_queue.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\tools\\web_cli_queue.py",
+      "bytes": 4216,
+      "sha256": "16fa48a6c3dcf56bdbe0e9a865f28c35c5d3e62ee02556b05868e544baf4a120",
+      "canonicalLfSha256": "16fa48a6c3dcf56bdbe0e9a865f28c35c5d3e62ee02556b05868e544baf4a120"
+    },
+    {
+      "path": "web/app/automation/trace.js",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\web\\app\\automation\\trace.js",
+      "bytes": 12787,
+      "sha256": "4d03402b0d558ff701a7d94450fb8c72271f169c64869ac5a7b0647652906e1a",
+      "canonicalLfSha256": "4d03402b0d558ff701a7d94450fb8c72271f169c64869ac5a7b0647652906e1a"
+    },
+    {
+      "path": "web/app/dbg/cmd.js",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\web\\app\\dbg\\cmd.js",
+      "bytes": 38600,
+      "sha256": "c80530dfbc9555b4eb662a4daa15da859926e7fd57730fc4b2e4e734f2be6c71",
+      "canonicalLfSha256": "472be89d39f36a09f7383d2cd12dc4237a07315bb0d8ddb4723cacf1542810fb"
+    },
+    {
+      "path": "web/app/main.js",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\web\\app\\main.js",
+      "bytes": 10153,
+      "sha256": "c1a75314bfb198ad892cddfde9fb08556b0b0afa32b836202448ef898c0d82c4",
+      "canonicalLfSha256": "bf7944242839e2c3d71a0fcc9f6efbc5c8aab496b10b45e9f58f3abd597ab69b"
+    },
+    {
+      "path": "web/app/site/main.js",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\web\\app\\site\\main.js",
+      "bytes": 1333852,
+      "sha256": "c9f91bbeb06347edc9ec202eb1709acf4bd37c89bebe0209f873f4dcdc1b5d12",
+      "canonicalLfSha256": "c9f91bbeb06347edc9ec202eb1709acf4bd37c89bebe0209f873f4dcdc1b5d12"
+    },
+    {
+      "path": "web/app/site/manifest.json",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\web\\app\\site\\manifest.json",
+      "bytes": 16319,
+      "sha256": "6f9e951b4ace8a9f2c807e64d869b90e078a410c5f0a9aa8b4e923d6f5138450",
+      "canonicalLfSha256": "6f9e951b4ace8a9f2c807e64d869b90e078a410c5f0a9aa8b4e923d6f5138450"
+    },
+    {
+      "path": "web/index.html",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\web\\index.html",
+      "bytes": 206589,
+      "sha256": "12ab2ab477a6e4f3af018f01818ec7074f01c6830f67c3055441ba7c6bccaed7",
+      "canonicalLfSha256": "a926e8120ce2657e529a4d872ef5f377f8aed6d92152124d7dccff7ff3ec23b0"
+    },
+    {
+      "path": "web/tools/dev/serve-etm.py",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\web\\tools\\dev\\serve-etm.py",
+      "bytes": 7619,
+      "sha256": "dc7c2613838b708139e1f4e855959d8c9eafe64c40f39025ffc0ba8eb34eba88",
+      "canonicalLfSha256": "a1df836ee64d50d7dcf427f6fc030191593eb7529e45b315360c03fcd497f889"
+    },
+    {
+      "path": "web/tools/selftest/trace-cli-automation.test.mjs",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\web\\tools\\selftest\\trace-cli-automation.test.mjs",
+      "bytes": 7496,
+      "sha256": "d8cd7402ad06cdf900b559b1016445e107ef7f23ca3abc68dfcfc22c67097c72",
+      "canonicalLfSha256": "d8cd7402ad06cdf900b559b1016445e107ef7f23ca3abc68dfcfc22c67097c72"
+    }
+  ],
+  "nativeArtifacts": [
+    {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\build-native\\etm_frontend.exe",
+      "bytes": 3636548,
+      "sha256": "773c28b11d99fe694fd94102c6bc0dbfcbec09e0954b2c783a54e5cc5413805b"
+    },
+    {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\build-native\\etm_decode.exe",
+      "bytes": 4172180,
+      "sha256": "1d444ee91dc6485ebcf8e7571fb66fe0fc831bcdcd3e7597cda3b83a171f687b"
+    },
+    {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\build-native\\etm_storebuild.exe",
+      "bytes": 3890593,
+      "sha256": "7f6dbca74776b7b33e4e27968d336ae750c2b79c2e5841e99836394e192895f9"
+    },
+    {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\build-native\\etm_export.exe",
+      "bytes": 3432846,
+      "sha256": "d5094d27c21726715a636a3b0f9326d587060a956f359d103ea487858a99286a"
+    }
+  ],
+  "hardwareWorkerBoundary": "Live tests used the earlier native2 worker instance. Later ownership/queue/exit refinements passed software tests; relaunch was rejected by tool approval and is not claimed as hardware-tested."
+}

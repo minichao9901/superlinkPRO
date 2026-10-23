@@ -1,0 +1,2579 @@
+{
+  "runId": "20261024-000104-trace-web-cli-9f57c7",
+  "files": [
+    {
+      "path": "accept-web-cli-final.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\accept-web-cli-final.log",
+      "bytes": 1585,
+      "sha256": "b98a6b7ea30bb08c7fef0290e1db91611c54237f34fab37c9a8226e65f817406"
+    },
+    {
+      "path": "accept-web-cli-first.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\accept-web-cli-first.log",
+      "bytes": 1355,
+      "sha256": "08fe057b211a529a62eca88031a00f12b1c68ae6599f95048a18f3a0f2daf45a"
+    },
+    {
+      "path": "accept-web-cli.py",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\accept-web-cli.py",
+      "bytes": 5943,
+      "sha256": "273b377e608781a05bdef0ddf2a639cd4e7ab4af94f7b19c85499aca7219b3a7"
+    },
+    {
+      "path": "acceptance-042147/001-doctor.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\001-doctor.json",
+      "bytes": 1225,
+      "sha256": "f5991618c1e11ceb6df3430912bb5e65f260079be51d9812157bd77c80ec63fc"
+    },
+    {
+      "path": "acceptance-042147/001-doctor.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\001-doctor.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/001-doctor.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\001-doctor.stdout.json",
+      "bytes": 1060,
+      "sha256": "b072da59b47cd0ec34e5ee157e5d5bbce7cc3f739630c5a3dc07a1fe0acf6539"
+    },
+    {
+      "path": "acceptance-042147/002-web-status.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\002-web-status.json",
+      "bytes": 738,
+      "sha256": "ce0a10c4c0532fb06d77f51255a0933ae36e0eab80271fd7ce6833962f4edbee"
+    },
+    {
+      "path": "acceptance-042147/002-web-status.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\002-web-status.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/002-web-status.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\002-web-status.stdout.json",
+      "bytes": 552,
+      "sha256": "5c359955c0b3ddb75b61f3b043bccff79e08560b2abe35388379cbd76a6c7668"
+    },
+    {
+      "path": "acceptance-042147/003-elf-inspect.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\003-elf-inspect.json",
+      "bytes": 671,
+      "sha256": "5d8157be30b528c1c85bba9ab6d1ad4ea04e195a63b8dc360ad391a301f80221"
+    },
+    {
+      "path": "acceptance-042147/003-elf-inspect.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\003-elf-inspect.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/003-elf-inspect.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\003-elf-inspect.stdout.json",
+      "bytes": 531,
+      "sha256": "d1d4fb1098690879bb229f7771c1170fa3a996739c24a6e824d6beba90a16b13"
+    },
+    {
+      "path": "acceptance-042147/004-elf-resolve.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\004-elf-resolve.json",
+      "bytes": 387,
+      "sha256": "aa633388cfd3b787bb90981f5f3e356e301e98297478b0274c1e3baeeb00bae0"
+    },
+    {
+      "path": "acceptance-042147/004-elf-resolve.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\004-elf-resolve.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/004-elf-resolve.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\004-elf-resolve.stdout.json",
+      "bytes": 287,
+      "sha256": "f045286d2e008f760a61117984f60137327310ed90e24956a5c2bb2293da1ff4"
+    },
+    {
+      "path": "acceptance-042147/005-elf-odd-rejected.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\005-elf-odd-rejected.json",
+      "bytes": 312,
+      "sha256": "5b8544dcfcc3b5734a29093c6bf18615d98521aee000a733c4336edbe39e6a7d"
+    },
+    {
+      "path": "acceptance-042147/005-elf-odd-rejected.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\005-elf-odd-rejected.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/005-elf-odd-rejected.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\005-elf-odd-rejected.stdout.json",
+      "bytes": 265,
+      "sha256": "94498d5b1b37ce7d7b7560ad0f45bbe4ade966de345db9f502fb0d0d2e8e2bb7"
+    },
+    {
+      "path": "acceptance-042147/006-verify-live.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\006-verify-live.json",
+      "bytes": 4745,
+      "sha256": "e9b22955de79ca626e1164851e17d4209a7d9f7bfd2a17b6fa39e3593b6a9e4f"
+    },
+    {
+      "path": "acceptance-042147/006-verify-live.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\006-verify-live.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/006-verify-live.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\006-verify-live.stdout.json",
+      "bytes": 3574,
+      "sha256": "aff35982cc457f103e8f7db9bfe37c74c22ff505a4ba0efc468ea81b289019e8"
+    },
+    {
+      "path": "acceptance-042147/007-verify-reference.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\007-verify-reference.json",
+      "bytes": 6389,
+      "sha256": "94be32cff2ae7e947029474f5eaca1ef0228512433b622220b1be54af309e145"
+    },
+    {
+      "path": "acceptance-042147/007-verify-reference.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\007-verify-reference.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/007-verify-reference.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\007-verify-reference.stdout.json",
+      "bytes": 4772,
+      "sha256": "c7cb0687b086ab9c410a94009e65405bff35e174ce325873254b6c719b65efdb"
+    },
+    {
+      "path": "acceptance-042147/008-query-summary.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\008-query-summary.json",
+      "bytes": 4484,
+      "sha256": "a68dace0d124109fe6fe9cfc126eea3b851a2d9481b07ad3b3296dc87270cdb6"
+    },
+    {
+      "path": "acceptance-042147/008-query-summary.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\008-query-summary.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/008-query-summary.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\008-query-summary.stdout.json",
+      "bytes": 3323,
+      "sha256": "6c952257f6717fe4845032da350157c5ed35a753a3b7c984b0192ae9fc67636b"
+    },
+    {
+      "path": "acceptance-042147/009-query-overview.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\009-query-overview.json",
+      "bytes": 24333,
+      "sha256": "e305fb64f95c9460b8a7372ed99db5ca27710747fa69be583fc95c170c4f4427"
+    },
+    {
+      "path": "acceptance-042147/009-query-overview.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\009-query-overview.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/009-query-overview.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\009-query-overview.stdout.json",
+      "bytes": 15486,
+      "sha256": "4422f5a7fa5b6f53bd143c124ef5691e72e05c705e3beafa90780e423268c243"
+    },
+    {
+      "path": "acceptance-042147/010-query-page.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\010-query-page.json",
+      "bytes": 5927,
+      "sha256": "9920701bcb61e0637a7c20ffc9e7f74cb09ee6ffc3e38496d984b52e31a4de22"
+    },
+    {
+      "path": "acceptance-042147/010-query-page.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\010-query-page.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/010-query-page.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\010-query-page.stdout.json",
+      "bytes": 3847,
+      "sha256": "f46a92a6642b47e9a379a3dc45f9933e3ba6d600d7d20a2d7e66713d8d097655"
+    },
+    {
+      "path": "acceptance-042147/011-query-event.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\011-query-event.json",
+      "bytes": 547,
+      "sha256": "5f1019fc1ce1bd8a29f201d3264e402226632e87153d4ff80033bc06a0b91a4c"
+    },
+    {
+      "path": "acceptance-042147/011-query-event.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\011-query-event.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/011-query-event.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\011-query-event.stdout.json",
+      "bytes": 435,
+      "sha256": "d31805a766fc606e522fd790596b0da1a05bae70c62a59ff8f8de95b26736c19"
+    },
+    {
+      "path": "acceptance-042147/012-query-window.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\012-query-window.json",
+      "bytes": 450561,
+      "sha256": "32234bc95cc06a804712c603c3452aa166eaa7666e2f4b2dd29d86d9efda0705"
+    },
+    {
+      "path": "acceptance-042147/012-query-window.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\012-query-window.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/012-query-window.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\012-query-window.stdout.json",
+      "bytes": 275904,
+      "sha256": "7743dc43fbc85adf751410b841dff79abfd7e4d851c94d58673b873d62f90bcd"
+    },
+    {
+      "path": "acceptance-042147/013-query-timeline.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\013-query-timeline.json",
+      "bytes": 61628,
+      "sha256": "5b7d4e3fa9a2d29d4ba43f9307bb6d393507ed769f1b24df4e0480d778e2fe87"
+    },
+    {
+      "path": "acceptance-042147/013-query-timeline.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\013-query-timeline.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/013-query-timeline.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\013-query-timeline.stdout.json",
+      "bytes": 19668,
+      "sha256": "263f1e1aa90dc97e3f48f61422ed098ed5c7bf2f5a140b02105af67dcb4337ac"
+    },
+    {
+      "path": "acceptance-042147/014-query-issues.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\014-query-issues.json",
+      "bytes": 1040,
+      "sha256": "946a9448a5eccee9df9350379c3adb5f0924ea9f09a5ef12241ee834bc675496"
+    },
+    {
+      "path": "acceptance-042147/014-query-issues.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\014-query-issues.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/014-query-issues.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\014-query-issues.stdout.json",
+      "bytes": 716,
+      "sha256": "6f5753fe76e388df8ad43f6f83ad6e910d6132597c77c203b8f09a5e9f90a40f"
+    },
+    {
+      "path": "acceptance-042147/015-query-functions.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\015-query-functions.json",
+      "bytes": 2268,
+      "sha256": "3df342d7d9735994f9b7c996e4b765703b7844f7c6c05f846d453c3be2cf7ebf"
+    },
+    {
+      "path": "acceptance-042147/015-query-functions.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\015-query-functions.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/015-query-functions.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\015-query-functions.stdout.json",
+      "bytes": 1579,
+      "sha256": "9a83052e1c99248ecfe1a8aca44389a599855aa22c6740302693af87b93da8f2"
+    },
+    {
+      "path": "acceptance-042147/016-query-hotspots.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\016-query-hotspots.json",
+      "bytes": 659,
+      "sha256": "241bb9b1715e59eb9bbec1ccbc8791d86779cbb495b58bef128a736026cae421"
+    },
+    {
+      "path": "acceptance-042147/016-query-hotspots.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\016-query-hotspots.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/016-query-hotspots.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\016-query-hotspots.stdout.json",
+      "bytes": 452,
+      "sha256": "a808a69da0b96c12cbd9a8e0b9ee209aa05b4567f7cb728455a6fa723abf71a3"
+    },
+    {
+      "path": "acceptance-042147/017-query-flame.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\017-query-flame.json",
+      "bytes": 8354,
+      "sha256": "8d65dad47d59d6ca3a2ec9cf020707e06b18514fbb845518bc4ad1ba9cf5b6b2"
+    },
+    {
+      "path": "acceptance-042147/017-query-flame.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\017-query-flame.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/017-query-flame.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\017-query-flame.stdout.json",
+      "bytes": 4559,
+      "sha256": "57a782e77552db76f9f33b9a935c13abe6cd97e9bc03ad165d939968a48e42f5"
+    },
+    {
+      "path": "acceptance-042147/018-query-integrity.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\018-query-integrity.json",
+      "bytes": 4366,
+      "sha256": "17a2f7a5e90c953aad5ebebb4b8e6cd4b6bf23a0d1ddeca9297f56c4707b22ba"
+    },
+    {
+      "path": "acceptance-042147/018-query-integrity.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\018-query-integrity.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/018-query-integrity.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\018-query-integrity.stdout.json",
+      "bytes": 3224,
+      "sha256": "871d53c220cfbc0916ff84bd294c679e824c3f7b4f27be15468ea1dadaf59948"
+    },
+    {
+      "path": "acceptance-042147/019-packets.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\019-packets.json",
+      "bytes": 1361,
+      "sha256": "cda1dfd0178a9ba7f6bc8af6006e149438a6ce4b0e1b3a556702aac914805350"
+    },
+    {
+      "path": "acceptance-042147/019-packets.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\019-packets.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/019-packets.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\019-packets.stdout.json",
+      "bytes": 819,
+      "sha256": "4e820f6d1f69b1336647c1b57c477993b800fe38c608308bc7358c15daecc4c3"
+    },
+    {
+      "path": "acceptance-042147/020-source.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\020-source.json",
+      "bytes": 363,
+      "sha256": "1cc98d203e59406877a9b47f6661177df35537c8d6761ec007c211842f74bc52"
+    },
+    {
+      "path": "acceptance-042147/020-source.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\020-source.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/020-source.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\020-source.stdout.json",
+      "bytes": 326,
+      "sha256": "cac8ee3e6fbcf77aac0c1f2a0241aca1ab5d1d240c6e5687b7cd49a8e406a061"
+    },
+    {
+      "path": "acceptance-042147/021-search.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\021-search.json",
+      "bytes": 3954,
+      "sha256": "62fc49908b74dd7b8032bfd8d54579250284d8e9260785b14ad85cd3ffad1bbc"
+    },
+    {
+      "path": "acceptance-042147/021-search.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\021-search.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/021-search.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\021-search.stdout.json",
+      "bytes": 2755,
+      "sha256": "f9e41ba305bce84fe4f1ece5f6921e0d9a7ad5b6c63cecfdd706d352fa26553e"
+    },
+    {
+      "path": "acceptance-042147/022-range.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\022-range.json",
+      "bytes": 39463,
+      "sha256": "f5eb49dbea73b5421c005adee9a56574f0a1cf0b9c830f46f481e2e2b02fb50a"
+    },
+    {
+      "path": "acceptance-042147/022-range.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\022-range.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/022-range.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\022-range.stdout.json",
+      "bytes": 22936,
+      "sha256": "321beef9f306d5217e3ad30a0bfac2c9009d11fc1810b5eb3564754885c3677d"
+    },
+    {
+      "path": "acceptance-042147/023-nav-instruction--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\023-nav-instruction--1.json",
+      "bytes": 230,
+      "sha256": "d7c8ea167bfe5c9a6e16283fadf752192b845a9776d00726010c63c8353851f5"
+    },
+    {
+      "path": "acceptance-042147/023-nav-instruction--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\023-nav-instruction--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/023-nav-instruction--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\023-nav-instruction--1.stdout.json",
+      "bytes": 193,
+      "sha256": "1c451bf93098908c0e742b372584622e7755de110f052def287db84cf3a9cd93"
+    },
+    {
+      "path": "acceptance-042147/024-nav-instruction-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\024-nav-instruction-1.json",
+      "bytes": 230,
+      "sha256": "d903d8ea7b8408f36553ae2bcb111225704f5d811314b2a1da113bde72892e76"
+    },
+    {
+      "path": "acceptance-042147/024-nav-instruction-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\024-nav-instruction-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/024-nav-instruction-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\024-nav-instruction-1.stdout.json",
+      "bytes": 193,
+      "sha256": "74e1c72436b57c2fa6a23fc8b1869de1eafdc2a90dd8ce2232e418ea1d2d07ba"
+    },
+    {
+      "path": "acceptance-042147/025-nav-call--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\025-nav-call--1.json",
+      "bytes": 230,
+      "sha256": "6cbccb4df94c33a7f931057c62a54c1f73682519841813b29aa5e700ba2e72a8"
+    },
+    {
+      "path": "acceptance-042147/025-nav-call--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\025-nav-call--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/025-nav-call--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\025-nav-call--1.stdout.json",
+      "bytes": 193,
+      "sha256": "e569862362208ea0a07d1614e74a65ec2818686d3cd994652fbf642aae45c40b"
+    },
+    {
+      "path": "acceptance-042147/026-nav-call-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\026-nav-call-1.json",
+      "bytes": 230,
+      "sha256": "9ea45ba959904beee7a8b2204622f8ee6533187cb1febbacc8e1984134b6db81"
+    },
+    {
+      "path": "acceptance-042147/026-nav-call-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\026-nav-call-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/026-nav-call-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\026-nav-call-1.stdout.json",
+      "bytes": 193,
+      "sha256": "ee11ec72be296071a810cbe4442829561654582ecbae208fbc3ddeef7fb8fb9c"
+    },
+    {
+      "path": "acceptance-042147/027-nav-return--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\027-nav-return--1.json",
+      "bytes": 228,
+      "sha256": "b0ccfa95572599fce503e8a7c89ecccb63b52dac914ba3c21087bac9236c38fd"
+    },
+    {
+      "path": "acceptance-042147/027-nav-return--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\027-nav-return--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/027-nav-return--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\027-nav-return--1.stdout.json",
+      "bytes": 191,
+      "sha256": "a73b487adabab85aad7e6a33316e8e931c6506a0f2354438822fd1445da49692"
+    },
+    {
+      "path": "acceptance-042147/028-nav-return-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\028-nav-return-1.json",
+      "bytes": 231,
+      "sha256": "44554aea14d4e715252bc80fca4a94b0b90b1cbe37b61d21d45e89ecc011eb87"
+    },
+    {
+      "path": "acceptance-042147/028-nav-return-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\028-nav-return-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/028-nav-return-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\028-nav-return-1.stdout.json",
+      "bytes": 194,
+      "sha256": "d9da178dd8ff3e192ecace4e25d664b081a21a91a32298f17483137010654f91"
+    },
+    {
+      "path": "acceptance-042147/029-nav-exception--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\029-nav-exception--1.json",
+      "bytes": 232,
+      "sha256": "b1a086adc6c95712da48d49251fbc8d5847b7937d8a309b3964572d031069ba4"
+    },
+    {
+      "path": "acceptance-042147/029-nav-exception--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\029-nav-exception--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/029-nav-exception--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\029-nav-exception--1.stdout.json",
+      "bytes": 195,
+      "sha256": "4125438aa070ab760a6b3f93601e2b47ae8663e6360edef721409e6a098d5407"
+    },
+    {
+      "path": "acceptance-042147/030-nav-exception-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\030-nav-exception-1.json",
+      "bytes": 233,
+      "sha256": "1796dfe15ab16b17b2b05722098517fa382153a095f0ead5dee2e416dbfb4250"
+    },
+    {
+      "path": "acceptance-042147/030-nav-exception-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\030-nav-exception-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/030-nav-exception-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\030-nav-exception-1.stdout.json",
+      "bytes": 196,
+      "sha256": "c18c4e84d89f9f82f60421907841a515294f8cdda8e7c94edf1b40be17df9610"
+    },
+    {
+      "path": "acceptance-042147/031-nav-issue--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\031-nav-issue--1.json",
+      "bytes": 229,
+      "sha256": "290e81b7dc7327b2e8a139b9c77ac6f6281654d221db0b4f5d8d211cb1a566ba"
+    },
+    {
+      "path": "acceptance-042147/031-nav-issue--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\031-nav-issue--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/031-nav-issue--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\031-nav-issue--1.stdout.json",
+      "bytes": 192,
+      "sha256": "7f607f2f1e1ff206189733f93a75ff74ef04292b3906a9192d394e537f3cd00c"
+    },
+    {
+      "path": "acceptance-042147/032-nav-issue-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\032-nav-issue-1.json",
+      "bytes": 233,
+      "sha256": "9a4ea3e96928798d36b5bdf1e5745acec50a49aa6111ed2303908974f990d68c"
+    },
+    {
+      "path": "acceptance-042147/032-nav-issue-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\032-nav-issue-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/032-nav-issue-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\032-nav-issue-1.stdout.json",
+      "bytes": 196,
+      "sha256": "9a45d462b580183ce007bef311c4fcf1652f04bba5057cc5e8110b13da01d265"
+    },
+    {
+      "path": "acceptance-042147/033-nav-source--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\033-nav-source--1.json",
+      "bytes": 230,
+      "sha256": "4b683d7bf0e09882854b2f2b99ab34e4a9ed62b33044be8adfddf9f21edcf4c2"
+    },
+    {
+      "path": "acceptance-042147/033-nav-source--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\033-nav-source--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/033-nav-source--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\033-nav-source--1.stdout.json",
+      "bytes": 193,
+      "sha256": "6faa29368df1c5c17182b116d0daa73874f4513d0a3c8fb8acb902c19c34f9d6"
+    },
+    {
+      "path": "acceptance-042147/034-nav-source-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\034-nav-source-1.json",
+      "bytes": 231,
+      "sha256": "6e990543e1a9a8b11595979c3260a75f540392df0fba2c94199dcab92a179aca"
+    },
+    {
+      "path": "acceptance-042147/034-nav-source-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\034-nav-source-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/034-nav-source-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\034-nav-source-1.stdout.json",
+      "bytes": 194,
+      "sha256": "1e5a39c730864311ab170a8a0ee32023e7129ef6fd8da11e8c865d01970e1f0b"
+    },
+    {
+      "path": "acceptance-042147/035-nav-pc--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\035-nav-pc--1.json",
+      "bytes": 301,
+      "sha256": "06e23926cbcba3775ff16a32c7e91a741cbcc30eef0babc0bd5a936cd5d043fc"
+    },
+    {
+      "path": "acceptance-042147/035-nav-pc--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\035-nav-pc--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042147/035-nav-pc--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\035-nav-pc--1.stdout.json",
+      "bytes": 254,
+      "sha256": "dbe66a9c701afc72266470cafb0725e2af23985a5b860862fd7dd8cb0f07fdf9"
+    },
+    {
+      "path": "acceptance-042147/checks.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042147\\checks.json",
+      "bytes": 34000,
+      "sha256": "ade72a9ded22506368f617806154da7604b34651b0fb2c6ff83b27d960ea03ba"
+    },
+    {
+      "path": "acceptance-042254/001-doctor.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\001-doctor.json",
+      "bytes": 1225,
+      "sha256": "db56418f56e8b835edae3451daf2f720669ac643e9547fc19c61205ea1b6b421"
+    },
+    {
+      "path": "acceptance-042254/001-doctor.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\001-doctor.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/001-doctor.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\001-doctor.stdout.json",
+      "bytes": 1060,
+      "sha256": "940f6f3643afe35455f2e4f14d74973e86d68578988ac6b16b02d13700666bb6"
+    },
+    {
+      "path": "acceptance-042254/002-web-status.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\002-web-status.json",
+      "bytes": 739,
+      "sha256": "7b7ac271cc3a6152e0fdf7ef02c39d42787079064d952b00cc4a2d3fd09f55b2"
+    },
+    {
+      "path": "acceptance-042254/002-web-status.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\002-web-status.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/002-web-status.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\002-web-status.stdout.json",
+      "bytes": 553,
+      "sha256": "6826b643a90f83418384bc7cdeec9106f2b849cf48dd51318d68fdb9aef323d6"
+    },
+    {
+      "path": "acceptance-042254/003-elf-inspect.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\003-elf-inspect.json",
+      "bytes": 671,
+      "sha256": "f277110d38e1b209cc90f46b454649a317493a89f25a609685fc86d19cfaec7b"
+    },
+    {
+      "path": "acceptance-042254/003-elf-inspect.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\003-elf-inspect.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/003-elf-inspect.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\003-elf-inspect.stdout.json",
+      "bytes": 531,
+      "sha256": "d2a87a44455fcae863b1dd4cfb2b8a1b0930cd73f5fdfabddf945e3064dcda25"
+    },
+    {
+      "path": "acceptance-042254/004-elf-resolve.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\004-elf-resolve.json",
+      "bytes": 388,
+      "sha256": "2d701250d5274f0a338ce1f7f979997f4a397f6b145306659a3657714bcd66df"
+    },
+    {
+      "path": "acceptance-042254/004-elf-resolve.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\004-elf-resolve.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/004-elf-resolve.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\004-elf-resolve.stdout.json",
+      "bytes": 288,
+      "sha256": "59af9c89eb677a6b819e5bcd9495ad5915bd9b57f440b149310b1dcab0377f9d"
+    },
+    {
+      "path": "acceptance-042254/005-elf-odd-rejected.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\005-elf-odd-rejected.json",
+      "bytes": 312,
+      "sha256": "e9ec167ea802ff6900a7c29a27f595a5126da2b199edb4c69a9214bc866d549b"
+    },
+    {
+      "path": "acceptance-042254/005-elf-odd-rejected.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\005-elf-odd-rejected.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/005-elf-odd-rejected.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\005-elf-odd-rejected.stdout.json",
+      "bytes": 265,
+      "sha256": "96a3185ceaa5e24ea69d802259bfcc5224d3d17af7afe03b8e4a181f2db95225"
+    },
+    {
+      "path": "acceptance-042254/006-verify-live.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\006-verify-live.json",
+      "bytes": 4742,
+      "sha256": "c5446606b913318477cb799ae712a1802230e44481242ba065fc9cf946c523ee"
+    },
+    {
+      "path": "acceptance-042254/006-verify-live.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\006-verify-live.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/006-verify-live.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\006-verify-live.stdout.json",
+      "bytes": 3571,
+      "sha256": "625ed291574632b3ff80ff3adaeaa8fef75f6dfcec988022edb618c9e4658b43"
+    },
+    {
+      "path": "acceptance-042254/007-verify-reference.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\007-verify-reference.json",
+      "bytes": 6392,
+      "sha256": "fdf6d9adbc2ba7af3b971328ed1a6df00dd4ebcafdf95428fd892a4e9b542de6"
+    },
+    {
+      "path": "acceptance-042254/007-verify-reference.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\007-verify-reference.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/007-verify-reference.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\007-verify-reference.stdout.json",
+      "bytes": 4775,
+      "sha256": "32d6560995d132974cc2a76b19152ac0f45eda7c6418e5b9e9740d950adb8bcf"
+    },
+    {
+      "path": "acceptance-042254/008-query-summary.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\008-query-summary.json",
+      "bytes": 4484,
+      "sha256": "a17189caed7110143fef4fa3a961d2db85ec47751745b2f6a3029f35cd0c726f"
+    },
+    {
+      "path": "acceptance-042254/008-query-summary.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\008-query-summary.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/008-query-summary.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\008-query-summary.stdout.json",
+      "bytes": 3323,
+      "sha256": "e980279c41117f7ddb830b905197a08e9863c2b7b288a7ae18e33094a2a1db1c"
+    },
+    {
+      "path": "acceptance-042254/009-query-overview.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\009-query-overview.json",
+      "bytes": 24333,
+      "sha256": "228fe0a16a4144b3d2c8a4a20eb218cd9700a7a9e47a99439b2a4fabb3737c31"
+    },
+    {
+      "path": "acceptance-042254/009-query-overview.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\009-query-overview.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/009-query-overview.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\009-query-overview.stdout.json",
+      "bytes": 15486,
+      "sha256": "274aa179d19578fd4ed619cd3617238924762d54de64b970af806d5d0a7c67f8"
+    },
+    {
+      "path": "acceptance-042254/010-query-page.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\010-query-page.json",
+      "bytes": 5927,
+      "sha256": "f23bdf074d9c5b325a97d4e6dfd0dacbaf76df09ba18e983e90257cbfae76ae7"
+    },
+    {
+      "path": "acceptance-042254/010-query-page.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\010-query-page.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/010-query-page.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\010-query-page.stdout.json",
+      "bytes": 3847,
+      "sha256": "9405a7bf7fe8ccee709b012709a6333cf2c741b0c6d66aa1cc4cdeb658175421"
+    },
+    {
+      "path": "acceptance-042254/011-query-event.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\011-query-event.json",
+      "bytes": 547,
+      "sha256": "042ca924cbf85482feb35279d11ebe5a30aa3b356c08632856e9342bce4965c0"
+    },
+    {
+      "path": "acceptance-042254/011-query-event.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\011-query-event.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/011-query-event.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\011-query-event.stdout.json",
+      "bytes": 435,
+      "sha256": "9d12abb8c7fd57323049698c2a9ea38b20647b4cf1d8a43a0c4b192aefa99406"
+    },
+    {
+      "path": "acceptance-042254/012-query-window.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\012-query-window.json",
+      "bytes": 450561,
+      "sha256": "debfa2b3feb1c6be213297a599d2e212c8d1ccca88d14b56738ac6a0f8a40950"
+    },
+    {
+      "path": "acceptance-042254/012-query-window.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\012-query-window.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/012-query-window.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\012-query-window.stdout.json",
+      "bytes": 275904,
+      "sha256": "4450d64e5444090bd22155f9d9935344a76ddbe04b2b1117fbfb3ac365e76a4d"
+    },
+    {
+      "path": "acceptance-042254/013-query-timeline.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\013-query-timeline.json",
+      "bytes": 61629,
+      "sha256": "a297f010fd1217dc4be9ba398b99b8c16c24cb2643460c72b31059389f0cd5fa"
+    },
+    {
+      "path": "acceptance-042254/013-query-timeline.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\013-query-timeline.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/013-query-timeline.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\013-query-timeline.stdout.json",
+      "bytes": 19669,
+      "sha256": "a44809fd4462c490aa4de89446de9d92f8cee77ced2b585d0a189462bfe279f4"
+    },
+    {
+      "path": "acceptance-042254/014-query-issues.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\014-query-issues.json",
+      "bytes": 1040,
+      "sha256": "970bc9436435237a0da2ace0066950e7a20aab30aff83720bb9fc4e37b299d32"
+    },
+    {
+      "path": "acceptance-042254/014-query-issues.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\014-query-issues.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/014-query-issues.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\014-query-issues.stdout.json",
+      "bytes": 716,
+      "sha256": "ba183f72396be5da230e59beee1540e3282f42ed10b28badfb0d898cdf0d3357"
+    },
+    {
+      "path": "acceptance-042254/015-query-functions.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\015-query-functions.json",
+      "bytes": 2267,
+      "sha256": "e4fbd48c53795bbed6d3bb7197127c5f9e1dce6c7cec006a62d104b74c8b13a6"
+    },
+    {
+      "path": "acceptance-042254/015-query-functions.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\015-query-functions.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/015-query-functions.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\015-query-functions.stdout.json",
+      "bytes": 1578,
+      "sha256": "439ea1b670a0511a0f0c5a8f62c41208428c1679fa9ac493525f2e754bff6662"
+    },
+    {
+      "path": "acceptance-042254/016-query-hotspots.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\016-query-hotspots.json",
+      "bytes": 659,
+      "sha256": "e9851b9bc0817db203a680d130288828fe461d34b78dd9c9960e36b0cca6c0e8"
+    },
+    {
+      "path": "acceptance-042254/016-query-hotspots.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\016-query-hotspots.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/016-query-hotspots.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\016-query-hotspots.stdout.json",
+      "bytes": 452,
+      "sha256": "115a9521c5bd30610b938e420996ab59f67861ae6f9775e220bd74d3ce85027b"
+    },
+    {
+      "path": "acceptance-042254/017-query-flame.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\017-query-flame.json",
+      "bytes": 8354,
+      "sha256": "0771274748dbefa7667c2b480b9d191ae641902d56ebcf6724c972383adc9ff2"
+    },
+    {
+      "path": "acceptance-042254/017-query-flame.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\017-query-flame.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/017-query-flame.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\017-query-flame.stdout.json",
+      "bytes": 4559,
+      "sha256": "98f77e7ead838888e44f554e39fcc55beaa36f065799a0aa4e78733f1153d782"
+    },
+    {
+      "path": "acceptance-042254/018-query-integrity.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\018-query-integrity.json",
+      "bytes": 4365,
+      "sha256": "ac0732f1d408314a436d3304a8ea3a6a28e8928d83886ecbca1e9d84ee233d3b"
+    },
+    {
+      "path": "acceptance-042254/018-query-integrity.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\018-query-integrity.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/018-query-integrity.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\018-query-integrity.stdout.json",
+      "bytes": 3223,
+      "sha256": "5d3d156fa7ed9a66f6000e8ee3a24f019ef3981c5a50405fc2523a19165ed893"
+    },
+    {
+      "path": "acceptance-042254/019-packets.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\019-packets.json",
+      "bytes": 1360,
+      "sha256": "0de068a4e723eaa8a08aad6b204e3556a34fe0b893cb897a230bf3d906d266e0"
+    },
+    {
+      "path": "acceptance-042254/019-packets.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\019-packets.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/019-packets.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\019-packets.stdout.json",
+      "bytes": 818,
+      "sha256": "1c4955a718c5ba88821afa6ee77aaf436508e53080f4af940ccb0ae2ddb79052"
+    },
+    {
+      "path": "acceptance-042254/020-source.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\020-source.json",
+      "bytes": 365,
+      "sha256": "373ced27b845e3a5199f63b1339d3c4984c8051471adec0edd28d65e44b370ba"
+    },
+    {
+      "path": "acceptance-042254/020-source.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\020-source.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/020-source.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\020-source.stdout.json",
+      "bytes": 328,
+      "sha256": "57eb73e7815bb3613c46adc1e5aca89c6ad7075c19e49e56d902240555400bf3"
+    },
+    {
+      "path": "acceptance-042254/021-search.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\021-search.json",
+      "bytes": 3954,
+      "sha256": "636e22675dac19d48d2fee58bb37862290398a1e290d10697ba4a94e8b4cd831"
+    },
+    {
+      "path": "acceptance-042254/021-search.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\021-search.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/021-search.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\021-search.stdout.json",
+      "bytes": 2755,
+      "sha256": "b955f4b501156bbd4d23735cbda8c659b42d731c3f6ad264d5792ff7abb60b1e"
+    },
+    {
+      "path": "acceptance-042254/022-range.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\022-range.json",
+      "bytes": 39462,
+      "sha256": "4fe9b13c5a43a0070d9b3b11d7ea8e2cf9deaa2a3d4604a3d3bb867a70e4718d"
+    },
+    {
+      "path": "acceptance-042254/022-range.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\022-range.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/022-range.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\022-range.stdout.json",
+      "bytes": 22935,
+      "sha256": "8eab15caf46605f3347bcf79779bcadabee3c71f8627a41c0411a4dc9872c9b5"
+    },
+    {
+      "path": "acceptance-042254/023-nav-instruction--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\023-nav-instruction--1.json",
+      "bytes": 230,
+      "sha256": "5c2ddb48bbe482d3b40b0270d5645b145319d46c0e6cd22b919f692ca2d99619"
+    },
+    {
+      "path": "acceptance-042254/023-nav-instruction--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\023-nav-instruction--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/023-nav-instruction--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\023-nav-instruction--1.stdout.json",
+      "bytes": 193,
+      "sha256": "5fa52e4ee47a5cfd5072e046eda88279ba85683bb54a171080c1dd6b7ce74857"
+    },
+    {
+      "path": "acceptance-042254/024-nav-instruction-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\024-nav-instruction-1.json",
+      "bytes": 231,
+      "sha256": "614ff7cf140f038c9f757862fd0939745325110ae51678a01650249737fc828e"
+    },
+    {
+      "path": "acceptance-042254/024-nav-instruction-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\024-nav-instruction-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/024-nav-instruction-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\024-nav-instruction-1.stdout.json",
+      "bytes": 194,
+      "sha256": "74babcf01b627883a8db07877d1a9090c19039bddf21610f80738a19687a1eb3"
+    },
+    {
+      "path": "acceptance-042254/025-nav-call--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\025-nav-call--1.json",
+      "bytes": 230,
+      "sha256": "8bee52bfcf8ea825538c0924bc1922d17a6537a293036063e2908a2cf394ab2a"
+    },
+    {
+      "path": "acceptance-042254/025-nav-call--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\025-nav-call--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/025-nav-call--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\025-nav-call--1.stdout.json",
+      "bytes": 193,
+      "sha256": "ea488bb3165399a9a3a9b442f2babe9bd9084270d2bb92c0ddf3769d471178b2"
+    },
+    {
+      "path": "acceptance-042254/026-nav-call-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\026-nav-call-1.json",
+      "bytes": 231,
+      "sha256": "ce55f0e7392645484e44b3f1909d151c9df7aa22f7482e308ee2621aca5b9253"
+    },
+    {
+      "path": "acceptance-042254/026-nav-call-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\026-nav-call-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/026-nav-call-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\026-nav-call-1.stdout.json",
+      "bytes": 194,
+      "sha256": "ab773163babebac309930e19f70e8bfa68d8e477ab31026854159b199928861e"
+    },
+    {
+      "path": "acceptance-042254/027-nav-return--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\027-nav-return--1.json",
+      "bytes": 230,
+      "sha256": "734336ac02b9d56dd5a0e8b3076625dd1512cd82f5d21f4ba13b6a34588b7d3a"
+    },
+    {
+      "path": "acceptance-042254/027-nav-return--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\027-nav-return--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/027-nav-return--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\027-nav-return--1.stdout.json",
+      "bytes": 193,
+      "sha256": "19abcd31ccfd7fe252e37b8d8d759069219d1bd08dd7147c86ab83e7610fe1a1"
+    },
+    {
+      "path": "acceptance-042254/028-nav-return-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\028-nav-return-1.json",
+      "bytes": 230,
+      "sha256": "c33d3c6c8daf62a9e562ce1b72b4456bf2cc968f59314f9d3645440b4d6bbe8b"
+    },
+    {
+      "path": "acceptance-042254/028-nav-return-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\028-nav-return-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/028-nav-return-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\028-nav-return-1.stdout.json",
+      "bytes": 193,
+      "sha256": "bc7d5b1bd1b06e499b5064c138de2703e7e88e252e8168b97db88717d409c97d"
+    },
+    {
+      "path": "acceptance-042254/029-nav-exception--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\029-nav-exception--1.json",
+      "bytes": 232,
+      "sha256": "992348a7f7374f26a6ab0b37d1c6e50cbf8368803f5d5a73d388cd0019a051fa"
+    },
+    {
+      "path": "acceptance-042254/029-nav-exception--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\029-nav-exception--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/029-nav-exception--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\029-nav-exception--1.stdout.json",
+      "bytes": 195,
+      "sha256": "1b8a1f1b209ddc754cc3b1b6b8ead264b5bf957c764034d4af4ce1f008b582de"
+    },
+    {
+      "path": "acceptance-042254/030-nav-exception-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\030-nav-exception-1.json",
+      "bytes": 232,
+      "sha256": "75abcd202115074abb5125ac945495ce5dcbd1354fdf5453a058e2bc9e7afce0"
+    },
+    {
+      "path": "acceptance-042254/030-nav-exception-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\030-nav-exception-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/030-nav-exception-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\030-nav-exception-1.stdout.json",
+      "bytes": 195,
+      "sha256": "b4454766bcbac50eaa3d47ac57917c4544f76580d9396fc7537ea5b762495786"
+    },
+    {
+      "path": "acceptance-042254/031-nav-issue--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\031-nav-issue--1.json",
+      "bytes": 229,
+      "sha256": "374059359098f0035c468dbe248734f2e8abf55026caffd4c0731150c3cc81c4"
+    },
+    {
+      "path": "acceptance-042254/031-nav-issue--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\031-nav-issue--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/031-nav-issue--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\031-nav-issue--1.stdout.json",
+      "bytes": 192,
+      "sha256": "0a0b0327b6e59382450bb698f74b23b7aac1ae17cdc7996806bc7b4e03ddd9d6"
+    },
+    {
+      "path": "acceptance-042254/032-nav-issue-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\032-nav-issue-1.json",
+      "bytes": 233,
+      "sha256": "ea0b4b117b116e8541f7f1755f6c4c78f22212bab0ef289f8beea5a5aa8f2c5c"
+    },
+    {
+      "path": "acceptance-042254/032-nav-issue-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\032-nav-issue-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/032-nav-issue-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\032-nav-issue-1.stdout.json",
+      "bytes": 196,
+      "sha256": "8371af84909c04738749589e874dc483dec0443242d5d50487497b1d37c88f91"
+    },
+    {
+      "path": "acceptance-042254/033-nav-source--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\033-nav-source--1.json",
+      "bytes": 230,
+      "sha256": "00bee924852edc6d94d3bf3bce3867f859f1a1867775670cf7256d07e3450ca1"
+    },
+    {
+      "path": "acceptance-042254/033-nav-source--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\033-nav-source--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/033-nav-source--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\033-nav-source--1.stdout.json",
+      "bytes": 193,
+      "sha256": "f7e255a0e334ef5ebd4d0849bd16e7e0e7d9d7f176e0f43b23ee3a1f481a93f8"
+    },
+    {
+      "path": "acceptance-042254/034-nav-source-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\034-nav-source-1.json",
+      "bytes": 231,
+      "sha256": "862f51aa72e0494e356eca855099e67afd3eb0d0029388b2cd1dddf234a3eb44"
+    },
+    {
+      "path": "acceptance-042254/034-nav-source-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\034-nav-source-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/034-nav-source-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\034-nav-source-1.stdout.json",
+      "bytes": 194,
+      "sha256": "64308aab33c2c5059a5999710c5e06d917116433a4c4288eca862dfadc29ded9"
+    },
+    {
+      "path": "acceptance-042254/035-nav-pc--1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\035-nav-pc--1.json",
+      "bytes": 231,
+      "sha256": "4f8e4df92aad9860143e6befc0f47e79a2c362c38ac047cdbbf90986385a1265"
+    },
+    {
+      "path": "acceptance-042254/035-nav-pc--1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\035-nav-pc--1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/035-nav-pc--1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\035-nav-pc--1.stdout.json",
+      "bytes": 194,
+      "sha256": "cc5e3c02ad0cff6e3bc2804ae2ac1f34f6b63980870c3b1719cff6d9a61d68dc"
+    },
+    {
+      "path": "acceptance-042254/036-nav-pc-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\036-nav-pc-1.json",
+      "bytes": 232,
+      "sha256": "bfd10f601914d010854f32b5703d12db731225f800209ea01ca57e325fd38f86"
+    },
+    {
+      "path": "acceptance-042254/036-nav-pc-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\036-nav-pc-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/036-nav-pc-1.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\036-nav-pc-1.stdout.json",
+      "bytes": 195,
+      "sha256": "84cb571390a56f66a07ad4238cdd9fc17b6888d5b272d21899166dc19f3b9f00"
+    },
+    {
+      "path": "acceptance-042254/037-export-simplified.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\037-export-simplified.json",
+      "bytes": 505,
+      "sha256": "469c2019ad7699af8cd99227b7b6e1a2e45ff8af8b6a263696bc0c042daa3151"
+    },
+    {
+      "path": "acceptance-042254/037-export-simplified.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\037-export-simplified.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/037-export-simplified.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\037-export-simplified.stdout.json",
+      "bytes": 448,
+      "sha256": "3b5fd8e445f520c59fc09c08a2d1ab971a797499bc0d01ec1ce6f0194530b8c0"
+    },
+    {
+      "path": "acceptance-042254/038-export-source.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\038-export-source.json",
+      "bytes": 497,
+      "sha256": "67689544cd64f87af3095054fbd8f3edde3feeeb40f0de3b1e9a201c059a20f9"
+    },
+    {
+      "path": "acceptance-042254/038-export-source.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\038-export-source.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/038-export-source.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\038-export-source.stdout.json",
+      "bytes": 440,
+      "sha256": "bff1806cf9ea5b0c28517fe4554adee7bef05cbffb5872229d94f538c94acba2"
+    },
+    {
+      "path": "acceptance-042254/039-export-html.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\039-export-html.json",
+      "bytes": 494,
+      "sha256": "ede5d8d037cf1df61c68b9691dca9ae216c2a39439a7f752d1d8e3acdb33993d"
+    },
+    {
+      "path": "acceptance-042254/039-export-html.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\039-export-html.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/039-export-html.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\039-export-html.stdout.json",
+      "bytes": 437,
+      "sha256": "ea32e2623dbc745755f6b489cea5025eb7a48d2ef23352498b1398a63a991bdc"
+    },
+    {
+      "path": "acceptance-042254/040-export-csv.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\040-export-csv.json",
+      "bytes": 492,
+      "sha256": "4f42ac15122f225541459eef0de7ed46728d5ce6db7cd4714088bea455dadc6f"
+    },
+    {
+      "path": "acceptance-042254/040-export-csv.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\040-export-csv.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/040-export-csv.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\040-export-csv.stdout.json",
+      "bytes": 435,
+      "sha256": "8e49b9e97548b964a6116120491e70a074d536f048ba106f0421adc3cab8bca7"
+    },
+    {
+      "path": "acceptance-042254/041-export-json.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\041-export-json.json",
+      "bytes": 493,
+      "sha256": "039eedec95e579f3e5c736bfd08d779bf7f9cdbae23634dbef993c62b98e02a4"
+    },
+    {
+      "path": "acceptance-042254/041-export-json.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\041-export-json.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/041-export-json.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\041-export-json.stdout.json",
+      "bytes": 436,
+      "sha256": "9ddf07e18f806d7f9f1b0d4311c95e5d9663b666470b308e669f240b5bf850c8"
+    },
+    {
+      "path": "acceptance-042254/042-export-events-jsonl.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\042-export-events-jsonl.json",
+      "bytes": 510,
+      "sha256": "c6e48b9f1776c3bbc46438e6004edcb2ac5d41a19c9486e55560dfa349172eef"
+    },
+    {
+      "path": "acceptance-042254/042-export-events-jsonl.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\042-export-events-jsonl.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/042-export-events-jsonl.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\042-export-events-jsonl.stdout.json",
+      "bytes": 453,
+      "sha256": "729ce2ab1e8db7ecbeb3b35e254afaf26bc05dd3c0d20c2d60ec57d77257f1a1"
+    },
+    {
+      "path": "acceptance-042254/043-export-raw.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\043-export-raw.json",
+      "bytes": 491,
+      "sha256": "3407a9398762af62eae3b662fb9e6abea44e08eda5dd0dff8554f56eccfa43e1"
+    },
+    {
+      "path": "acceptance-042254/043-export-raw.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\043-export-raw.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/043-export-raw.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\043-export-raw.stdout.json",
+      "bytes": 434,
+      "sha256": "fb1e7137dbd5aa732ac0fd737cac6890d357f38128dec0c3a80b38b0ad37c9d7"
+    },
+    {
+      "path": "acceptance-042254/044-export-etm.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\044-export-etm.json",
+      "bytes": 491,
+      "sha256": "81abe56e21825662ae98cea0686735c4cc510077318606a5653df188aad495f6"
+    },
+    {
+      "path": "acceptance-042254/044-export-etm.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\044-export-etm.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/044-export-etm.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\044-export-etm.stdout.json",
+      "bytes": 434,
+      "sha256": "1b2a138dd64915de4c5ea5a12afe59f0047d6f5e7deee09b1c1e1c2e93f29e1b"
+    },
+    {
+      "path": "acceptance-042254/045-export-elf.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\045-export-elf.json",
+      "bytes": 493,
+      "sha256": "c3cef255dc6cb4e2a1bae71f29b03dbe84fb52c16f5096d04d5a859cd69006d1"
+    },
+    {
+      "path": "acceptance-042254/045-export-elf.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\045-export-elf.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/045-export-elf.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\045-export-elf.stdout.json",
+      "bytes": 436,
+      "sha256": "718e8fe64ff91c8a280a6db366c511c9e90871778664cdaeccc44a2799fb2e1e"
+    },
+    {
+      "path": "acceptance-042254/046-export-record.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\046-export-record.json",
+      "bytes": 497,
+      "sha256": "9f94399d2620356253bc12fb37c8b0bfcc9f759465cd038704af6bc6fe5cd323"
+    },
+    {
+      "path": "acceptance-042254/046-export-record.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\046-export-record.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/046-export-record.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\046-export-record.stdout.json",
+      "bytes": 440,
+      "sha256": "41ffdd4889c0cff9f06f785b76f9a4f6053a32e42dac8c8d497ab904b04895d7"
+    },
+    {
+      "path": "acceptance-042254/047-cropped-simplified.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\047-cropped-simplified.json",
+      "bytes": 500,
+      "sha256": "b10ea26a9f86fc12727022127a457f91594796e631be7dd25e7a8e1855154153"
+    },
+    {
+      "path": "acceptance-042254/047-cropped-simplified.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\047-cropped-simplified.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/047-cropped-simplified.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\047-cropped-simplified.stdout.json",
+      "bytes": 443,
+      "sha256": "e28e4c3f2253007eed4ca85f5973620694cc234a7484e2e1194d776598e89d07"
+    },
+    {
+      "path": "acceptance-042254/048-cropped-source.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\048-cropped-source.json",
+      "bytes": 493,
+      "sha256": "10ae1bbfa75bcbfaae91bddc4c4b6405a64bfd2261b3614e7105ca8859186c21"
+    },
+    {
+      "path": "acceptance-042254/048-cropped-source.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\048-cropped-source.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/048-cropped-source.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\048-cropped-source.stdout.json",
+      "bytes": 436,
+      "sha256": "4f206a92ca7223a71ce3e15555d7fa874bd54c4a79d79f129198c9c2f50e458e"
+    },
+    {
+      "path": "acceptance-042254/049-cropped-html.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\049-cropped-html.json",
+      "bytes": 490,
+      "sha256": "dba531b6e0d2a30053e8b6af6718e94e9003b2fd552e1c9943f78793b6244487"
+    },
+    {
+      "path": "acceptance-042254/049-cropped-html.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\049-cropped-html.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/049-cropped-html.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\049-cropped-html.stdout.json",
+      "bytes": 433,
+      "sha256": "c1062fb198ae8c4a2d06a81d770cc489b393dcf408e27a8724098a518ee252ba"
+    },
+    {
+      "path": "acceptance-042254/050-cropped-csv.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\050-cropped-csv.json",
+      "bytes": 487,
+      "sha256": "4f660ce7ea4977912f1a05a04135585690e2e4e1d9a1261a051b7ba8a63b8777"
+    },
+    {
+      "path": "acceptance-042254/050-cropped-csv.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\050-cropped-csv.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/050-cropped-csv.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\050-cropped-csv.stdout.json",
+      "bytes": 430,
+      "sha256": "4a48204a01c162851de88797cdffd3763cbd91c2c5adbbbd43e213c792f59bfa"
+    },
+    {
+      "path": "acceptance-042254/051-cropped-events-jsonl.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\051-cropped-events-jsonl.json",
+      "bytes": 505,
+      "sha256": "9daef21f9fcb49915fd65fcad6d5d939aa7cbde4dcc29111a5758baf35c24307"
+    },
+    {
+      "path": "acceptance-042254/051-cropped-events-jsonl.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\051-cropped-events-jsonl.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/051-cropped-events-jsonl.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\051-cropped-events-jsonl.stdout.json",
+      "bytes": 448,
+      "sha256": "0c82ebec1df9c3e6fa24400dbc4d40a52709396c24556c718b0816a9df0a2b35"
+    },
+    {
+      "path": "acceptance-042254/052-no-clobber.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\052-no-clobber.json",
+      "bytes": 438,
+      "sha256": "1e4296782ad438a1e2f4cd6e0fd5370afa659e822b6f4dad3b7bde316a4587c7"
+    },
+    {
+      "path": "acceptance-042254/052-no-clobber.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\052-no-clobber.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/052-no-clobber.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\052-no-clobber.stdout.json",
+      "bytes": 391,
+      "sha256": "2f1738ae85be04ced2620afcdb187d5aa2606fadec8b2c6d29e134a4b1f6d95f"
+    },
+    {
+      "path": "acceptance-042254/053-import.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\053-import.json",
+      "bytes": 6407,
+      "sha256": "d1860d77b6872d2916ce02c747854bdbf23b0dbe482ab7521bc0f376ddb263f9"
+    },
+    {
+      "path": "acceptance-042254/053-import.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\053-import.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/053-import.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\053-import.stdout.json",
+      "bytes": 4790,
+      "sha256": "7faec6a5a9363dd5617c347af05512ff2a38b1e395a477c3958e18245bb044e1"
+    },
+    {
+      "path": "acceptance-042254/054-import-verify.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\054-import-verify.json",
+      "bytes": 6400,
+      "sha256": "c61fe741ea925c0203651c85e415ebb9420a1a78eb20e97fd64d82794fcccfa2"
+    },
+    {
+      "path": "acceptance-042254/054-import-verify.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\054-import-verify.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/054-import-verify.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\054-import-verify.stdout.json",
+      "bytes": 4783,
+      "sha256": "44adf5d8fb10c31e999b3af681c644bf4e474f0379e858b0419be4de620c57ff"
+    },
+    {
+      "path": "acceptance-042254/055-original-summary.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\055-original-summary.json",
+      "bytes": 5796,
+      "sha256": "45fc739a80f5abb1722e0c2247e382373f89be6b96e887cc8eac90e587e82849"
+    },
+    {
+      "path": "acceptance-042254/055-original-summary.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\055-original-summary.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/055-original-summary.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\055-original-summary.stdout.json",
+      "bytes": 4275,
+      "sha256": "468985f0b52ff9f810eade6473063a4200fed419e92a683c06e6c879139fba85"
+    },
+    {
+      "path": "acceptance-042254/056-imported-summary.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\056-imported-summary.json",
+      "bytes": 5796,
+      "sha256": "158d485731deb2dde1634ad4165f4a384760efe4582dce590880a1edc43b938c"
+    },
+    {
+      "path": "acceptance-042254/056-imported-summary.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\056-imported-summary.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/056-imported-summary.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\056-imported-summary.stdout.json",
+      "bytes": 4275,
+      "sha256": "d7182af8feae1566c98bf9f5e8af2100139e10cea7ee3adf7a2cce86177a9734"
+    },
+    {
+      "path": "acceptance-042254/057-record-list.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\057-record-list.json",
+      "bytes": 825,
+      "sha256": "4ff1fd64222467cd0aebc89151a2c9ac668fb7192330b2dcb8228fc62b37c633"
+    },
+    {
+      "path": "acceptance-042254/057-record-list.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\057-record-list.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/057-record-list.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\057-record-list.stdout.json",
+      "bytes": 614,
+      "sha256": "1bc96469217b3b8ea8be0cdfcbc463c471540c84e058ad27e6f5648b6f2ef14c"
+    },
+    {
+      "path": "acceptance-042254/058-record-info.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\058-record-info.json",
+      "bytes": 6577,
+      "sha256": "56ddeeb5ad965ee40885da5f5ba492ae129d04ef09e46831686621dfdf9d725e"
+    },
+    {
+      "path": "acceptance-042254/058-record-info.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\058-record-info.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/058-record-info.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\058-record-info.stdout.json",
+      "bytes": 4127,
+      "sha256": "ab838af553816d63262a32fcf8535cb72a21a08d41be2699ec80a34ed2f267c0"
+    },
+    {
+      "path": "acceptance-042254/059-record-config.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\059-record-config.json",
+      "bytes": 424,
+      "sha256": "f3be00fdcaff5620983c2d18a3e9b4af37251b31b5eb3cb7f6e1e5a7fbd0c2a0"
+    },
+    {
+      "path": "acceptance-042254/059-record-config.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\059-record-config.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/059-record-config.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\059-record-config.stdout.json",
+      "bytes": 382,
+      "sha256": "995b4f5fc9259bdb9e15714c12f8791fa45a575cdba2191df684f0f537cb5114"
+    },
+    {
+      "path": "acceptance-042254/060-attach-sources.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\060-attach-sources.json",
+      "bytes": 551,
+      "sha256": "0b66683c097aee2934ce5f923a41513f6a3e15132c1c7f8ae8e6d37561371cc0"
+    },
+    {
+      "path": "acceptance-042254/060-attach-sources.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\060-attach-sources.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/060-attach-sources.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\060-attach-sources.stdout.json",
+      "bytes": 504,
+      "sha256": "9d8466a0e56d208c68bc2952360e511883962bbaad5f430c5d14259180af7e81"
+    },
+    {
+      "path": "acceptance-042254/061-read-attached-source.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\061-read-attached-source.json",
+      "bytes": 258,
+      "sha256": "7d7dce268ee151c54a512580857e2bcfb671dd878ec2d8605e6cb6d66e359ae6"
+    },
+    {
+      "path": "acceptance-042254/061-read-attached-source.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\061-read-attached-source.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/061-read-attached-source.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\061-read-attached-source.stdout.json",
+      "bytes": 221,
+      "sha256": "7b22b4f89d534ba28ece934be730547735f43dee906917d8cc70e1f91d25c3f4"
+    },
+    {
+      "path": "acceptance-042254/062-verify-after-source.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\062-verify-after-source.json",
+      "bytes": 6398,
+      "sha256": "764a3218027433a19ebbcf223c1b04bdcb6e2cd08ae89847ec2e3afde7c405a0"
+    },
+    {
+      "path": "acceptance-042254/062-verify-after-source.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\062-verify-after-source.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/062-verify-after-source.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\062-verify-after-source.stdout.json",
+      "bytes": 4781,
+      "sha256": "d446d517db657661218698fb5d5024dbf9ee49401c0fdeece57ff7296251a656"
+    },
+    {
+      "path": "acceptance-042254/063-raw-decode.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\063-raw-decode.json",
+      "bytes": 6983,
+      "sha256": "0b9c3ab32159f509306203e19b5bab178ecdfcec0d1382771bc922e28589e649"
+    },
+    {
+      "path": "acceptance-042254/063-raw-decode.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\063-raw-decode.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/063-raw-decode.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\063-raw-decode.stdout.json",
+      "bytes": 4983,
+      "sha256": "015074b2122898787aec62ffd2472632b58903f0d80a5be086ca20c5cf1f0517"
+    },
+    {
+      "path": "acceptance-042254/064-raw-decoded-summary.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\064-raw-decoded-summary.json",
+      "bytes": 5803,
+      "sha256": "dc4043d70e45d8bcb64f48e067600603acacd44fa4dc38d63491b792e4572561"
+    },
+    {
+      "path": "acceptance-042254/064-raw-decoded-summary.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\064-raw-decoded-summary.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/064-raw-decoded-summary.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\064-raw-decoded-summary.stdout.json",
+      "bytes": 4282,
+      "sha256": "b48e0cb87353dce7ef22f3529807953c7adcb5f4fc374e3cfc2d712d27a4d032"
+    },
+    {
+      "path": "acceptance-042254/065-record-redecode.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\065-record-redecode.json",
+      "bytes": 6993,
+      "sha256": "a178566ecd05992dd1d0f2b33bce1c337bf46a5e2491335ddc103654d6aecf56"
+    },
+    {
+      "path": "acceptance-042254/065-record-redecode.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\065-record-redecode.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/065-record-redecode.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\065-record-redecode.stdout.json",
+      "bytes": 4993,
+      "sha256": "7918b62a5f3c7724748bc289a88a30acb36f271c8f339557e4f691842b9902b7"
+    },
+    {
+      "path": "acceptance-042254/066-record-decoded-summary.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\066-record-decoded-summary.json",
+      "bytes": 5810,
+      "sha256": "8d6a94fc98199b390dc13eabc237bbc8cb4352544e554232eb9e07cbfbfa63e0"
+    },
+    {
+      "path": "acceptance-042254/066-record-decoded-summary.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\066-record-decoded-summary.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "acceptance-042254/066-record-decoded-summary.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\066-record-decoded-summary.stdout.json",
+      "bytes": 4289,
+      "sha256": "62d219e38d62b98fa5345a09ccb77204403e587b43052b0399a1fd6efbbe5a13"
+    },
+    {
+      "path": "acceptance-042254/checks.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-042254\\checks.json",
+      "bytes": 68479,
+      "sha256": "174d484659804323213aa35b38eccecee971da2a20384bd0612aea9073afce3b"
+    },
+    {
+      "path": "acceptance-pointer.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\acceptance-pointer.json",
+      "bytes": 265,
+      "sha256": "f47c995daae919ab4c251d91d238b6ae1e7b0040e9c2ed450b55cbebf09c610f"
+    },
+    {
+      "path": "adapters-final-supplement.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\adapters-final-supplement.log",
+      "bytes": 1733,
+      "sha256": "3e4dafe6ce965e4b9d47874e0da93e274edb3754c30488cdfb18d2c336b4fa64"
+    },
+    {
+      "path": "backup-flash-1.commands.txt",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-1.commands.txt",
+      "bytes": 9732,
+      "sha256": "13df7d5e33f625c7b0d27b6ff4f1ed80876af68e0c429165aa172c467eea5a2e"
+    },
+    {
+      "path": "backup-flash-1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-1.json",
+      "bytes": 11978219,
+      "sha256": "8f29a453741d99d09679819f7c277531419c0298ac45f72f33445df1fbd43c16"
+    },
+    {
+      "path": "backup-flash-1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backup-flash-2.commands.txt",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-2.commands.txt",
+      "bytes": 9732,
+      "sha256": "13df7d5e33f625c7b0d27b6ff4f1ed80876af68e0c429165aa172c467eea5a2e"
+    },
+    {
+      "path": "backup-flash-2.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-2.json",
+      "bytes": 11978219,
+      "sha256": "7fb333381d6c2df588a65de48e023caab5538739116d6ff8bf3b137287bb68fa"
+    },
+    {
+      "path": "backup-flash-2.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-2.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backup-flash-3.commands.txt",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-3.commands.txt",
+      "bytes": 9732,
+      "sha256": "13df7d5e33f625c7b0d27b6ff4f1ed80876af68e0c429165aa172c467eea5a2e"
+    },
+    {
+      "path": "backup-flash-3.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-3.json",
+      "bytes": 11978204,
+      "sha256": "23722155405aa3d0d69682b063a75c615f8150638cebeff98d34c22e5aa69f87"
+    },
+    {
+      "path": "backup-flash-3.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-3.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backup-flash-resume.commands.txt",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-resume.commands.txt",
+      "bytes": 1,
+      "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+    },
+    {
+      "path": "backup-flash-resume.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-resume.json",
+      "bytes": 440,
+      "sha256": "03a24da5473f081439266446e978bfc407175b49425c09b97126be25294471b5"
+    },
+    {
+      "path": "backup-flash-resume.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash-resume.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backup-flash.py",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\backup-flash.py",
+      "bytes": 2055,
+      "sha256": "bd9d7c3f833d49a3b92b49be5c15683a4da7f10dfbbd1fe8ab557d6ee51eafd1"
+    },
+    {
+      "path": "checks-final-044026/cli-unit.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\cli-unit.log",
+      "bytes": 4079,
+      "sha256": "69b1167a09effa90ecad31ed1c2aa1d05a8d76f75188f06fd8d5716bf56b6aac"
+    },
+    {
+      "path": "checks-final-044026/dbg-core.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\dbg-core.log",
+      "bytes": 22117,
+      "sha256": "96d2e1d453845f53c7765025afa8aafeceb702dc9d3ba3bc2afe3a5797d41bd9"
+    },
+    {
+      "path": "checks-final-044026/dbg-image.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\dbg-image.log",
+      "bytes": 209,
+      "sha256": "0602b3715fd1698c0ef606ce05e5fa0b4ad60427eb7afb6264fd4630aea48672"
+    },
+    {
+      "path": "checks-final-044026/dbg-ram-fill.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\dbg-ram-fill.log",
+      "bytes": 148,
+      "sha256": "bb453ece0053f7d2c3551e2fa0f021cf033278744b6e3ce84a246d7c859a0a55"
+    },
+    {
+      "path": "checks-final-044026/etm-copy.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\etm-copy.log",
+      "bytes": 79,
+      "sha256": "71ef238c6f8d04b57d453241e705589765f7328a91b07601072e6661404f8507"
+    },
+    {
+      "path": "checks-final-044026/etm-host-reset.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\etm-host-reset.log",
+      "bytes": 900,
+      "sha256": "a71141bb52be50c2f670bcf70fe8e7a7a9a0b28d735b00e8f9a7f7b262c59a52"
+    },
+    {
+      "path": "checks-final-044026/etm-targets.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\etm-targets.log",
+      "bytes": 2467,
+      "sha256": "c642b105f5c61dd6e02ba85647196bbd701ec57c514af71f5f6008e688a441da"
+    },
+    {
+      "path": "checks-final-044026/flash-abi.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\flash-abi.log",
+      "bytes": 62,
+      "sha256": "7ca0f449d0f3f718a9af3055cd2122aa3b48b3014de0002ca9f2d312f1e7d37f"
+    },
+    {
+      "path": "checks-final-044026/flash-clock.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\flash-clock.log",
+      "bytes": 118,
+      "sha256": "dcd8c1d28c25743e4baf114fecc4015c1a10c24bf18439799f8560a8cee36724"
+    },
+    {
+      "path": "checks-final-044026/flash-image.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\flash-image.log",
+      "bytes": 1770,
+      "sha256": "b1c064936bce84a2667e929c59f80f2fb258edb22468461b39d7b00158ffe409"
+    },
+    {
+      "path": "checks-final-044026/pipe-syntax.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\pipe-syntax.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "checks-final-044026/python-compile.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\python-compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "checks-final-044026/queue-unit.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\queue-unit.log",
+      "bytes": 1191,
+      "sha256": "1dfcbd42a7270d6586984715498d36ddbd17cd60f6964ff89346a86044239547"
+    },
+    {
+      "path": "checks-final-044026/results.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\results.json",
+      "bytes": 7883,
+      "sha256": "66e1c74979d5a32fe78b24e4ee9a48a3004ec6e3e54a034354f80f39a354fc8a"
+    },
+    {
+      "path": "checks-final-044026/web-bundle.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\web-bundle.log",
+      "bytes": 39,
+      "sha256": "e7a47a97485d77665bd31dbc4288e444399b1336fd1c65184e82907e92d7caf5"
+    },
+    {
+      "path": "checks-final-044026/web-cli-adapters.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\web-cli-adapters.log",
+      "bytes": 1626,
+      "sha256": "674a496916dcd66e469ea2cfdec2674c0d2c6dbd1dcf6f3d684a8ae8e323723b"
+    },
+    {
+      "path": "checks-final-044026/web-cli-syntax.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\web-cli-syntax.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "checks-final-044026/worker-syntax.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-final-044026\\worker-syntax.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "checks-pointer.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\checks-pointer.json",
+      "bytes": 151,
+      "sha256": "2f343a25952e33bcfac8a1adfadff15aaec4a4bef34cff816c5befcf2588daac"
+    },
+    {
+      "path": "dbg-core-regression.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\dbg-core-regression.log",
+      "bytes": 22471,
+      "sha256": "61066d0efa3be7082a69e6f6b81b06b62e5a6df428b7d22b4f2a816f175889fb"
+    },
+    {
+      "path": "dbg-image-regression.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\dbg-image-regression.log",
+      "bytes": 210,
+      "sha256": "a162c8f517e264191cf73238899aa70166eb7292922540d7cfa12cda7811272f"
+    },
+    {
+      "path": "dbg-ram-fill-regression.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\dbg-ram-fill-regression.log",
+      "bytes": 149,
+      "sha256": "1a00dc7a49890e4f2352c789c2d76cfbb58e7e9e5d41789232c9f096ebd122a1"
+    },
+    {
+      "path": "final-disconnect.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\final-disconnect.json",
+      "bytes": 216,
+      "sha256": "4d71b7be516378dcbc15f9950efdb15ed3c0bb05bfc790de9ecc1daf9509b55e"
+    },
+    {
+      "path": "final-status.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\final-status.json",
+      "bytes": 718,
+      "sha256": "6ed0c627bb2b8a14cd5f4ceb5b5bee3c5df872514be5d60c21433510065ec11c"
+    },
+    {
+      "path": "flash-abi-regression.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\flash-abi-regression.log",
+      "bytes": 63,
+      "sha256": "70b9ec6759685f84fca2a4adb084a62f3c0e38a00164b9ea399a9f243504d58b"
+    },
+    {
+      "path": "flash-after-resume.commands.txt",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\flash-after-resume.commands.txt",
+      "bytes": 1,
+      "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+    },
+    {
+      "path": "flash-after-resume.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\flash-after-resume.json",
+      "bytes": 428,
+      "sha256": "40668b7ea1a9f795eb2ccf1b26e482f5cb6148948925b783e14ff1207e943664"
+    },
+    {
+      "path": "flash-after-resume.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\flash-after-resume.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "flash-after-summary.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\flash-after-summary.json",
+      "bytes": 135,
+      "sha256": "4f00d7a2c20c4b95c3b6e56527be11bb11305db461a961e761cee1dbd93cac0a"
+    },
+    {
+      "path": "flash-backup-summary.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\flash-backup-summary.json",
+      "bytes": 372,
+      "sha256": "538835a62daf9b8e7a2bbf5d78703316261bb819367e7c6d892e3a1559559be4"
+    },
+    {
+      "path": "flash-clock-regression.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\flash-clock-regression.log",
+      "bytes": 119,
+      "sha256": "22774ef44f3862b35497b90ce8dc934cae07a6d982038308ddb13cff0419c1c5"
+    },
+    {
+      "path": "flash-image-regression.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\flash-image-regression.log",
+      "bytes": 1805,
+      "sha256": "342de75dc24a5ce6829c309a150a43e5762af6a327a45c79ae109c83bc1b1700"
+    },
+    {
+      "path": "health-v2-cleanup.commands.txt",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\health-v2-cleanup.commands.txt",
+      "bytes": 49,
+      "sha256": "6c3bcfa38c1289f1beee33e67187ce41c36d4c96b730f9e0d63ae68407a8c657"
+    },
+    {
+      "path": "health-v2-cleanup.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\health-v2-cleanup.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "health-v2-cleanup.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\health-v2-cleanup.stdout.json",
+      "bytes": 835,
+      "sha256": "44fdf94df8588ed51a6a6b21f326d19888cc14ea19bc85433169806ac286d7f4"
+    },
+    {
+      "path": "health-v2-initial.commands.txt",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\health-v2-initial.commands.txt",
+      "bytes": 21,
+      "sha256": "585d5eb9f6762414091c66d178910edc7ea68befa6afff67dc96beadb0eb0a18"
+    },
+    {
+      "path": "health-v2-initial.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\health-v2-initial.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "health-v2-initial.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\health-v2-initial.stdout.json",
+      "bytes": 568,
+      "sha256": "98c00fca852a802756160979a5ae16b2620212e448d825c0bbbeb8e47419895e"
+    },
+    {
+      "path": "health-v2-read-enabled.commands.txt",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\health-v2-read-enabled.commands.txt",
+      "bytes": 450,
+      "sha256": "e6ced6c3676f407341f1f575b94566f4237a92010d4ddc20cb9d586ac8d02db1"
+    },
+    {
+      "path": "health-v2-read-enabled.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\health-v2-read-enabled.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "health-v2-read-enabled.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\health-v2-read-enabled.stdout.json",
+      "bytes": 4967,
+      "sha256": "fd959a8f6c6f12fb217b2a6a0fc8a02bdec7fde5021ae0d6b97bd71391c39fc7"
+    },
+    {
+      "path": "independent-final-health-v2.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\independent-final-health-v2.json",
+      "bytes": 4044,
+      "sha256": "dd7d5a9d61a992f4e267495b08c18ad3b6990d200e8a55e3fb66b657a8d3c57f"
+    },
+    {
+      "path": "independent-final-health-v2.py",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\independent-final-health-v2.py",
+      "bytes": 2626,
+      "sha256": "9d99f0f8f8f2494f251ce958383c01316a43aaf484f8d0e12fd16b8efcad3136"
+    },
+    {
+      "path": "independent-final-health.cli.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\independent-final-health.cli.json",
+      "bytes": 9580,
+      "sha256": "a79ccb7de1a163daf9f506fb76bc709d274230aaae0ec5fbf53ec40803614587"
+    },
+    {
+      "path": "independent-final-health.commands.txt",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\independent-final-health.commands.txt",
+      "bytes": 467,
+      "sha256": "7a0f63859e66d78995b8b781f26034306b0ac3304797799e887000073e31833e"
+    },
+    {
+      "path": "independent-final-health.py",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\independent-final-health.py",
+      "bytes": 2061,
+      "sha256": "a11539600cb5fba644fe282bad5b82c3fbdf89aa08a0abcc3de7a7765b7306f4"
+    },
+    {
+      "path": "independent-final-health.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\independent-final-health.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-final-health.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\independent-final-health.stdout.json",
+      "bytes": 5565,
+      "sha256": "7be408f7c40b0a6efd63b3225d780983de2e1907036b2fa62a93ad276dede5a8"
+    },
+    {
+      "path": "make-snapshot-elf.py",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\make-snapshot-elf.py",
+      "bytes": 1679,
+      "sha256": "19ca491980075da9564582b84fb01fdc2ad597db61c775162c0456f05097440e"
+    },
+    {
+      "path": "native-after-reset-inspect.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-after-reset-inspect.json",
+      "bytes": 2036,
+      "sha256": "303c4b40016857b44fd9aacdc1766c72ea0619ee056f958553975daa821dfcde"
+    },
+    {
+      "path": "native-break-arm.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-break-arm.json",
+      "bytes": 1230,
+      "sha256": "4deb4bdb104288cb422e7d9766e58daa210642b83dbe7ba476d9372728327ae5"
+    },
+    {
+      "path": "native-break-hit.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-break-hit.json",
+      "bytes": 277,
+      "sha256": "5d77e18947416d6dc15cfdecb283ee03e26a17a6598a81d5386d743a38c398f7"
+    },
+    {
+      "path": "native-code-read.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-code-read.json",
+      "bytes": 1832,
+      "sha256": "eeed37e067f489b6b910c5a8efbd3a6f67c773f0f1f17928bcda448172b74d6e"
+    },
+    {
+      "path": "native-configure-first.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-configure-first.json",
+      "bytes": 378,
+      "sha256": "a30641d3b7951626bf08ee6d7a7e9062dd920f32f25a5bd48a9a8d8e50a4e563"
+    },
+    {
+      "path": "native-connect-first.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-connect-first.json",
+      "bytes": 269,
+      "sha256": "bee2927006fd4fc129a84ed1348f31092ccf1bc52a6d0ac158b59d15dc359914"
+    },
+    {
+      "path": "native-debug-first.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-debug-first.json",
+      "bytes": 3026,
+      "sha256": "cbaff3569590a3b1118c87e801e3035adcc68d87def51679fd7808946730c49d"
+    },
+    {
+      "path": "native-doctor.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-doctor.json",
+      "bytes": 2184,
+      "sha256": "705464f9c0982ec57335cc88765a25e5d841264a119c55b8f476687b8f13102e"
+    },
+    {
+      "path": "native-entry-capture-final.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-entry-capture-final.json",
+      "bytes": 5617,
+      "sha256": "f443ff7d09b8c8a173dc3c77a88c3c3a04737d54f9f22db375ec1d6037f3ba6a"
+    },
+    {
+      "path": "native-entry-capture-final.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-entry-capture-final.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native-entry-capture-final.stdout.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-entry-capture-final.stdout.json",
+      "bytes": 4002,
+      "sha256": "7f4494d9b67dbd7c099fc52994ccfae96c9bbb2cf217d7b0e8d62c214882ddc2"
+    },
+    {
+      "path": "native-entry-capture-first.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-entry-capture-first.json",
+      "bytes": 535,
+      "sha256": "2204d14c971929bf94c5a5eeb115334ec3e62ee9c45f210ac88708bccb363903"
+    },
+    {
+      "path": "native-entry-capture-second.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-entry-capture-second.json",
+      "bytes": 5353,
+      "sha256": "37cd3fce79692cc5ea65e3c6019d2cc70992b8d75e495f8f6f0b32db5395634d"
+    },
+    {
+      "path": "native-flash-original-image.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-flash-original-image.json",
+      "bytes": 356,
+      "sha256": "a603f71721c9bae912f64ecb771ac0f7bad953bd6d6ee8355e849cac4c280dc6"
+    },
+    {
+      "path": "native-load-elf.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-load-elf.json",
+      "bytes": 232,
+      "sha256": "32873a27243b220abe8cfaae8bf0f6818849c84291ac82bfa67c2081ea8562aa"
+    },
+    {
+      "path": "native-load-snapshot.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-load-snapshot.json",
+      "bytes": 254,
+      "sha256": "52829ad0602e0be047b882168a52b5a6bbde00eb5f71584d916e1b7a1c29d87c"
+    },
+    {
+      "path": "native-manual-configure.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-manual-configure.json",
+      "bytes": 2320,
+      "sha256": "830beddf0891f2756d06de427fd91748e99dd3366f5c49d48772953c803280cd"
+    },
+    {
+      "path": "native-manual-disconnect-debug.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-manual-disconnect-debug.json",
+      "bytes": 216,
+      "sha256": "3914079e0ab23eb715a6525db7b81d4fe661dabace727ba934cc47391bfaa542"
+    },
+    {
+      "path": "native-manual-inspect.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-manual-inspect.json",
+      "bytes": 2036,
+      "sha256": "03ee54dc9de6e6f94519df4ed7be27c97c56daab1be63443711f325025a0848d"
+    },
+    {
+      "path": "native-manual-restore.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-manual-restore.json",
+      "bytes": 236,
+      "sha256": "b8df9bee9d02defcb1d30410f1b0566858821d06611d43a44c175a53417badf2"
+    },
+    {
+      "path": "native-reference-frontend.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-reference-frontend.json",
+      "bytes": 311,
+      "sha256": "77383f599667ba6a37867199f48f1c639fa24d719f5a46022ea3b31c66a39984"
+    },
+    {
+      "path": "native-reference-frontend.py",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-reference-frontend.py",
+      "bytes": 1113,
+      "sha256": "530dca560f237141ed6eda541edb90ee6dc0848565037e9b908a7b6796d36340"
+    },
+    {
+      "path": "native-reset-entry.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-reset-entry.json",
+      "bytes": 1886,
+      "sha256": "f0ac72319e9d9d320aede8ecb841ff85371096699b476785ebb069a65444b1ce"
+    },
+    {
+      "path": "native-resume-after-reset.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-resume-after-reset.json",
+      "bytes": 678,
+      "sha256": "8bd3748053ba9f39387a309d1f617aa54dfaa7035ec27db53df501e4c15e299e"
+    },
+    {
+      "path": "native-status-first.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-status-first.json",
+      "bytes": 377,
+      "sha256": "d5fbf80c318f6de4f2c135dc5d8f8648f3bc63081646e10c12d477f77579d9b6"
+    },
+    {
+      "path": "native-step-and-resume.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-step-and-resume.json",
+      "bytes": 1742,
+      "sha256": "2ed770373ceecda40dc060db18f7150b8ba3ac11266a7b9535c0c41df4f5a0b2"
+    },
+    {
+      "path": "native-target-inspect-first.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-target-inspect-first.json",
+      "bytes": 2036,
+      "sha256": "625c3a4ccf600fd25774b7449349b2ddfc90cccb3d929edb70eb7ac77b26316d"
+    },
+    {
+      "path": "native-vector-read.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-vector-read.json",
+      "bytes": 1503,
+      "sha256": "7174b343130d33c4ab42b830d3ac2c1bcfe25bc5db4337520b8d0ac7544f9657"
+    },
+    {
+      "path": "native-wrong-clock-final.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\native-wrong-clock-final.json",
+      "bytes": 1163,
+      "sha256": "a01944cfebee0a4b3866490153bd4244a6671b586d704b99349d0ba70fe0ef88"
+    },
+    {
+      "path": "npm-tree.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\npm-tree.json",
+      "bytes": 378,
+      "sha256": "d5cf90931119fd30a2479479f809eff046a535110ed2a0fc989f3a609dc5aaf8"
+    },
+    {
+      "path": "owned-process-cleanup.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\owned-process-cleanup.json",
+      "bytes": 354,
+      "sha256": "bb82f536944472deff7ec3e8b00a2b54aaa004d0e166d662a3d51ad3d7cc2402"
+    },
+    {
+      "path": "processes-native1.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\processes-native1.json",
+      "bytes": 115,
+      "sha256": "cb5abd919e8ce7de1fe67768c1700a4379d77941939a30ce5d9ecb99b86d0c9f"
+    },
+    {
+      "path": "processes-native2.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\processes-native2.json",
+      "bytes": 27,
+      "sha256": "328be9b6937670da8adc370bc1089f71e4e34dd1ac2afe0a32b1509626d35730"
+    },
+    {
+      "path": "processes.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\processes.json",
+      "bytes": 28,
+      "sha256": "b9158c75477d68e01362eeef3f5dd7e458d7654f480e9bb1c50ae3dc3be150d8"
+    },
+    {
+      "path": "report.md",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\report.md",
+      "bytes": 10536,
+      "sha256": "7a474e355fbe49f9b73d301e0d718afc3b132918fd903f46048fab7240fd5518"
+    },
+    {
+      "path": "run-final-checks.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\run-final-checks.log",
+      "bytes": 342,
+      "sha256": "94a79f1e56a16ec5a29cc9757efd24e23a0c7dab5ff4d9b242db314904d729b2"
+    },
+    {
+      "path": "run-final-checks.py",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\run-final-checks.py",
+      "bytes": 2878,
+      "sha256": "ecedc94b95b92066abac8f15194b1d3030bd3bcabb1d31dd6ec8c2a3d93e8bbc"
+    },
+    {
+      "path": "server-native1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\server-native1.stderr.log",
+      "bytes": 338568,
+      "sha256": "fb377a6cf497c796f34bbc40c77fe62bb334246520bf68cd1cba5b99bab884df"
+    },
+    {
+      "path": "server-native1.stdout.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\server-native1.stdout.log",
+      "bytes": 46,
+      "sha256": "5b49e7c3e6d8776d7d24219de0864b1ff7390be25c01f2e48a4d588bdf3c85c0"
+    },
+    {
+      "path": "server.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\server.stderr.log",
+      "bytes": 26614,
+      "sha256": "3873bc5b133e5387ff98854dfa8111ef5fa7aba99ccf208328bc4da7d853d4cc"
+    },
+    {
+      "path": "server.stdout.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\server.stdout.log",
+      "bytes": 46,
+      "sha256": "5b49e7c3e6d8776d7d24219de0864b1ff7390be25c01f2e48a4d588bdf3c85c0"
+    },
+    {
+      "path": "snapshot-elf.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\snapshot-elf.json",
+      "bytes": 420,
+      "sha256": "e37a9b03d6e91912f2bdf1c7ed3041d13836ae80119313e1893ff2b1f8e5284a"
+    },
+    {
+      "path": "tested-inputs.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\tested-inputs.json",
+      "bytes": 13156,
+      "sha256": "12a71919a3af3a66fcecab707f4201b635f73af536e5fde132a92239da39821b"
+    },
+    {
+      "path": "verify-flash-after.py",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\verify-flash-after.py",
+      "bytes": 2021,
+      "sha256": "4312ae9e2d5cab2ff62e1fa4dc5d77399319a11ca6f1d4f3edb4e2131fbecdd3"
+    },
+    {
+      "path": "web-status-first.json",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\web-status-first.json",
+      "bytes": 627,
+      "sha256": "5b163b81cbf6d71c173742aae0d7488cf04da318b27ee218417c7e2f778fd581"
+    },
+    {
+      "path": "worker-native1.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\worker-native1.stderr.log",
+      "bytes": 862,
+      "sha256": "054256bf0d2f6bc895c7f7ac7cf035a37a355270f19696bcaa1a55f2723aaef2"
+    },
+    {
+      "path": "worker-native1.stdout.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\worker-native1.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "worker-native2.stderr.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\worker-native2.stderr.log",
+      "bytes": 394145,
+      "sha256": "430e6be16e7e7e2015aadbfa7bd5423f3f3189b825f1c6131bc2a706573b02a1"
+    },
+    {
+      "path": "worker-native2.stdout.log",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\worker-native2.stdout.log",
+      "bytes": 1029,
+      "sha256": "3acdc7b5af713a536219ccf5db65dc5070c6001229a2eb241b439c740efc6e47"
+    },
+    {
+      "path": "write-report.py",
+      "fullpath": "E:\\superlinkPRO\\docs\\validation\\20261024-000104-trace-web-cli-9f57c7\\write-report.py",
+      "bytes": 12569,
+      "sha256": "a15b592a86ad757b9c671ee0dd3a55c4ffeb41ed55afcc6682d432c315b225b6"
+    },
+    {
+      "path": "external-data/original-flash-1.bin",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\validation\\20261024-000104-trace-web-cli-9f57c7\\original-flash-1.bin",
+      "bytes": 2097152,
+      "sha256": "de6e880669a9fb5204a06d04ae9652fdb83da0860c62aef1af34db3bd6574399"
+    },
+    {
+      "path": "external-data/original-flash-2.bin",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\validation\\20261024-000104-trace-web-cli-9f57c7\\original-flash-2.bin",
+      "bytes": 2097152,
+      "sha256": "de6e880669a9fb5204a06d04ae9652fdb83da0860c62aef1af34db3bd6574399"
+    },
+    {
+      "path": "external-data/original-flash-3.bin",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\validation\\20261024-000104-trace-web-cli-9f57c7\\original-flash-3.bin",
+      "bytes": 2097152,
+      "sha256": "de6e880669a9fb5204a06d04ae9652fdb83da0860c62aef1af34db3bd6574399"
+    },
+    {
+      "path": "external-data/observed-flash-snapshot.elf",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\validation\\20261024-000104-trace-web-cli-9f57c7\\observed-flash-snapshot.elf",
+      "bytes": 317456,
+      "sha256": "a10314b95cbaf301d72ea475ebc845bf24523fd97aa45a7e69c6b449260b0ef9"
+    },
+    {
+      "path": "external-data/entry-capture-final/capture.kvdat",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\validation\\20261024-000104-trace-web-cli-9f57c7\\entry-capture-final\\capture.kvdat",
+      "bytes": 9808350,
+      "sha256": "a2ccff3712311fe29a57c8afe40a0581226fbf3610440f0b236c2ba14d1c9f31"
+    },
+    {
+      "path": "external-data/entry-capture-final/etm.bin",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\validation\\20261024-000104-trace-web-cli-9f57c7\\entry-capture-final\\etm.bin",
+      "bytes": 76903,
+      "sha256": "71284b18f302558bd80cd8c57049c73b11a3b7ee977134f014f3128e0efe3ac2"
+    },
+    {
+      "path": "external-data/entry-capture-final/tpiu.bin",
+      "fullpath": "C:\\Users\\Administrator\\.codex\\validation\\20261024-000104-trace-web-cli-9f57c7\\entry-capture-final\\tpiu.bin",
+      "bytes": 600014,
+      "sha256": "0fd9986bd6aadae71847f1827d00b8c6b83ea13fc62b4b4bdec4336dd4e1a87e"
+    }
+  ]
+}

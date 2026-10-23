@@ -1,265 +1,322 @@
 # 给 AI 使用的 Trace CLI
 
-入口：在仓库根目录运行 `python -X utf8 etm/trace.py`。这是直接控制本地探针、
-Kingst 和解码工具的命令行，不需要网页、浏览器 USB 授权或后台 Web 服务。
-目标寄存器配置复用 `etm/web/app/target.js`；解码、查询、导出复用现有原生优化链路。
+入口：仓库根目录下运行 `python -X utf8 etm/trace.py`。
 
-当前硬件验收范围是 **Windows x64、H743、akaLinkPro CMSIS-DAP、KingstVIS 3.6.6**。
-H7B0可选择现有配置路径，但本轮未实板验收；F103等目标的离线ETMv3记录可以解码，
-不在这版硬件CLI的目标选择范围。它不会自动烧录、修改PLL或复位目标。
+**硬件操作复用本工程网页的实现，不再依赖或加载 pyOCD。** 调试命令使用
+`web/app/dbg/cmd.js`，调试会话使用 `DebugSession`，烧录使用网页原有
+`FlashView / FlashRunner / algos.js`，Trace 配置和起点使用 `EtmTarget`。
+Node USB 适配层只给同一个 `WebUsbDapProbe` 提供 WebUSB 接口，不另写 CMSIS-DAP/SWD 协议。
+解码、索引、查询和导出继续默认采用已有的 C++ 优化链路。
 
-## 1. 环境与第一条命令
+本文范围是 **ETM 页面，以及配套的 Cortex-M 调试/烧录功能**，不是串口工具箱中所有
+SPI、I2C、ADC、SWO、RISC-V 工具的统一命令行。接口开放不等于每个目标型号均经过本轮真机验收。
 
-需要Python、Node.js、原生工具，以及KingstVIS和设备驱动：
+## 1. 网页能力对应关系
+
+| 网页能力 | CLI 入口 |
+|---|---|
+| 载入 ELF、查函数/源文件 | `web load-elf`；离线 `elf inspect` |
+| 函数/文件行号/地址断点 | `web command -e "b main"`、`-e "b main.c:199"`、`-e "b *0x08000100"` |
+| 查看/删除断点、命中后继续 | `bl`、`bd 编号`、`bd all`、`c`，同一运行时内保留会话 |
+| 暂停、复位、指令/源码单步 | `halt`、`reset halt`、`reset run`、`s`、`n`、`si`、`fin` |
+| 运行到光标/指定地址 | 调试命令 `rc 文件:行`；Trace 起点 `target run-to --entry ...` |
+| 复位到业务起点 | `target reset --elf ... --entry ...` |
+| 寄存器、内存、变量、栈帧、观察点 | 原样传入 `r`、`md`、`mw`、`p`、`bt`、`frame`、`info locals`、`wp` 等网页命令 |
+| 变量监视 | `w`、`wl`、`wd`；Native 模式在暂停状态下刷新监视值 |
+| 镜像加载/内存导出 | `load_image`、`dump_image`，启动时显式提供 `--image-root` |
+| 烧录 ELF/HEX/BIN | `web flash --file ... --chip ...`，执行网页烧录实现，强制校验并复位运行 |
+| 时钟/ETM 配置、回读/恢复 | `target inspect/configure/restore/stop/recover` |
+| 连续窗口、从断点联动采集 | `capture`；附加 `--entry`、`--reset-to-entry` |
+| LA 通道、时长、采样率、阈值、相位、滤波 | `capture --clock/--data/--seconds/--rate/--threshold/--fraction/--glitch-ns` |
+| 导入/重解/后配源码 | `import-record`、`decode`、`record sources` |
+| 执行流、调用栈、调用统计、热点、火焰图数据 | `query --view page/event/functions/hotspots/flame/window/timeline` |
+| ETM 包、可信区段、未知/边界导航 | `query --table packets`、`--view integrity/issues/navigate` |
+| 查询采集总长度 | `record info`、`query --view summary` 中的 `captureExtent.actualSeconds` |
+| 导出执行流、原始数据、ELF、可重解记录包 | `export`，见下文十种格式 |
+
+CLI 额外提供批量脚本、等待指定 PC、JSON 结果、退出码、输入指纹、实际采集深度门禁、
+不覆盖已有输出，以及独立的 CDC echo 负载。`web help` 返回网页当前真实命令帮助；
+不要在 AI 脚本里假造网页未实现的 GDB/Tcl 命令。
+
+## 2. 安装与启动
+
+需要 Python 3.11+、Node.js 22+、四个原生解码工具；本轮实测 Python 3.13 / Node 24.13.1。
+首次在仓库根目录安装：
 
 ```powershell
 python -m pip install -r etm/requirements-cli.txt
+npm ci --prefix etm/tools/node-transport
 python -X utf8 etm/trace.py doctor
-python -X utf8 etm/trace.py doctor --hardware
 ```
 
-`requirements-cli.txt`固定pyOCD 0.45.1、pyserial 3.5。硬件传输层有一处仅作用于当前
-pyOCD会话的Funnel发现钩子，避免连接时擅自打开全部输入；升级pyOCD后应先重验。
-不修改全局pyOCD安装。当前实测Node.js为24.13.1。
+Node 依赖固定在 lockfile：`usb 3.2.1`、`linkedom 0.18.12`。后者只给网页烧录实现提供其
+已有选项/结果控件的本地适配，不加载浏览器页面。没有浏览器 USB 首次授权或调试端口要求。
+当前 Windows 真机通道使用 akaLinkPro 的现有 WinUSB 驱动。
 
-原生工具需位于 `etm/build-native/`：`etm_frontend.exe`、`etm_decode.exe`、
-`etm_storebuild.exe`、`etm_export.exe`。缺失时先按照工程原有 `etm/build-decoder.ps1`
-构建，不把旧版本或Python回退伪装为默认优化引擎。离线命令不连接探针/LA。
+原生工具位于 `etm/build-native/`：`etm_frontend.exe`、`etm_decode.exe`、
+`etm_storebuild.exe`、`etm_export.exe`。缺失时沿用项目的 `etm/build-decoder.ps1` 构建。
+`doctor` 检查解码依赖；`doctor --hardware` 还检查运行时探针枚举与 Kingst。
 
-KingstVIS需运行并开启Socket（通常127.0.0.1:23367）；首次设置方式沿用
-`web/docs/逻辑分析仪攻略.md`。CLI不会修改全局设置，也不会自动关闭其他调试器或网页。
-
-使用硬件前，关闭占用同一探针/LA/CDC的其他操作。CLI会在Git公共目录创建
-`trace-cli-hardware.lock/`，防止不同worktree的CLI同时使用硬件。这个锁不能约束网页、
-OpenOCD或另一个调试器。存在旧锁时先核实 `owner.json` 中进程是否已退出，再由使用者
-处理；CLI不会自动抢锁。正常退出和异常清理都会释放自己创建的锁。
-
-## 2. AI 调用契约
-
-除 `--help` 外，stdout只有一份JSON；工具日志、pyOCD提示和解码进度写stderr。
-例如PowerShell分别保存：
+启动一个新的本地运行时目录。目录必须不存在，端口必须空闲：
 
 ```powershell
-python -X utf8 etm/trace.py --json-out E:/trace-runs/doctor-result.json doctor `
-  1>E:/trace-runs/doctor-stdout.json 2>E:/trace-runs/doctor-stderr.log
+python -X utf8 etm/trace.py --web-url http://127.0.0.1:8878 web start `
+  --runtime-dir E:/trace-runs/runtime-001 `
+  --probe 8F538633E6AEC4CA8ABB6A36FEBB1AC2 `
+  --image-root E:/trace-runs/images
 ```
 
-`--json-out`是全局选项，放在子命令**前面**，必须使用不存在的新文件。
-所有 `--out` 目录/导出文件也必须不存在。失败输出目录保留证据，复测换一个名字，
-不能直接反复重跑覆盖它。
+`--image-root` 是可选的、已存在的目录，只影响 `load_image/dump_image`。
+启动不烧录、不复位、不自动连接目标；硬件动作由后续明确命令执行。
 
-结果形状：
-
-```json
-{
-  "protocol": "trace-cli/1",
-  "runId": "20261023-...",
-  "command": "capture",
-  "ok": true,
-  "result": {"recordDir": "...", "engine": "native"},
-  "exitCode": 0,
-  "elapsedSeconds": 10.0
-}
-```
-
-| 退出码 | 含义 | AI下一步 |
-|---|---|---|
-| 0 | 命令成功；仍须查看适用的质量/边界字段 | 按所需工作流继续 |
-| 2 | 参数、配置、范围或前置条件不符 | 修正参数，不先操作硬件 |
-| 3 | 缺依赖/原生程序 | 修复环境后重试 |
-| 4 | 设备、传输、文件IO或配置恢复未确认 | 查stderr及cleanup，停止扩大采样窗 |
-| 5 | 实际长度、输入指纹或解码质量未通过 | 保留原始证据，不报告验收通过 |
-| 130 | 用户中断 | 查cleanup.json；不要自动复位/重试 |
-
-失败JSON带 `error.message`、可选 `error.details` 和 `error.notes`。
-捕获目录内还有 `cli-error.json`、`cleanup.json`。`laIdle=null`表示尚未启动/确认LA，
-不是已确认空闲。恢复不成功时不要只凭“命令结束”就声称硬件已释放。
-
-## 3. 推荐端到端：H743短窗真机采集
-
-先给本次操作选一个新输出根目录。下面路径和序列号都是示例，须替换成实际值：
+随后每次调用都指定同一运行时目录：
 
 ```powershell
-$probe = '8F538633E6AEC4CA8ABB6A36FEBB1AC2'
-$elf = 'C:/firmware/fw.elf'
-$run = 'E:/trace-runs/h743-run-001'
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 web status
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 web connect
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 doctor --hardware
+```
 
-python -X utf8 etm/trace.py target inspect --probe $probe --profile stm32h743 --hse 25
+停止运行时：
 
-python -X utf8 etm/trace.py capture `
-  --probe $probe --profile stm32h743 --hse 25 --elf $elf `
-  --out $run --seconds 0.02 --rate 500000000 `
+```powershell
+python -X utf8 etm/trace.py web stop --runtime-dir E:/trace-runs/runtime-001
+```
+
+运行时保存 `runtime.json`、`host.log` 和本机令牌。停止请求绑定该目录的实例标识；不会按
+一个可能复用的旧 PID 强杀进程。正在写 Flash 时不会强行断电/杀 worker；清理超时会明确报错，
+继续查看 `runtime.json/host.log`。不要将令牌文件提交、打进记录包或传给远端。
+
+### 已有本地网页服务的接法
+
+也可以显式启动带队列的同源工作台服务，再运行 Native worker：
+
+```powershell
+python -X utf8 web/tools/dev/serve-etm.py --port 8878 --cli-token-file E:/trace-runs/cli-token
+node etm/tools/node-transport/worker.mjs --web-url http://127.0.0.1:8878 `
+  --token-file E:/trace-runs/cli-token --probe 8F538633E6AEC4CA8ABB6A36FEBB1AC2
+python -X utf8 etm/trace.py --web-url http://127.0.0.1:8878 `
+  --token-file E:/trace-runs/cli-token web status
+```
+
+以上服务/worker 是前台命令，应放在独立终端或受管理的进程中。
+服务默认不开放命令队列，只有提供 `--cli-token-file` 才启用，且只监听本机回环地址。
+
+可选的浏览器 worker 供控制**当前网页会话**时使用：打开同一个本地服务的
+`/?trace-cli=<令牌内容>#etm`。它也调用同一适配器，由网页的 ProbeManager 仲裁。
+一个服务只能绑定一个 worker；Native worker 和浏览器 worker 不能同时绑定这个队列。
+首次 WebUSB 授权仍由浏览器负责。普通打开 `/#etm` 不会自动成为 CLI worker。
+
+Native 模式持有的是自己的探针句柄，不能与另一个浏览器/调试器同时操作同一探针。
+CLI 还使用 Git 公共目录中的 `trace-cli-hardware.lock/`，防止本仓库不同 worktree 的
+CLI 并行操作硬件；锁不会约束仓库以外的调试工具，也不会自动抢占旧租约。
+
+## 3. 输出和失败契约
+
+除 `--help` 外，stdout 只有一份 JSON，进度/日志写 stderr。
+全局参数 `--runtime`、`--web-url`、`--token-file`、`--json-out` 放在子命令前面。
+
+```powershell
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 `
+  --json-out E:/trace-runs/result-001.json web command -e "info" `
+  1>E:/trace-runs/stdout-001.json 2>E:/trace-runs/stderr-001.log
+```
+
+结果有 `protocol: trace-cli/1`、`runId`、`command`、`ok`、`exitCode`、`elapsedSeconds` 和
+`result` 或 `error`。`--json-out`、导出文件和新记录目录均拒绝覆盖。批量命令在首个错误/取消
+处停止，已经执行的步骤保存在错误详情，不能把后续未执行命令当成成功。
+
+| 退出码 | 含义 |
+|---|---|
+| 0 | 命令成功；仍要检查适用的质量、实际时长与验收范围 |
+| 2 | 参数、前置条件、范围不符 |
+| 3 | 缺依赖/原生程序 |
+| 4 | 传输、设备、IO、恢复不确定或运行时错误 |
+| 5 | 实际窗口、输入指纹或解码质量不合格 |
+| 130 | 用户中断 |
+
+硬件等待支持 `web cancel`，取消可越过正在执行的 CLI 硬件租约。取消作用于调试等待和
+Trace 起点等待，不承诺中断已经开始的 Flash 擦写。超时后不要自动重试写入操作。
+采集目录保留 `session.json`、`target-state.json`、`cleanup.json`、失败时的 `cli-error.json`。
+`laIdle: null` 表示尚未启动或尚未确认，不能说已经确认空闲。
+
+## 4. 调试与烧录
+
+```powershell
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 web load-elf --file E:/firmware/fw.elf
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 web command `
+  -e "halt" -e "b main" -e "bl" -e "c"
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 web wait-halt --timeout 15
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 web command `
+  -e "s" -e "r pc" -e "bd all" -e "c"
+```
+
+会话、符号、断点和监视保存在运行时里，后续 CLI 调用不会重新建立调试器并清空它们。
+`web command --script commands.txt` 逐行执行，空行和以 `#` 开始的注释行跳过；
+可以与重复的 `-e/--execute` 混用。先执行 `-e`，再执行文件里的命令。
+
+源码级 `n/si/fin`、局部变量和行号断点依赖匹配的 ELF/DWARF；优化掉的行/变量会明确报错，
+不猜相邻行、不编造变量值。裸地址的读内存和硬件断点可以不载入 ELF。
+`load_image` 是网页的内存加载命令，不替代 Flash 擦写算法；烧录必须用 `web flash`。
+
+```powershell
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 web flash `
+  --file E:/firmware/fw.elf --chip stm32h7
+# BIN 必须明确给基地址：
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 web flash `
+  --file E:/firmware/fw.bin --chip stm32h7 --base 0x08000000
+```
+
+`--chip` 使用网页烧录器的选项值，例如 `stm32h7`、`stm32h7b0`、`stm32f103`。
+不要把 Trace profile `stm32h743` 当成烧录器 chip 值。Native 只接出已有的 Cortex-M
+WebUSB 算法；需要 OpenOCD/J-Link 或 RISC-V 烧录后端的型号不在本 CLI 的这条烧录路径中。
+带空洞的 HEX 在无人值守时会拒绝需要交互确认的情况，优先使用完整 ELF/BIN。
+
+## 5. Trace 配置、起点与采集
+
+离线列函数和解析精确断点，不连接硬件：
+
+```powershell
+python -X utf8 etm/trace.py elf inspect --elf E:/firmware/fw.elf --search trace_hook
+python -X utf8 etm/trace.py elf resolve --elf E:/firmware/fw.elf --spec "main.c:199"
+```
+
+Trace 起点解析复用网页的严格解析器。遇到多个候选会返回候选列表，使用 `--address 0x...`
+明确选择。Trace 起点只接受匹配 Flash ELF 中可确认的指令，不猜相邻源码行。
+
+```powershell
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 target inspect --hse 25
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 target run-to `
+  --elf E:/firmware/fw.elf --entry trace_hook_entry
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 target reset `
+  --elf E:/firmware/fw.elf --entry trace_hook_entry --timeout 15
+```
+
+`target reset` 是“复位后停到指定入口”，`web command -e "reset halt"` 是普通调试器的
+“复位并停核”，两者不同。业务采集起点应位于时钟初始化之后；停在初始化早期时，实际时钟
+可能仍是 HSI 64MHz。HSE 参数只参与计算，不会替你改 PLL。
+
+Trace 控制沿用网页固定的 1MHz SWD 路径，拒绝其它 `--swd-hz` 值。
+调试会话可在 `web connect --swd-hz ...` 时选择其它档位；已经连接时变更档位应先断开再连接。
+
+普通连续运行窗口：
+
+```powershell
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 capture `
+  --elf E:/firmware/fw.elf --out E:/trace-runs/capture-001 `
+  --seconds 0.2 --rate 500000000 --expect-core-hz 60000000 --expect-trace-hz 30000000
+```
+
+从业务断点开始：
+
+```powershell
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 capture `
+  --elf E:/firmware/fw.elf --out E:/trace-runs/capture-002 `
+  --entry trace_hook_entry --reset-to-entry --entry-timeout 15 `
+  --seconds 1 --rate 500000000 --clock 0 --data 1 2 3 4 `
+  --threshold 1.65 --fraction 0.25 --glitch-ns 4 `
   --expect-core-hz 60000000 --expect-trace-hz 30000000 `
-  --pin-speed 2 --trace-id 2 --return-stack --cycles `
-  --clock 0 --data 1 2 3 4 --fraction 0.25 --glitch-ns 4 --threshold 1.65 `
-  --echo-port COM33 --echo-interval 0.004 `
   --source-root E:/superlinkPRO
-
-python -X utf8 etm/trace.py verify --record $run --require-decoded
-python -X utf8 etm/trace.py query --record $run
-python -X utf8 etm/trace.py export --record $run --format html --out E:/trace-runs/h743-run-001.html
-python -X utf8 etm/trace.py export --record $run --format record --out E:/trace-runs/h743-run-001.etmrecord
 ```
 
-实际顺序为：独占租约 → 识别 → Flash逐字节核对ELF → 配置并回读 → 保存恢复状态 →
-运行目标及负载预热 → LA采样/回传 → 保存原始KVDAT → **核对实际深度** →
-恢复采集前Trace配置和CPU运行/暂停状态 → 原生解码/完整索引 → 指纹与质量检查。
-不用CSV中转，不拼接，不在后台偷偷分窗。`--no-decode`可只采集并保存，之后离线解码。
+有 `--entry` 时先停到起点，配置 Trace，**先发 LA start，再放行 CPU**；使用 D0 下降沿触发，
+同网页顺序。不加 `--reset-to-entry` 则等待下一次到达这个入口。无 `--entry` 时预先运行目标，
+采集持续运行的窗口。`--no-decode` 只采集保存。采集实际 KVDAT 深度必须与请求和设备回读一致，
+不能把 LA 的 set-time ACK 当成已经录满。CLI 上限 1s / 5亿样本 / 500MSa/s，未录满返回 5，
+原始波形保留。完整短窗验收不等于所有负载的 1s 都一定录满。
 
-无触发的连续窗口是这版CLI默认模式：预先运行目标，避免短窗全落在CPU暂停的时间里。
-不提供未经本轮验收的“自动复位到断点再开始”路径。若要测初始化启动入口，请继续使用
-项目已经验证的网页起点工作流，而不是把连续运行窗口误称为启动过程采集。
+默认 Trace ID 2、GPIO speed 2、return-stack 和 cycles 开启、branch-broadcast 关闭。
+与网页相同的 profiles 全部可选：`auto/stm32h743/stm32h7b0/stm32f103ze/stm32f1/stm32f4`；
+目标不支持 Trace/选项时由网页目标逻辑拒绝。例如 F103ZE 应显式加
+`--no-return-stack --no-cycles --hse 8`，本轮没有扩称它已经完成 CLI 真机验收。
 
-**源目录不能随意猜。** `--source-root`只读取ELF记录的、确实落在该根目录内的路径，
-不按同名文件名猜配对。ELF在另一台机器构建、路径不一致时，可用
-`--sources-json sources.json`提供明确的“ELF路径→源码正文”映射。ELF自身不含源码正文；
-无配套源码时，源码类导出会明确拒绝，CSV/原始数据等仍可导出。
-
-### 业务负载
-
-`--echo-port`可选，不提供就不打开串口。提供时使用带序号/CRC的完整行持续发送并回收，
-记录到 `echo-rx.bin`、`echo-events.jsonl`、`echo-result.json`。不能把探针COM口当成目标，
-CLI会拒绝VID=0D28的探针串口。H743 CDC当前为COM33、COM34是探针，但端口号可能变化，
-以本次 `doctor --hardware` 为准。
-
-周期banner由固件实现，不是CLI或LA产生。固件准备可参照：
+仅在需要将目标留在配置状态供外部采样时：
 
 ```powershell
-# 只构建，不自动烧录；SdkRoot按本机实际目录替换
-pwsh -File etm/firmware/stm32h743_cdc_trace/build.ps1 `
-  -CoreMHz 60 -TraceR 8 -BannerEveryMs 20 -SdkRoot C:/sdk/h743 `
-  -OutputDir C:/firmware/run-001 -NoPublish
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 target configure `
+  --elf E:/firmware/fw.elf --state E:/trace-runs/target-001.json --resume
+python -X utf8 etm/trace.py --runtime E:/trace-runs/runtime-001 target restore --state E:/trace-runs/target-001.json
 ```
 
-该参数组合得到CPU60 / 物理TRACECLK30MHz；`TraceR 12`为20MHz。
-固件需要使用本项目的非阻塞RTT日志修复，避免没有RTT读取器时写满后卡死主循环。
-烧录属于独立、显式的操作；CLI采集只校验，不会替换板上程序。
+状态绑定探针、目标、ELF 指纹和期望寄存器；目标寄存器已变化时拒绝旧状态覆盖。configure 不带
+`--resume` 保持暂停。恢复成功后状态标为已用。新的 configure/capture/起点操作拒绝覆盖尚待恢复的
+配置；可以 restore，或用 `target stop` 明确停止 Trace 并放弃这份原始快照。
+`target stop --halt` 同时保持 CPU 暂停；`target recover` 恢复调试口并保持暂停。
+起点等待失败时，保留暂停并清理本次临时断点，不自动把失败位置当成采集起点。
 
-## 4. 独立配置与恢复
+可选 `--echo-port COMxx --echo-interval 0.004` 使用带序号/CRC 的完整行发送、回收和保存。
+必须选目标 CDC，不是探针 COM 口；CLI 拒绝 VID 0D28 的探针串口。周期 banner 由固件实现。
+如果 reset 后尚未初始化 CDC，不要在该早期入口要求 echo 预热；端口不存在会明确失败。
 
-自动采集已经负责配置和恢复。只有需要把目标保持在已配置状态，供外部工具采样时，
-才单独调用configure：
+## 6. 离线、记录、时长、源码
+
+这些命令不要求运行时、探针或 LA：
 
 ```powershell
-python -X utf8 etm/trace.py target configure --probe $probe --elf $elf `
-  --state E:/trace-runs/target-state-001.json --resume
-
-# 外部工具采样完成后
-python -X utf8 etm/trace.py target restore --probe $probe `
-  --state E:/trace-runs/target-state-001.json
+python -X utf8 etm/trace.py record list --root E:/trace-runs
+python -X utf8 etm/trace.py record info --record E:/trace-runs/capture-001
+python -X utf8 etm/trace.py record config --record E:/trace-runs/capture-001 --out E:/trace-runs/config-001.json
+python -X utf8 etm/trace.py decode --record E:/trace-runs/capture-001 --out E:/trace-runs/redecoded-001
+python -X utf8 etm/trace.py decode --input E:/capture.kvdat --elf E:/firmware/fw.elf `
+  --config E:/trace-runs/config-001.json --out E:/trace-runs/imported-001
+python -X utf8 etm/trace.py verify --record E:/trace-runs/capture-001 --require-decoded
+python -X utf8 etm/trace.py import-record --input E:/record.etmrecord --out E:/trace-runs/imported-002
 ```
 
-configure不带 `--resume` 时保持暂停；restore恢复到**configure前**的运行/暂停状态。
-状态包含探针、目标身份、所改寄存器及掩码、期望配置和ELF指纹；恢复时拒绝目标不符、
-状态文件被改动、状态已用过或目标配置发生变化的情况。不把旧状态强压回新的配置。
-状态文件恢复后标为已用，保留作为证据。
+`captureExtent.actualSeconds × 1000` 是实际毫秒数，`requestedSeconds` 是请求时长。
+`known: false` 表示旧数据缺足够信息，不根据指令数量或火焰图宽度猜毫秒数。
+Trace 中的指令序号、调用权重都不是时间。旧内联/JSONL 历史通过网页原有 RecordStore 查询；
+会重建派生索引，原始 decoded/JSONL 保留。旧记录没有当前 TraceStore 绑定时会标注未核验，
+可以重解到新目录获取默认优化格式；不把旧格式冒充当前已绑定原生记录。
 
-如果丢失状态或目标已被其他工具改动，可显式停止Trace：
+后配源码：
 
 ```powershell
-python -X utf8 etm/trace.py target stop --probe $probe
-# 需要保持CPU暂停时才加 --halt
+python -X utf8 etm/trace.py record sources --record E:/trace-runs/capture-001 --source-root E:/superlinkPRO
+# ELF来自另一台机器时，显式给“ELF文件路径 → 源码正文”的字典：
+python -X utf8 etm/trace.py record sources --record E:/trace-runs/capture-001 --sources-json E:/sources.json
 ```
 
-stop关闭Trace并默认继续CPU；它不是“恢复丢失的原始引脚/寄存器快照”。
-本CLI不管理外部调试器的断点，请勿与网页、OpenOCD、pyOCD gdbserver并行操作同一目标。
+`--source-root` 只读取该根目录内、ELF 记录的实际路径，不按同名文件猜配对。
+后配源码保存旧 sources 的独立备份，不修改采集波形、固件或执行流。无配套源码时源码类
+导出明确拒绝；CSV、逐事件 JSONL、机器码和原始记录仍可查询/导出。
 
-## 5. 离线解码与记录包
-
-所有离线命令都不要求连接板子。重解码写入新目录，原始记录保持不变：
+## 7. 查询和导出
 
 ```powershell
-python -X utf8 etm/trace.py decode --record E:/trace-runs/h743-run-001 `
-  --out E:/trace-runs/h743-run-001-redecoded
-
-python -X utf8 etm/trace.py decode --input E:/capture/capture.kvdat `
-  --elf E:/capture/firmware.elf --config E:/capture/session.json `
-  --sources-json E:/capture/sources.json --out E:/trace-runs/offline-001
-
-python -X utf8 etm/trace.py import-record --input E:/capture/test.etmrecord `
-  --out E:/trace-runs/import-001
+python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view summary
+python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view page --offset 0 --limit 100
+python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view page --table packets
+python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view event --seq 100
+python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view navigate --seq 100 --mode call --direction 1
+python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view hotspots
+python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view window --from-seq 100 --to-seq 2000
 ```
 
-`decode --input`也支持跳变CSV和已解复用ETM BIN；BIN不是TPIU物理流。
-必须提供采集时的完整配置，不能只给traceid然后猜默认ETMv4寄存器。
-`--config`也可使用target configure生成的状态文件，此时会保留目标/ELF绑定。
-CSV/BIN缺少KVDAT采样头时，CLI不会用请求参数冒充实际采样时长。
-
-记录包保留原始波形、匹配ELF、配置、源码和存在的TraceStore/绑定输入；可由CLI导入，
-也可在网页“导入记录”中打开。导入不自动重解，旧包没有store时再显式decode。
-拒绝重复成员、越界路径、符号链接，限制单成员1GiB、解压总量2GiB。
-CLI目前不做历史schema-3自动分窗记录的重建；这类记录使用原有兼容工具。
-
-## 6. 查询
-
-query默认返回摘要/质量。其他视图直接使用现有TraceStore接口：
+可用视图：`summary/overview/page/event/navigate/window/timeline/issues/source/functions/hotspots/flame/integrity`。
+导航模式 `instruction/call/return/exception/issue/source/pc`；PC 导航加 `--pc 0x...`。
+`--search`、`--hide-skipped`、`--from-seq/--to-seq` 对应网页筛选、隐藏未成立分支和局部区间。
+`flame` 返回调用权重树；执行顺序图使用 `timeline`。这些 JSON 供 AI 分析，不另开 UI。
 
 ```powershell
-python -X utf8 etm/trace.py query --record $run --view overview
-python -X utf8 etm/trace.py query --record $run --view page --offset 0 --limit 150
-python -X utf8 etm/trace.py query --record $run --view page --search main --hide-skipped
-python -X utf8 etm/trace.py query --record $run --view event --seq 10000
-python -X utf8 etm/trace.py query --record $run --view navigate --seq 10000 --mode call --direction 1
-python -X utf8 etm/trace.py query --record $run --view window --from-seq 10000 --to-seq 30000
-python -X utf8 etm/trace.py query --record $run --view timeline --search main
-python -X utf8 etm/trace.py query --record $run --view issues --offset 0 --limit 100
-python -X utf8 etm/trace.py query --record $run --view source --file 'ELF中记录的完整路径'
+python -X utf8 etm/trace.py export --record E:/trace-runs/capture-001 --format simplified --out E:/trace-runs/simplified.c
+python -X utf8 etm/trace.py export --record E:/trace-runs/capture-001 --format html --out E:/trace-runs/flow.html
+python -X utf8 etm/trace.py export --record E:/trace-runs/capture-001 --format record --out E:/trace-runs/capture.etmrecord
 ```
 
-`mode`支持instruction/call/return/exception/issue/source/pc；PC模式另传
-`--pc 0x08001234`。方向只能-1或1。包页使用 `--table packets`。
-先看overview的eventCount，再计算中页/末页，不能把“指令数”误当成包含边界事件的总序号。
-`--from-seq/--to-seq`是执行序号，**不是ms或µs**。调用栈来自历史重建，不是当前寄存器快照。
+十种格式：`simplified/source/html/csv/json/events-jsonl/raw/etm/elf/record`。
+前四种与网页导出同义；简化 C 按连续源码位置合并，完整 C 按执行指令保留重复源码行，均不是可编译程序。
+`json` 是摘要/分析/源码 JSON；逐事件输出用 `events-jsonl`。
+C/HTML/CSV/JSONL 可按完整序号区间导出，其余格式拒绝执行序号裁剪。
+`.etmrecord` 保存原始输入、匹配固件、配置、源码和已有解码存储，可再次离线重解，也可由网页导入。
 
-## 7. 导出格式
+## 8. 验证边界
 
-```powershell
-python -X utf8 etm/trace.py export --record $run --format csv `
-  --from-seq 10000 --to-seq 30000 --out E:/trace-runs/selection.csv
-```
+原生路径默认开启，仍逐份核验输入指纹、store 绑定和质量。overflow、解码错误、未核算字节、
+中途失同步、framing/时钟间隙不合格；仅确认为输入尾部的 `I_INCOMPLETE_EOT` 单列保留。
+未知执行状态、采集前祖先不会改成已证实执行。
 
-| format | 输出内容 | 执行序号裁剪 |
-|---|---|---|
-| simplified | 合并连续相同源码位置的C执行摘录 | 支持 |
-| source | 完整源码执行流C摘录 | 支持 |
-| html | 可离线浏览的简化执行流/配套源码HTML | 支持 |
-| csv | 每条执行事件/指令的CSV | 支持 |
-| events-jsonl | 完整逐事件JSON行，可能很大/较慢 | 支持 |
-| json | 摘要、质量、分析和源码JSON，**不含全量事件数组** | 不支持 |
-| raw | 原始KVDAT/CSV/BIN逐字节副本 | 不支持 |
-| etm | 已解复用ETM源字节流 | 不支持 |
-| record | 含原始数据的可重解码.etmrecord包 | 不支持 |
-
-两种C均是恢复执行顺序的可读摘录，不是可编译程序。JSON摘要与events-jsonl明确分开，
-避免误把“小型decoded.json”当成完整执行历史。四种常用执行流导出默认走原生投影；
-已有准备索引的很小区间可能按现有策略使用更快的准备读路径，不改变结果口径。
-
-## 8. AI 验收判据与停止条件
-
-建议先20ms，重复确认后才扩大到200/500/1000ms。CLI默认上限跟随当前已发布产品为1s，
-**但 CLI 对实际窗口长度的验收比网页警告更严格**：未录满时返回5，原始记录保留，
-不自动把它继续算作合格1s解码任务。网页允许继续浏览短于请求的实际窗口，二者判据不同。
-
-必须同时检查：
-
-1. `ok=true`、exitCode=0；实际KVDAT深度/采样率与请求匹配，允许1个采样点舍入。
-2. `verification.passed=true`，输入/配置SHA256和store绑定核验通过。
-3. 结构错误、帧内FSYNC、丢弃partial frame、idle resync、溢出、字节重叠/遗漏/未处理为0。
-4. `I_INCOMPLETE_EOT`只有确实落在输入末端时才作为边界单列，其他包问题不放行。
-5. 初始化未同步、条件执行未知、采集前调用栈未知继续保留，不据此声称全部路径已知。
-6. 有业务负载时，echo-result需passed且没有缺包/CRC错误；检查trace中实际业务调用，
-   不仅看宿主机总发包数。宿主机负载可能跨越LA的设置/回传时间，总数不等于窗口内调用数。
-7. `cleanup.targetRestored=true`、LA空闲已确认；失败时检查notes和保存的现场，不自动重试/复位。
-
-当前30MHz连续信号在500MSa/s请求1s时曾只录到约927ms，可能受LA压缩存储限制；
-200MSa/s对照也未解决，并有包问题。降低采样率、滤掉数据或放宽解析规则不能冒充通过。
-20MHz的1s验收不能直接代替30MHz条件。
-
-记录中核心文件：`capture.kvdat`、`firmware.elf`、`session.json`、`sources.json`、
-`inputs.json`、`physical.json`、`framing.json`、`etm.bin`、`native.bin`、
-`store/manifest.json`、`decoded.json`、`decode-performance.json`、`cleanup.json`。
-`target-state.json`是当次采集现场；出现异常还会保留 `cli-error.json`。
-
-计时分开看：`acquisitionSeconds`包含连接、核对、配置、预热、采样/回传、保存和恢复；
-`wallSeconds`是解码/索引路径耗时；外层elapsedSeconds为CLI整次调用。父阶段已经包含子阶段，
-不能把所有计时字段直接相加。单次短窗冒烟耗时不等于独占机器性能基准。
+本轮 H743 真机详细结果、实际命令、原始波形、Flash 回读指纹、错误案例和未覆盖项，见
+`docs/validation/20261024-000104-trace-web-cli-9f57c7/report.md`。
+API 开放范围与真机验收范围在报告中分别列出，不能把软件模拟/离线测试当成每个型号、
+每个 DWARF 优化场景均已板测通过。

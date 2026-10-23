@@ -1,4 +1,3 @@
 -r requirements.txt
-# Hardware adapter has a per-session Funnel discovery hook validated against this version.
-pyocd==0.45.1
+# 硬件复用网页命令与 Node WebUSB；可选 CDC 负载使用 pyserial。
 pyserial==3.5

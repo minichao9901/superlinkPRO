@@ -69,7 +69,7 @@ EMBEDDED_STYLE='<style>body#etm-app[data-embedded]{min-height:0}body#etm-app[dat
 EMBEDDED_DIAGNOSTICS="""<script>function etmPageError(message){var el=document.getElementById('job-state');if(el){el.textContent='页面发生错误：'+message;el.classList.add('bad');}}window.addEventListener('error',function(e){etmPageError(e.message);});window.addEventListener('unhandledrejection',function(e){etmPageError(e.reason&&e.reason.message||e.reason);});</script>"""
 
 
-def create_application(etm_root,serial_root=ROOT):
+def create_application(etm_root,serial_root=ROOT,cli_token_file=None):
     etm_root=Path(etm_root).resolve();serial_root=Path(serial_root).resolve()
     source=etm_root/'server.py'
     if not source.is_file():raise ValueError('找不到 ETM 工程，请用 --etm-root 指定其目录')
@@ -105,6 +105,9 @@ def create_application(etm_root,serial_root=ROOT):
     @app.after_request
     def fresh_main(response):
         response.headers['Cache-Control']='no-store';return response
+    if cli_token_file:
+        from web_cli_queue import install_web_cli
+        install_web_cli(app,cli_token_file)
     return DispatcherMiddleware(app,{'/etm':backend.app})
 
 
@@ -113,6 +116,7 @@ if __name__=='__main__':
     parser.add_argument('--port',type=int,default=8878)
     parser.add_argument('--etm-root',type=Path,default=ROOT.parent/'etm')
     parser.add_argument('--serial-root',type=Path,default=ROOT)
+    parser.add_argument('--cli-token-file',type=Path,help='显式启用网页CLI命令队列；本机令牌文件')
     args=parser.parse_args()
     print(f'统一工作台：http://127.0.0.1:{args.port}/#etm',flush=True)
-    run_simple('127.0.0.1',args.port,create_application(args.etm_root,args.serial_root),threaded=True,use_reloader=False)
+    run_simple('127.0.0.1',args.port,create_application(args.etm_root,args.serial_root,args.cli_token_file),threaded=True,use_reloader=False)

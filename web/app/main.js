@@ -68,6 +68,9 @@ const probeManager = installProbeManager(tools, { bus: probeBus });
 initProbeStatus(tools);
 initEventLogs();
 window.__tools = tools;
+if(new URLSearchParams(location.search).has('trace-cli')){
+  import('./automation/trace.js').then(m=>m.startWorker()).catch(e=>console.error('CLI工作台：',e));
+}
 const workspace = initWorkspaces();
 initSidebarTabs();
 initFullscreen();

@@ -87,18 +87,29 @@ class CliTests(unittest.TestCase):
         for value in ('../capture.bin','C:/capture.bin','other.bin','../firmware.elf'):
             with self.subTest(value=value),self.assertRaises(cli.CliError):cli.record_input({'input':value})
 
-    @unittest.skipUnless(importlib.util.find_spec('pyocd'), 'CLI硬件依赖pyOCD未安装')
-    def test_pyocd_discovery_does_not_enable_funnel_but_keeps_other_components(self):
-        from pyocd.coresight.funnel import TraceFunnel
-        from pyocd.utility.sequencer import CallSequence
-        seen=[];discovery=SimpleNamespace(_create_component=lambda c:seen.append(c))
-        target=SimpleNamespace(_discoverer=discovery)
-        sequence=CallSequence(('create_discoverer',lambda:None))
-        original=TraceFunnel.init
-        hw.TraceTransportDelegate().will_init_target(target,sequence);sequence.invoke()
-        discovery._create_component(SimpleNamespace(factory=TraceFunnel.factory))
-        other=SimpleNamespace(factory=object());discovery._create_component(other)
-        self.assertEqual(seen,[other]);self.assertIs(TraceFunnel.init,original)
+    def test_cli_hardware_does_not_import_pyocd(self):
+        source=Path(hw.__file__).read_text(encoding='utf8')
+        self.assertNotIn('from pyocd',source);self.assertNotIn('import pyocd',source)
+
+    def test_interrupted_reply_cannot_be_mistaken_for_cleanup_result(self):
+        import queue
+        pipe=hw.WebPipe();pipe.process=SimpleNamespace(stdin=io.StringIO());pipe.messages=queue.Queue()
+        pipe.messages.put(dict(id=0,ok=False,error='old command'))
+        pipe.messages.put(dict(id=1,ok=True,value={'restored':True}))
+        self.assertEqual(pipe.call('close'),{'restored':True})
+
+    def test_invalid_timeout_is_rejected_before_hardware(self):
+        with patch.object(hw,'web_request',side_effect=AssertionError('must not connect')),contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(cli.main(['web','wait-halt','--timeout','nan']),2)
+
+    def test_pc_navigation_uses_the_existing_instruction_and_pc_query_contract(self):
+        seen=[]
+        view=SimpleNamespace(navigate=lambda *a:seen.append(a) or {'seq':2},close=lambda:None)
+        args=cli.build_parser().parse_args(['query','--record','unused','--view','navigate','--mode','pc','--pc','0x08000100'])
+        with patch.object(cli,'stored_view',return_value=view):self.assertEqual(cli.query_command(args),{'seq':2})
+        self.assertEqual(seen[0][2:4],('instruction',0x08000100))
+        args.pc=None
+        with self.assertRaises(cli.CliError):cli.query_command(args)
 
     def test_decoder_error_or_midstream_gap_is_not_hidden_by_clean_byte_accounting(self):
         self.assertFalse(cli.quality_check(None,dict(quality={},status={'lastErrorCode':1}))['passed'])
