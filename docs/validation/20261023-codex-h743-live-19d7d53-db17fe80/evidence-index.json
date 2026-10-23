@@ -60,8 +60,8 @@
     },
     {
       "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\tested-source.diff",
-      "bytes": 3096,
-      "sha256": "d59ddef7bc2373ef03e5a77039d03d030f2b8995f8586efc6b97f65dd6163863"
+      "bytes": 7270,
+      "sha256": "c014ed533de809af2203ad355f4ae182d924bb3b42bbb3f147023c5e280e49ff"
     },
     {
       "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\sdk-inputs.json",
@@ -350,8 +350,8 @@
     },
     {
       "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\summarize-run.py",
-      "bytes": 17500,
-      "sha256": "3e4d373805d726f88f72c19cdaafead8275aeadb33114eb13bb96195f26289d7"
+      "bytes": 17572,
+      "sha256": "d902637047895043e88eb617461b79819726994ece848c9df5894f48c31f981a"
     }
   ]
 }
