@@ -1,0 +1,4 @@
+-r requirements.txt
+# Hardware adapter has a per-session Funnel discovery hook validated against this version.
+pyocd==0.45.1
+pyserial==3.5
