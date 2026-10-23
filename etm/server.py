@@ -290,7 +290,7 @@ def browse_store(sid):
 
 @app.get('/api/capabilities')
 def capabilities():
-    """能力声明（前端采集时长校验的唯一来源；默认上限仍为 200 ms）。"""
+    """能力声明（前端采集时长校验的唯一来源）。"""
     return jsonify(captureProtocol=CAPTURE_PROTOCOL,
                    captureMaxSeconds=CAPTURE_MAX_SECONDS,
                    captureMaxSamples=CAPTURE_MAX_SAMPLES,
@@ -308,7 +308,8 @@ def browse_overview(sid):
     r=browse_store(sid).overview();m=meta(sid)
     verify_record_inputs(sid,r,m)
     r.update(name=m.get('name',sid),laFilter=m.get('laFilter'),targetSnapshot=m.get('targetSnapshot'),
-             targetVerified=bool(m.get('targetVerified')),captureScope=m.get('captureScope'),captureEntry=m.get('captureEntry'),recordError=m.get('error'))
+             targetVerified=bool(m.get('targetVerified')),captureScope=m.get('captureScope'),captureEntry=m.get('captureEntry'),recordError=m.get('error') or m.get('captureWarning'))
+    if m.get('captureExtent'):r['captureExtent']=m['captureExtent']
     return jsonify(r)
 
 @app.get('/api/browse/<sid>/page')
@@ -640,12 +641,20 @@ def capture_start_info(events,metadata):
 
 
 DEFAULT_SLICE_SECONDS = 0.2  # 历史长窗单片时长；仅旧的 export_slices()/离线重建工具仍用
-# 2026-10-18 产品决策：**单次采集 + 单次解码上限 200 ms**，不再走"一次采集 + 自动分窗"。
-#   · 1 s 全量解码实测要 10~30 分钟（CSV ~2.4 GB），用户判定不实用；
-#   · 200 ms 仍是一段完整、可一次解码完的窗口（≈478 MB CSV / 3.9M 指令）；
-#   · 分窗代码保留，只用于**读取/离线重建旧记录**（streamed.schema=3），不再由 /api/capture 触发。
-CAPTURE_MAX_SECONDS = 0.2
-CAPTURE_MAX_SAMPLES = 100_000_000
+# 2026-10-23 用户决定开放实验长窗；一次采集、一次完整解码，不自动分片。
+# 请求1 s不等于实际录满1 s：保存后回读深度，明确提示压缩存储提前结束。
+CAPTURE_MAX_SECONDS = 1.0
+CAPTURE_MAX_SAMPLES = 500_000_000
+
+
+def capture_extent(depth, rate, seconds):
+    actual = int(depth)
+    if actual <= 0 or rate <= 0 or not math.isfinite(seconds) or seconds <= 0:
+        raise ValueError('采集实际深度或采样率无效，不能确认本次窗口')
+    expected = round(rate * seconds)
+    return dict(requestedSeconds=seconds, actualSeconds=actual/rate,
+                requestedSamples=expected, actualSamples=actual,
+                complete=actual >= expected-1)
 
 
 def export_slices(jid, sid, v, options):
@@ -1008,13 +1017,19 @@ def capture_job(jid, sid, options):
         v = Vis()
         change(jid, state='saving')
         folder = directory(sid)
-        # 2026-10-18：产品只做 ≤200 ms 的单窗采集 + 单次解码，不再自动分窗。
+        # 单窗采集 + 单次解码，不自动分窗。
         # 旧的 export_slices() 保留，仅用于读取/离线重建历史长窗记录（streamed.schema=3）。
         do_export(v, str((folder / ('capture.' + options.get('rawFormat','csv'))).resolve()), [options['clock']] + options['data'])
         depth = v.cmd('get-actual-sample-depth')
         span = v.cmd('get-actual-sample-time')
         m = meta(sid)
-        m.update(actualDepth=depth, actualTime=span, stopped=stopped,captureStatus='saved')
+        extent=capture_extent(depth,options['rate'],options['seconds'])
+        m.update(actualDepth=depth, actualTime=span, stopped=stopped,captureStatus='saved',captureExtent=extent)
+        if not extent['complete']:
+            m['captureWarning']=(f"请求 {options['seconds']*1000:g} ms，实际仅采集 "
+                f"{extent['actualSeconds']*1000:.3f} ms；可能达到 LA 压缩存储容量。"
+                '原始波形保留，以下解码仅覆盖实际窗口。')
+            change(jid,captureWarning=m['captureWarning'])
         try:
             m['laFilter']=read_glitch_settings(folder/'capture.kvdat',options['rate'])
         except Exception as error:
@@ -1080,11 +1095,10 @@ def start_capture():
         raise ValueError('取样位置必须介于 0 和 1。')
     if not math.isfinite(o['threshold']) or not -4<=o['threshold']<=4:
         raise ValueError('阈值必须是 -4～4 V 的有限数值。')
-    # 2026-10-18 产品决策：单次采集/解码/页面显示统一上限 200 ms（一次解码完成，不分窗）。
-    # 500 MSa/s × 200 ms = 1 亿样本 ≈ 478 MB CSV；更长的覆盖请多次采集。
+    # 默认开放1 s实验长窗；500 MSa/s最多5亿样本，仍保留资源边界。
     if not (0 < o['seconds'] <= CAPTURE_MAX_SECONDS and 0 < o['rate'] <= 500000000
             and o['seconds']*o['rate'] <= CAPTURE_MAX_SAMPLES):
-        raise ValueError('单次采集上限 200 ms（500 MSa/s 下 1 亿样本）；更长的覆盖请分多次采集。')
+        raise ValueError(f'单次采集上限 {CAPTURE_MAX_SECONDS*1000:g} ms（最多 {CAPTURE_MAX_SAMPLES:,} 样本）；更长的覆盖请分多次采集。')
     if len(o['data']) != 4 or len(set([o['clock']] + o['data'])) != 5 or any(n < 0 or n > 15 for n in [o['clock']] + o['data']):
         raise ValueError('请配置五个不同的 CH0~15 通道。')
     with lock:

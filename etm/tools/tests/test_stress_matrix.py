@@ -16,10 +16,10 @@ class MatrixTests(unittest.TestCase):
         for job in server.jobs.values():job['state']='done'
     def test_numeric_boundaries_336_requests(self):
         count=0
-        # 2026-10-18 产品决策：单次采集/解码上限 200 ms（不再分窗，一次解码完成）。
-        # 边界口径：0 < seconds <= 0.2 且 rate*seconds <= 1e8（500 MSa/s × 0.2 s）。
-        for rate,seconds,fraction in itertools.product([0,1,50000000,100000000,500000000,500000001,10**10],[-1,0,.001,.01,.2,.201,float('nan'),float('inf')],[-.1,0,.25,1,float('nan'),float('inf')]):
-            expected=0<rate<=500000000 and 0<seconds<=0.2 and rate*seconds<=100000000 and 0<fraction<1
+        # 2026-10-18 产品决策：单次采集/解码上限 1 s（不再分窗，一次解码完成）。
+        # 边界口径：0 < seconds <= 1.0 且 rate*seconds <= 5e8（500 MSa/s × 1 s）。
+        for rate,seconds,fraction in itertools.product([0,1,50000000,100000000,500000000,500000001,10**10],[-1,0,.001,.2,1.0,1.001,float('nan'),float('inf')],[-.1,0,.25,1,float('nan'),float('inf')]):
+            expected=0<rate<=500000000 and 0<seconds<=1.0 and rate*seconds<=500000000 and 0<fraction<1
             r=self.post(rate=rate,seconds=seconds,fraction=fraction)
             self.assertEqual(r.status_code,200 if expected else 400,(rate,seconds,fraction,r.json));self.release();count+=1
         self.assertEqual(count,336)

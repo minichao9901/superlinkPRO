@@ -234,10 +234,10 @@ class CapabilityAndExportTests(_SandboxCase):
         super().setUpClass()
         cls.store_sid = 'etm4-10ms-server-store'
 
-    def test_capabilities_keep_default_200ms_and_declare_trace_store(self):
+    def test_capabilities_default_1s_and_declare_trace_store(self):
         payload = _json(self.client.get('/api/capabilities'))
-        self.assertEqual(payload['captureMaxSeconds'], 0.2)
-        self.assertEqual(payload['captureMaxSamples'], 100_000_000)
+        self.assertEqual(payload['captureMaxSeconds'], 1.0)
+        self.assertEqual(payload['captureMaxSamples'], 500_000_000)
         self.assertEqual(payload['captureProtocol'], 2)
         store = payload['traceStore']
         self.assertTrue(store['supported'])
@@ -246,9 +246,9 @@ class CapabilityAndExportTests(_SandboxCase):
         self.assertEqual(store['schemaVersion'], 1)
         self.assertEqual(store['manifest'], 'store/manifest.json')
         self.assertFalse(store['packetText'])
-        # 默认上限没有因为新格式放开
-        self.assertEqual(server.CAPTURE_MAX_SECONDS, 0.2)
-        self.assertEqual(server.CAPTURE_MAX_SAMPLES, 100_000_000)
+        # 用户已决定默认开放1 s实验长窗
+        self.assertEqual(server.CAPTURE_MAX_SECONDS, 1.0)
+        self.assertEqual(server.CAPTURE_MAX_SAMPLES, 500_000_000)
 
     def test_status_and_health_keep_old_fields(self):
         health = _json(self.client.get('/api/health'))

@@ -13,6 +13,14 @@ export function integrityView(result){
   const rows=[['OpenCSD 输入',`${n(q.processedBytes)} 字节`],['包记录字节覆盖',`${n(q.accountedBytes)} 字节；重叠 ${q.overlapBytes}，遗漏 ${q.unaccountedBytes}`],['已识别包',`${n(q.validPackets)} 个`],['未同步 ETM 数据',`${n(q.unsynchronizedBytes)} 字节 / ${q.unsynchronizedRecords} 条占位记录`],['TPIU 同步前',`${q.initialPhysicalBytes??'未记录'} 字节`],['未知源 ID 数据',`${q.unknownSourceBytes??'未记录'} 字节`],['尾部不完整帧',`${q.trailingFrameBytes??'未记录'} 字节`],['执行状态未知',`${q.unknownExecution} 条指令记录`],['溢出 / 包问题',`${q.overflowPackets} / ${q.packetIssues}`],['首个恢复区间的 ETM 偏移',q.firstPathOffset??'无'],['周期计数元素',cycleRow]];
   const physical=result.physical;
   rows[0][0]='OpenCSD 已处理';rows.unshift(['ETM 原始输入',`${n(q.inputBytes??q.processedBytes)} 字节`],['未处理输入',`${n(q.unprocessedBytes??0)} 字节`]);
+  const depth=Number(physical?.sample_depth),rate=Number(physical?.sample_rate),span=physical?.window_seconds;
+  const actual=depth>0&&rate>0?depth/rate:
+    Array.isArray(span)&&span.length===2&&span.every(Number.isFinite)&&span[1]>span[0]?span[1]-span[0]:null;
+  if(Number.isFinite(actual)&&actual>0){
+    const requested=result.captureExtent?.requestedSeconds;
+    rows.unshift(['实际采集时长',`${(actual*1000).toFixed(3)} ms`+
+      (Number.isFinite(requested)&&requested>0?` · 请求 ${(requested*1000).toFixed(3)} ms`:'' )]);
+  }
   if(physical){rows.push(['物理时钟段',`${physical.clock_runs?.length??1} 段`],['长时钟间隔',`${physical.clock_gaps?.length??0} 处`],['最小数据跳变距离',`${physical.min_data_transition_distance_ns?.toFixed(3)??'—'} ns`]);}
   const snapshot=result.targetSnapshot;
   rows.push(['尾部同步标记残片',`${q.trailingSyncBytes??0} 字节（保留为捕获边界）`]);
