@@ -2,7 +2,7 @@ import {parseHTML} from 'linkedom';import {readFile} from 'node:fs/promises';
 import {ProbeManager} from '../../app/core/probe-manager.js';
 let instance=0;
 export function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};}
-export async function ui(){
+export async function ui(capabilities=null){
   const {window:dom}=parseHTML(await readFile(new URL('../../bridge/etm/backend/web/index.html',import.meta.url),'utf8'));
   const window={document:dom.document,HTMLElement:dom.HTMLElement,addEventListener(){},devicePixelRatio:1};
   const {document}=window;document.body.dataset.embedded='1';
@@ -29,7 +29,8 @@ export async function ui(){
     const path=String(url).replace(/^.*\/api\//,'');requests.push(path);
     if(model.block?.path===path)await model.block.promise;
     let data={};
-    if(path==='records')data=[];
+    if(path==='capabilities'&&capabilities)data=capabilities;
+    else if(path==='records')data=[];
     else if(path==='elf')data=elf;
     else if(path==='import'){imports.push(options.body);data={record:'raw-record'};}
     else if(path==='decode/raw-record')data={job:'decode-a'};

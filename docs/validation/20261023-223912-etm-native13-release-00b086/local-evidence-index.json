@@ -1,0 +1,65 @@
+{
+  "runId": "20261023-223912-etm-native13-release-00b086",
+  "files": [
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\local-report.md",
+      "bytes": 3717,
+      "sha256": "ecd84056234111018ce872d85d17b4fb476b29c26b4be5bc5657c329e5108373"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\build-package.log",
+      "bytes": 119538,
+      "sha256": "410b280ec390a0453440769fb2d6baaaefd4529e4fbb2415f813993f4994ad97"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\sync-runtime-final.log",
+      "bytes": 346,
+      "sha256": "fe047bf7b1fa37f92ae3f17ae66acf9a869651bea6b6a20daeaced2285a37375"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\regressions\\result.json",
+      "bytes": 5458,
+      "sha256": "00a707b36906f50396e3b52be4c7a5b69fef3c358fb4470499aef58381e3674b"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\ui-1s-boundary-tests.log",
+      "bytes": 1454,
+      "sha256": "de2e1f030858629c0e2e111ad9e2353ba6c65069db1369fcfa7a897999ad7937"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\capture-extent-tests.log",
+      "bytes": 743,
+      "sha256": "b210d7bfb738847d89f1ed14c5f1ceb3f88bbc61a3d2abc41a9bf6977794ea18"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\source-stress.log",
+      "bytes": 1307,
+      "sha256": "773ded868c370f7210928d32c39f38b1144122101dea547e5a5195c4aa36cdca"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\source-store-backend.log",
+      "bytes": 6298,
+      "sha256": "6310224cca9b0e4e46d66b5b438db3b75ba29da486e5b34064bad06f77997e13"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\portable-regressions.log",
+      "bytes": 1162,
+      "sha256": "629c2655da2bca0c53cc35e3f8dfce9ebcd659a5bc2476b4a6de884749c9f3b0"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\native13-portable-validation.json",
+      "bytes": 6754,
+      "sha256": "e042112485db3247f5669d4293617860eae625671be508479a30dbf467f35878"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\validate-native13.py",
+      "bytes": 4855,
+      "sha256": "9862265f156f4e06bcc8fb8f62a7dbbcb8e7edca7d521ae7d7ee328537139ce9"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-223912-etm-native13-release-00b086\\verify-online.py",
+      "bytes": 3044,
+      "sha256": "602c67140f6ba210721c0a5b3f405653c20f0e85cf80f6dae7314be63e0a9a7f"
+    }
+  ]
+}

@@ -1,5 +1,24 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {ui,deferred} from './etm-ui-harness.mjs';
 
+test('new bridge enables 1000ms and rejects 1001ms before hardware mutation',async()=>{
+ const u=await ui({captureMaxSeconds:1,captureMaxSamples:500000000});try{
+  await u.upload();await u.click('connect');await u.select();
+  assert.equal(u.$('duration').max,'1000');u.$('duration').value='1000';
+  await u.click('start');assert.equal(JSON.parse(u.jobs[0]).seconds,1);
+  u.$('duration').value='1001';const before=u.events.length;await u.click('start');
+  assert.equal(u.events.length,before);assert.equal(u.jobs.length,1);
+ }finally{u.close();}
+});
+
+test('old bridge capability keeps its 200ms limit on the new page',async()=>{
+ const u=await ui({captureMaxSeconds:.2,captureMaxSamples:100000000});try{
+  await u.upload();await u.click('connect');await u.select();
+  assert.equal(u.$('duration').max,'200');u.$('duration').value='201';
+  const before=u.events.length;await u.click('start');assert.equal(u.events.length,before);
+  assert.equal(u.jobs.length,0);
+ }finally{u.close();}
+});
+
 test('real page handlers enforce prerequisites and complete a capture with restored breakpoint',async()=>{
  const u=await ui();try{
   assert.equal(u.$('start').disabled,true);assert.equal(u.$('run-to').disabled,true);

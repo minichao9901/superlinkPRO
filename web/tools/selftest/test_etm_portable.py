@@ -59,6 +59,9 @@ class PortableTests(unittest.TestCase):
             for method in ['writeMemDiagnostic','recoverDebugPort']:self.assertIn(method,driver)
         # 审查 F02：冻结包里 numpy/pandas 必须真的能 import（否则前端会静默回退纯 Python）。
         health=self.api('etm/api/health')
+        capabilities=self.api('etm/api/capabilities')
+        self.assertEqual(capabilities['captureMaxSeconds'],1.0)
+        self.assertEqual(capabilities['captureMaxSamples'],500_000_000)
         self.assertTrue(health['ok'])
         self.assertTrue(health['frontend']['numpy'],health)
         self.assertTrue(health['frontend']['pandas'],health)
