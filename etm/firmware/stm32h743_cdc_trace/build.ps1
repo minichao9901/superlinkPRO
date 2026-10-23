@@ -15,7 +15,10 @@ param(
     [ValidateSet(0, 1, 2, 4, 8, 16)][int]$AhbDiv = 0,
     # TRDT 用哪个频率算：Hclk=按 AHB 查表（正确）；Core=沿用 SystemCoreClock（旧行为，A/B 用）
     [ValidateSet('Hclk', 'Core')][string]$Trdt = 'Hclk',
+    # 0 保留一次 banner；验收时可显式开启周期负载，不改变常规固件默认行为。
+    [ValidateRange(0, 60000)][int]$BannerEveryMs = 0,
     [string]$Gcc,
+    [string]$SdkRoot,
     [string]$OutputDir,
     [switch]$NoPublish
 )
@@ -30,7 +33,10 @@ $h7UsbReg = [int]($UsbSupply -eq 'Internal')
 $h7Root = $PSScriptRoot
 if (-not $Gcc) { $Gcc = (Get-Command arm-none-eabi-gcc).Source }
 $h7Bin = Split-Path -Parent $Gcc
-$h7Sdk = Join-Path $h7Root 'sdk'
+$h7Sdk = if ($SdkRoot) { [IO.Path]::GetFullPath($SdkRoot) } else { Join-Path $h7Root 'sdk' }
+if (-not (Test-Path -LiteralPath (Join-Path $h7Sdk 'Drivers/CMSIS/Device/ST/STM32H7xx/Include/stm32h743xx.h'))) {
+    throw "缺少 STM32H743 SDK；请准备 sdk 目录，或用 -SdkRoot 指定包含 Drivers/Core/RTT_TRACE_LOG 的目录：$h7Sdk"
+}
 $h7Build = if ($OutputDir) { [IO.Path]::GetFullPath($OutputDir) } else { Join-Path $h7Root 'build' }
 New-Item -ItemType Directory -Path $h7Build -Force | Out-Null
 
@@ -71,6 +77,7 @@ $h7Flags = @(
     "-DH7_CDC_D1CPRE=$h7D1CPRE", "-DH7_CDC_HPRE=$h7HPRE", "-DH7_CDC_FLASH_LATENCY=$h7Lat",
     "-DH7_CDC_USB_INTERNAL_REGULATOR=$h7UsbReg",
     "-DH7_DWC2_TRDT_FROM_CORE=$([int]($Trdt -eq 'Core'))",
+    "-DH7_CDC_BANNER_INTERVAL_MS=$BannerEveryMs",
     # SEGGER RTT 控制块固定到 .rtt_cb（链接脚本把它放在 DTCM 0x20002000）
     '-DRTT_CB_ATTR=__attribute__((section(".rtt_cb"),aligned(4)))',
     "-I$h7Root\src",

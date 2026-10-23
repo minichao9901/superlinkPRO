@@ -1,0 +1,357 @@
+{
+  "runId": "20261023-codex-h743-live-19d7d53-db17fe80",
+  "testBase": "19d7d535271643b61ae399eac75cd1e35d1bdb5d",
+  "sourceFiles": [
+    {
+      "path": "etm/firmware/stm32h743_cdc_trace/build.ps1",
+      "sha256": "cf57dc39e13c89396d5403bc520c9bded75d40c1afff93e2a92729bc1a617ed8"
+    },
+    {
+      "path": "etm/firmware/stm32h743_cdc_trace/src/main.c",
+      "sha256": "eb73fbce9aabf9cf929f0e63cfa6f876aa93d8fdc96ab4d039eda6a74cd89a00"
+    },
+    {
+      "path": "etm/firmware/stm32h743_cdc_trace/README.md",
+      "sha256": "8c012bfc94c09da2f1fa9a1f54096fd83b7a4bcadbbe1d678bf0ac4bd7ae82a3"
+    }
+  ],
+  "nativeExecutables": [
+    {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\build-native\\etm_decode.exe",
+      "bytes": 4172180,
+      "sha256": "1d444ee91dc6485ebcf8e7571fb66fe0fc831bcdcd3e7597cda3b83a171f687b"
+    },
+    {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\build-native\\etm_export.exe",
+      "bytes": 3432846,
+      "sha256": "d5094d27c21726715a636a3b0f9326d587060a956f359d103ea487858a99286a"
+    },
+    {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\build-native\\etm_frontend.exe",
+      "bytes": 3636548,
+      "sha256": "773c28b11d99fe694fd94102c6bc0dbfcbec09e0954b2c783a54e5cc5413805b"
+    },
+    {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\build-native\\etm_index.exe",
+      "bytes": 4989700,
+      "sha256": "0750c09b8d7a9af6920153c607ad12d3d66884c60881d1cda0b21527e4b8defe"
+    },
+    {
+      "path": "C:\\Users\\Administrator\\.codex\\worktrees\\etm-kvdat-fastpath\\superlinkPRO\\etm\\build-native\\etm_storebuild.exe",
+      "bytes": 3890593,
+      "sha256": "7f6dbca74776b7b33e4e27968d336ae750c2b79c2e5841e99836394e192895f9"
+    }
+  ],
+  "files": [
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\report.md",
+      "bytes": 14091,
+      "sha256": "c18ae5f1b1ce9ad60f829c88465e85dba4f02d28e64e97a71ffcd82b8e183f4b"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\run.json",
+      "bytes": 887,
+      "sha256": "14c428c737207c21d73f9101bde3f71fe7b1ed270fe72ef60c08524dee1ed501"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\environment-final.json",
+      "bytes": 647,
+      "sha256": "430ad47d085b83cc8366b5d9688df80e28ae547523eec1aee3361b4b2f24222d"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\tested-source.diff",
+      "bytes": 3096,
+      "sha256": "d59ddef7bc2373ef03e5a77039d03d030f2b8995f8586efc6b97f65dd6163863"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\sdk-inputs.json",
+      "bytes": 303159,
+      "sha256": "9e90c3cdb684036650d99dd8f52b643fa5a864456b04b8125fc72aeb82d41716"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\flash-result-nonblocking.json",
+      "bytes": 659,
+      "sha256": "1a417fbea726b828d969c3a2107b5fb66c99a085b673a66fd8da0cae1b8a0450"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\external-sdk-flash-equivalence.json",
+      "bytes": 460,
+      "sha256": "3e39970879a513f09866a55e523629111ea43d33fead5fa0ad917c03fc8991ea"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\acceptance-final-results.json",
+      "bytes": 2184188,
+      "sha256": "cb6ba0ccb6a9b624e7cd307969b167b7248275e6bd3f2315cca3e1b194a85e46"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\acceptance-final-resources.json",
+      "bytes": 2810,
+      "sha256": "341cf4615823678a00f466a32dcf8ece44b2225b9cdbf61296f9b00765b83239"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\acceptance-final-1s-results.json",
+      "bytes": 1115329,
+      "sha256": "fbced817e551086683266fde67281035b86ae0b6bb8cd45dff37db33c3039b15"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\acceptance-final-1s-resources.json",
+      "bytes": 1772,
+      "sha256": "7dc769e29fb216bbbee57c0938503c2d2acaff8339ae062cdcb1ddeacb3bb731"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\capture-audit-final.json",
+      "bytes": 552417,
+      "sha256": "25c3427ff6273cb764f72481a864602919332b36c4e37b518ff69070f3488706"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\capture-boundary-adjudication.json",
+      "bytes": 1692,
+      "sha256": "5838e46376d7223a7c29b5a3458f60d484b22e9612e3675ae6469480d1ca7665"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\frontend-equivalence-final.json",
+      "bytes": 2950,
+      "sha256": "eff1921e881c0bbf80fbe32ced074f15826687fabe498fc130c47e04d5ba8c71"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\legacy-200ms-equivalence.json",
+      "bytes": 9418,
+      "sha256": "51a08e1fe1cf6f329d0de59a59099d9d3f3d21eedbf1fd79df781c002453eac1"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\legacy-200ms-adjudicated.json",
+      "bytes": 1917,
+      "sha256": "10688bfab55433cd5c4e076f143d5936f50ca424b15aaaf07fa1632f5cb2b6f7"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\rtt-forced-full.json",
+      "bytes": 570,
+      "sha256": "198aca4abdb43f13706a2b84c5db5867dce134a5918098a802a8f14621625bc3"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serial-forced-full.json",
+      "bytes": 119,
+      "sha256": "651c2c8a7904011d2d298bc44db04f5e02f7fe855bdaf28a55eb9c1e36492ab1"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serial-load-trace20-r3-result.json",
+      "bytes": 183,
+      "sha256": "e002aefafc0eed8409fdf70e9b26ec790de076b84617795df2ed8af818903d07"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serial-final-health.json",
+      "bytes": 119,
+      "sha256": "7df8ee78180d9ee09af05d771353747b958577cf7e32eea5d0f163abcf1a31f3"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\final-target-health.json",
+      "bytes": 1843,
+      "sha256": "1b068e5736835e9920784dff0222436985462ce24478e5190834b6521707b41b"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\portable-runtime.json",
+      "bytes": 1632,
+      "sha256": "270316c488ed45b89295d152eb372ddabdc336b0ebfb19fc2e8cb8faf6c1f969"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\portable-1s-acceptance.json",
+      "bytes": 8569,
+      "sha256": "43bf9ac63531c90fc2b1de1d8b3c09edf0471c08270455d06314790eaac4d055"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\portable-navigation.json",
+      "bytes": 17372,
+      "sha256": "543b82b9d7b9397e10febac51b76fc2ba0b5b01152d0d726f0467d2029603716"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\browser-portable-execution-1s.png",
+      "bytes": 67883,
+      "sha256": "7473664fa0e88f20f78835e47e6483d521d85e0fbff6d04caf402eec266bf85e"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\adjudicate-legacy.py",
+      "bytes": 2160,
+      "sha256": "c721c94167abf8e6622fdac580f655f9039a1a30eb503389bc8338ddce209c85"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\audit-captures-final.py",
+      "bytes": 4378,
+      "sha256": "b1e094fcbcc7bba117d31c8bba7a1fe237b62659f21cccb9defcfd499477a414"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\audit-captures.py",
+      "bytes": 4398,
+      "sha256": "dc270088de5c55430ad62778b63459fd1022d61f22ecf551af6ca7c4734106ee"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\capture-continuous-v2.mjs",
+      "bytes": 7160,
+      "sha256": "cbca049badb257dbcd2b87f62843ace398426c3202e2201e3c5184db5e94fd5c"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\capture-continuous-v3.mjs",
+      "bytes": 7729,
+      "sha256": "b4090d04246ad739f6c55160b7bfa16b1226cbcbc195e58d70216abf197f897b"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\capture-continuous-v4.mjs",
+      "bytes": 8280,
+      "sha256": "c41bd510c5a6aa0769fe99895ca58dd496733437b18b10b30ca9f6285fe1fe40"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\capture-continuous.mjs",
+      "bytes": 6872,
+      "sha256": "7898538ed1c786301f693a0e5d9a02f52b6e004b7cf6cf15f426ba1419f644e4"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\capture-live.mjs",
+      "bytes": 6566,
+      "sha256": "44a07d3ee7c50c478074058a327be0cf37b821a0dd66d40785eee66a396415e2"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\check-failed-reference.py",
+      "bytes": 777,
+      "sha256": "42c4bf2f8aee8bbd4ffe73728dcbf345b6b1fae131fbfcd0db7c31914276df75"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\final-target-health.mjs",
+      "bytes": 3349,
+      "sha256": "73d61074323ea40b315cc49b554bfa513dc8094a96470abcff1689cc462c6793"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\flash-target-nonblocking.py",
+      "bytes": 2116,
+      "sha256": "fbd7cd557750b2daddeb22f2e027856da2333bebd9c08b01fb05151ba3b40771"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\flash-target-trace20.py",
+      "bytes": 2100,
+      "sha256": "3fd0d643057d4ed71adb43d08db0754852f33ebb4de11ae1369eb753be0733c5"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\flash-target-v2.py",
+      "bytes": 2080,
+      "sha256": "5d68152c9358b7f3533ec0f77f0d168557d84948854de6cf5ee72362e549a922"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\flash-target.py",
+      "bytes": 2041,
+      "sha256": "cf6baa187c4c815b2fa788e781913bf3251b8149d6b46fdccd172545464e9790"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\force-rtt-full.py",
+      "bytes": 1253,
+      "sha256": "c0314ca6c43c58aa1771df900e7a4d9926c5e78ba593c6e9fc323fb7c620c139"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\phase-calibration.py",
+      "bytes": 1380,
+      "sha256": "ce8df70fc29bf0a53515589b504f57c5275798c919abd7921bf0edb41a07f49a"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\physical-usb.py",
+      "bytes": 2136,
+      "sha256": "89ee1a44f94e92a0cf3e97d3b284802c47d91aa9541feec76810daeb42af7d41"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\pin2-phase.py",
+      "bytes": 1176,
+      "sha256": "1c766e7ed3e516fdc5dc5a75ef38d6e628b117363e7397cdf711c8967ad5214c"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\portable-1s-acceptance.py",
+      "bytes": 4474,
+      "sha256": "56a333beeea9dea8b6edeaa5b68396711b4b1db159a97402aa7248aa98685a3d"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\portable-navigation.py",
+      "bytes": 1661,
+      "sha256": "a09e7b342ac3492ebd5d82e33a834b44021846ce8ea9ecebc4299b5a4700b2aa"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\prepare-portable.py",
+      "bytes": 2180,
+      "sha256": "0b6e77a96ae442dde75c1e41c6ea2911ea30c6ef73c14c75bf964a80f0cb6029"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\reference-frontends-final.py",
+      "bytes": 2597,
+      "sha256": "095d685e4b750e606c8f6ab0b33501048e68f050a2019975203a61fc691d6d9a"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\reference-frontends.py",
+      "bytes": 2539,
+      "sha256": "2f6a4617c6de7a3750ab815dff5e676f96f43d581e8b0ea5ca92c17301314a6f"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\reference-legacy-200ms.py",
+      "bytes": 1335,
+      "sha256": "a82aff63a1aa0a8ef5d22f2ec03161a663d2b761b579cd8fa728275b787e927c"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\run-monitored-v2.py",
+      "bytes": 2286,
+      "sha256": "8f016a3167c938778911e89179c1b209f61c6aad02c350dfed12f0d472bb3954"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\run-monitored-v3.py",
+      "bytes": 2286,
+      "sha256": "ea2f1447437248d51e973e437005bc90c9d95e3c35ae42705f38d85351487241"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\run-monitored-v4.py",
+      "bytes": 2286,
+      "sha256": "10eac509107edf89b0d2774e5a70e69d45f0a59695557869823dc73f502bc678"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\run-monitored.py",
+      "bytes": 2256,
+      "sha256": "3041fba6cb81a3133964b371fc3a831983c2efc77781612380bc99fb91505b31"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serial-final-health.py",
+      "bytes": 1248,
+      "sha256": "12185fb4f545ebf3321c2c91adfe4462d948cb1b658346278577405493d9bb87"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serial-forced-full.py",
+      "bytes": 1246,
+      "sha256": "080f6d1e1ace577658ad6e5bd648959efa3e43b57fb83c113d5a6bf375d658d0"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serial-load-trace20-r2.py",
+      "bytes": 3075,
+      "sha256": "0066be0beb091a417fac7d932797accb7c42df83aa3c7baeba6ecd11a7919701"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serial-load-trace20-r3.py",
+      "bytes": 3075,
+      "sha256": "f65d3510d2a9021eae993a788eec1dee0aed0c65ab180271ee51a9959df6f438"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serial-load-trace20.py",
+      "bytes": 3066,
+      "sha256": "9c4b8cc4f693b9401d350183224c070880c42e197796ddb359bb72035ad73fc1"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serial-load.py",
+      "bytes": 3042,
+      "sha256": "f198a7ff0664dde288e38e60b89bb5709d15e0cc5bc06e57383ae1f56ade373e"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serve-acceptance-v2.py",
+      "bytes": 1097,
+      "sha256": "b508ff699689476fccfab97041d96e5354ffd630caf956b36de7f46fd2aa8f8b"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\serve-acceptance.py",
+      "bytes": 1084,
+      "sha256": "a1c8185bffbc135628d02ad8a418d4e2ba99df7c387a25fe63a7012db86a5233"
+    },
+    {
+      "path": "E:\\superlinkPRO\\docs\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\summarize-run.py",
+      "bytes": 17500,
+      "sha256": "3e4d373805d726f88f72c19cdaafead8275aeadb33114eb13bb96195f26289d7"
+    }
+  ]
+}

@@ -31,6 +31,10 @@
 
 #include <string.h>
 
+#ifndef H7_CDC_BANNER_INTERVAL_MS
+#define H7_CDC_BANNER_INTERVAL_MS 0
+#endif
+
 /* PLL1 参数（build.ps1 通过 -D 传入；缺省是 480MHz 档）。
  *   VCO = HSE/M × N；SYSCLK = VCO/P；CPU = SYSCLK/D1CPRE；TRACECLK = VCO/R/2
  * 注意：物理 TRACECLK 是 pll1_r_ck 再二分频，所以 R=16 时 VCO 960MHz 得到 30MHz。 */
@@ -433,6 +437,8 @@ int main(void)
     probe_stage(5);
 
     SEGGER_RTT_Init();
+    /* ETM/CDC 可独立使用：未连接 RTT 读取器时，调试日志满不能卡住 echo 主循环。 */
+    SEGGER_RTT_SetFlagsUpBuffer(0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
     trace_hook_init();
     probe_stage(6);
 
@@ -452,7 +458,12 @@ int main(void)
     for (;;) {
         g_trace.loops++;
 
-        if (rx_len) {
+        if (rx_len
+#if H7_CDC_BANNER_INTERVAL_MS > 0
+            /* 周期 banner 占用 IN 端点时保留待回显数据，不交给忙即丢弃的发送函数。 */
+            && !ep_tx_busy_flag
+#endif
+        ) {
             uint32_t n = rx_len;
 
             memcpy(snapshot, read_buffer, n);
@@ -470,9 +481,21 @@ int main(void)
         }
 
         static uint8_t banner_sent = 0;
-        if (!banner_sent && dtr_enable && !ep_tx_busy_flag) {
+#if H7_CDC_BANNER_INTERVAL_MS > 0
+        static uint32_t banner_last_ms;
+        uint32_t banner_now_ms = HAL_GetTick();
+#endif
+        if (dtr_enable && !ep_tx_busy_flag &&
+            (!banner_sent
+#if H7_CDC_BANNER_INTERVAL_MS > 0
+             || (uint32_t)(banner_now_ms - banner_last_ms) >= H7_CDC_BANNER_INTERVAL_MS
+#endif
+            )) {
             cdc_puts(banner);
             banner_sent = 1;
+#if H7_CDC_BANNER_INTERVAL_MS > 0
+            banner_last_ms = banner_now_ms;
+#endif
         }
     }
 }
