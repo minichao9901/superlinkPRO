@@ -1,6 +1,6 @@
 {
   "sourceRepository": "etm",
-  "sourceRevision": "604390050b1c368ceb115142d96791f3d6788883",
+  "sourceRevision": "7ac104879311a94b4ee4a791175e0b0b50a5b292",
   "sourceHashes": {
     "server.py": "0054ee90e333e4279c2ea617755ab3a59e10330ed667d8cab3c69adea5e23c7e",
     "requirements.txt": "871c0e677856b3f2b80dc05b19f9522e7f4efa8ae8728b73939c55bbcf678a44",
@@ -191,5 +191,5 @@
     "firmware/stm32h7b0_spi_trace/stable-70-35-v1/fw.elf": "4e25c663d9e1dda32e41e8c970afce4b176d996b99b396c9cb2b530b84cd02b2",
     "baselines/spi-70-35-v1/manifest.json": "a8d0eeaaa8066b67508fbf3b15c3f76763b802cc98ab28147c3c3d99d12b6ec9"
   },
-  "sourceDirty": true
+  "sourceDirty": false
 }

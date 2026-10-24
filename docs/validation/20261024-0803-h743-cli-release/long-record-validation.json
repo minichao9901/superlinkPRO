@@ -1,0 +1,224 @@
+{
+  "passed": true,
+  "hardware": "not-run; existing physical capture",
+  "fixture": "C:\\Users\\Administrator\\.codex\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\portable-1s-import.etmrecord",
+  "fixtureSha256": "03d2cbbf455868ce94ecec713834fc4cc5acf93ec7fd9bde4979c9a884796523",
+  "actualSeconds": 1,
+  "summary": {
+    "packets": 2019135,
+    "ranges": 4318689,
+    "instructions": 18356923,
+    "executed": 16210613,
+    "sourceMapped": 18158822,
+    "exceptions": 2230,
+    "gaps": 1,
+    "packetIssues": 0,
+    "unknownExecution": 8914,
+    "functions": {
+      "main": 14117382,
+      "HAL_GetTick": 1570614,
+      "USBD_IRQHandler": 82484,
+      "_svfprintf_r": 42940,
+      "usb_memcpy": 37616,
+      "usbd_ep_start_write": 31464,
+      "dwc2_ep_write": 32928,
+      "dwc2_tx_fifo_empty_procecss": 29724,
+      "memmove": 25312,
+      "usbd_ep_start_read": 21244,
+      "__ssputs_r": 19890,
+      "_printf_i": 16951,
+      "handle_command": 15594,
+      "(未知函数)": 14690,
+      "strlen": 17700,
+      "dwc2_ep_read": 15820,
+      "_printf_common": 11300,
+      "strcmp": 9040,
+      "dwc2_get_inep_intstatus": 9384,
+      "OTG_FS_IRQHandler": 8610,
+      "dwc2_get_glb_intstatus": 8610,
+      "_vsnprintf_r": 6328,
+      "cdc_write": 6900,
+      "HAL_IncTick": 7000,
+      "trace_log_printf": 5198,
+      "dwc2_get_ineps_intstatus": 4968,
+      "usbd_cdc_acm_bulk_in": 4968,
+      "SEGGER_RTT_WriteNoLock": 4294,
+      "strncmp": 3842,
+      "SEGGER_RTT_Write": 3932,
+      "usbd_cdc_acm_bulk_out": 3390,
+      "usbd_event_ep_in_complete_handler": 3036,
+      "usbd_get_ep_mps": 3036,
+      "SysTick_Handler": 3000,
+      "usbd_event_ep_out_complete_handler": 2486,
+      "dwc2_get_outep_intstatus": 2486,
+      "vsnprintf": 2260,
+      "dwc2_get_outeps_intstatus": 2034,
+      "_GetAvailWriteSpace": 1808,
+      "cdc_puts": 350
+    }
+  },
+  "decodeSeconds": 14.90416600000026,
+  "checks": [
+    {
+      "name": "import",
+      "seconds": 2.616708000001381,
+      "exitCode": 0,
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--json-out",
+        "E:\\superlinkPRO\\docs\\validation\\20261024-0803-h743-cli-release\\long-import.json",
+        "import-record",
+        "--input",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261023-codex-h743-live-19d7d53-db17fe80\\portable-1s-import.etmrecord",
+        "--out",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\imported"
+      ]
+    },
+    {
+      "name": "before",
+      "seconds": 0.9371406000063871,
+      "exitCode": 0,
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--json-out",
+        "E:\\superlinkPRO\\docs\\validation\\20261024-0803-h743-cli-release\\long-before.json",
+        "query",
+        "--record",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\imported",
+        "--view",
+        "overview"
+      ]
+    },
+    {
+      "name": "extent",
+      "seconds": 0.7260250999970594,
+      "exitCode": 0,
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--json-out",
+        "E:\\superlinkPRO\\docs\\validation\\20261024-0803-h743-cli-release\\long-extent.json",
+        "record",
+        "info",
+        "--record",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\imported"
+      ]
+    },
+    {
+      "name": "redecode",
+      "seconds": 17.461710000003222,
+      "exitCode": 0,
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--json-out",
+        "E:\\superlinkPRO\\docs\\validation\\20261024-0803-h743-cli-release\\long-redecode.json",
+        "decode",
+        "--record",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\imported",
+        "--out",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\rebuilt"
+      ]
+    },
+    {
+      "name": "after",
+      "seconds": 1.1656033000035677,
+      "exitCode": 0,
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--json-out",
+        "E:\\superlinkPRO\\docs\\validation\\20261024-0803-h743-cli-release\\long-after.json",
+        "query",
+        "--record",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\rebuilt",
+        "--view",
+        "overview"
+      ]
+    },
+    {
+      "name": "page-0",
+      "seconds": 1.398723099999188,
+      "exitCode": 0,
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--json-out",
+        "E:\\superlinkPRO\\docs\\validation\\20261024-0803-h743-cli-release\\long-page-0.json",
+        "query",
+        "--record",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\rebuilt",
+        "--view",
+        "page",
+        "--offset",
+        "0",
+        "--limit",
+        "150"
+      ]
+    },
+    {
+      "name": "page-9180692",
+      "seconds": 1.6353280000039376,
+      "exitCode": 0,
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--json-out",
+        "E:\\superlinkPRO\\docs\\validation\\20261024-0803-h743-cli-release\\long-page-9180692.json",
+        "query",
+        "--record",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\rebuilt",
+        "--view",
+        "page",
+        "--offset",
+        "9180692",
+        "--limit",
+        "150"
+      ]
+    },
+    {
+      "name": "page-18361235",
+      "seconds": 1.8939277999961632,
+      "exitCode": 0,
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--json-out",
+        "E:\\superlinkPRO\\docs\\validation\\20261024-0803-h743-cli-release\\long-page-18361235.json",
+        "query",
+        "--record",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\rebuilt",
+        "--view",
+        "page",
+        "--offset",
+        "18361235",
+        "--limit",
+        "150"
+      ]
+    },
+    {
+      "name": "csv",
+      "seconds": 1.9084808999978122,
+      "exitCode": 0,
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--json-out",
+        "E:\\superlinkPRO\\docs\\validation\\20261024-0803-h743-cli-release\\long-csv.json",
+        "export",
+        "--record",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\rebuilt",
+        "--format",
+        "csv",
+        "--from-seq",
+        "10000",
+        "--to-seq",
+        "10100",
+        "--out",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\long-record\\range.csv"
+      ]
+    }
+  ]
+}

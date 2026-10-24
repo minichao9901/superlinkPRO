@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "home": "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit",
+  "download": {
+    "version": "1.0.14-native.14-rc.1",
+    "platform": "windows-x64",
+    "file": "etm-bridge-win64.zip",
+    "bytes": 117729048,
+    "sha256": "7013b00bd4f37f1260c49abff9a200a6cd19af467a951cc70b59bcf7bd3fa240",
+    "packageId": "7eeec0657b5c1df93afbf17c8b87be3a95eef91ec9bcd4af762df3fa391969af",
+    "sourceRevision": "7ac104879311a94b4ee4a791175e0b0b50a5b292",
+    "sourceDirty": false
+  },
+  "verifiedFiles": 3249,
+  "PATH": "C:\\WINDOWS\\System32;C:\\WINDOWS",
+  "checks": [
+    {
+      "name": "portable-doctor",
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "doctor"
+      ],
+      "exitCode": 0
+    },
+    {
+      "name": "portable-cli-help",
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--cli",
+        "--help"
+      ],
+      "exitCode": 0
+    },
+    {
+      "name": "portable-bridge-check",
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-bridge.exe",
+        "--check",
+        "--data-dir",
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\bridge-check-data"
+      ],
+      "exitCode": 0
+    },
+    {
+      "name": "portable-cmd",
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\etm-trace.cmd",
+        "doctor"
+      ],
+      "exitCode": 0
+    },
+    {
+      "name": "portable-node-modules",
+      "command": [
+        "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\portable-中文 路径\\etm-bridge-kit\\cli\\node\\node.exe",
+        "--input-type=module",
+        "-e",
+        "await import('usb'); await import('linkedom');\nawait import(\"file:///C:/Users/Administrator/.codex/validation/20261024-0803-h743-cli-release/portable-%E4%B8%AD%E6%96%87%20%E8%B7%AF%E5%BE%84/etm-bridge-kit/cli/web/app/dbg/cmd.js\");\nawait import(\"file:///C:/Users/Administrator/.codex/validation/20261024-0803-h743-cli-release/portable-%E4%B8%AD%E6%96%87%20%E8%B7%AF%E5%BE%84/etm-bridge-kit/cli/web/app/flash/view.js\");\nawait import(\"file:///C:/Users/Administrator/.codex/validation/20261024-0803-h743-cli-release/portable-%E4%B8%AD%E6%96%87%20%E8%B7%AF%E5%BE%84/etm-bridge-kit/cli/etm/web/app/target.js\");\nconsole.log('Imported Web debug/Flash/ETM and USB modules without opening hardware');"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "hardware": "not-run"
+}
