@@ -38,6 +38,8 @@ RTT · J-Scope 波形 · 烧录 · 源码级调试 · **ETM 执行轨迹与周�
 
 > 仓库是怎么从三个项目合并来的：见 [docs/merge-readme.md](docs/merge-readme.md) 与 [docs/merge-map.md](docs/merge-map.md)。
 
+AI / 脚本统一入口：`python -X utf8 toolbox.py catalog`。覆盖全部 Web 工具分类的操作入口、参数和完成判定，见 [统一 CLI 总指南](docs/toolbox-cli-ai.md)；全部分类/静态控件见 [接口总清单](docs/toolbox-cli-reference.json)。ETM 原生命令可通过 `toolbox.py trace ...` 调用。
+
 ## 功能总览
 
 | 页面 | 能做什么 | 实测 / 状态 |

@@ -1,0 +1,7951 @@
+{
+  "protocol": "workbench/1",
+  "entry": "toolbox.py",
+  "guide": "docs/toolbox-cli-ai.md",
+  "pages": [
+    {
+      "id": "serial",
+      "label": "串口助手",
+      "source": "web/app/serial/assistant.js",
+      "features": "ASCII/HEX/ANSI、端口、定时/快捷发送、记录、DTR/RTS",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "s-port",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "s-pick",
+          "tag": "button",
+          "type": null,
+          "label": "选择串口（浏览器会弹授权框，第一次必须手动选一次）"
+        },
+        {
+          "id": "s-scan",
+          "tag": "button",
+          "type": null,
+          "label": "刷新已授权端口列表"
+        },
+        {
+          "id": "s-baud",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "s-databits",
+          "tag": "select",
+          "type": null,
+          "label": "8765",
+          "options": [
+            {
+              "value": "8",
+              "label": "8"
+            },
+            {
+              "value": "7",
+              "label": "7"
+            },
+            {
+              "value": "6",
+              "label": "6"
+            },
+            {
+              "value": "5",
+              "label": "5"
+            }
+          ]
+        },
+        {
+          "id": "s-stopbits",
+          "tag": "select",
+          "type": null,
+          "label": "12",
+          "options": [
+            {
+              "value": "1",
+              "label": "1"
+            },
+            {
+              "value": "2",
+              "label": "2"
+            }
+          ]
+        },
+        {
+          "id": "s-parity",
+          "tag": "select",
+          "type": null,
+          "label": "无偶奇",
+          "options": [
+            {
+              "value": "none",
+              "label": "无"
+            },
+            {
+              "value": "even",
+              "label": "偶"
+            },
+            {
+              "value": "odd",
+              "label": "奇"
+            }
+          ]
+        },
+        {
+          "id": "s-flow",
+          "tag": "select",
+          "type": null,
+          "label": "无硬件 RTS/CTS",
+          "options": [
+            {
+              "value": "none",
+              "label": "无"
+            },
+            {
+              "value": "hardware",
+              "label": "硬件 RTS/CTS"
+            }
+          ]
+        },
+        {
+          "id": "s-dtr",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "s-rts",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "s-open",
+          "tag": "button",
+          "type": null,
+          "label": "连接"
+        },
+        {
+          "id": "s-close",
+          "tag": "button",
+          "type": null,
+          "label": "断开"
+        },
+        {
+          "id": "s-quick-add",
+          "tag": "button",
+          "type": "button",
+          "label": "＋ 添加快捷发送"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "ASCII"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "按 ANSI 转义码彩色渲染（像 MobaXterm）：设备发的颜色/光标控制都生效"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "HEX"
+        },
+        {
+          "id": "s-ts",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "s-tsabs",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "s-autoscroll",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "s-echo",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "s-pause",
+          "tag": "button",
+          "type": null,
+          "label": "暂停"
+        },
+        {
+          "id": "s-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "s-save",
+          "tag": "button",
+          "type": null,
+          "label": "保存数据"
+        },
+        {
+          "id": "s-record",
+          "tag": "button",
+          "type": null,
+          "label": "把收到的字节直接写进本地文件（不走接收区的 2MB 内存上限），高速采集用"
+        },
+        {
+          "id": "s-record-ts",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "s-record-auto",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "s-statclear",
+          "tag": "button",
+          "type": null,
+          "label": "计数清零"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "ASCII"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "HEX"
+        },
+        {
+          "id": "s-eol",
+          "tag": "select",
+          "type": null,
+          "label": "无 \\r\\n \\r \\n",
+          "options": [
+            {
+              "value": "none",
+              "label": "无"
+            },
+            {
+              "value": "crlf",
+              "label": "\\r\\n"
+            },
+            {
+              "value": "cr",
+              "label": "\\r"
+            },
+            {
+              "value": "lf",
+              "label": "\\n"
+            }
+          ]
+        },
+        {
+          "id": "s-timer",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "s-timer-ms",
+          "tag": "input",
+          "type": null,
+          "label": "周期，毫秒"
+        },
+        {
+          "id": "s-send",
+          "tag": "button",
+          "type": null,
+          "label": "Ctrl+Enter"
+        },
+        {
+          "id": "s-tx",
+          "tag": "textarea",
+          "type": null,
+          "label": "在这里输入要发送的内容（Ctrl+Enter 发送；HEX 模式如：01 03 00 00 00 0A C5 CD）"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "refreshPorts",
+          "line": 190
+        },
+        {
+          "name": "pickPort",
+          "line": 222
+        },
+        {
+          "name": "renamePort",
+          "line": 241
+        },
+        {
+          "name": "connect",
+          "line": 253
+        },
+        {
+          "name": "send",
+          "line": 294
+        },
+        {
+          "name": "sendText",
+          "line": 304
+        },
+        {
+          "name": "onShow",
+          "line": 537
+        },
+        {
+          "name": "save",
+          "line": 539
+        }
+      ]
+    },
+    {
+      "id": "terminal",
+      "label": "终端",
+      "source": "web/app/serial/terminal.js",
+      "features": "交互终端、回显、按键/粘贴、保存",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "t-echo",
+          "tag": "select",
+          "type": null,
+          "label": "设备回显（默认） 本地回显 双向",
+          "options": [
+            {
+              "value": "off",
+              "label": "设备回显（默认）"
+            },
+            {
+              "value": "on",
+              "label": "本地回显"
+            },
+            {
+              "value": "both",
+              "label": "双向"
+            }
+          ]
+        },
+        {
+          "id": "t-enter",
+          "tag": "select",
+          "type": null,
+          "label": "\\r (0x0D) \\r\\n \\n (0x0A)",
+          "options": [
+            {
+              "value": "cr",
+              "label": "\\r (0x0D)"
+            },
+            {
+              "value": "crlf",
+              "label": "\\r\\n"
+            },
+            {
+              "value": "lf",
+              "label": "\\n (0x0A)"
+            }
+          ]
+        },
+        {
+          "id": "t-bs",
+          "tag": "select",
+          "type": null,
+          "label": "0x7F (DEL) 0x08 (BS)",
+          "options": [
+            {
+              "value": "del",
+              "label": "0x7F (DEL)"
+            },
+            {
+              "value": "bs",
+              "label": "0x08 (BS)"
+            }
+          ]
+        },
+        {
+          "id": "t-nl",
+          "tag": "select",
+          "type": null,
+          "label": "自动补回车（\\n → \\r\\n） 原样（\\n 只换行）",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动补回车（\\n → \\r\\n）"
+            },
+            {
+              "value": "raw",
+              "label": "原样（\\n 只换行）"
+            }
+          ]
+        },
+        {
+          "id": "t-font",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "t-paste",
+          "tag": "button",
+          "type": null,
+          "label": "从剪贴板粘贴并发送（终端里 Ctrl+V 是发给设备的 0x16）"
+        },
+        {
+          "id": "t-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清屏"
+        },
+        {
+          "id": "t-save",
+          "tag": "button",
+          "type": null,
+          "label": "保存输出"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "onShow",
+          "line": 105
+        },
+        {
+          "name": "writeText",
+          "line": 118
+        },
+        {
+          "name": "pasteSend",
+          "line": 162
+        },
+        {
+          "name": "save",
+          "line": 174
+        }
+      ]
+    },
+    {
+      "id": "rtt",
+      "label": "RTT Viewer",
+      "source": "web/app/rtt/view.js",
+      "features": "探针/桥/模拟目标、通道、上下行、ELF、记录",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "r-backend",
+          "tag": "select",
+          "type": null,
+          "label": "WebUSB · CMSIS-DAP（零安装） 本地桥 · OpenOCD 本地桥 · J-Link（ch0） 内置模拟目标（演示/自测）",
+          "options": [
+            {
+              "value": "webusb",
+              "label": "WebUSB · CMSIS-DAP（零安装）"
+            },
+            {
+              "value": "bridge-openocd",
+              "label": "本地桥 · OpenOCD"
+            },
+            {
+              "value": "bridge-jlink",
+              "label": "本地桥 · J-Link（ch0）"
+            },
+            {
+              "value": "mock",
+              "label": "内置模拟目标（演示/自测）"
+            }
+          ]
+        },
+        {
+          "id": "r-usb-connect",
+          "tag": "button",
+          "type": null,
+          "label": "连接探针"
+        },
+        {
+          "id": "r-usb-pick",
+          "tag": "button",
+          "type": null,
+          "label": "换一个探针（会弹浏览器设备选择框）"
+        },
+        {
+          "id": "r-usb-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "断开"
+        },
+        {
+          "id": "r-target",
+          "tag": "select",
+          "type": null,
+          "label": "零安装通路的两种目标：ARM/Cortex-M 走 SWD + AHB-AP（浏览器里做 ADIv5）；RISC-V（HPM 等）走 JTAG + DMI + SBA 系统总线读。两者都只用 WebUSB，不需要装驱动",
+          "options": [
+            {
+              "value": "swd",
+              "label": "SWD / ARM（Cortex-M，默认）"
+            },
+            {
+              "value": "riscv",
+              "label": "RISC-V / JTAG（HPM、CH32V…）"
+            }
+          ]
+        },
+        {
+          "id": "r-usb-clock",
+          "tag": "select",
+          "type": null,
+          "label": "SWD 时钟：自动 = 从高到低试到通为止；RISC-V/JTAG 下它是 JTAG TCK 频率（DAP_SWJ_Clock），同样留「自动」即可",
+          "options": [
+            {
+              "value": "0",
+              "label": "自动"
+            },
+            {
+              "value": "1000",
+              "label": "1 MHz"
+            },
+            {
+              "value": "5000",
+              "label": "5 MHz"
+            },
+            {
+              "value": "10000",
+              "label": "10 MHz"
+            },
+            {
+              "value": "20000",
+              "label": "20 MHz"
+            },
+            {
+              "value": "30000",
+              "label": "30 MHz"
+            },
+            {
+              "value": "40000",
+              "label": "40 MHz"
+            },
+            {
+              "value": "45000",
+              "label": "45 MHz"
+            },
+            {
+              "value": "50000",
+              "label": "50 MHz"
+            },
+            {
+              "value": "60000",
+              "label": "60 MHz"
+            }
+          ]
+        },
+        {
+          "id": "r-usb-all",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "r-bridge-url",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "r-jlink-device",
+          "tag": "input",
+          "type": null,
+          "label": "给 J-Link 的器件名（如 STM32F103C8 / STM32F103RB / STM32H7B0VB）"
+        },
+        {
+          "id": "r-jlink-speed",
+          "tag": "select",
+          "type": null,
+          "label": "SWD 时钟（J-Link）：50000 = 50MHz（J-Link PRO + STM32F103RB 实测可用）",
+          "options": [
+            {
+              "value": "1000",
+              "label": "1 MHz"
+            },
+            {
+              "value": "5000",
+              "label": "5 MHz"
+            },
+            {
+              "value": "10000",
+              "label": "10 MHz"
+            },
+            {
+              "value": "20000",
+              "label": "20 MHz"
+            },
+            {
+              "value": "30000",
+              "label": "30 MHz"
+            },
+            {
+              "value": "40000",
+              "label": "40 MHz"
+            },
+            {
+              "value": "45000",
+              "label": "45 MHz"
+            },
+            {
+              "value": "50000",
+              "label": "50 MHz"
+            },
+            {
+              "value": "60000",
+              "label": "60 MHz"
+            }
+          ]
+        },
+        {
+          "id": "r-jlink-fast",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "r-ocd-cfgs",
+          "tag": "input",
+          "type": null,
+          "label": "逗号/空格分隔，按顺序加载。相对 OpenOCD scripts 目录或绝对路径。第一个 cfg 是 cmsis-dap 时会自动加 backend usb_bulk"
+        },
+        {
+          "id": "r-ocd-cfgs-pick",
+          "tag": "button",
+          "type": "button",
+          "label": "列出桥所在机器的 OpenOCD cfg 让你挑（浏览器拿不到本地文件路径，所以列表由桥提供）"
+        },
+        {
+          "id": "r-ocd-speed",
+          "tag": "select",
+          "type": null,
+          "label": "不设（默认） 1 MHz 5 MHz 10 MHz 20 MHz 30 MHz 40 MHz 45 MHz 50 MHz 60 MHz",
+          "options": [
+            {
+              "value": "",
+              "label": "不设（默认）"
+            },
+            {
+              "value": "1000",
+              "label": "1 MHz"
+            },
+            {
+              "value": "5000",
+              "label": "5 MHz"
+            },
+            {
+              "value": "10000",
+              "label": "10 MHz"
+            },
+            {
+              "value": "20000",
+              "label": "20 MHz"
+            },
+            {
+              "value": "30000",
+              "label": "30 MHz"
+            },
+            {
+              "value": "40000",
+              "label": "40 MHz"
+            },
+            {
+              "value": "45000",
+              "label": "45 MHz"
+            },
+            {
+              "value": "50000",
+              "label": "50 MHz"
+            },
+            {
+              "value": "60000",
+              "label": "60 MHz"
+            }
+          ]
+        },
+        {
+          "id": "r-bridge-connect",
+          "tag": "button",
+          "type": null,
+          "label": "连接桥"
+        },
+        {
+          "id": "r-bridge-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "断开"
+        },
+        {
+          "id": "r-chip",
+          "tag": "select",
+          "type": null,
+          "label": "ARM：WebUSB 走 SWD，桥侧走 SWD 还是 JTAG 由你的 OpenOCD cfg 决定；RISC-V：只能 JTAG。换芯片在这里选，RAM 扫描范围自动带出（可手改）。走「本地桥 · OpenOCD」时 ARM 组的名字同时是 OpenOCD 的目标 cfg；零安装 WebUSB 模式只用到 RAM ",
+          "options": [
+            {
+              "value": "stm32f103",
+              "label": "STM32F1（F103 等）"
+            },
+            {
+              "value": "stm32f0",
+              "label": "STM32F0"
+            },
+            {
+              "value": "stm32f2",
+              "label": "STM32F2"
+            },
+            {
+              "value": "stm32f3",
+              "label": "STM32F3"
+            },
+            {
+              "value": "stm32f4",
+              "label": "STM32F4"
+            },
+            {
+              "value": "stm32f7",
+              "label": "STM32F7"
+            },
+            {
+              "value": "stm32g0",
+              "label": "STM32G0"
+            },
+            {
+              "value": "stm32g4",
+              "label": "STM32G4"
+            },
+            {
+              "value": "stm32h7",
+              "label": "STM32H7（H743 等）"
+            },
+            {
+              "value": "stm32h7b0",
+              "label": "STM32H7B0 / H7A3 / H7B3（H7B0VBT6 KIT）"
+            },
+            {
+              "value": "stm32h7a3",
+              "label": "STM32H7A3"
+            },
+            {
+              "value": "stm32h7b3",
+              "label": "STM32H7B3"
+            },
+            {
+              "value": "stm32h5",
+              "label": "STM32H5"
+            },
+            {
+              "value": "stm32l0",
+              "label": "STM32L0"
+            },
+            {
+              "value": "stm32l1",
+              "label": "STM32L1"
+            },
+            {
+              "value": "stm32l4",
+              "label": "STM32L4 / L4+"
+            },
+            {
+              "value": "stm32l5",
+              "label": "STM32L5"
+            },
+            {
+              "value": "stm32u5",
+              "label": "STM32U5"
+            },
+            {
+              "value": "stm32c0",
+              "label": "STM32C0"
+            },
+            {
+              "value": "stm32wb",
+              "label": "STM32WB"
+            },
+            {
+              "value": "stm32wl",
+              "label": "STM32WL"
+            },
+            {
+              "value": "esp32s31",
+              "label": "ESP32-S31（板载 USB-JTAG）"
+            },
+            {
+              "value": "esp32",
+              "label": "ESP32（Wrover Kit）"
+            },
+            {
+              "value": "custom",
+              "label": "自定义 cfg…"
+            },
+            {
+              "value": "riscv-other",
+              "label": "其它 RISC-V（自己填 RAM 范围）"
+            }
+          ]
+        },
+        {
+          "id": "r-range",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "r-addr",
+          "tag": "input",
+          "type": null,
+          "label": "留空 = 自动扫描 / 读 ELF"
+        },
+        {
+          "id": "r-elf",
+          "tag": "button",
+          "type": null,
+          "label": "载入 ELF…"
+        },
+        {
+          "id": "r-find",
+          "tag": "button",
+          "type": null,
+          "label": "扫描控制块"
+        },
+        {
+          "id": "r-poll",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "r-reset",
+          "tag": "button",
+          "type": null,
+          "label": "复位目标"
+        },
+        {
+          "id": "r-restart",
+          "tag": "button",
+          "type": null,
+          "label": "重连 RTT"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "终端(ANSI)"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "文本"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "HEX"
+        },
+        {
+          "id": "r-ts",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "r-autoscroll",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "r-pause",
+          "tag": "button",
+          "type": null,
+          "label": "暂停"
+        },
+        {
+          "id": "r-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "r-save",
+          "tag": "button",
+          "type": null,
+          "label": "保存数据"
+        },
+        {
+          "id": "r-record",
+          "tag": "button",
+          "type": null,
+          "label": "把读到的 RTT 上行字节直接写进本地文件（不走记录的 2MB 内存上限），高速采集用"
+        },
+        {
+          "id": "r-record-ts",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "r-record-auto",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "r-eol",
+          "tag": "select",
+          "type": null,
+          "label": "\\r\\r\\n \\n无",
+          "options": [
+            {
+              "value": "cr",
+              "label": "\\r"
+            },
+            {
+              "value": "crlf",
+              "label": "\\r\\n"
+            },
+            {
+              "value": "lf",
+              "label": "\\n"
+            },
+            {
+              "value": "none",
+              "label": "无"
+            }
+          ]
+        },
+        {
+          "id": "r-hexsend",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "r-tx",
+          "tag": "input",
+          "type": null,
+          "label": "给固件发送输入（↑/↓ 翻历史；Enter 发送）"
+        },
+        {
+          "id": "r-send",
+          "tag": "button",
+          "type": null,
+          "label": "发送"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "connectProbe",
+          "line": 350
+        },
+        {
+          "name": "disconnect",
+          "line": 520
+        },
+        {
+          "name": "onShow",
+          "line": 821
+        },
+        {
+          "name": "resetTarget",
+          "line": 937
+        },
+        {
+          "name": "save",
+          "line": 1107
+        }
+      ]
+    },
+    {
+      "id": "rttcdc",
+      "label": "RTT 转发",
+      "source": "web/app/hid/stream.js",
+      "features": "RTT→CDC、HID配置、接收/记录、质量报告",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "h-connect",
+          "tag": "button",
+          "type": null,
+          "label": "连接已授权探针；首次使用或有多个探针时弹出设备选择框"
+        },
+        {
+          "id": "h-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "先停止探针侧 RTT 转发，再关闭 HID 连接；CDC 串口由串口页单独管理"
+        },
+        {
+          "id": "h-addr",
+          "tag": "input",
+          "type": null,
+          "label": "控制块搜索起点。Cortex-M7（H743 / H7B3 等）的 DTCM 探针读不到，要给 AXI SRAM（如 0x24000000）"
+        },
+        {
+          "id": "h-elf",
+          "tag": "button",
+          "type": null,
+          "label": "从 ELF 里读 _SEGGER_RTT 符号，顺手把搜索长度收成 0x1000"
+        },
+        {
+          "id": "h-size",
+          "tag": "input",
+          "type": null,
+          "label": "0 = 探针默认 64 KB（从上面的地址起搜）"
+        },
+        {
+          "id": "h-chan",
+          "tag": "input",
+          "type": null,
+          "label": "RTT 上行通道号，0 = channel 0"
+        },
+        {
+          "id": "h-target",
+          "tag": "select",
+          "type": null,
+          "label": "探针的全局目标类型（HID 0x31 action 10）。SWD/ARM 走 DAPLink 的 swd_host；RISC-V/JTAG 走探针里的 DMI+SBA 引擎（TAP 复位 + IR=0x11 + 唤醒 DM）。粘性：设一次就一直有效，采样器那个后端也跟着它走",
+          "options": [
+            {
+              "value": "swd",
+              "label": "SWD / ARM"
+            },
+            {
+              "value": "riscv",
+              "label": "RISC-V / JTAG"
+            }
+          ]
+        },
+        {
+          "id": "h-clock",
+          "tag": "select",
+          "type": null,
+          "label": "运行时调参（HID 0x31 action 7），改完立刻生效",
+          "options": []
+        },
+        {
+          "id": "h-start",
+          "tag": "button",
+          "type": null,
+          "label": "启动转发"
+        },
+        {
+          "id": "h-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止"
+        },
+        {
+          "id": "h-auto",
+          "tag": "button",
+          "type": null,
+          "label": "让探针自己从 0x20000000 起扫 64 KB 找 \"SEGGER RTT\" 签名"
+        },
+        {
+          "id": "h-refresh",
+          "tag": "button",
+          "type": null,
+          "label": "刷新状态"
+        },
+        {
+          "id": "c-port",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "c-pick",
+          "tag": "button",
+          "type": null,
+          "label": "选择串口（浏览器会弹授权框，第一次必须手动选一次）"
+        },
+        {
+          "id": "c-scan",
+          "tag": "button",
+          "type": null,
+          "label": "刷新已授权端口列表"
+        },
+        {
+          "id": "c-baud",
+          "tag": "input",
+          "type": null,
+          "label": "CDC 虚拟串口不按波特率跑，填什么都行"
+        },
+        {
+          "id": "c-open",
+          "tag": "button",
+          "type": null,
+          "label": "连接"
+        },
+        {
+          "id": "c-close",
+          "tag": "button",
+          "type": null,
+          "label": "断开"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "ASCII"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "按 ANSI 转义码彩色渲染（像 MobaXterm）"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "HEX"
+        },
+        {
+          "id": "c-ts",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "c-tsabs",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "c-autoscroll",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "c-save",
+          "tag": "button",
+          "type": null,
+          "label": "把接收区里的数据存成 txt（按当前 ASCII/HEX 与时间戳设置）"
+        },
+        {
+          "id": "c-pause",
+          "tag": "button",
+          "type": null,
+          "label": "暂停"
+        },
+        {
+          "id": "c-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "c-record",
+          "tag": "button",
+          "type": null,
+          "label": "把收到的字节直接写进本地文件（不走接收区 2MB 上限），高速采集用"
+        },
+        {
+          "id": "c-record-ts",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "c-record-auto",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "c-statclear",
+          "tag": "button",
+          "type": null,
+          "label": "计数清零"
+        },
+        {
+          "id": "c-quality",
+          "tag": "button",
+          "type": null,
+          "label": "质量"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "onShow",
+          "line": 138
+        },
+        {
+          "name": "refreshPorts",
+          "line": 152
+        },
+        {
+          "name": "pickPort",
+          "line": 179
+        },
+        {
+          "name": "connect",
+          "line": 192
+        },
+        {
+          "name": "save",
+          "line": 250
+        },
+        {
+          "name": "summary",
+          "line": 376
+        }
+      ]
+    },
+    {
+      "id": "spicdc",
+      "label": "SPI 转发",
+      "source": "web/app/spi-cdc/view.js",
+      "features": "SPI从机→CDC、DMA、接收/记录、状态",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "si-connect",
+          "tag": "button",
+          "type": null,
+          "label": "自动连接唯一已授权的探针；首次或多个设备时弹框选择"
+        },
+        {
+          "id": "si-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "停止探针 SPI 转发并关闭 HID 连接；接收串口可在下方单独关闭"
+        },
+        {
+          "id": "si-pinmap-btn",
+          "tag": "button",
+          "type": null,
+          "label": "查看 SPI 从机的 CS、SCK、MOSI 与 GND 接线"
+        },
+        {
+          "id": "si-mode",
+          "tag": "select",
+          "type": null,
+          "label": "Mode 0 · CPOL 0 / CPHA 0Mode 1 · CPOL 0 / CPHA 1Mode 2 · CPOL 1 / CPHA 0Mode 3 · CPOL 1 / CPHA 1",
+          "options": [
+            {
+              "value": "0",
+              "label": "Mode 0 · CPOL 0 / CPHA 0"
+            },
+            {
+              "value": "1",
+              "label": "Mode 1 · CPOL 0 / CPHA 1"
+            },
+            {
+              "value": "2",
+              "label": "Mode 2 · CPOL 1 / CPHA 0"
+            },
+            {
+              "value": "3",
+              "label": "Mode 3 · CPOL 1 / CPHA 1"
+            }
+          ]
+        },
+        {
+          "id": "si-lsb",
+          "tag": "select",
+          "type": null,
+          "label": "MSB firstLSB first",
+          "options": [
+            {
+              "value": "0",
+              "label": "MSB first"
+            },
+            {
+              "value": "1",
+              "label": "LSB first"
+            }
+          ]
+        },
+        {
+          "id": "si-start",
+          "tag": "button",
+          "type": null,
+          "label": "启动转发"
+        },
+        {
+          "id": "si-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止"
+        },
+        {
+          "id": "si-status",
+          "tag": "button",
+          "type": null,
+          "label": "刷新状态"
+        },
+        {
+          "id": "si-choose",
+          "tag": "button",
+          "type": null,
+          "label": "选择其它探针…"
+        },
+        {
+          "id": "si-rx-port",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "si-rx-pick",
+          "tag": "button",
+          "type": null,
+          "label": "选择串口（浏览器会弹授权框，第一次必须手动选一次）"
+        },
+        {
+          "id": "si-rx-scan",
+          "tag": "button",
+          "type": null,
+          "label": "刷新已授权端口列表"
+        },
+        {
+          "id": "si-rx-baud",
+          "tag": "input",
+          "type": null,
+          "label": "CDC 虚拟串口不按波特率跑，填什么都行"
+        },
+        {
+          "id": "si-rx-open",
+          "tag": "button",
+          "type": null,
+          "label": "连接"
+        },
+        {
+          "id": "si-rx-close",
+          "tag": "button",
+          "type": null,
+          "label": "断开"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "ASCII"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "按 ANSI 转义码彩色渲染（像 MobaXterm）"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "HEX"
+        },
+        {
+          "id": "si-rx-ts",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "si-rx-tsabs",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "si-rx-autoscroll",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "si-rx-save",
+          "tag": "button",
+          "type": null,
+          "label": "把接收区里的数据存成 txt（按当前 ASCII/HEX 与时间戳设置）"
+        },
+        {
+          "id": "si-rx-pause",
+          "tag": "button",
+          "type": null,
+          "label": "暂停"
+        },
+        {
+          "id": "si-rx-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "si-rx-record",
+          "tag": "button",
+          "type": null,
+          "label": "把收到的字节直接写进本地文件（不走接收区 2MB 上限），高速采集用"
+        },
+        {
+          "id": "si-rx-record-ts",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "si-rx-record-auto",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "si-rx-statclear",
+          "tag": "button",
+          "type": null,
+          "label": "计数清零"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "onShow",
+          "line": 31
+        },
+        {
+          "name": "render",
+          "line": 32
+        }
+      ]
+    },
+    {
+      "id": "scope",
+      "label": "J-Scope",
+      "source": "web/app/scope/view.js",
+      "features": "ELF变量、1–8通道、采样、触发/游标、CSV/原始数据、质量",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "sc-side-capture-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "采集"
+        },
+        {
+          "id": "sc-side-variables-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "变量"
+        },
+        {
+          "id": "sc-side-trigger-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "触发"
+        },
+        {
+          "id": "sc-side-help-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "帮助"
+        },
+        {
+          "id": "sc-connect",
+          "tag": "button",
+          "type": null,
+          "label": "连接已授权探针；首次使用或连接失败时弹出设备选择框"
+        },
+        {
+          "id": "sc-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "停止采样并关闭 HID 配置连接和 USB 数据端点；不关闭目标电源"
+        },
+        {
+          "id": "sc-mock",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sc-usb",
+          "tag": "button",
+          "type": null,
+          "label": "WebUSB 认领 interface 0，走那个空闲的 bulk IN 端点 0x83"
+        },
+        {
+          "id": "sc-period",
+          "tag": "input",
+          "type": null,
+          "label": "µs，可填 2.25 / 2.5 / 2.75；小数周期需新版探针固件，按 24 MHz tick 量化"
+        },
+        {
+          "id": "sc-seconds",
+          "tag": "input",
+          "type": null,
+          "label": "缓冲容量 = 实测速率 × 时长（页面会显示占多少内存）"
+        },
+        {
+          "id": "sc-target",
+          "tag": "select",
+          "type": null,
+          "label": "探针的全局目标类型（HID 0x31 action 10，与 RTT-over-JTAG 共用同一个开关）。粘性：设一次就一直有效。切到 RISC-V/JTAG 后本页后端也跟着换（探针侧采样器的传输后端 = 全局目标类型）",
+          "options": [
+            {
+              "value": "swd",
+              "label": "SWD / ARM"
+            },
+            {
+              "value": "riscv",
+              "label": "RISC-V / JTAG"
+            }
+          ]
+        },
+        {
+          "id": "sc-clock",
+          "tag": "select",
+          "type": null,
+          "label": "与 RTT Viewer 同款档位；固件自带失败自动降档",
+          "options": []
+        },
+        {
+          "id": "sc-cdcoff",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sc-batch",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sc-bench",
+          "tag": "button",
+          "type": null,
+          "label": "让探针用当前计划空跑一段，回报真实 µs/样本（M0 标定；假探针会假装一个结果）"
+        },
+        {
+          "id": "sc-recc",
+          "tag": "button",
+          "type": null,
+          "label": "按当前计划的有效标定：SWD 取读取耗时×1.15+1µs，JTAG 取×1.5，向上取整且不小于3µs；这是起始建议，稳定性以实采计数为准"
+        },
+        {
+          "id": "sc-elf",
+          "tag": "button",
+          "type": null,
+          "label": "解析 .elf 的 DWARF：全局/静态变量、结构体成员，以及按下标添加数组元素"
+        },
+        {
+          "id": "sc-varclear",
+          "tag": "button",
+          "type": null,
+          "label": "清空勾选"
+        },
+        {
+          "id": "sc-arraypath",
+          "tag": "input",
+          "type": null,
+          "label": "数组[0] 或 数组[0].成员"
+        },
+        {
+          "id": "sc-arrayadd",
+          "tag": "button",
+          "type": null,
+          "label": "添加元素"
+        },
+        {
+          "id": "sc-search",
+          "tag": "input",
+          "type": null,
+          "label": "变量名…"
+        },
+        {
+          "id": "sc-trig-mode",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "sc-trig-ch",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "sc-trig-level",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "sc-trig-pre",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "sc-trig-post",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "sc-trig-single",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sc-trig-find",
+          "tag": "button",
+          "type": null,
+          "label": "在已经采到的数据里重新找下一个命中点 —— 改个阈值就能立刻重新定位，不用重采"
+        },
+        {
+          "id": "sc-trig-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清除触发"
+        },
+        {
+          "id": "sc-start",
+          "tag": "button",
+          "type": null,
+          "label": "开始采样"
+        },
+        {
+          "id": "sc-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止"
+        },
+        {
+          "id": "sc-fit",
+          "tag": "button",
+          "type": null,
+          "label": "全览（也支持双击画布）"
+        },
+        {
+          "id": "sc-zin",
+          "tag": "button",
+          "type": null,
+          "label": "放大（滚轮也行）"
+        },
+        {
+          "id": "sc-zout",
+          "tag": "button",
+          "type": null,
+          "label": "缩小"
+        },
+        {
+          "id": "sc-zoompts",
+          "tag": "button",
+          "type": null,
+          "label": "把视窗缩到「每列约 1 个采样点」—— 这时画的是连起来的采样点折线（不是包络带）；看慢信号（比如 100 Hz 正弦）的波形形状用这个"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "叠加"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "分道"
+        },
+        {
+          "id": "sc-shared",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sc-raw",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sc-mark-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清除测量游标 A/B（Esc 也行）"
+        },
+        {
+          "id": "sc-csv",
+          "tag": "button",
+          "type": null,
+          "label": "按当前缓冲导出 CSV（分块生成，长采集也不会卡死）"
+        },
+        {
+          "id": "sc-save",
+          "tag": "button",
+          "type": null,
+          "label": "把记录的原始包存成 .jsp（可以离线回放）"
+        },
+        {
+          "id": "sc-open",
+          "tag": "button",
+          "type": null,
+          "label": "打开 .jsp 回放 —— 不用连硬件也能看波形/调触发"
+        },
+        {
+          "id": "sc-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "sc-quality",
+          "tag": "button",
+          "type": null,
+          "label": "质量"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "onShow",
+          "line": 261
+        },
+        {
+          "name": "zoomToPoints",
+          "line": 307
+        },
+        {
+          "name": "connectHid",
+          "line": 319
+        },
+        {
+          "name": "connectUsb",
+          "line": 394
+        },
+        {
+          "name": "releaseProbe",
+          "line": 447
+        },
+        {
+          "name": "disconnect",
+          "line": 486
+        },
+        {
+          "name": "setMock",
+          "line": 500
+        },
+        {
+          "name": "loadElfFile",
+          "line": 527
+        },
+        {
+          "name": "addArrayElement",
+          "line": 564
+        },
+        {
+          "name": "renderVars",
+          "line": 589
+        },
+        {
+          "name": "toggleVar",
+          "line": 627
+        },
+        {
+          "name": "updatePlan",
+          "line": 638
+        },
+        {
+          "name": "mockVars",
+          "line": 728
+        },
+        {
+          "name": "periodUs",
+          "line": 733
+        },
+        {
+          "name": "rateAdvice",
+          "line": 734
+        },
+        {
+          "name": "rateWarning",
+          "line": 738
+        },
+        {
+          "name": "seconds",
+          "line": 745
+        },
+        {
+          "name": "start",
+          "line": 748
+        },
+        {
+          "name": "stop",
+          "line": 1052
+        },
+        {
+          "name": "applyTargetType",
+          "line": 1100
+        },
+        {
+          "name": "setBackend",
+          "line": 1157
+        },
+        {
+          "name": "benchKeyOf",
+          "line": 1216
+        },
+        {
+          "name": "benchFresh",
+          "line": 1233
+        },
+        {
+          "name": "benchKeyWhy",
+          "line": 1242
+        },
+        {
+          "name": "uiBackend",
+          "line": 1267
+        },
+        {
+          "name": "fastWordUs",
+          "line": 1281
+        },
+        {
+          "name": "planClockMhz",
+          "line": 1287
+        },
+        {
+          "name": "planEstimateUs",
+          "line": 1292
+        },
+        {
+          "name": "recPeriodUsFor",
+          "line": 1297
+        },
+        {
+          "name": "bench",
+          "line": 1313
+        },
+        {
+          "name": "applyRecPeriod",
+          "line": 1390
+        },
+        {
+          "name": "isReal",
+          "line": 1405
+        },
+        {
+          "name": "signed",
+          "line": 1406
+        },
+        {
+          "name": "hidXfer",
+          "line": 1407
+        },
+        {
+          "name": "configureScope",
+          "line": 1413
+        },
+        {
+          "name": "readScopeMetrics",
+          "line": 1424
+        },
+        {
+          "name": "onChunk",
+          "line": 1447
+        },
+        {
+          "name": "clear",
+          "line": 1595
+        },
+        {
+          "name": "trigCfg",
+          "line": 1613
+        },
+        {
+          "name": "applyTrigger",
+          "line": 1624
+        },
+        {
+          "name": "findNextTrigger",
+          "line": 1649
+        },
+        {
+          "name": "clearTrigger",
+          "line": 1665
+        },
+        {
+          "name": "exportCsv",
+          "line": 1673
+        },
+        {
+          "name": "saveRaw",
+          "line": 1692
+        },
+        {
+          "name": "replayFile",
+          "line": 1700
+        },
+        {
+          "name": "setStatusText",
+          "line": 1728
+        },
+        {
+          "name": "syncButtons",
+          "line": 1735
+        },
+        {
+          "name": "drawFrame",
+          "line": 1762
+        },
+        {
+          "name": "renderLegend",
+          "line": 1819
+        },
+        {
+          "name": "summary",
+          "line": 1842
+        },
+        {
+          "name": "if",
+          "line": 1879
+        },
+        {
+          "name": "if",
+          "line": 1880
+        }
+      ]
+    },
+    {
+      "id": "dbg",
+      "label": "调试器",
+      "source": "web/app/dbg/view.js",
+      "features": "ARM/RISC-V、断点/单步、寄存器/内存/变量/调用栈、异常、SVD",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "d-side-session-tab",
+          "tag": "button",
+          "type": null,
+          "label": "会话"
+        },
+        {
+          "id": "d-side-breaks-tab",
+          "tag": "button",
+          "type": null,
+          "label": "断点"
+        },
+        {
+          "id": "d-side-frames-tab",
+          "tag": "button",
+          "type": null,
+          "label": "栈帧"
+        },
+        {
+          "id": "d-backend",
+          "tag": "select",
+          "type": null,
+          "label": "调试连接方式",
+          "options": [
+            {
+              "value": "webusb",
+              "label": "SWD / ARM"
+            },
+            {
+              "value": "riscv",
+              "label": "JTAG / RISC-V"
+            },
+            {
+              "value": "mock",
+              "label": "模拟目标"
+            }
+          ]
+        },
+        {
+          "id": "d-hpm-target",
+          "tag": "select",
+          "type": null,
+          "label": "选择板卡以使用对应的内存与复位配置",
+          "options": []
+        },
+        {
+          "id": "d-clock",
+          "tag": "select",
+          "type": null,
+          "label": "连接后校验通信，必要时降频",
+          "options": [
+            {
+              "value": "10000",
+              "label": "10 MHz（默认）"
+            },
+            {
+              "value": "20000",
+              "label": "20 MHz"
+            },
+            {
+              "value": "5000",
+              "label": "5 MHz"
+            },
+            {
+              "value": "2000",
+              "label": "2 MHz"
+            },
+            {
+              "value": "1000",
+              "label": "1 MHz"
+            },
+            {
+              "value": "500",
+              "label": "500 kHz"
+            },
+            {
+              "value": "200",
+              "label": "200 kHz"
+            }
+          ]
+        },
+        {
+          "id": "d-connect",
+          "tag": "button",
+          "type": null,
+          "label": "连接"
+        },
+        {
+          "id": "d-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "断开"
+        },
+        {
+          "id": "d-elf-pick",
+          "tag": "button",
+          "type": null,
+          "label": "载入 ELF…"
+        },
+        {
+          "id": "d-elf-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "d-image-pick",
+          "tag": "button",
+          "type": null,
+          "label": "授权 load_image 和 dump_image 读写此目录下的镜像文件"
+        },
+        {
+          "id": "d-reset-halt",
+          "tag": "button",
+          "type": null,
+          "label": "复位并停"
+        },
+        {
+          "id": "d-reset-run",
+          "tag": "button",
+          "type": null,
+          "label": "复位并跑"
+        },
+        {
+          "id": "d-bp-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空断点"
+        },
+        {
+          "id": "d-wp-addr",
+          "tag": "input",
+          "type": null,
+          "label": "观察地址或变量"
+        },
+        {
+          "id": "d-wp-mode",
+          "tag": "select",
+          "type": null,
+          "label": "观察访问类型",
+          "options": [
+            {
+              "value": "w",
+              "label": "写入"
+            },
+            {
+              "value": "r",
+              "label": "读取"
+            },
+            {
+              "value": "rw",
+              "label": "读写"
+            }
+          ]
+        },
+        {
+          "id": "d-wp-size",
+          "tag": "select",
+          "type": null,
+          "label": "观察字节范围",
+          "options": [
+            {
+              "value": "1",
+              "label": "1"
+            },
+            {
+              "value": "2",
+              "label": "2"
+            },
+            {
+              "value": "4",
+              "label": "4"
+            },
+            {
+              "value": "8",
+              "label": "8"
+            },
+            {
+              "value": "16",
+              "label": "16"
+            },
+            {
+              "value": "32",
+              "label": "32"
+            },
+            {
+              "value": "64",
+              "label": "64"
+            }
+          ]
+        },
+        {
+          "id": "d-wp-add",
+          "tag": "button",
+          "type": null,
+          "label": "添加"
+        },
+        {
+          "id": "d-wp-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "d-bt",
+          "tag": "button",
+          "type": null,
+          "label": "栈回溯"
+        },
+        {
+          "id": "d-bt-scan",
+          "tag": "button",
+          "type": null,
+          "label": "扫描候选地址"
+        },
+        {
+          "id": "d-halt",
+          "tag": "button",
+          "type": null,
+          "label": "暂停目标（Halt）"
+        },
+        {
+          "id": "d-cont",
+          "tag": "button",
+          "type": null,
+          "label": "继续运行（F5）—— PC 停在断点上时会先跨过它"
+        },
+        {
+          "id": "d-step",
+          "tag": "button",
+          "type": null,
+          "label": "单步一条指令（指令级；探针不执行 C_STEP 时自动改用断点单步）"
+        },
+        {
+          "id": "d-step-over",
+          "tag": "button",
+          "type": null,
+          "label": "单步跳过这一行（源码级，F10）—— 函数调用整行跳过"
+        },
+        {
+          "id": "d-step-into",
+          "tag": "button",
+          "type": null,
+          "label": "单步进入（源码级，F11）—— 当前是调用就进被调函数的第一条语句"
+        },
+        {
+          "id": "d-step-out",
+          "tag": "button",
+          "type": null,
+          "label": "单步跳出（源码级，Shift+F11 / Ctrl+F11）—— 跑到调用点的下一条指令"
+        },
+        {
+          "id": "d-follow-pc",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "d-src-pick",
+          "tag": "button",
+          "type": null,
+          "label": "用浏览器的目录选择器授权一次工程目录（Chromium；只需选一次，之后按需读文件）"
+        },
+        {
+          "id": "d-src-dir",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "d-cmd",
+          "tag": "input",
+          "type": null,
+          "label": "h / r / md 0x20000000 / b main.c:192 / p g_pack / w g_var / n / si / fin / c"
+        },
+        {
+          "id": "d-run",
+          "tag": "button",
+          "type": null,
+          "label": "执行"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "寄存器"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "内存"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "变量"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "SVD"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "RTT"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "异常"
+        },
+        {
+          "id": "d-reg-refresh",
+          "tag": "button",
+          "type": null,
+          "label": "刷新"
+        },
+        {
+          "id": "d-fault-read",
+          "tag": "button",
+          "type": null,
+          "label": "读取现场"
+        },
+        {
+          "id": "d-fault-json",
+          "tag": "button",
+          "type": null,
+          "label": "JSON"
+        },
+        {
+          "id": "d-fault-md",
+          "tag": "button",
+          "type": null,
+          "label": "报告"
+        },
+        {
+          "id": "d-fault-catch",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "d-mem-addr",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "d-mem-len",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "d-mem-read",
+          "tag": "button",
+          "type": null,
+          "label": "读"
+        },
+        {
+          "id": "d-mem-write-on",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "d-mem-ea",
+          "tag": "input",
+          "type": null,
+          "label": "地址"
+        },
+        {
+          "id": "d-mem-ev",
+          "tag": "input",
+          "type": null,
+          "label": "字节（如 01 或 0x01）"
+        },
+        {
+          "id": "d-mem-write",
+          "tag": "button",
+          "type": null,
+          "label": "写入"
+        },
+        {
+          "id": "d-sym-q",
+          "tag": "input",
+          "type": null,
+          "label": "搜符号（变量优先，留空看全部）"
+        },
+        {
+          "id": "d-watch-in",
+          "tag": "input",
+          "type": null,
+          "label": "监视：变量名 / main+4 / 0x20000000"
+        },
+        {
+          "id": "d-watch-add",
+          "tag": "button",
+          "type": null,
+          "label": "加"
+        },
+        {
+          "id": "d-watch-refresh",
+          "tag": "button",
+          "type": null,
+          "label": "刷新值"
+        },
+        {
+          "id": "d-watch-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "d-watch-live",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "d-svd-bundled",
+          "tag": "select",
+          "type": null,
+          "label": "内置 SVD 型号",
+          "options": [
+            {
+              "value": "STM32F103xx",
+              "label": "STM32F103"
+            },
+            {
+              "value": "STM32H743",
+              "label": "STM32H743"
+            },
+            {
+              "value": "STM32H750",
+              "label": "STM32H750"
+            }
+          ]
+        },
+        {
+          "id": "d-svd-default",
+          "tag": "button",
+          "type": null,
+          "label": "载入内置"
+        },
+        {
+          "id": "d-svd-pick",
+          "tag": "button",
+          "type": null,
+          "label": "选择 .svd…"
+        },
+        {
+          "id": "d-svd-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "d-svd-periph",
+          "tag": "select",
+          "type": null,
+          "label": "—",
+          "options": [
+            {
+              "value": "",
+              "label": "—"
+            }
+          ]
+        },
+        {
+          "id": "d-svd-reg",
+          "tag": "select",
+          "type": null,
+          "label": "—",
+          "options": [
+            {
+              "value": "",
+              "label": "—"
+            }
+          ]
+        },
+        {
+          "id": "d-svd-read",
+          "tag": "button",
+          "type": null,
+          "label": "读取"
+        },
+        {
+          "id": "d-svd-live",
+          "tag": "input",
+          "type": "checkbox",
+          "label": "仅刷新当前 SVD 寄存器，约每 500 ms；变化约 2 秒后恢复颜色"
+        },
+        {
+          "id": "d-rtt-locate",
+          "tag": "button",
+          "type": null,
+          "label": "定位并开始"
+        },
+        {
+          "id": "d-rtt-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止"
+        },
+        {
+          "id": "d-rtt-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清屏"
+        },
+        {
+          "id": "d-rtt-on",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "d-rtt-addr",
+          "tag": "input",
+          "type": null,
+          "label": "留空 = 用 _SEGGER_RTT 符号"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "initSidebar",
+          "line": 296
+        },
+        {
+          "name": "selectSidebar",
+          "line": 310
+        },
+        {
+          "name": "renderElfInfo",
+          "line": 316
+        },
+        {
+          "name": "onShow",
+          "line": 325
+        },
+        {
+          "name": "connect",
+          "line": 486
+        },
+        {
+          "name": "disconnect",
+          "line": 550
+        },
+        {
+          "name": "refreshAll",
+          "line": 610
+        },
+        {
+          "name": "afterStop",
+          "line": 624
+        },
+        {
+          "name": "renderRegs",
+          "line": 668
+        },
+        {
+          "name": "presentBacktrace",
+          "line": 770
+        },
+        {
+          "name": "presentSelectedFrame",
+          "line": 789
+        },
+        {
+          "name": "presentLocals",
+          "line": 795
+        },
+        {
+          "name": "renderDwt",
+          "line": 809
+        },
+        {
+          "name": "renderBps",
+          "line": 822
+        },
+        {
+          "name": "readMem",
+          "line": 856
+        },
+        {
+          "name": "renderMem",
+          "line": 890
+        },
+        {
+          "name": "writeMemEdit",
+          "line": 948
+        },
+        {
+          "name": "pickImageDirectory",
+          "line": 1080
+        },
+        {
+          "name": "runLine",
+          "line": 1091
+        },
+        {
+          "name": "loadElfBuffer",
+          "line": 1233
+        },
+        {
+          "name": "loadBundledSvd",
+          "line": 1306
+        },
+        {
+          "name": "loadSvdText",
+          "line": 1332
+        },
+        {
+          "name": "renderSyms",
+          "line": 1486
+        },
+        {
+          "name": "addWatch",
+          "line": 1557
+        },
+        {
+          "name": "delWatch",
+          "line": 1578
+        },
+        {
+          "name": "watchItems",
+          "line": 1585
+        },
+        {
+          "name": "clearWatch",
+          "line": 1589
+        },
+        {
+          "name": "refreshWatch",
+          "line": 1597
+        },
+        {
+          "name": "renderWatch",
+          "line": 1647
+        },
+        {
+          "name": "pickSourceDir",
+          "line": 1753
+        },
+        {
+          "name": "renderSource",
+          "line": 1820
+        },
+        {
+          "name": "toggleSourceBp",
+          "line": 1913
+        },
+        {
+          "name": "runToLine",
+          "line": 1931
+        },
+        {
+          "name": "stepOver",
+          "line": 1968
+        },
+        {
+          "name": "stepInto",
+          "line": 1970
+        },
+        {
+          "name": "stepOut",
+          "line": 1972
+        },
+        {
+          "name": "showSource",
+          "line": 1981
+        },
+        {
+          "name": "rttStart",
+          "line": 2021
+        },
+        {
+          "name": "rttStop",
+          "line": 2066
+        },
+        {
+          "name": "rttClear",
+          "line": 2073
+        },
+        {
+          "name": "summary",
+          "line": 2093
+        },
+        {
+          "name": "for",
+          "line": 2125
+        },
+        {
+          "name": "if",
+          "line": 2131
+        },
+        {
+          "name": "if",
+          "line": 2132
+        },
+        {
+          "name": "if",
+          "line": 2133
+        },
+        {
+          "name": "if",
+          "line": 2134
+        }
+      ]
+    },
+    {
+      "id": "flash",
+      "label": "烧录器",
+      "source": "web/app/flash/view.js",
+      "features": "ELF/HEX/BIN、目标算法、擦除/编程/校验、复位",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "f-backend",
+          "tag": "select",
+          "type": null,
+          "label": "零安装（默认）：与 RTT 共用探针，直接在浏览器里烧，覆盖 STM32 F0/F1/F4/F7/H7/L0/L4 与 HPM 全系 RISC-V。个别探针固件在 PPB 访问上有兼容问题、或你只想给磁盘路径（不给文件）时，换「本地桥」即可。",
+          "options": [
+            {
+              "value": "webusb",
+              "label": "WebUSB · 零安装（默认）"
+            },
+            {
+              "value": "openocd",
+              "label": "本地桥 · OpenOCD"
+            },
+            {
+              "value": "jlink",
+              "label": "本地桥 · J-Link"
+            }
+          ]
+        },
+        {
+          "id": "f-chip",
+          "tag": "select",
+          "type": null,
+          "label": "走本地桥时它就是 OpenOCD 的目标 cfg；列表外的芯片选「自定义 cfg…」",
+          "options": []
+        },
+        {
+          "id": "f-idcode",
+          "tag": "button",
+          "type": null,
+          "label": "只读地认目标（不动 flash、不改运行状态）：ARM/SWD 读 DP IDCODE + CPUID + STM32 DBGMCU DEV_ID/REV_ID + flash 容量寄存器；RISC-V/JTAG 读 TAP IDCODE。选错芯片也能读 —— 这个按钮不吃「芯片」那一格（只按后端选 SWD 还是 JT"
+        },
+        {
+          "id": "f-speed",
+          "tag": "select",
+          "type": null,
+          "label": "WebUSB Cortex-M：所选档用于 RAM 数据与 Flash 校验，执行控制保留 1 MHz；本地桥和 RISC-V 使用整体调试时钟。高频传输不稳定时请降低档位。",
+          "options": [
+            {
+              "value": "",
+              "label": "默认（WebUSB 1 MHz）"
+            },
+            {
+              "value": "1000",
+              "label": "1 MHz"
+            },
+            {
+              "value": "4000",
+              "label": "4 MHz"
+            },
+            {
+              "value": "5000",
+              "label": "5 MHz"
+            },
+            {
+              "value": "10000",
+              "label": "10 MHz"
+            },
+            {
+              "value": "20000",
+              "label": "20 MHz"
+            },
+            {
+              "value": "30000",
+              "label": "30 MHz"
+            },
+            {
+              "value": "36000",
+              "label": "36 MHz"
+            },
+            {
+              "value": "40000",
+              "label": "40 MHz"
+            },
+            {
+              "value": "45000",
+              "label": "45 MHz"
+            },
+            {
+              "value": "50000",
+              "label": "50 MHz"
+            },
+            {
+              "value": "60000",
+              "label": "60 MHz"
+            }
+          ]
+        },
+        {
+          "id": "f-bridge-url",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "f-cfgs",
+          "tag": "input",
+          "type": null,
+          "label": "逗号/空格分隔，按顺序加载。相对 OpenOCD scripts 目录或绝对路径"
+        },
+        {
+          "id": "f-cfgs-pick",
+          "tag": "button",
+          "type": "button",
+          "label": "列出桥所在电脑的 OpenOCD cfg 让你挑"
+        },
+        {
+          "id": "f-path",
+          "tag": "input",
+          "type": null,
+          "label": "桥所在电脑上的 .elf / .hex / .bin 路径"
+        },
+        {
+          "id": "f-pick",
+          "tag": "button",
+          "type": null,
+          "label": "选择文件…"
+        },
+        {
+          "id": "f-base",
+          "tag": "input",
+          "type": null,
+          "label": ".bin 没有地址信息，按这里填的地址写入"
+        },
+        {
+          "id": "f-verify",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "f-reset",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "f-flash",
+          "tag": "button",
+          "type": null,
+          "label": "烧录"
+        },
+        {
+          "id": "f-logclear",
+          "tag": "button",
+          "type": null,
+          "label": "清空日志"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "onShow",
+          "line": 139
+        },
+        {
+          "name": "flash",
+          "line": 174
+        },
+        {
+          "name": "resetTarget",
+          "line": 214
+        },
+        {
+          "name": "readIdcode",
+          "line": 335
+        }
+      ]
+    },
+    {
+      "id": "swo",
+      "label": "SWO PC 采样",
+      "source": "web/app/swo/view.js",
+      "features": "时钟/带宽规划、采集、swopc/ELF/源码、热点/回放/导出",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "sw-record-tab",
+          "tag": "button",
+          "type": null,
+          "label": "录制"
+        },
+        {
+          "id": "sw-analysis-tab",
+          "tag": "button",
+          "type": null,
+          "label": "分析"
+        },
+        {
+          "id": "sw-calculator-open",
+          "tag": "button",
+          "type": null,
+          "label": "时钟计算器"
+        },
+        {
+          "id": "sw-help-open",
+          "tag": "button",
+          "type": null,
+          "label": "使用帮助"
+        },
+        {
+          "id": "sw-entry-elf-pick",
+          "tag": "button",
+          "type": null,
+          "label": "载入与目标固件匹配的 ELF"
+        },
+        {
+          "id": "sw-port",
+          "tag": "select",
+          "type": null,
+          "label": "SWO VCOM 串口",
+          "options": []
+        },
+        {
+          "id": "sw-pick",
+          "tag": "button",
+          "type": null,
+          "label": "选择…"
+        },
+        {
+          "id": "sw-detect",
+          "tag": "button",
+          "type": null,
+          "label": "识别目标与时钟"
+        },
+        {
+          "id": "sw-clock-grant",
+          "tag": "button",
+          "type": null,
+          "label": "允许通过同一探针配置接收时钟"
+        },
+        {
+          "id": "sw-model",
+          "tag": "select",
+          "type": null,
+          "label": "目标型号",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动识别"
+            },
+            {
+              "value": "stm32f1",
+              "label": "STM32F103"
+            },
+            {
+              "value": "stm32f4",
+              "label": "STM32F407 / F405"
+            },
+            {
+              "value": "stm32h743",
+              "label": "STM32H743 / H750"
+            },
+            {
+              "value": "stm32h7b0",
+              "label": "STM32H7B0 / H7A3 / H7B3"
+            }
+          ]
+        },
+        {
+          "id": "sw-hse",
+          "tag": "input",
+          "type": "number",
+          "label": "板载外部时钟 MHz"
+        },
+        {
+          "id": "sw-auto-clock",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sw-core",
+          "tag": "input",
+          "type": "number",
+          "label": "待识别"
+        },
+        {
+          "id": "sw-trace",
+          "tag": "input",
+          "type": "number",
+          "label": "SWO 编码器的输入时钟，不是 SWO 波特率"
+        },
+        {
+          "id": "sw-symbol-search",
+          "tag": "input",
+          "type": null,
+          "label": "搜索 SWO ELF 函数"
+        },
+        {
+          "id": "sw-entry-spec",
+          "tag": "input",
+          "type": null,
+          "label": "SWO 断点命令"
+        },
+        {
+          "id": "sw-entry-set",
+          "tag": "button",
+          "type": null,
+          "label": "添加"
+        },
+        {
+          "id": "sw-reset-entry",
+          "tag": "button",
+          "type": null,
+          "label": "软件复位目标，运行到所选断点后暂停"
+        },
+        {
+          "id": "sw-entry-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空断点"
+        },
+        {
+          "id": "sw-period",
+          "tag": "select",
+          "type": null,
+          "label": "64 周期128 周期256 周期512 周期1024 周期2048 周期4096 周期8192 周期16384 周期",
+          "options": [
+            {
+              "value": "64",
+              "label": "64 周期"
+            },
+            {
+              "value": "128",
+              "label": "128 周期"
+            },
+            {
+              "value": "256",
+              "label": "256 周期"
+            },
+            {
+              "value": "512",
+              "label": "512 周期"
+            },
+            {
+              "value": "1024",
+              "label": "1024 周期"
+            },
+            {
+              "value": "2048",
+              "label": "2048 周期"
+            },
+            {
+              "value": "4096",
+              "label": "4096 周期"
+            },
+            {
+              "value": "8192",
+              "label": "8192 周期"
+            },
+            {
+              "value": "16384",
+              "label": "16384 周期"
+            }
+          ]
+        },
+        {
+          "id": "sw-seconds",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "sw-timestamps",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sw-auto-baud",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sw-baud",
+          "tag": "input",
+          "type": "number",
+          "label": "SWO 波特率"
+        },
+        {
+          "id": "sw-exceptions",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sw-exception-rate",
+          "tag": "input",
+          "type": "number",
+          "label": "每秒异常进入退出事件总数"
+        },
+        {
+          "id": "sw-itm",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sw-itm-rate",
+          "tag": "input",
+          "type": "number",
+          "label": "每秒 ITM 有效载荷字节数"
+        },
+        {
+          "id": "sw-extra",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "sw-margin",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "sw-baud-round",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sw-start",
+          "tag": "button",
+          "type": null,
+          "label": "运行至断点并录制"
+        },
+        {
+          "id": "sw-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止并分析"
+        },
+        {
+          "id": "sw-elf-pick",
+          "tag": "button",
+          "type": null,
+          "label": "载入 ELF…"
+        },
+        {
+          "id": "sw-source-pick",
+          "tag": "button",
+          "type": null,
+          "label": "源码目录…"
+        },
+        {
+          "id": "sw-elf-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "sw-source-files",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "sw-import",
+          "tag": "button",
+          "type": null,
+          "label": "打开记录…"
+        },
+        {
+          "id": "sw-save",
+          "tag": "button",
+          "type": null,
+          "label": "保存记录"
+        },
+        {
+          "id": "sw-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "sw-analyze",
+          "tag": "button",
+          "type": null,
+          "label": "重新分析"
+        },
+        {
+          "id": "sw-csv",
+          "tag": "button",
+          "type": null,
+          "label": "导出区间 CSV"
+        },
+        {
+          "id": "sw-export-c",
+          "tag": "button",
+          "type": null,
+          "label": "完整导出 .c"
+        },
+        {
+          "id": "sw-export-txt",
+          "tag": "button",
+          "type": null,
+          "label": "导出简化.c"
+        },
+        {
+          "id": "sw-demo",
+          "tag": "button",
+          "type": null,
+          "label": "载入配套实测示例"
+        },
+        {
+          "id": "sw-aligned",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sw-chart-toggle",
+          "tag": "button",
+          "type": null,
+          "label": "收起轨迹图"
+        },
+        {
+          "id": "sw-from",
+          "tag": "input",
+          "type": "number",
+          "label": "区间开始 PC 样本"
+        },
+        {
+          "id": "sw-to",
+          "tag": "input",
+          "type": "number",
+          "label": "区间结束 PC 样本"
+        },
+        {
+          "id": "sw-range-apply",
+          "tag": "button",
+          "type": null,
+          "label": "应用"
+        },
+        {
+          "id": "sw-range-reset",
+          "tag": "button",
+          "type": null,
+          "label": "全部"
+        },
+        {
+          "id": "sw-filter",
+          "tag": "input",
+          "type": null,
+          "label": "筛选轨迹"
+        },
+        {
+          "id": "sw-prev",
+          "tag": "button",
+          "type": null,
+          "label": "上一个 PC 样本"
+        },
+        {
+          "id": "sw-play",
+          "tag": "button",
+          "type": null,
+          "label": "逐样本回放"
+        },
+        {
+          "id": "sw-next",
+          "tag": "button",
+          "type": null,
+          "label": "下一个 PC 样本"
+        },
+        {
+          "id": "sw-cursor",
+          "tag": "input",
+          "type": "range",
+          "label": "选择 PC 样本"
+        },
+        {
+          "id": "sw-page-prev",
+          "tag": "button",
+          "type": null,
+          "label": "上一页"
+        },
+        {
+          "id": "sw-page-next",
+          "tag": "button",
+          "type": null,
+          "label": "下一页"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "action",
+          "line": 69
+        },
+        {
+          "name": "error",
+          "line": 70
+        },
+        {
+          "name": "initSidebar",
+          "line": 71
+        },
+        {
+          "name": "selectSidebar",
+          "line": 86
+        },
+        {
+          "name": "options",
+          "line": 87
+        },
+        {
+          "name": "renderPlan",
+          "line": 88
+        },
+        {
+          "name": "fillCalculator",
+          "line": 107
+        },
+        {
+          "name": "calculatorOptions",
+          "line": 112
+        },
+        {
+          "name": "renderCalculator",
+          "line": 116
+        },
+        {
+          "name": "applyCalculator",
+          "line": 129
+        },
+        {
+          "name": "refreshPorts",
+          "line": 133
+        },
+        {
+          "name": "loadElf",
+          "line": 134
+        },
+        {
+          "name": "renderEntrySymbols",
+          "line": 138
+        },
+        {
+          "name": "renderEntryState",
+          "line": 150
+        },
+        {
+          "name": "setEntryBreakpoint",
+          "line": 164
+        },
+        {
+          "name": "addEntryBreakpoint",
+          "line": 177
+        },
+        {
+          "name": "selectEntryBreakpoint",
+          "line": 178
+        },
+        {
+          "name": "removeEntryBreakpoint",
+          "line": 179
+        },
+        {
+          "name": "clearEntryBreakpoint",
+          "line": 180
+        },
+        {
+          "name": "resetAndHaltAtEntry",
+          "line": 181
+        },
+        {
+          "name": "loadDemo",
+          "line": 187
+        },
+        {
+          "name": "verifyElf",
+          "line": 194
+        },
+        {
+          "name": "showTarget",
+          "line": 200
+        },
+        {
+          "name": "refreshTargetClock",
+          "line": 212
+        },
+        {
+          "name": "detectTarget",
+          "line": 217
+        },
+        {
+          "name": "start",
+          "line": 222
+        },
+        {
+          "name": "renderCapture",
+          "line": 228
+        },
+        {
+          "name": "renderFiles",
+          "line": 236
+        },
+        {
+          "name": "pause",
+          "line": 237
+        },
+        {
+          "name": "analyze",
+          "line": 238
+        },
+        {
+          "name": "clearResult",
+          "line": 245
+        },
+        {
+          "name": "renderStats",
+          "line": 246
+        },
+        {
+          "name": "fullRange",
+          "line": 251
+        },
+        {
+          "name": "renderRange",
+          "line": 252
+        },
+        {
+          "name": "zoomChart",
+          "line": 253
+        },
+        {
+          "name": "fitChart",
+          "line": 254
+        },
+        {
+          "name": "chartSampleAt",
+          "line": 255
+        },
+        {
+          "name": "chartPointerDown",
+          "line": 256
+        },
+        {
+          "name": "chartPointerMove",
+          "line": 257
+        },
+        {
+          "name": "chartPointerUp",
+          "line": 258
+        },
+        {
+          "name": "renderRows",
+          "line": 259
+        },
+        {
+          "name": "renderHot",
+          "line": 267
+        },
+        {
+          "name": "draw",
+          "line": 268
+        },
+        {
+          "name": "selectSample",
+          "line": 277
+        },
+        {
+          "name": "exportText",
+          "line": 282
+        },
+        {
+          "name": "exportCsv",
+          "line": 318
+        },
+        {
+          "name": "onShow",
+          "line": 319
+        },
+        {
+          "name": "summary",
+          "line": 320
+        }
+      ]
+    },
+    {
+      "id": "etm",
+      "label": "ETM 执行轨迹",
+      "source": "web/app/etm/view.js",
+      "features": "目标/时钟、LA采集、导入/解码、全部查询/阅读/导出；另有 trace 原生CLI",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "toggle-settings",
+          "tag": "button",
+          "type": null,
+          "label": "采集设置"
+        },
+        {
+          "id": "help",
+          "tag": "button",
+          "type": null,
+          "label": "使用说明"
+        },
+        {
+          "id": "tab-target",
+          "tag": "button",
+          "type": null,
+          "label": "1 调试"
+        },
+        {
+          "id": "tab-clock",
+          "tag": "button",
+          "type": null,
+          "label": "2 时钟"
+        },
+        {
+          "id": "tab-trace",
+          "tag": "button",
+          "type": null,
+          "label": "3 采集"
+        },
+        {
+          "id": "tab-files",
+          "tag": "button",
+          "type": null,
+          "label": "4 文件"
+        },
+        {
+          "id": "choose-elf",
+          "tag": "button",
+          "type": null,
+          "label": "浏览载入 ELF…"
+        },
+        {
+          "id": "choose-sources",
+          "tag": "button",
+          "type": null,
+          "label": "选择源码目录…"
+        },
+        {
+          "id": "target-profile",
+          "tag": "select",
+          "type": null,
+          "label": "自动识别",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动识别"
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "tag": "button",
+          "type": null,
+          "label": "连接探针"
+        },
+        {
+          "id": "disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "断开"
+        },
+        {
+          "id": "symbol-search",
+          "tag": "input",
+          "type": null,
+          "label": "搜索 ELF 函数"
+        },
+        {
+          "id": "break-command",
+          "tag": "input",
+          "type": null,
+          "label": "断点命令"
+        },
+        {
+          "id": "add-break",
+          "tag": "button",
+          "type": "submit",
+          "label": "添加"
+        },
+        {
+          "id": "run-to",
+          "tag": "button",
+          "type": null,
+          "label": "运行至起点"
+        },
+        {
+          "id": "remove-break",
+          "tag": "button",
+          "type": null,
+          "label": "清空断点"
+        },
+        {
+          "id": "cancel-wait",
+          "tag": "button",
+          "type": null,
+          "label": "取消等待"
+        },
+        {
+          "id": "reset",
+          "tag": "button",
+          "type": null,
+          "label": "复位至起点"
+        },
+        {
+          "id": "halt",
+          "tag": "button",
+          "type": null,
+          "label": "暂停"
+        },
+        {
+          "id": "run",
+          "tag": "button",
+          "type": null,
+          "label": "继续"
+        },
+        {
+          "id": "entry-before",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "reset-before",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "next-clock",
+          "tag": "button",
+          "type": null,
+          "label": "下一步：核对时钟 →"
+        },
+        {
+          "id": "hse",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "auto-clock",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "expected-cpu",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "expected-trace",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "read-clock",
+          "tag": "button",
+          "type": null,
+          "label": "重新读取 RCC 与频率"
+        },
+        {
+          "id": "next-trace",
+          "tag": "button",
+          "type": null,
+          "label": "下一步：配置与采集 →"
+        },
+        {
+          "id": "traceid",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "branch-broadcast",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "return-stack",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "cycles",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "read-config",
+          "tag": "button",
+          "type": null,
+          "label": "读取配置"
+        },
+        {
+          "id": "apply-config",
+          "tag": "button",
+          "type": null,
+          "label": "配置并暂停"
+        },
+        {
+          "id": "pin-speed",
+          "tag": "select",
+          "type": null,
+          "label": "超高速 · 基准值高速中速",
+          "options": [
+            {
+              "value": "3",
+              "label": "超高速 · 基准值"
+            },
+            {
+              "value": "2",
+              "label": "高速"
+            },
+            {
+              "value": "1",
+              "label": "中速"
+            }
+          ]
+        },
+        {
+          "id": "restore-config",
+          "tag": "button",
+          "type": null,
+          "label": "恢复原 trace 设置"
+        },
+        {
+          "id": "check-la",
+          "tag": "button",
+          "type": null,
+          "label": "检查连接"
+        },
+        {
+          "id": "rate",
+          "tag": "select",
+          "type": null,
+          "label": "500 MSa/s200 MSa/s100 MSa/s",
+          "options": [
+            {
+              "value": "500000000",
+              "label": "500 MSa/s"
+            },
+            {
+              "value": "200000000",
+              "label": "200 MSa/s"
+            },
+            {
+              "value": "100000000",
+              "label": "100 MSa/s"
+            }
+          ]
+        },
+        {
+          "id": "duration",
+          "tag": "input",
+          "type": "number",
+          "label": "单次采集上限 1000 ms（1 s）：一次采集 + 一次解码"
+        },
+        {
+          "id": "threshold",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "channels",
+          "tag": "input",
+          "type": null,
+          "label": "五路 LA 通道"
+        },
+        {
+          "id": "fraction",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "glitch-ns",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "sync",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "auto-decode",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "choose-offline-config",
+          "tag": "button",
+          "type": null,
+          "label": "载入采集配置…"
+        },
+        {
+          "id": "clear-offline-config",
+          "tag": "button",
+          "type": null,
+          "label": "清除配置"
+        },
+        {
+          "id": "use-readback-config",
+          "tag": "button",
+          "type": null,
+          "label": "使用当前回读配置"
+        },
+        {
+          "id": "offline-channels",
+          "tag": "input",
+          "type": null,
+          "label": "离线五路 LA 通道"
+        },
+        {
+          "id": "offline-fraction",
+          "tag": "input",
+          "type": "number",
+          "label": "离线取样位置"
+        },
+        {
+          "id": "offline-glitch",
+          "tag": "input",
+          "type": "number",
+          "label": "离线软件滤波"
+        },
+        {
+          "id": "offline-config-json",
+          "tag": "textarea",
+          "type": null,
+          "label": "采集配置 JSON"
+        },
+        {
+          "id": "apply-offline-config",
+          "tag": "button",
+          "type": null,
+          "label": "应用采集配置"
+        },
+        {
+          "id": "show-experiments",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "import",
+          "tag": "button",
+          "type": null,
+          "label": "导入记录…"
+        },
+        {
+          "id": "decode",
+          "tag": "button",
+          "type": null,
+          "label": "单独解码"
+        },
+        {
+          "id": "save-record",
+          "tag": "button",
+          "type": null,
+          "label": "保存可重解码记录包"
+        },
+        {
+          "id": "record-source-settings",
+          "tag": "button",
+          "type": null,
+          "label": "配套源码设置…"
+        },
+        {
+          "id": "export-type",
+          "tag": "select",
+          "type": null,
+          "label": "阅读折叠 C + 映射 .zip阅读折叠 HTML + 映射 .zip简化源码 .c简化执行流 / 源码 .html完整源码执行流 .c执行流 CSV完整解码 JSON原始波形Kingst KVDAT",
+          "options": [
+            {
+              "value": "reading-c",
+              "label": "阅读折叠 C + 映射 .zip"
+            },
+            {
+              "value": "reading-html",
+              "label": "阅读折叠 HTML + 映射 .zip"
+            },
+            {
+              "value": "simplified",
+              "label": "简化源码 .c"
+            },
+            {
+              "value": "simplified-html",
+              "label": "简化执行流 / 源码 .html"
+            },
+            {
+              "value": "source",
+              "label": "完整源码执行流 .c"
+            },
+            {
+              "value": "csv",
+              "label": "执行流 CSV"
+            },
+            {
+              "value": "json",
+              "label": "完整解码 JSON"
+            },
+            {
+              "value": "raw",
+              "label": "原始波形"
+            },
+            {
+              "value": "kvdat",
+              "label": "Kingst KVDAT"
+            }
+          ]
+        },
+        {
+          "id": "export",
+          "tag": "button",
+          "type": null,
+          "label": "导出"
+        },
+        {
+          "id": "recover-debug",
+          "tag": "button",
+          "type": null,
+          "label": "恢复调试口（保持暂停）"
+        },
+        {
+          "id": "start",
+          "tag": "button",
+          "type": null,
+          "label": "联动采集"
+        },
+        {
+          "id": "stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止采集"
+        },
+        {
+          "id": "elf-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "sources-files",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "capture-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "offline-config-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "records",
+          "tag": "select",
+          "type": null,
+          "label": "已保存记录",
+          "options": []
+        },
+        {
+          "id": "open-record",
+          "tag": "button",
+          "type": null,
+          "label": "打开"
+        },
+        {
+          "id": "toggle-summary",
+          "tag": "button",
+          "type": null,
+          "label": "报告"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "执行流"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "调用统计"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "火焰图"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "热点"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "ETM 包"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "可信区段"
+        },
+        {
+          "id": "clear-scope",
+          "tag": "button",
+          "type": null,
+          "label": "重置区间"
+        },
+        {
+          "id": "toggle-source",
+          "tag": "button",
+          "type": null,
+          "label": "源码"
+        },
+        {
+          "id": "toggle-stack",
+          "tag": "button",
+          "type": null,
+          "label": "历史调用栈"
+        },
+        {
+          "id": "history-prev",
+          "tag": "button",
+          "type": null,
+          "label": "上一条历史记录"
+        },
+        {
+          "id": "history-next",
+          "tag": "button",
+          "type": null,
+          "label": "下一条历史记录"
+        },
+        {
+          "id": "nav-mode",
+          "tag": "select",
+          "type": null,
+          "label": "历史导航类型",
+          "options": [
+            {
+              "value": "instruction",
+              "label": "指令"
+            },
+            {
+              "value": "source",
+              "label": "源码位置"
+            },
+            {
+              "value": "call",
+              "label": "调用"
+            },
+            {
+              "value": "return",
+              "label": "返回"
+            },
+            {
+              "value": "exception",
+              "label": "异常"
+            },
+            {
+              "value": "issue",
+              "label": "未知 / 边界"
+            }
+          ]
+        },
+        {
+          "id": "jump-value",
+          "tag": "input",
+          "type": null,
+          "label": "历史定位"
+        },
+        {
+          "id": "jump",
+          "tag": "button",
+          "type": null,
+          "label": "定位"
+        },
+        {
+          "id": "search",
+          "tag": "input",
+          "type": null,
+          "label": "筛选执行记录"
+        },
+        {
+          "id": "hide-skipped",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "toggle-execution-timeline",
+          "tag": "button",
+          "type": null,
+          "label": "收起轨迹图"
+        },
+        {
+          "id": "prev",
+          "tag": "button",
+          "type": null,
+          "label": "上一页"
+        },
+        {
+          "id": "next",
+          "tag": "button",
+          "type": null,
+          "label": "下一页"
+        },
+        {
+          "id": "close-help",
+          "tag": "button",
+          "type": null,
+          "label": "知道了"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "if",
+          "line": 38
+        },
+        {
+          "name": "add",
+          "line": 50
+        },
+        {
+          "name": "for",
+          "line": 51
+        },
+        {
+          "name": "if",
+          "line": 81
+        },
+        {
+          "name": "if",
+          "line": 95
+        },
+        {
+          "name": "if",
+          "line": 96
+        },
+        {
+          "name": "bridgeInput",
+          "line": 124
+        },
+        {
+          "name": "updateOpenLink",
+          "line": 125
+        },
+        {
+          "name": "onShow",
+          "line": 130
+        },
+        {
+          "name": "load",
+          "line": 136
+        },
+        {
+          "name": "copyAvailable",
+          "line": 172
+        },
+        {
+          "name": "verifyApi",
+          "line": 179
+        },
+        {
+          "name": "attach",
+          "line": 188
+        },
+        {
+          "name": "childReady",
+          "line": 199
+        },
+        {
+          "name": "childUnloaded",
+          "line": 200
+        },
+        {
+          "name": "showError",
+          "line": 213
+        },
+        {
+          "name": "retry",
+          "line": 214
+        },
+        {
+          "name": "run",
+          "line": 230
+        },
+        {
+          "name": "releaseProbe",
+          "line": 231
+        },
+        {
+          "name": "summary",
+          "line": 237
+        }
+      ]
+    },
+    {
+      "id": "spi",
+      "label": "USB SPI/QSPI",
+      "source": "web/app/spi/bus-view.js",
+      "features": "总线配置、帧/命令表、寄存器、DSL、实时值、NOR/回环",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "sp-side-connect-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "连接"
+        },
+        {
+          "id": "sp-side-bus-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "总线"
+        },
+        {
+          "id": "sp-side-status-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "状态"
+        },
+        {
+          "id": "sp-side-help-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "帮助"
+        },
+        {
+          "id": "sp-connect",
+          "tag": "button",
+          "type": null,
+          "label": "连接已授权的探针；首次使用或有多个探针时弹出设备选择框"
+        },
+        {
+          "id": "sp-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "关闭共享的 HID 配置连接和 USB 数据端点，不关闭目标电源"
+        },
+        {
+          "id": "sp-mock",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-mock-device",
+          "tag": "select",
+          "type": null,
+          "label": "回环 + NOR（W25Q128） 寄存器器件（BMP280 风格） 命令型 ADC（MCP3008 风格）",
+          "options": [
+            {
+              "value": "flash",
+              "label": "回环 + NOR（W25Q128）"
+            },
+            {
+              "value": "regs",
+              "label": "寄存器器件（BMP280 风格）"
+            },
+            {
+              "value": "adc",
+              "label": "命令型 ADC（MCP3008 风格）"
+            }
+          ]
+        },
+        {
+          "id": "sp-usb",
+          "tag": "button",
+          "type": null,
+          "label": "授权 WebUSB 并认领 SPI 桥接口（class 0xFF + EP11 双向）：OUT 0x0B 发帧、IN 0x8B 收应答。⚠️ 第一次点会弹出浏览器的设备选择框（HID 与 WebUSB 要各授权一次）"
+        },
+        {
+          "id": "sp-inflight",
+          "tag": "input",
+          "type": null,
+          "label": "同时在飞的 IN 读条数（连接数据端点时生效）"
+        },
+        {
+          "id": "sp-sclk",
+          "tag": "select",
+          "type": null,
+          "label": "5301EVKLite 上限 75 MHz。固件按模块时钟整数分频，实际生效值可能不等于请求值 —— 下面「实际 SCLK」会回读",
+          "options": []
+        },
+        {
+          "id": "sp-mode",
+          "tag": "select",
+          "type": null,
+          "label": "标准 SPI 模式号 = CPOL<<1 | CPHA。CPHA=0 在前导沿采样（SCLK 空闲低时=上升沿）；屏一般要 mode 0",
+          "options": [
+            {
+              "value": "0",
+              "label": "0 · 低空闲 · 前沿采样"
+            },
+            {
+              "value": "1",
+              "label": "1 · 低空闲 · 后沿采样"
+            },
+            {
+              "value": "2",
+              "label": "2 · 高空闲 · 前沿采样"
+            },
+            {
+              "value": "3",
+              "label": "3 · 高空闲 · 后沿采样"
+            }
+          ]
+        },
+        {
+          "id": "sp-cs",
+          "tag": "select",
+          "type": null,
+          "label": "按固件实现：0/2 = PB10 作 GPIO CS（软件拉/放）、1 = 辅助脚作 GPIO CS、3 = 硬件 CS0。proto.h 的注释在这条上是反的",
+          "options": []
+        },
+        {
+          "id": "sp-thr",
+          "tag": "input",
+          "type": null,
+          "label": "数据相位 ≥ 阈值走 DMA。⚠️ 当前固件是 P1：全部走轮询（tx_dma 恒 0），这个值先存着"
+        },
+        {
+          "id": "sp-clear",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-get",
+          "tag": "button",
+          "type": null,
+          "label": "读取配置"
+        },
+        {
+          "id": "sp-set",
+          "tag": "button",
+          "type": null,
+          "label": "写入配置"
+        },
+        {
+          "id": "sp-pad-dc",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "sp-pad-rst",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "sp-pad-bl",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "sp-al-dc",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-al-rst",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-al-bl",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-pin-apply",
+          "tag": "button",
+          "type": null,
+          "label": "应用引脚"
+        },
+        {
+          "id": "sp-pinmap-btn",
+          "tag": "button",
+          "type": null,
+          "label": "弹出窗口显示 J3 40 针的引脚分配：桥的信号 / CDC 虚拟串口 / 能当辅助脚的 / 不能用的"
+        },
+        {
+          "id": "sp-pinmap-close",
+          "tag": "button",
+          "type": null,
+          "label": "关闭 ✕"
+        },
+        {
+          "id": "sp-reset",
+          "tag": "button",
+          "type": null,
+          "label": "清环、复位状态机、清计数器（不动配置）"
+        },
+        {
+          "id": "sp-abort",
+          "tag": "button",
+          "type": null,
+          "label": "丢弃未处理帧与 IN 队列"
+        },
+        {
+          "id": "sp-status",
+          "tag": "button",
+          "type": null,
+          "label": "读状态"
+        },
+        {
+          "id": "sp-choose",
+          "tag": "button",
+          "type": null,
+          "label": "选择探针…"
+        },
+        {
+          "id": "sp-enable",
+          "tag": "button",
+          "type": null,
+          "label": "使能"
+        },
+        {
+          "id": "sp-disable",
+          "tag": "button",
+          "type": null,
+          "label": "失能"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "命令表"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "寄存器"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "脚本"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "实时值"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "Flash 测试"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "回环自检"
+        },
+        {
+          "id": "sp-run-abort",
+          "tag": "button",
+          "type": null,
+          "label": "中止正在跑的回环自检（只有它可中止；擦/写不能中途停 —— 那会把 flash 留在半擦状态）"
+        },
+        {
+          "id": "sp-cmd-cshold",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-cmd-path",
+          "tag": "select",
+          "type": null,
+          "label": "数据相位走轮询还是 DMA。自动 = 按 tx 长度与「DMA 阈值」比",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动（按长度）"
+            },
+            {
+              "value": "poll",
+              "label": "强制轮询"
+            },
+            {
+              "value": "dma",
+              "label": "强制 DMA"
+            }
+          ]
+        },
+        {
+          "id": "sp-cmd-add",
+          "tag": "button",
+          "type": "button",
+          "label": "＋ 添加行"
+        },
+        {
+          "id": "sp-cmd-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空结果"
+        },
+        {
+          "id": "sp-cmd-send",
+          "tag": "button",
+          "type": null,
+          "label": "发送全部"
+        },
+        {
+          "id": "sp-reg-profile",
+          "tag": "select",
+          "type": null,
+          "label": "内置常见 SPI 器件的寄存器约定（读/写 opcode、dummy、地址宽度、是否自增）；选完下面每个字段仍可改",
+          "options": []
+        },
+        {
+          "id": "sp-reg-rdop",
+          "tag": "input",
+          "type": null,
+          "label": "读寄存器的基础 opcode（例：0x80 = 0x80|reg）"
+        },
+        {
+          "id": "sp-reg-wrop",
+          "tag": "input",
+          "type": null,
+          "label": "写寄存器的基础 opcode（例：0x00 = reg&0x7F，或 nRF24 的 0x20|reg）"
+        },
+        {
+          "id": "sp-reg-addrmode",
+          "tag": "select",
+          "type": null,
+          "label": "寄存器号怎么发：并入 opcode 低位（0x80|reg 这类）/ 独立的地址字节（MCP23S17 这类）/ 无地址（命令型器件）",
+          "options": [
+            {
+              "value": "orOp",
+              "label": "并入 opcode"
+            },
+            {
+              "value": "bytes",
+              "label": "独立字节"
+            },
+            {
+              "value": "none",
+              "label": "无地址"
+            }
+          ]
+        },
+        {
+          "id": "sp-reg-addrbits",
+          "tag": "input",
+          "type": null,
+          "label": "「并入 opcode」时 opcode 低几位留给地址（MPU/BMP 是 7、ADXL345 是 6、nRF24 是 5）"
+        },
+        {
+          "id": "sp-reg-addrbytes",
+          "tag": "input",
+          "type": null,
+          "label": "「独立字节」时地址占几个字节（MCP23S17 是 1）"
+        },
+        {
+          "id": "sp-reg-dummy",
+          "tag": "input",
+          "type": null,
+          "label": "读之前插几个 dummy 字节。⚠️ 多数器件是 0（MPU-9250/LSM6DS3/BMP280/ADXL345 都不要）；只有 BMP380/BMP580 这类才要 1。给错 → 读回的数据整体错位"
+        },
+        {
+          "id": "sp-reg-databytes",
+          "tag": "input",
+          "type": null,
+          "label": "每个寄存器占几字节（16 位寄存器填 2、24 位填 3）"
+        },
+        {
+          "id": "sp-reg-autoinc",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-reg-start",
+          "tag": "input",
+          "type": null,
+          "label": "起始寄存器号（十六进制）"
+        },
+        {
+          "id": "sp-reg-count",
+          "tag": "input",
+          "type": null,
+          "label": "读多少个寄存器（默认 128；每帧读上限 480 B，超了自动多帧）"
+        },
+        {
+          "id": "sp-reg-read",
+          "tag": "button",
+          "type": null,
+          "label": "按当前档位读一段回来（一条命令连读，或按档位一寄存器一帧）"
+        },
+        {
+          "id": "sp-reg-write",
+          "tag": "button",
+          "type": null,
+          "label": "只把改过的字节写回（相邻的合并成一帧）"
+        },
+        {
+          "id": "sp-reg-write-all",
+          "tag": "button",
+          "type": null,
+          "label": "整段写回（不管有没有改）—— 慎用"
+        },
+        {
+          "id": "sp-reg-discard",
+          "tag": "button",
+          "type": null,
+          "label": "丢弃改动"
+        },
+        {
+          "id": "sp-dsl-preset",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "sp-dsl-load",
+          "tag": "button",
+          "type": null,
+          "label": "载入"
+        },
+        {
+          "id": "sp-dsl-file",
+          "tag": "button",
+          "type": null,
+          "label": "读 .c / .h / .txt / .json：C 表行能直接解析，JSON 若是本站导出的形状会自动转回可读文本"
+        },
+        {
+          "id": "sp-dsl-file-input",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "sp-dsl-parse",
+          "tag": "button",
+          "type": null,
+          "label": "只解析、不发：先把语法和字段核一遍"
+        },
+        {
+          "id": "sp-dsl-send",
+          "tag": "button",
+          "type": null,
+          "label": "解析整段后一次性发出去（自动打包、按需等应答）"
+        },
+        {
+          "id": "sp-dsl-run",
+          "tag": "button",
+          "type": null,
+          "label": "一次性帧先各发一遍，然后 loop/every 的定时部分按各自周期一直跑（这就是 while(1) 采集）"
+        },
+        {
+          "id": "sp-dsl-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止定时采集"
+        },
+        {
+          "id": "sp-dsl-text",
+          "tag": "textarea",
+          "type": null,
+          "label": "一行一条命令，`#` 注释。例： 0x9F rx=3 读 RDID（裸字节 = 一条 cmd 帧） {0x5A, 1, 3, 0x000000, 1, 8, NULL}, C 表行：cmd, lines, addr_len, addr, dummy, rx_len, tx {0x02, 1, 3, 0x001000, "
+        },
+        {
+          "id": "sp-dsl-out-c",
+          "tag": "button",
+          "type": null,
+          "label": "导出成 C 表：列序与上面那张命令表一致，能直接贴回来"
+        },
+        {
+          "id": "sp-dsl-out-json",
+          "tag": "button",
+          "type": null,
+          "label": "导出 JSON"
+        },
+        {
+          "id": "sp-dsl-out-text",
+          "tag": "button",
+          "type": null,
+          "label": "导出文本"
+        },
+        {
+          "id": "sp-dsl-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "sp-live-spark",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-live-reset",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "sp-fl-readid",
+          "tag": "button",
+          "type": null,
+          "label": "读 JEDEC ID（0x9F）：厂商 / 类型 / 容量"
+        },
+        {
+          "id": "sp-fl-sfdp",
+          "tag": "button",
+          "type": null,
+          "label": "读 SFDP（0x5A）：只出原始 256 B（JESD216 规定 SFDP 是 256 B 只读区），解读请查 JESD216 表；dummy 不对会读不出签名，会自动试 0~4"
+        },
+        {
+          "id": "sp-fl-sr",
+          "tag": "button",
+          "type": null,
+          "label": "读状态寄存器 SR1(0x05) + SR2(0x35)：BUSY / WEL / QE"
+        },
+        {
+          "id": "sp-fl-wiring",
+          "tag": "button",
+          "type": null,
+          "label": "查看外接 SPI NOR 的 J3 接线与板载 NOR 的访问限制"
+        },
+        {
+          "id": "sp-fl-mode",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "sp-fl-dummy",
+          "tag": "input",
+          "type": null,
+          "label": "dummy 档位（0~4），单位是 8 个时钟拍：dummy=1 即 8 拍。读一段 / 读测速 / 写校验 / 读 SFDP 都用它；切换读模式会自动带出该模式的默认值（0x03 → 0，0x0B/0x3B/0x6B → 1）；SFDP 读不出签名会自动试 0~4。⚠️ 随器件不同：JEDEC 的 0x3B 是 8 "
+        },
+        {
+          "id": "sp-fl-addr",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "sp-fl-len",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "sp-fl-read",
+          "tag": "button",
+          "type": null,
+          "label": "读一段"
+        },
+        {
+          "id": "sp-fl-bench",
+          "tag": "button",
+          "type": null,
+          "label": "连续读 N KB 计速（首帧发命令+地址、后续帧 CS_HOLD 续读）"
+        },
+        {
+          "id": "sp-fl-benchkb",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "sp-fl-armed",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-fl-erase-mode",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "sp-fl-erase",
+          "tag": "button",
+          "type": null,
+          "label": "擦除"
+        },
+        {
+          "id": "sp-fl-write",
+          "tag": "button",
+          "type": null,
+          "label": "按页编程 + 页间自动等 tPP + 写完自动回读校验"
+        },
+        {
+          "id": "sp-fl-writebench",
+          "tag": "button",
+          "type": null,
+          "label": "擦掉目标区 → 按页写满 → 计速 → 回读校验"
+        },
+        {
+          "id": "sp-fl-data",
+          "tag": "textarea",
+          "type": null,
+          "label": "十六进制，如 00 01 02 …（一次最多 4 KB；留空 = 用递增图案）"
+        },
+        {
+          "id": "sp-fl-fill",
+          "tag": "button",
+          "type": null,
+          "label": "填递增图案"
+        },
+        {
+          "id": "sp-fl-tpp",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "sp-lb-lens",
+          "tag": "input",
+          "type": null,
+          "label": "逗号分隔；单帧发送上限 492 B"
+        },
+        {
+          "id": "sp-lb-lines",
+          "tag": "select",
+          "type": null,
+          "label": "124",
+          "options": [
+            {
+              "value": "1",
+              "label": "1"
+            },
+            {
+              "value": "2",
+              "label": "2"
+            },
+            {
+              "value": "4",
+              "label": "4"
+            }
+          ]
+        },
+        {
+          "id": "sp-lb-dma",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sp-lb-run",
+          "tag": "button",
+          "type": null,
+          "label": "跑回环"
+        },
+        {
+          "id": "sp-lb-clear",
+          "tag": "button",
+          "type": null,
+          "label": "只清空下面这张结果表（不动探针上的计数器）"
+        },
+        {
+          "id": "sp-log-clear",
+          "tag": "button",
+          "type": null,
+          "label": "只清屏上的日志（记录仍保留在会话里，展开/切页回来会重放）"
+        },
+        {
+          "id": "sp-regpop-hex",
+          "tag": "input",
+          "type": null,
+          "label": "直接敲十六进制（1~2 位），与点 bit 同步"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "这一字节清零"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "这一字节全置 1"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "逐位取反"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "恢复到读回来的原值"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "完成"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "for",
+          "line": 38
+        },
+        {
+          "name": "if",
+          "line": 50
+        },
+        {
+          "name": "abortLoop",
+          "line": 268
+        },
+        {
+          "name": "renderRunPill",
+          "line": 277
+        },
+        {
+          "name": "syncRunPill",
+          "line": 294
+        },
+        {
+          "name": "appendLog",
+          "line": 313
+        },
+        {
+          "name": "renderLogFromRing",
+          "line": 320
+        },
+        {
+          "name": "renderState",
+          "line": 327
+        },
+        {
+          "name": "renderCounters",
+          "line": 336
+        },
+        {
+          "name": "fillCfg",
+          "line": 354
+        },
+        {
+          "name": "refreshButtons",
+          "line": 384
+        },
+        {
+          "name": "refreshPads",
+          "line": 419
+        },
+        {
+          "name": "togglePinMap",
+          "line": 451
+        },
+        {
+          "name": "renderPinMap",
+          "line": 473
+        },
+        {
+          "name": "wrap",
+          "line": 561
+        },
+        {
+          "name": "loadCfg",
+          "line": 565
+        },
+        {
+          "name": "readCfgFromUI",
+          "line": 569
+        },
+        {
+          "name": "applyCfg",
+          "line": 593
+        },
+        {
+          "name": "setEnabled",
+          "line": 597
+        },
+        {
+          "name": "buildCmdRows",
+          "line": 607
+        },
+        {
+          "name": "readCmdRow",
+          "line": 629
+        },
+        {
+          "name": "cmdItems",
+          "line": 648
+        },
+        {
+          "name": "cmdClearResults",
+          "line": 680
+        },
+        {
+          "name": "cmdSendAll",
+          "line": 684
+        },
+        {
+          "name": "dslLoadSample",
+          "line": 723
+        },
+        {
+          "name": "dslLoadFile",
+          "line": 730
+        },
+        {
+          "name": "dslExport",
+          "line": 747
+        },
+        {
+          "name": "dslParse",
+          "line": 766
+        },
+        {
+          "name": "dslRun",
+          "line": 775
+        },
+        {
+          "name": "flMode",
+          "line": 813
+        },
+        {
+          "name": "flAddr",
+          "line": 822
+        },
+        {
+          "name": "flDummy",
+          "line": 834
+        },
+        {
+          "name": "flOut",
+          "line": 836
+        },
+        {
+          "name": "flReadId",
+          "line": 842
+        },
+        {
+          "name": "flReadSfdp",
+          "line": 864
+        },
+        {
+          "name": "flReadStatus",
+          "line": 892
+        },
+        {
+          "name": "flWiring",
+          "line": 904
+        },
+        {
+          "name": "flRead",
+          "line": 920
+        },
+        {
+          "name": "flReadUI",
+          "line": 938
+        },
+        {
+          "name": "flBench",
+          "line": 956
+        },
+        {
+          "name": "flWaitReady",
+          "line": 1000
+        },
+        {
+          "name": "flFillPattern",
+          "line": 1012
+        },
+        {
+          "name": "flErase",
+          "line": 1019
+        },
+        {
+          "name": "flArmed",
+          "line": 1045
+        },
+        {
+          "name": "flWriteData",
+          "line": 1053
+        },
+        {
+          "name": "flWrite",
+          "line": 1075
+        },
+        {
+          "name": "flWriteBench",
+          "line": 1114
+        },
+        {
+          "name": "loopbackTest",
+          "line": 1171
+        },
+        {
+          "name": "renderLoopRows",
+          "line": 1231
+        },
+        {
+          "name": "onShow",
+          "line": 1242
+        },
+        {
+          "name": "summary",
+          "line": 1249
+        }
+      ]
+    },
+    {
+      "id": "panel",
+      "label": "SPI/QSPI 屏",
+      "source": "web/app/spi/panel-view.js",
+      "features": "初始化表、GPIO/电源、图片/动画/视频、刷新、寄存器/GRAM读回",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "pn-side-connect-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "连接"
+        },
+        {
+          "id": "pn-side-display-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "屏配置"
+        },
+        {
+          "id": "pn-side-control-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "控制"
+        },
+        {
+          "id": "pn-side-help-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "帮助"
+        },
+        {
+          "id": "pn-connect",
+          "tag": "button",
+          "type": null,
+          "label": "连接已授权的探针；与 USB→SPI/QSPI 共用连接"
+        },
+        {
+          "id": "pn-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "关闭与 USB→SPI/QSPI 共用的配置连接和数据端点，不关闭屏电源"
+        },
+        {
+          "id": "pn-mock",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "pn-usb",
+          "tag": "button",
+          "type": null,
+          "label": "授权 WebUSB 并认领 SPI 桥接口（刷图/发帧的数据走这条）。⚠️ 第一次点会弹出浏览器的设备选择框（HID 与 WebUSB 要各授权一次）"
+        },
+        {
+          "id": "pn-inflight",
+          "tag": "input",
+          "type": null,
+          "label": "同时在飞的 IN 读条数（连接数据端点时生效）"
+        },
+        {
+          "id": "pn-batch",
+          "tag": "select",
+          "type": null,
+          "label": "一次 USB 传输带多少字节。固件按 512 B 槽解析，所以攒批不改变设备看到的东西，只减少主机侧的调用次数；512 B = 老行为（每片一次 transferOut）。真机实测（AXS15352 · 档 1 · 60 MHz）：512 B → 25.7 fps / 3.6 MB/s，8 KB → 35.3 fps ",
+          "options": [
+            {
+              "value": "512",
+              "label": "512 B"
+            },
+            {
+              "value": "4096",
+              "label": "4 KB"
+            },
+            {
+              "value": "8192",
+              "label": "8 KB（推荐）"
+            },
+            {
+              "value": "16384",
+              "label": "16 KB"
+            },
+            {
+              "value": "32768",
+              "label": "32 KB"
+            }
+          ]
+        },
+        {
+          "id": "pn-preset",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "pn-preset-apply",
+          "tag": "button",
+          "type": null,
+          "label": "套用推荐值"
+        },
+        {
+          "id": "pn-sclk",
+          "tag": "select",
+          "type": null,
+          "label": "屏幕 SCLK",
+          "options": []
+        },
+        {
+          "id": "pn-sclk-set",
+          "tag": "button",
+          "type": null,
+          "label": "应用"
+        },
+        {
+          "id": "pn-profile",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "pn-deflines",
+          "tag": "select",
+          "type": null,
+          "label": "124",
+          "options": [
+            {
+              "value": "1",
+              "label": "1"
+            },
+            {
+              "value": "2",
+              "label": "2"
+            },
+            {
+              "value": "4",
+              "label": "4"
+            }
+          ]
+        },
+        {
+          "id": "pn-dcactive",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "pn-cshold",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "pn-qspiwr",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-qspicolor",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-qspiaddr",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-prof-get",
+          "tag": "button",
+          "type": null,
+          "label": "读取档位"
+        },
+        {
+          "id": "pn-prof-set",
+          "tag": "button",
+          "type": null,
+          "label": "写入档位"
+        },
+        {
+          "id": "pn-bl-on",
+          "tag": "button",
+          "type": null,
+          "label": "将 BL 设为有效电平；按配置的 BL 极性自动取反"
+        },
+        {
+          "id": "pn-bl-off",
+          "tag": "button",
+          "type": null,
+          "label": "将 BL 设为无效电平"
+        },
+        {
+          "id": "pn-pwr-on",
+          "tag": "button",
+          "type": null,
+          "label": "发 STEP 0x11（sleep out）—— 退出睡眠，之后必须等约 120 ms 才能收下一条命令"
+        },
+        {
+          "id": "pn-disp-on",
+          "tag": "button",
+          "type": null,
+          "label": "发 STEP 0x29（display on）—— 打开显示输出；面板要初始化过才会显示内容"
+        },
+        {
+          "id": "pn-disp-off",
+          "tag": "button",
+          "type": null,
+          "label": "发 STEP 0x28（display off）—— 只关显示输出，显存内容还在"
+        },
+        {
+          "id": "pn-pwr-off",
+          "tag": "button",
+          "type": null,
+          "label": "发 STEP 0x10（sleep in）—— 进入睡眠（最省电），之后要 11h 才能唤醒"
+        },
+        {
+          "id": "pn-rst-low",
+          "tag": "input",
+          "type": null,
+          "label": "把面板 RST 脚拉低多久（毫秒）"
+        },
+        {
+          "id": "pn-rst-post",
+          "tag": "input",
+          "type": null,
+          "label": "RST 释放之后再等多久（毫秒）"
+        },
+        {
+          "id": "pn-rst-send",
+          "tag": "button",
+          "type": null,
+          "label": "发"
+        },
+        {
+          "id": "pn-rst-bl",
+          "tag": "button",
+          "type": null,
+          "label": "一键：发 RST 脉冲（上面那两个数字）→ 等复位走完 → 开背光。出图全黑时第一件事就是按这个"
+        },
+        {
+          "id": "pn-replay-prereset",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "pn-choose",
+          "tag": "button",
+          "type": null,
+          "label": "选择探针…"
+        },
+        {
+          "id": "pn-enable",
+          "tag": "button",
+          "type": null,
+          "label": "使能"
+        },
+        {
+          "id": "pn-disable",
+          "tag": "button",
+          "type": null,
+          "label": "失能"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "刷屏"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "面板初始化"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "读回"
+        },
+        {
+          "id": "pn-run-abort",
+          "tag": "button",
+          "type": null,
+          "label": "中止当前这一桩（刷图 / 重放 / 读回 / 播放）：当前这一片发完就停。切到别的 tab 也按得到"
+        },
+        {
+          "id": "pn-drop",
+          "tag": "button",
+          "type": null,
+          "label": "BMP / PNG / JPEG；也可拖到预览区"
+        },
+        {
+          "id": "pn-img-send",
+          "tag": "button",
+          "type": null,
+          "label": "刷这一张"
+        },
+        {
+          "id": "pn-img-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "pn-geom",
+          "tag": "select",
+          "type": null,
+          "label": "屏几何：两款内置屏，或选「自定义…」自己填宽高（协议参数沿用当前档的）",
+          "options": []
+        },
+        {
+          "id": "pn-x",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-y",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-w",
+          "tag": "input",
+          "type": null,
+          "label": "自定义宽度（像素）。选「自定义…」时生效"
+        },
+        {
+          "id": "pn-h",
+          "tag": "input",
+          "type": null,
+          "label": "自定义高度（像素）。选「自定义…」时生效"
+        },
+        {
+          "id": "pn-fit",
+          "tag": "select",
+          "type": null,
+          "label": "铺满（裁剪） 适应（留边） 拉伸 原始尺寸",
+          "options": [
+            {
+              "value": "fill",
+              "label": "铺满（裁剪）"
+            },
+            {
+              "value": "fit",
+              "label": "适应（留边）"
+            },
+            {
+              "value": "stretch",
+              "label": "拉伸"
+            },
+            {
+              "value": "none",
+              "label": "原始尺寸"
+            }
+          ]
+        },
+        {
+          "id": "pn-byteorder",
+          "tag": "select",
+          "type": null,
+          "label": "RGB565 的字节序。默认「高字节在前」与 MADCTL=0x00(RGB) 是正确组合；颜色不对时只翻一个开关（先试 R/B 交换，再试低字节在前）",
+          "options": [
+            {
+              "value": "be",
+              "label": "高字节在前"
+            },
+            {
+              "value": "le",
+              "label": "低字节在前"
+            }
+          ]
+        },
+        {
+          "id": "pn-swap",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "pn-level",
+          "tag": "input",
+          "type": null,
+          "label": "255 = 不改；把满量程分量压到这个值，用来做灰阶测试"
+        },
+        {
+          "id": "pn-partial",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "pn-partial-tol",
+          "tag": "select",
+          "type": null,
+          "label": "比较两帧时每个颜色分量丢弃的低位数。视频/JPEG 每帧都有量化噪声，精确比较会导致「整屏都算变了」而失去意义 —— 丢掉最低 1~2 位即可判出真正的静止区；代价是颜色量化到 4~5 bit/分量（屏本身就是 RGB565，肉眼无差）",
+          "options": [
+            {
+              "value": "0",
+              "label": "0 位（逐位精确）"
+            },
+            {
+              "value": "1",
+              "label": "1 位（推荐）"
+            },
+            {
+              "value": "2",
+              "label": "2 位（噪声大时）"
+            }
+          ]
+        },
+        {
+          "id": "pn-anim-file",
+          "tag": "button",
+          "type": null,
+          "label": "MP4 / WebM / GIF / APNG —— 浏览器原生解码，零依赖"
+        },
+        {
+          "id": "pn-anim-input",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "pn-anim-play",
+          "tag": "button",
+          "type": null,
+          "label": "按当前屏几何 / 面板档把每一帧发出去（与「刷这一张」同一条路；勾了局部刷新就只发变化区）"
+        },
+        {
+          "id": "pn-anim-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止"
+        },
+        {
+          "id": "pn-anim-loop",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "pn-anim-partial",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "pn-code-preset",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "pn-code-load",
+          "tag": "button",
+          "type": null,
+          "label": "载入"
+        },
+        {
+          "id": "pn-code-file",
+          "tag": "button",
+          "type": null,
+          "label": "载入文件…"
+        },
+        {
+          "id": "pn-code-file-input",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "pn-code-parse",
+          "tag": "button",
+          "type": null,
+          "label": "解析并预览"
+        },
+        {
+          "id": "pn-code-text",
+          "tag": "textarea",
+          "type": null,
+          "label": "把面板初始化代码贴到这里（C 数组为主，也认纯文本行与 JSON）： {0xCE, (uint8_t[]){0x5A, 0xA5}, 2, 0}, {0xA1, (uint8_t[]){0x00, 0xDD}, 2, 0}, {0x11, NULL, 0, 100}, {0x29, NULL, 0, 0},"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "参数格每格一个字节：可直接改十六进制，也可点格子逐位修改。重放和导出使用表格当前值；上方源码保持原文，重新解析会重建步骤表。"
+        },
+        {
+          "id": "pn-code-c",
+          "tag": "button",
+          "type": null,
+          "label": "导出成能贴回 C 头文件的片段"
+        },
+        {
+          "id": "pn-code-json",
+          "tag": "button",
+          "type": null,
+          "label": "导出 JSON"
+        },
+        {
+          "id": "pn-code-text-out",
+          "tag": "button",
+          "type": null,
+          "label": "导出文本"
+        },
+        {
+          "id": "pn-code-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "pn-code-play",
+          "tag": "button",
+          "type": null,
+          "label": "按当前面板档把整表编成 STEP 帧发出（档 1：同一 CS 窗口内「命令→翻 DC→参数」；档 2：0x02 + 24 bit 地址 + 参数）。行尾的「单发 / 从此重放」可以只跑其中一段"
+        },
+        {
+          "id": "pn-code-stop",
+          "tag": "button",
+          "type": null,
+          "label": "中止"
+        },
+        {
+          "id": "pn-read-reg",
+          "tag": "select",
+          "type": null,
+          "label": "MIPI DCS 的标准读命令；表外的直接改右边两个格子",
+          "options": []
+        },
+        {
+          "id": "pn-read-reg-cmd",
+          "tag": "input",
+          "type": null,
+          "label": "十六进制"
+        },
+        {
+          "id": "pn-read-reg-len",
+          "tag": "input",
+          "type": null,
+          "label": "数据字节数（不含 dummy）"
+        },
+        {
+          "id": "pn-read-reg-go",
+          "tag": "button",
+          "type": null,
+          "label": "读寄存器"
+        },
+        {
+          "id": "pn-read-x0",
+          "tag": "input",
+          "type": null,
+          "label": "x0"
+        },
+        {
+          "id": "pn-read-y0",
+          "tag": "input",
+          "type": null,
+          "label": "y0"
+        },
+        {
+          "id": "pn-read-x1",
+          "tag": "input",
+          "type": null,
+          "label": "x1（含）"
+        },
+        {
+          "id": "pn-read-y1",
+          "tag": "input",
+          "type": null,
+          "label": "y1（含）"
+        },
+        {
+          "id": "pn-read-full",
+          "tag": "button",
+          "type": null,
+          "label": "整屏"
+        },
+        {
+          "id": "pn-read-chunk",
+          "tag": "input",
+          "type": null,
+          "label": "一次 XFER 读多少字节。上限是 503 而不是 504：504 的应答正好 512 B（满包），主机 transferIn 等不到短包会一直挂着（真机实测）"
+        },
+        {
+          "id": "pn-read-go",
+          "tag": "button",
+          "type": null,
+          "label": "读一帧"
+        },
+        {
+          "id": "pn-read-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止"
+        },
+        {
+          "id": "pn-read-bmp",
+          "tag": "button",
+          "type": null,
+          "label": "把刚读回来的那一帧存成 24 位 BMP（浏览器不会导出 BMP，这里自己拼头）"
+        },
+        {
+          "id": "pn-read-opcode",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-read-addrlen",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-read-addr",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-read-dummy",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-read-lines",
+          "tag": "select",
+          "type": null,
+          "label": "124",
+          "options": [
+            {
+              "value": "1",
+              "label": "1"
+            },
+            {
+              "value": "2",
+              "label": "2"
+            },
+            {
+              "value": "4",
+              "label": "4"
+            }
+          ]
+        },
+        {
+          "id": "pn-read-ramrd",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-read-cont",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "pn-read-byteorder",
+          "tag": "select",
+          "type": null,
+          "label": "与「刷屏」tab 里那个是同一组开关（改哪边都一样）。默认「高字节在前」与 MADCTL=0x00(RGB) 是正确组合；颜色不对时只翻一个开关（先试 R/B 交换，再试低字节在前）",
+          "options": [
+            {
+              "value": "be",
+              "label": "高字节在前（默认）"
+            },
+            {
+              "value": "le",
+              "label": "低字节在前"
+            }
+          ]
+        },
+        {
+          "id": "pn-read-swap",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "pn-log-clear",
+          "tag": "button",
+          "type": null,
+          "label": "只清屏上的日志（记录仍保留在会话里，切页回来会重放）"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "清零 00"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "全置 1 FF"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "逐位取反"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "恢复原值"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "完成"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "setActivity",
+          "line": 436
+        },
+        {
+          "name": "syncRunPill",
+          "line": 442
+        },
+        {
+          "name": "abortAll",
+          "line": 460
+        },
+        {
+          "name": "appendLog",
+          "line": 484
+        },
+        {
+          "name": "renderLogFromRing",
+          "line": 490
+        },
+        {
+          "name": "renderState",
+          "line": 497
+        },
+        {
+          "name": "renderCounters",
+          "line": 506
+        },
+        {
+          "name": "renderSummary",
+          "line": 516
+        },
+        {
+          "name": "fillClock",
+          "line": 528
+        },
+        {
+          "name": "applySclk",
+          "line": 535
+        },
+        {
+          "name": "fillProfile",
+          "line": 545
+        },
+        {
+          "name": "fillPresetNote",
+          "line": 563
+        },
+        {
+          "name": "refreshButtons",
+          "line": 583
+        },
+        {
+          "name": "loadPresetCode",
+          "line": 611
+        },
+        {
+          "name": "loadCodeFile",
+          "line": 620
+        },
+        {
+          "name": "parseCode",
+          "line": 630
+        },
+        {
+          "name": "setCodeSummary",
+          "line": 663
+        },
+        {
+          "name": "rowDirty",
+          "line": 669
+        },
+        {
+          "name": "dirtyCount",
+          "line": 675
+        },
+        {
+          "name": "renderSum",
+          "line": 683
+        },
+        {
+          "name": "renderCodeTable",
+          "line": 695
+        },
+        {
+          "name": "drawRuler",
+          "line": 727
+        },
+        {
+          "name": "revertRow",
+          "line": 737
+        },
+        {
+          "name": "onByteEdit",
+          "line": 747
+        },
+        {
+          "name": "exportRows",
+          "line": 754
+        },
+        {
+          "name": "playRows",
+          "line": 770
+        },
+        {
+          "name": "buildPatternChips",
+          "line": 824
+        },
+        {
+          "name": "setPattern",
+          "line": 849
+        },
+        {
+          "name": "revealCanvas",
+          "line": 867
+        },
+        {
+          "name": "pickImage",
+          "line": 872
+        },
+        {
+          "name": "syncCustomGeomInputs",
+          "line": 910
+        },
+        {
+          "name": "geometry",
+          "line": 923
+        },
+        {
+          "name": "batchBytes",
+          "line": 941
+        },
+        {
+          "name": "partialOpts",
+          "line": 950
+        },
+        {
+          "name": "resetPartial",
+          "line": 960
+        },
+        {
+          "name": "progressThrottle",
+          "line": 980
+        },
+        {
+          "name": "applyGeometry",
+          "line": 991
+        },
+        {
+          "name": "renderPreview",
+          "line": 1005
+        },
+        {
+          "name": "sendImage",
+          "line": 1066
+        },
+        {
+          "name": "loadAnim",
+          "line": 1150
+        },
+        {
+          "name": "playAnim",
+          "line": 1177
+        },
+        {
+          "name": "drawAnimFrame",
+          "line": 1187
+        },
+        {
+          "name": "renderAnim",
+          "line": 1204
+        },
+        {
+          "name": "fillReadWindow",
+          "line": 1232
+        },
+        {
+          "name": "panelProfile",
+          "line": 1239
+        },
+        {
+          "name": "warnIfRawProfile",
+          "line": 1244
+        },
+        {
+          "name": "readTiming",
+          "line": 1252
+        },
+        {
+          "name": "readRegister",
+          "line": 1265
+        },
+        {
+          "name": "readGram",
+          "line": 1294
+        },
+        {
+          "name": "syncViewSwitches",
+          "line": 1368
+        },
+        {
+          "name": "drawReadBack",
+          "line": 1384
+        },
+        {
+          "name": "saveReadBmp",
+          "line": 1412
+        },
+        {
+          "name": "wrap",
+          "line": 1424
+        },
+        {
+          "name": "readProfileFromUI",
+          "line": 1428
+        },
+        {
+          "name": "applyProfile",
+          "line": 1440
+        },
+        {
+          "name": "applyPreset",
+          "line": 1445
+        },
+        {
+          "name": "sendResetPulse",
+          "line": 1465
+        },
+        {
+          "name": "sendPowerCmd",
+          "line": 1475
+        },
+        {
+          "name": "sendGpio",
+          "line": 1486
+        },
+        {
+          "name": "resetAndBacklight",
+          "line": 1509
+        },
+        {
+          "name": "replayPrelude",
+          "line": 1541
+        },
+        {
+          "name": "onShow",
+          "line": 1548
+        },
+        {
+          "name": "summary",
+          "line": 1556
+        },
+        {
+          "name": "if",
+          "line": 1623
+        },
+        {
+          "name": "if",
+          "line": 1630
+        },
+        {
+          "name": "setTimeout",
+          "line": 1643
+        }
+      ]
+    },
+    {
+      "id": "i2c",
+      "label": "USB I2C",
+      "source": "web/app/i2c/view.js",
+      "features": "配置、扫描、事务/长读写、寄存器、命令表、DSL/周期脚本",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "i2-side-connect-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "连接"
+        },
+        {
+          "id": "i2-side-bus-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "总线"
+        },
+        {
+          "id": "i2-side-diagnostics-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "诊断"
+        },
+        {
+          "id": "i2-side-help-tab",
+          "tag": "button",
+          "type": "button",
+          "label": "帮助"
+        },
+        {
+          "id": "i2-connect",
+          "tag": "button",
+          "type": null,
+          "label": "自动连接唯一已授权的探针；首次或多个设备时弹框选择"
+        },
+        {
+          "id": "i2-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "失能 I2C 桥并关闭探针连接，不关闭目标电源"
+        },
+        {
+          "id": "i2-pinmap-btn",
+          "tag": "button",
+          "type": null,
+          "label": "先确认板型，再查看 SDA/SCL、GND 与上拉要求"
+        },
+        {
+          "id": "i2-mock",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "i2-scl",
+          "tag": "select",
+          "type": null,
+          "label": "HPM 的 I2C 只有 100k / 400k / 1M 三个标准档，固件挑「不超过请求值」的最高档，实际值回在下面",
+          "options": [
+            {
+              "value": "100000",
+              "label": "100 kHz（标准，最稳）"
+            },
+            {
+              "value": "400000",
+              "label": "400 kHz（快速）"
+            },
+            {
+              "value": "1000000",
+              "label": "1 MHz（快速+，只有短线 + 带上拉的模块才稳）"
+            }
+          ]
+        },
+        {
+          "id": "i2-pullup",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "i2-retries",
+          "tag": "input",
+          "type": null,
+          "label": "固件侧整笔重试次数 0..8（NACK / 超时后重发整笔）"
+        },
+        {
+          "id": "i2-cfg-get",
+          "tag": "button",
+          "type": null,
+          "label": "读取配置"
+        },
+        {
+          "id": "i2-cfg-set",
+          "tag": "button",
+          "type": null,
+          "label": "写入配置"
+        },
+        {
+          "id": "i2-reset",
+          "tag": "button",
+          "type": null,
+          "label": "总线被拉死（SDA/SCL 常低）时的解药：9 个 SCL 脉冲 + STOP + 控制器复位。会清计数器、保配置"
+        },
+        {
+          "id": "i2-pintest",
+          "tag": "button",
+          "type": null,
+          "label": "接线出问题第一个跑它（只在总线空闲时可用：它会发一次真实探测事务，用 7 位地址里保留的 0x7E，不会写坏任何东西）"
+        },
+        {
+          "id": "i2-dbg",
+          "tag": "button",
+          "type": null,
+          "label": "12 个寄存器的现场快照：I2C CTRL/STATUS/ADDR/CMD/SETUP/INTEN、PA28/PA29 的复用与焊盘、配置、状态字"
+        },
+        {
+          "id": "i2-choose",
+          "tag": "button",
+          "type": null,
+          "label": "选择探针…"
+        },
+        {
+          "id": "i2-enable",
+          "tag": "button",
+          "type": null,
+          "label": "配置 PA28=SDA / PA29=SCL 并初始化 I2C3。⚠️ 使能期间 SPI 桥的辅助脚 pad16/17（就是这两根）会被拒"
+        },
+        {
+          "id": "i2-disable",
+          "tag": "button",
+          "type": null,
+          "label": "把两根脚放成高阻输入（不还原成 SPI 复用）"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "扫描总线"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "命令表"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "寄存器"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "脚本"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "实时值"
+        },
+        {
+          "id": "i2-run-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止正在跑的定时任务（一次性序列也会被打断）"
+        },
+        {
+          "id": "i2-scan",
+          "tag": "button",
+          "type": null,
+          "label": "固件一次性扫完 0x08..0x77（112 个地址，100 kHz 下约 15 ms）并回 14 B 位图。扫描期间 DAP/CDC 会顿一下"
+        },
+        {
+          "id": "i2-dev",
+          "tag": "input",
+          "type": null,
+          "label": "点下面表格里的一行即可选中；也可以手打一个 7 位地址"
+        },
+        {
+          "id": "i2-cmd-add",
+          "tag": "button",
+          "type": null,
+          "label": "+ 加一行"
+        },
+        {
+          "id": "i2-cmd-del",
+          "tag": "button",
+          "type": null,
+          "label": "删末行"
+        },
+        {
+          "id": "i2-cmd-clearall",
+          "tag": "button",
+          "type": null,
+          "label": "清空表"
+        },
+        {
+          "id": "i2-cmd-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空结果"
+        },
+        {
+          "id": "i2-cmd-send",
+          "tag": "button",
+          "type": null,
+          "label": "按顺序跑一遍（带周期的行不会跑 —— 那些用「开始定时」）"
+        },
+        {
+          "id": "i2-cmd-run",
+          "tag": "button",
+          "type": null,
+          "label": "一次性行先跑一遍，然后带周期的行按各自周期一直跑（这就是 while(1)）"
+        },
+        {
+          "id": "i2-reg-dev",
+          "tag": "input",
+          "type": null,
+          "label": "7 位地址（0x08..0x77）。在「扫描总线」里点「选用」也会带到这里"
+        },
+        {
+          "id": "i2-reg-start",
+          "tag": "input",
+          "type": null,
+          "label": "起始寄存器地址（大端）。0x0100 配「地址宽度 2 B」= 发 01 00"
+        },
+        {
+          "id": "i2-reg-len",
+          "tag": "input",
+          "type": null,
+          "label": "一次读多少字节，1..4096，默认 128（16 列 × 8 行）。超过 54 B 自动分片读"
+        },
+        {
+          "id": "i2-reg-alen",
+          "tag": "select",
+          "type": null,
+          "label": "子地址字节数：多数传感器/寄存器器件是 1 B；EEPROM（AT24C32 起）多是 2 B；0 B = 不带子地址的纯读",
+          "options": [
+            {
+              "value": "1",
+              "label": "1 B"
+            },
+            {
+              "value": "2",
+              "label": "2 B"
+            },
+            {
+              "value": "0",
+              "label": "0 B（纯读）"
+            }
+          ]
+        },
+        {
+          "id": "i2-reg-chunk",
+          "tag": "select",
+          "type": null,
+          "label": "reset = 每片重发子地址（最稳，默认）；ptr = 先推一次地址指针再续读（FIFO 型器件必须用这个）",
+          "options": [
+            {
+              "value": "reset",
+              "label": "每片重发地址"
+            },
+            {
+              "value": "ptr",
+              "label": "地址指针自增"
+            }
+          ]
+        },
+        {
+          "id": "i2-reg-wrchunk",
+          "tag": "select",
+          "type": null,
+          "label": "写回时每片最多多少字节。51 = 协议上限（寄存器/传感器用这个）；EEPROM 有页写回卷（AT24C02 页 8 B / AT24C32 页 32 B），必须按页给",
+          "options": []
+        },
+        {
+          "id": "i2-reg-gap",
+          "tag": "input",
+          "type": null,
+          "label": "每片之间等多少毫秒。EEPROM 每写完一页要等 tWR（约 5 ms），按页写时填 6；寄存器型器件填 0"
+        },
+        {
+          "id": "i2-reg-page",
+          "tag": "select",
+          "type": null,
+          "label": "器件的写页大小。给了就保证每一片都不跨页 —— 这是 EEPROM 页写回卷的真正防线：只设「写分片」挡不住「起始地址不是页倍数」的情况（AT24C02 从 0x05 起按 8 B 写，第一片就会跨过 0x08 那条页界，器件把后半段绕回页首把前面的盖掉）。寄存器型器件选「不限」",
+          "options": []
+        },
+        {
+          "id": "i2-reg-verify",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "i2-reg-read",
+          "tag": "button",
+          "type": null,
+          "label": "读一段回来（超过 54 B 自动分片）。读到的值成为「器件现值」，之后黄框标的都是与它的差异"
+        },
+        {
+          "id": "i2-reg-write",
+          "tag": "button",
+          "type": null,
+          "label": "只把改过的字节写回器件（相邻的合并成一片，中间断开的会分开写）"
+        },
+        {
+          "id": "i2-reg-write-all",
+          "tag": "button",
+          "type": null,
+          "label": "把整段都写回去（不管有没有改）—— 慎用：会重写没改的寄存器"
+        },
+        {
+          "id": "i2-reg-discard",
+          "tag": "button",
+          "type": null,
+          "label": "丢弃表里的改动，回到读回来的那份"
+        },
+        {
+          "id": "i2-preset",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "i2-dsl-load",
+          "tag": "button",
+          "type": null,
+          "label": "载入"
+        },
+        {
+          "id": "i2-dsl-file",
+          "tag": "button",
+          "type": null,
+          "label": "读 .c / .h / .txt / .json：C 表行能直接解析，JSON 若是本站导出的形状会自动转回可读文本"
+        },
+        {
+          "id": "i2-dsl-file-input",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "i2-dsl-fromtable",
+          "tag": "button",
+          "type": null,
+          "label": "把「命令表」那个 tab 里的内容写成脚本 —— 表格与脚本走的是同一套解析，行为完全一致"
+        },
+        {
+          "id": "i2-dsl-parse",
+          "tag": "button",
+          "type": null,
+          "label": "只解析、不发：先把语法、字段范围、as 表达式核一遍（不需要连探针）"
+        },
+        {
+          "id": "i2-dsl-send",
+          "tag": "button",
+          "type": null,
+          "label": "解析整段后一次发出去（只跑一次性部分）"
+        },
+        {
+          "id": "i2-dsl-run",
+          "tag": "button",
+          "type": null,
+          "label": "一次性部分先跑，然后 loop/every 的定时段一直跑（while(1)）"
+        },
+        {
+          "id": "i2-dsl-text",
+          "tag": "textarea",
+          "type": null,
+          "label": "一行一条命令，'#' 注释。例： scan 扫总线 ping 0x50 地址探测 rd 0x50 0x00 8 读 0x50 的 0x00 起 8 B rd 0x50 0x00 256 读 256 B —— 超过 54 B 自动分片 {0x50, 1, 0x0000, 4, 0, (uint8_t[]){0xA5,0x"
+        },
+        {
+          "id": "i2-dsl-to-table",
+          "tag": "button",
+          "type": null,
+          "label": "把脚本里的 XFER 行装进「命令表」（24 行上限）"
+        },
+        {
+          "id": "i2-dsl-out-c",
+          "tag": "button",
+          "type": null,
+          "label": "导出成 C 表：列序 = 线上 XFER 字段（dev, addr_len, addr, wr_len, rd_len, data），能直接贴回固件源码，也能贴回本页。⚠️ 长读会被展开成多行（rd_len 是线上字段，最大 54）"
+        },
+        {
+          "id": "i2-dsl-out-json",
+          "tag": "button",
+          "type": null,
+          "label": "无损导出：带 chunk 与 as，能原样读回来"
+        },
+        {
+          "id": "i2-dsl-out-text",
+          "tag": "button",
+          "type": null,
+          "label": "导出文本"
+        },
+        {
+          "id": "i2-dsl-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "i2-live-spark",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "i2-live-reset",
+          "tag": "button",
+          "type": null,
+          "label": "清空"
+        },
+        {
+          "id": "i2-log-clear",
+          "tag": "button",
+          "type": null,
+          "label": "只清屏上的日志（记录仍在会话里，切页回来会重放）"
+        },
+        {
+          "id": "i2-regpop-hex",
+          "tag": "input",
+          "type": null,
+          "label": "直接敲十六进制（1~2 位），与点 bit 同步"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "这一字节清零"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "这一字节全置 1"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "逐位取反"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "恢复到读回来的原值"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "完成"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "if",
+          "line": 57
+        },
+        {
+          "name": "if",
+          "line": 68
+        },
+        {
+          "name": "if",
+          "line": 70
+        },
+        {
+          "name": "if",
+          "line": 81
+        },
+        {
+          "name": "if",
+          "line": 83
+        },
+        {
+          "name": "if",
+          "line": 85
+        },
+        {
+          "name": "if",
+          "line": 87
+        },
+        {
+          "name": "if",
+          "line": 88
+        },
+        {
+          "name": "if",
+          "line": 90
+        },
+        {
+          "name": "for",
+          "line": 101
+        },
+        {
+          "name": "for",
+          "line": 111
+        },
+        {
+          "name": "onShow",
+          "line": 285
+        },
+        {
+          "name": "summary",
+          "line": 983
+        },
+        {
+          "name": "if",
+          "line": 1006
+        },
+        {
+          "name": "if",
+          "line": 1008
+        }
+      ]
+    },
+    {
+      "id": "analog",
+      "label": "ADC / DAC",
+      "source": "web/app/analog/view.js",
+      "features": "ADC配置/采集/测量/游标/导出；DAC波形/发送/停止",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "an-connect",
+          "tag": "button",
+          "type": null,
+          "label": "连接探针"
+        },
+        {
+          "id": "an-disconnect",
+          "tag": "button",
+          "type": null,
+          "label": "关闭探针"
+        },
+        {
+          "id": "an-tab-adc",
+          "tag": "button",
+          "type": "button",
+          "label": "ADC 示波器"
+        },
+        {
+          "id": "an-tab-dac",
+          "tag": "button",
+          "type": "button",
+          "label": "DAC 信号发生器"
+        },
+        {
+          "id": "an-pinmap-btn",
+          "tag": "button",
+          "type": null,
+          "label": "先确认板型，再查看 ADC 输入、GND 与 QSPI 共脚说明"
+        },
+        {
+          "id": "an-bits",
+          "tag": "select",
+          "type": null,
+          "label": "8101216",
+          "options": [
+            {
+              "value": "8",
+              "label": "8"
+            },
+            {
+              "value": "10",
+              "label": "10"
+            },
+            {
+              "value": "12",
+              "label": "12"
+            },
+            {
+              "value": "16",
+              "label": "16"
+            }
+          ]
+        },
+        {
+          "id": "an-rate",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-count",
+          "tag": "input",
+          "type": "number",
+          "label": "0 = 连续采集；大于 0 = 有限记录点数"
+        },
+        {
+          "id": "an-reference",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-once",
+          "tag": "button",
+          "type": null,
+          "label": "单次捕获"
+        },
+        {
+          "id": "an-start",
+          "tag": "button",
+          "type": null,
+          "label": "运行"
+        },
+        {
+          "id": "an-stop",
+          "tag": "button",
+          "type": null,
+          "label": "停止"
+        },
+        {
+          "id": "an-time",
+          "tag": "select",
+          "type": null,
+          "label": "500 ns1 μs2 μs5 μs10 μs20 μs50 μs100 μs200 μs500 μs1 ms2 ms5 ms10 ms20 ms50 ms100 ms",
+          "options": [
+            {
+              "value": "0.0000005",
+              "label": "500 ns"
+            },
+            {
+              "value": "0.000001",
+              "label": "1 μs"
+            },
+            {
+              "value": "0.000002",
+              "label": "2 μs"
+            },
+            {
+              "value": "0.000005",
+              "label": "5 μs"
+            },
+            {
+              "value": "0.00001",
+              "label": "10 μs"
+            },
+            {
+              "value": "0.00002",
+              "label": "20 μs"
+            },
+            {
+              "value": "0.00005",
+              "label": "50 μs"
+            },
+            {
+              "value": "0.0001",
+              "label": "100 μs"
+            },
+            {
+              "value": "0.0002",
+              "label": "200 μs"
+            },
+            {
+              "value": "0.0005",
+              "label": "500 μs"
+            },
+            {
+              "value": "0.001",
+              "label": "1 ms"
+            },
+            {
+              "value": "0.002",
+              "label": "2 ms"
+            },
+            {
+              "value": "0.005",
+              "label": "5 ms"
+            },
+            {
+              "value": "0.01",
+              "label": "10 ms"
+            },
+            {
+              "value": "0.02",
+              "label": "20 ms"
+            },
+            {
+              "value": "0.05",
+              "label": "50 ms"
+            },
+            {
+              "value": "0.1",
+              "label": "100 ms"
+            }
+          ]
+        },
+        {
+          "id": "an-volts",
+          "tag": "select",
+          "type": null,
+          "label": "10 mV100 mV500 mV1 V",
+          "options": [
+            {
+              "value": "0.01",
+              "label": "10 mV"
+            },
+            {
+              "value": "0.1",
+              "label": "100 mV"
+            },
+            {
+              "value": "0.5",
+              "label": "500 mV"
+            },
+            {
+              "value": "1",
+              "label": "1 V"
+            }
+          ]
+        },
+        {
+          "id": "an-offset",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-trigger",
+          "tag": "select",
+          "type": null,
+          "label": "自动正常（未触发保持）",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动"
+            },
+            {
+              "value": "normal",
+              "label": "正常（未触发保持）"
+            }
+          ]
+        },
+        {
+          "id": "an-edge",
+          "tag": "select",
+          "type": null,
+          "label": "上升沿下降沿",
+          "options": [
+            {
+              "value": "rising",
+              "label": "上升沿"
+            },
+            {
+              "value": "falling",
+              "label": "下降沿"
+            }
+          ]
+        },
+        {
+          "id": "an-level",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-freeze",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "an-adc-export",
+          "tag": "button",
+          "type": null,
+          "label": "导出 ADC CSV"
+        },
+        {
+          "id": "an-cursor-x",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "an-cursor-y",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "an-cursor-target",
+          "tag": "select",
+          "type": null,
+          "label": "选择要移动的游标",
+          "options": [
+            {
+              "value": "x0",
+              "label": "T1"
+            },
+            {
+              "value": "x1",
+              "label": "T2"
+            },
+            {
+              "value": "y0",
+              "label": "V1"
+            },
+            {
+              "value": "y1",
+              "label": "V2"
+            }
+          ]
+        },
+        {
+          "id": "an-cursor-reset",
+          "tag": "button",
+          "type": null,
+          "label": "复位游标"
+        },
+        {
+          "id": "an-cursor-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清游标"
+        },
+        {
+          "id": "an-cursor-t1",
+          "tag": "input",
+          "type": "number",
+          "label": "时间游标 T1，微秒"
+        },
+        {
+          "id": "an-cursor-t2",
+          "tag": "input",
+          "type": "number",
+          "label": "时间游标 T2，微秒"
+        },
+        {
+          "id": "an-cursor-v1",
+          "tag": "input",
+          "type": "number",
+          "label": "电压游标 V1，伏"
+        },
+        {
+          "id": "an-cursor-v2",
+          "tag": "input",
+          "type": "number",
+          "label": "电压游标 V2，伏"
+        },
+        {
+          "id": "an-dac-channel",
+          "tag": "select",
+          "type": null,
+          "label": "等待支持 DAC 的固件",
+          "options": [
+            {
+              "value": "0",
+              "label": "等待支持 DAC 的固件"
+            }
+          ]
+        },
+        {
+          "id": "an-wave",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "an-frequency",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-amplitude",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-vpp",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-dac-offset",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-max",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-min",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-phase",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-dac-reference",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-duty",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-dac-bits",
+          "tag": "select",
+          "type": null,
+          "label": "81216",
+          "options": [
+            {
+              "value": "8",
+              "label": "8"
+            },
+            {
+              "value": "12",
+              "label": "12"
+            },
+            {
+              "value": "16",
+              "label": "16"
+            }
+          ]
+        },
+        {
+          "id": "an-update",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-points",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "an-preview",
+          "tag": "button",
+          "type": null,
+          "label": "刷新预览"
+        },
+        {
+          "id": "an-wave-export",
+          "tag": "button",
+          "type": null,
+          "label": "导出波形表 CSV"
+        },
+        {
+          "id": "an-dac-start",
+          "tag": "button",
+          "type": null,
+          "label": "输出 ON"
+        },
+        {
+          "id": "an-dac-stop",
+          "tag": "button",
+          "type": null,
+          "label": "输出 OFF"
+        },
+        {
+          "id": "an-dac-status",
+          "tag": "button",
+          "type": null,
+          "label": "查询输出"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "initTabs",
+          "line": 57
+        },
+        {
+          "name": "selectTab",
+          "line": 71
+        },
+        {
+          "name": "status",
+          "line": 86
+        },
+        {
+          "name": "updateConnectionControls",
+          "line": 87
+        },
+        {
+          "name": "acquire",
+          "line": 92
+        },
+        {
+          "name": "renderAdc",
+          "line": 109
+        },
+        {
+          "name": "paintAdc",
+          "line": 135
+        },
+        {
+          "name": "initAdcCursors",
+          "line": 159
+        },
+        {
+          "name": "paintAdcCursors",
+          "line": 224
+        },
+        {
+          "name": "preview",
+          "line": 256
+        },
+        {
+          "name": "syncLevels",
+          "line": 275
+        },
+        {
+          "name": "waveOptions",
+          "line": 282
+        },
+        {
+          "name": "updateDacControls",
+          "line": 286
+        },
+        {
+          "name": "plot",
+          "line": 297
+        },
+        {
+          "name": "canvasMetrics",
+          "line": 306
+        },
+        {
+          "name": "download",
+          "line": 313
+        },
+        {
+          "name": "onShow",
+          "line": 317
+        },
+        {
+          "name": "summary",
+          "line": 318
+        }
+      ]
+    },
+    {
+      "id": "gen",
+      "label": "工程生成",
+      "source": "web/app/gen/view.js",
+      "features": "uvprojx、Makefile/脚本、参数、预览/下载、本地桥/ETM桥包",
+      "commands": [
+        "describe",
+        "state",
+        "show",
+        "read",
+        "set",
+        "click",
+        "interrupt",
+        "upload",
+        "invoke",
+        "wait",
+        "event",
+        "downloads",
+        "download",
+        "discard"
+      ],
+      "controls": [
+        {
+          "id": "g-uvpick",
+          "tag": "button",
+          "type": null,
+          "label": "读取 .uvprojx 里的器件/Flash 信息，自动填下面的参数（也可以直接把文件拖到右边）"
+        },
+        {
+          "id": "g-uvfile",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "g-project",
+          "tag": "input",
+          "type": null,
+          "label": "写进 Makefile 的工程名 / build 目录里的文件名；Python 工具取的是 .uvprojx 所在目录名"
+        },
+        {
+          "id": "g-device",
+          "tag": "input",
+          "type": null,
+          "label": "J-Link 的 -Device 名字；表外的型号直接手输"
+        },
+        {
+          "id": "g-flash-start",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "g-c-jlink",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "g-c-gdb",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "g-c-pyocd",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "g-c-openocd",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "g-c-testbin",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "g-testbin-size",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "g-if",
+          "tag": "select",
+          "type": null,
+          "label": "SWDJTAG",
+          "options": [
+            {
+              "value": "SWD",
+              "label": "SWD"
+            },
+            {
+              "value": "JTAG",
+              "label": "JTAG"
+            }
+          ]
+        },
+        {
+          "id": "g-speed",
+          "tag": "input",
+          "type": null,
+          "label": "J-Link 的 -Speed。J-Link PRO 上 50000 也能稳跑"
+        },
+        {
+          "id": "g-rtt-addr",
+          "tag": "input",
+          "type": null,
+          "label": "_SEGGER_RTT 控制块地址，要与链接脚本里钉的位置一致"
+        },
+        {
+          "id": "g-rtt-size",
+          "tag": "input",
+          "type": null,
+          "label": "-RTTSearchRanges 的搜索长度。Python 模板原值是 0x5000，在 20KB RAM 的 F103 上会越过 RAM 顶，所以这里默认按修正后的 0x2000"
+        },
+        {
+          "id": "g-gdb-port",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "g-build-dir",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "g-generator",
+          "tag": "select",
+          "type": null,
+          "label": "NinjaUnix MakefilesMinGW Makefiles",
+          "options": [
+            {
+              "value": "Ninja",
+              "label": "Ninja"
+            },
+            {
+              "value": "Unix Makefiles",
+              "label": "Unix Makefiles"
+            },
+            {
+              "value": "MinGW Makefiles",
+              "label": "MinGW Makefiles"
+            }
+          ]
+        },
+        {
+          "id": "g-build-type",
+          "tag": "select",
+          "type": null,
+          "label": "DebugReleaseRelWithDebInfoMinSizeRel",
+          "options": [
+            {
+              "value": "Debug",
+              "label": "Debug"
+            },
+            {
+              "value": "Release",
+              "label": "Release"
+            },
+            {
+              "value": "RelWithDebInfo",
+              "label": "RelWithDebInfo"
+            },
+            {
+              "value": "MinSizeRel",
+              "label": "MinSizeRel"
+            }
+          ]
+        },
+        {
+          "id": "g-pyocd-target",
+          "tag": "input",
+          "type": null,
+          "label": "pyocd -t 的 target 名（pyocd pack 里能查到）"
+        },
+        {
+          "id": "g-pyocd-freq",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "g-openocd-root",
+          "tag": "input",
+          "type": null,
+          "label": "OpenOCD 安装/解压目录（里面要有 bin 和 scripts）。留空 = 产物里也留空"
+        },
+        {
+          "id": "g-openocd-if",
+          "tag": "select",
+          "type": null,
+          "label": "",
+          "options": []
+        },
+        {
+          "id": "g-openocd-target",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "g-openocd-freq",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "g-rtt-port",
+          "tag": "input",
+          "type": null,
+          "label": "openocd-rtt 目标里 rtt server start 的端口"
+        },
+        {
+          "id": "g-newline",
+          "tag": "select",
+          "type": null,
+          "label": "CRLF = 与 uvprojx2cmake.py 的产物逐字节一致；LF 更贴近 git 习惯",
+          "options": [
+            {
+              "value": "crlf",
+              "label": "CRLF（和 Python 工具一致）"
+            },
+            {
+              "value": "lf",
+              "label": "LF"
+            }
+          ]
+        },
+        {
+          "id": "g-force",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "g-save",
+          "tag": "button",
+          "type": null,
+          "label": "Edge/Chrome：选一个文件夹，多个文件直接写进去，不用解压"
+        },
+        {
+          "id": "g-zip",
+          "tag": "button",
+          "type": null,
+          "label": "不支持选文件夹的浏览器走这里：打包成一个 zip 落「下载」"
+        },
+        {
+          "id": "g-etm-port",
+          "tag": "input",
+          "type": "number",
+          "label": ""
+        },
+        {
+          "id": "g-bk-on",
+          "tag": "input",
+          "type": "checkbox",
+          "label": "J-Link / OpenOCD 都是本机程序，浏览器无权启动它们 —— 要用这两条后端就得有个本机桥。零安装的 WebUSB 通路不需要它"
+        },
+        {
+          "id": "g-bk-port",
+          "tag": "input",
+          "type": null,
+          "label": "桥监听的本地端口；页面与桥都走它"
+        },
+        {
+          "id": "g-bk-target",
+          "tag": "select",
+          "type": null,
+          "label": "STM32F103（cmsis-dap + stm32f1x） STM32H7B0（cmsis-dap + stm32h7x） 自定义 cfg…",
+          "options": [
+            {
+              "value": "stm32f103",
+              "label": "STM32F103（cmsis-dap + stm32f1x）"
+            },
+            {
+              "value": "stm32h7b0",
+              "label": "STM32H7B0（cmsis-dap + stm32h7x）"
+            },
+            {
+              "value": "custom",
+              "label": "自定义 cfg…"
+            }
+          ]
+        },
+        {
+          "id": "g-bk-cfgs",
+          "tag": "input",
+          "type": null,
+          "label": "逗号分隔；相对 OpenOCD 的 scripts 目录（也可写绝对路径）。只有「目标 = 自定义」时才用"
+        },
+        {
+          "id": "g-bk-speed",
+          "tag": "input",
+          "type": null,
+          "label": ""
+        },
+        {
+          "id": "g-bk-openocd",
+          "tag": "input",
+          "type": null,
+          "label": "找不到 OpenOCD 时填绝对路径（例：C:/Users/你/.espressif/tools/openocd-esp32/vX/openocd-esp32/bin/openocd.exe）"
+        },
+        {
+          "id": "g-bk-scripts",
+          "tag": "input",
+          "type": null,
+          "label": "留空 = 跟着 openocd.exe 推断"
+        },
+        {
+          "id": "g-bk-jdev",
+          "tag": "input",
+          "type": null,
+          "label": "给 J-Link 的 -Device（留空用默认 STM32F103C8）"
+        },
+        {
+          "id": "g-bk-jspeed",
+          "tag": "input",
+          "type": null,
+          "label": "本机 J-Link PRO + F103 实测 50 MHz 可用"
+        },
+        {
+          "id": "g-bk-nodever",
+          "tag": "input",
+          "type": null,
+          "label": "本机没装 Node 时自动下这个版本（绿色包，放到包里的 node/ 目录，不动系统）"
+        },
+        {
+          "id": "g-bk-mirror",
+          "tag": "select",
+          "type": null,
+          "label": "国内镜像优先（npmmirror） 官方优先（nodejs.org）",
+          "options": [
+            {
+              "value": "1",
+              "label": "国内镜像优先（npmmirror）"
+            },
+            {
+              "value": "0",
+              "label": "官方优先（nodejs.org）"
+            }
+          ]
+        },
+        {
+          "id": "g-bk-autonode",
+          "tag": "input",
+          "type": "checkbox",
+          "label": "关掉 = 没 Node 时只提示、不下载（企业内网/杀软敏感时用）"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "工程文件"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "调试参数"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "本地桥"
+        },
+        {
+          "id": null,
+          "tag": "button",
+          "type": null,
+          "label": "ETM 桥"
+        },
+        {
+          "id": "g-copy",
+          "tag": "button",
+          "type": null,
+          "label": "复制当前文件"
+        },
+        {
+          "id": "g-dl",
+          "tag": "button",
+          "type": null,
+          "label": "下载当前文件"
+        },
+        {
+          "id": "g-params-copy",
+          "tag": "button",
+          "type": null,
+          "label": "复制全部（键=值）"
+        },
+        {
+          "id": "g-etm-full",
+          "tag": "button",
+          "type": null,
+          "label": "下载完整 ETM 桥包"
+        },
+        {
+          "id": "g-zip-etm",
+          "tag": "button",
+          "type": null,
+          "label": "仅下载启动文件"
+        },
+        {
+          "id": "g-etm-open",
+          "tag": "button",
+          "type": null,
+          "label": "打开 ETM 工作台"
+        },
+        {
+          "id": "g-etm-copy",
+          "tag": "button",
+          "type": null,
+          "label": "复制当前文件"
+        },
+        {
+          "id": "g-etm-dl",
+          "tag": "button",
+          "type": null,
+          "label": "下载当前文件"
+        },
+        {
+          "id": "g-kit-copy",
+          "tag": "button",
+          "type": null,
+          "label": "复制当前文件"
+        },
+        {
+          "id": "g-zip-bridge",
+          "tag": "button",
+          "type": null,
+          "label": "只打包桥的文件（zip 里是 rtt-bridge-kit/…）：解压后双击 start-bridge.bat 就能起桥"
+        }
+      ],
+      "methodSourceHints": [
+        {
+          "name": "detectEtmPaths",
+          "line": 147
+        },
+        {
+          "name": "onShow",
+          "line": 158
+        },
+        {
+          "name": "renderPill",
+          "line": 198
+        },
+        {
+          "name": "params",
+          "line": 212
+        },
+        {
+          "name": "refresh",
+          "line": 250
+        },
+        {
+          "name": "renderFileTabs",
+          "line": 299
+        },
+        {
+          "name": "renderPreview",
+          "line": 318
+        },
+        {
+          "name": "renderParams",
+          "line": 338
+        },
+        {
+          "name": "paramsText",
+          "line": 391
+        },
+        {
+          "name": "copyParams",
+          "line": 402
+        },
+        {
+          "name": "renderDetect",
+          "line": 408
+        },
+        {
+          "name": "loadUvprojx",
+          "line": 435
+        },
+        {
+          "name": "saveToFolder",
+          "line": 482
+        },
+        {
+          "name": "downloadZip",
+          "line": 522
+        },
+        {
+          "name": "downloadBridgeZip",
+          "line": 531
+        },
+        {
+          "name": "currentFile",
+          "line": 542
+        },
+        {
+          "name": "downloadEtmZip",
+          "line": 547
+        },
+        {
+          "name": "downloadEtmPackage",
+          "line": 555
+        },
+        {
+          "name": "downloadCurrent",
+          "line": 572
+        },
+        {
+          "name": "copyCurrent",
+          "line": 580
+        },
+        {
+          "name": "summary",
+          "line": 593
+        },
+        {
+          "name": "setTimeout",
+          "line": 625
+        },
+        {
+          "name": "for",
+          "line": 632
+        },
+        {
+          "name": "if",
+          "line": 638
+        }
+      ]
+    }
+  ],
+  "trace": "toolbox.py trace <existing trace CLI arguments>",
+  "browserRequired": true,
+  "hardwareValidatedThisChange": false,
+  "completion": "事件投递不代表业务完成；读取状态/质量/日志验证。invoke等待原方法返回，原方法可能自行捕获错误。",
+  "globalControls": [
+    {
+      "id": "btn-global-reset",
+      "selector": "#btn-global-reset",
+      "label": "全局复位"
+    },
+    {
+      "id": "global-nrst-open-drain",
+      "selector": "#global-nrst-open-drain",
+      "label": ""
+    },
+    {
+      "id": "btn-fullscreen",
+      "selector": "#btn-fullscreen",
+      "label": "全屏"
+    },
+    {
+      "id": "btn-help",
+      "selector": "#btn-help",
+      "label": "帮助与快捷键"
+    }
+  ],
+  "inventory": "静态源码清单；动态控件、当前选项、可调用方法/targets以 page describe 为准；不代表硬件验收"
+}

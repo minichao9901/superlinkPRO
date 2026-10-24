@@ -1,5 +1,9 @@
 # 给 AI 使用的 Trace CLI
 
+整个工具箱（串口、RTT、SPI/I2C、ADC/DAC、SWO、屏幕等）的分类入口现在集中在
+[统一 CLI 总指南](toolbox-cli-ai.md)，仓库根目录执行 `python -X utf8 toolbox.py`。
+本文的 ETM 命令仍可原样使用，或在 `toolbox.py trace` 后传入。
+
 入口：仓库根目录下运行 `python -X utf8 etm/trace.py`。
 
 完整包 `1.0.14-native.14` 提供 `etm-trace.cmd`，等价于

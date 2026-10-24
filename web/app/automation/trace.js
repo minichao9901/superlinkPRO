@@ -1,9 +1,11 @@
 /** CLI adapter. Hardware algorithms remain in the existing Web views/commands. */
 import {runCmd} from '../dbg/cmd.js';
+import {createWorkbenchAutomation} from './workbench.js';
 
 export function createTraceAutomation(tools, win=globalThis.window){
   let transaction=null, busy=false,lastDevices=[];
   const doc=win.document;
+  const workbench=createWorkbenchAutomation(tools,win);
   const element=id=>{const e=doc.getElementById(id);if(!e)throw Error('工作台缺少控件：'+id);return e;};
   const set=(id,value)=>{const e=element(id);if(e.type==='checkbox')e.checked=!!value;else{e.value=String(value);if(e.value!==String(value))throw Error('不支持的选项：'+id+'='+value);}return e;};
   const bytes=b64=>Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
@@ -67,6 +69,7 @@ export function createTraceAutomation(tools, win=globalThis.window){
     }
     if(m.action==='target')return targetCommand(m);
     if(transaction)throw Error('CLI ETM 事务尚未结束，拒绝抢占探针');
+    if(m.action==='workbench')return workbench.dispatch(m);
     if(m.action==='connect'){const s=await debugConnect(m);return s.statusInfo();}
     if(m.action==='disconnect'){await tools.etm.releaseProbe?.();await tools.dbg.disconnect();return {disconnected:true};}
     if(m.action==='elf'){
@@ -192,6 +195,9 @@ export function createTraceAutomation(tools, win=globalThis.window){
   return {
     async dispatch(m){
       if(m.action==='cancel'||m.action==='status'||m.action==='ping')return execute(m);
+      // Observe / stop a long-running page operation without letting another
+      // general command race it. execute still enforces the ETM transaction guard.
+      if(m.action==='workbench'&&['state','read','downloads','interrupt'].includes(m.op))return execute(m);
       if(busy)throw Error('另一条CLI命令尚未结束');
       busy=true;
       try{return await execute(m);}finally{busy=false;}
@@ -201,12 +207,24 @@ export function createTraceAutomation(tools, win=globalThis.window){
 
 export const automation=globalThis.window?.__tools?createTraceAutomation(window.__tools):null;
 
+/** Reuse a tab's identity only on an actual reload; a new tab must remain distinct. */
+export function browserWorkerId(token,env=globalThis){
+  let id=env.crypto.randomUUID().replaceAll('-','');
+  try{
+    const key='trace-cli-worker:'+token;
+    const previous=env.sessionStorage.getItem(key);
+    if(env.performance.getEntriesByType('navigation')[0]?.type==='reload'&&/^[0-9a-f]{32}$/.test(previous||''))id=previous;
+    env.sessionStorage.setItem(key,id);
+  }catch{/* Storage may be disabled. A new identity fails closed at the queue. */}
+  return id;
+}
+
 /** Opt-in browser worker; one authorized page, explicit commands, no eval. */
 export async function startWorker(){
   const token=new URLSearchParams(location.search).get('trace-cli');
   if(!/^[0-9a-f]{64}$/.test(token||''))throw Error('CLI令牌无效');
   if(!['127.0.0.1','localhost','[::1]'].includes(location.hostname))throw Error('CLI只允许本地工作台');
-  const worker=crypto.randomUUID().replaceAll('-','');
+  const worker=browserWorkerId(token);
   const call=async(path,value)=>{
     const response=await fetch('/trace-cli/'+path,{method:'POST',headers:{'Content-Type':'application/json','X-Trace-CLI':token},body:JSON.stringify(value)});
     if(!response.ok)throw Error('CLI队列HTTP '+response.status);
