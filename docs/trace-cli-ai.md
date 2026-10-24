@@ -296,6 +296,13 @@ python -X utf8 etm/trace.py record sources --record E:/trace-runs/capture-001 --
 
 ## 7. 查询和导出
 
+源码学习可用 `export --format simplified|html --readability learning`，同时生成正文、序号映射和
+指纹清单；C/HTML统一进行重复块折叠、无源码片段摘要、条件未知归组及可选源码/宏注释。
+默认旧模式保持兼容。规则、参数、离线HTML边界见 [Trace阅读说明](trace-reading.md)。
+`capabilities` 查看实际工具协议与分页限制；`query --compact` 精简摘要，`--fields` 选择点分字段。
+阅读能力从rc.2源码加入，已经发布的rc.1便携包尚不含这些参数；先检查
+`capabilities` 的 `softwareCapabilities.readingProjection.available` 和实际下载版本。
+
 ```powershell
 python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view summary
 python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view page --offset 0 --limit 100

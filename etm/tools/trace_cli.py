@@ -658,6 +658,27 @@ def export_command(args):
     if args.start is not None and (args.start < 0 or args.end < args.start):
         raise CliError('导出序号范围无效')
     kind = 'simplified-html' if args.format == 'html' else args.format
+    if getattr(args,'readability','original')=='learning':
+        if kind not in ('simplified','simplified-html'):raise CliError('阅读模式仅支持simplified/html')
+        from reading_projection import options
+        config=options(dict(repeatThreshold=args.repeat_threshold,keepFirst=args.repeat_keep_first,
+                            keepLast=args.repeat_keep_last,maxBlock=args.repeat_max_block,
+                            foldRepeats=not args.no_fold_repeats,foldLibraries=not args.no_fold_libraries,
+                            groupUnknown=not args.no_group_unknown,statements=not args.no_statements,macroView=args.macro_view))
+        manifest=args.projection_manifest or Path(str(args.out)+'.manifest.json')
+        mapping=Path(str(args.out)+'.projection.jsonl')
+        paths=[Path(p).resolve() for p in (args.out,mapping,manifest)]
+        if len(set(paths))!=3:raise CliError('导出/映射/清单路径必须互不相同')
+        view=stored_view(folder)
+        try:
+            if not hasattr(view,'export_reading'):raise CliError('阅读模式需要原生TraceStore记录；旧记录请先decode到新目录')
+            result=view.overview();result['sources']=view.sources()
+            with contextlib.ExitStack() as stack:
+                output,map_path,manifest_path=[stack.enter_context(destination(p)) for p in paths]
+                outcome=view.export_reading(result,output,map_path,manifest_path,kind,args.start,args.end,config,
+                        dict(mappingName=mapping.name,manifestName=Path(manifest).name))
+            return dict(path=str(paths[0]),mapping=str(paths[1]),manifest=str(paths[2]),projection=outcome)
+        finally:view.close()
     view = None
     try:
         if kind in ('record', 'raw', 'etm', 'elf', 'json') and args.start is not None:
@@ -808,6 +829,58 @@ def doctor_command(args):
     return result
 
 
+def capabilities_command(args):
+    from reading_projection import DEFAULTS,SCHEMA
+    native={}
+    for name in ('etm_frontend.exe','etm_decode.exe','etm_storebuild.exe','etm_export.exe'):
+        path=ROOT/'build-native'/name;item=dict(available=path.is_file())
+        if path.is_file():
+            item.update(fingerprint(path))
+            if name=='etm_decode.exe':item['selfDescription']='not-supported; OpenCSD version is recorded in decode status'
+            else:
+                try:
+                    result=subprocess.run([str(path),'--version'],capture_output=True,timeout=5)
+                    if result.returncode:raise ValueError('原生版本命令失败')
+                    item['version']=json.loads(result.stdout)
+                except (ValueError,OSError,subprocess.TimeoutExpired) as e:item['error']=str(e)
+        native[name]=item
+    available='reading-v1' in native.get('etm_export.exe',{}).get('version',{}).get('features',[])
+    return dict(protocol=VERSION,native=native,softwareCapabilities=dict(captureMaxSeconds=1,captureMaxSamples=500000000,
+        queryMaxLimit=500,queryMaxBins=5000,queryViews=['summary','overview','page','event','navigate','window','timeline','issues','source','functions','hotspots','flame','integrity'],
+        exportFormats=['simplified','source','html','csv','json','events-jsonl','raw','etm','elf','record'],
+        readingProjection=dict(schema=SCHEMA,available=available,formats=['simplified','html'],defaults=DEFAULTS,
+            repeatThresholdMeaning='strictly greater than threshold; 10 means at least 11 iterations',
+            mapping='JSONL sidecar; all selected raw events covered; repeat iteration ranges use an exact path template',
+            offlineExpansion='representative iterations only; full details require the matching record'),
+        queryFields='comma-separated dotted paths',queryCompact=True),
+        hardwareValidation=dict(priorityTarget='stm32h743',status='partial',
+            note='软件能力上限不是全部硬件组合的验收承诺；请核对对应版本的独立真机报告'))
+
+
+def query_selection(value,args):
+    fields=getattr(args,'fields',None)
+    if fields:
+        result={}
+        for field in fields.split(','):
+            parts=field.strip().split('.');cursor=value;target=result
+            if not all(part and part.replace('_','a').isalnum() for part in parts):raise CliError('无效字段路径')
+            for part in parts:
+                if not isinstance(cursor,dict) or part not in cursor:raise CliError('查询结果不存在字段：'+field)
+                cursor=cursor[part]
+            for part in parts[:-1]:
+                if part in target and not isinstance(target[part],dict):raise CliError('字段选择父子路径冲突')
+                target=target.setdefault(part,{})
+            target[parts[-1]]=cursor
+        return result
+    if getattr(args,'compact',False):
+        if args.view in ('overview','summary'):
+            summary=dict(value.get('summary') or {});functions=summary.pop('functions',{})
+            return dict(summary=summary,functionCount=len(functions),eventCount=value.get('eventCount'),
+                quality=value.get('quality'),captureExtent=value.get('captureExtent'),
+                note='紧凑摘要省略函数明细和分析树；用functions/hotspots等分页视图查明细')
+    return value
+
+
 def build_parser():
     parser = Parser(description='AI Trace CLI；硬件复用网页命令与WebUSB；JSON输出，日志写stderr。')
     parser.add_argument('--json-out', type=Path, help='将本次结果另存为新JSON文件（不能覆盖）')
@@ -815,6 +888,7 @@ def build_parser():
     parser.add_argument('--token-file', type=Path, default=os.environ.get('TRACE_CLI_TOKEN_FILE'), help='本机CLI令牌文件；必须与服务启动参数一致')
     parser.add_argument('--runtime',type=Path,help='使用web start创建的运行时目录，自动读取服务URL和令牌')
     sub = parser.add_subparsers(dest='command', required=True)
+    p=sub.add_parser('capabilities',help='软件能力/分页限制/阅读schema及验收边界；不访问硬件');p.set_defaults(func=capabilities_command)
     def la(p):
         p.add_argument('--la-host', default='127.0.0.1');p.add_argument('--la-port', type=int, default=23367)
     def hw(p):
@@ -884,11 +958,21 @@ def build_parser():
     p.add_argument('--mode', choices=('instruction','call','return','exception','issue','source','pc'), default='instruction')
     p.add_argument('--pc', type=lambda s:int(s,0));p.add_argument('--search', default='');p.add_argument('--hide-skipped', action='store_true')
     p.add_argument('--file', default='');p.add_argument('--bins', type=int, default=1200);bounds(p);p.set_defaults(func=query_command)
+    p.add_argument('--compact',action='store_true',help='摘要省略大函数表/分析树')
+    p.add_argument('--fields',help='仅返回逗号分隔的字段路径，例如summary.instructions,quality.unknownExecution')
     p=sub.add_parser('verify', help='输入指纹、实际长度、store绑定和解码质量');p.add_argument('--record', required=True, type=Path)
     p.add_argument('--require-decoded', action='store_true');p.set_defaults(func=lambda a:verify_record(a.record,a.require_decoded))
     p=sub.add_parser('export', help='导出执行流、原始数据或完整记录包');p.add_argument('--record', required=True, type=Path)
     p.add_argument('--format', required=True, choices=('simplified','source','html','csv','json','events-jsonl','raw','etm','elf','record'))
     p.add_argument('--out', required=True, type=Path);bounds(p);p.set_defaults(func=export_command)
+    p.add_argument('--readability',choices=('original','learning'),default='original',help='learning生成C/HTML阅读投影与序号映射；original保留既有行为')
+    p.add_argument('--projection-manifest',type=Path,help='阅读清单新文件；默认<out>.manifest.json')
+    p.add_argument('--repeat-threshold',type=int,default=10,help='总次数严格超过此值才折叠；10表示至少11次')
+    p.add_argument('--repeat-keep-first',type=int,default=2);p.add_argument('--repeat-keep-last',type=int,default=1)
+    p.add_argument('--repeat-max-block',type=int,default=128,help='匹配缓冲的最大源码节点块长1～512')
+    p.add_argument('--no-fold-repeats',action='store_true');p.add_argument('--no-fold-libraries',action='store_true')
+    p.add_argument('--no-group-unknown',action='store_true');p.add_argument('--no-statements',action='store_true')
+    p.add_argument('--macro-view',choices=('original','annotate','expanded'),default='annotate')
     p=sub.add_parser('import-record', help='安全解压并核验.etmrecord，不自动重解');p.add_argument('--input', required=True, type=Path)
     p.add_argument('--out', required=True, type=Path);p.set_defaults(func=import_command)
     record=sub.add_parser('record',help='本地记录库、时长/配置查看、后配源码').add_subparsers(dest='record_action',required=True)
@@ -938,6 +1022,7 @@ def main(argv=None):
             if getattr(args,'token_file',None):os.environ['TRACE_CLI_TOKEN_FILE']=str(args.token_file)
             engine_environment()
             result=args.func(args)
+            if args.command=='query':result=query_selection(result,args)
         if isinstance(result,dict) and result.get('passed') is False:
             raise CliError('验证未通过',5,result)
         envelope.update(ok=True,result=result)

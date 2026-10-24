@@ -10,6 +10,7 @@ import shutil
 import socket
 import sys
 import threading
+import tempfile
 import time
 import uuid
 import zipfile
@@ -295,6 +296,7 @@ def capabilities():
                    captureMaxSeconds=CAPTURE_MAX_SECONDS,
                    captureMaxSamples=CAPTURE_MAX_SAMPLES,
                    captureFormats=['kvdat','csv'],
+                   readingProjection=dict(schema='etm-reading/1',formats=['reading-c','reading-html'],repeatThreshold=10),
                    traceStore=dict(supported=True, format='trace-store',
                                    formatName='trace-store v1', schemaVersion=1,
                                    manifest='store/manifest.json',
@@ -1199,6 +1201,25 @@ def stop_owned_la_locked(jid):
 @app.get('/api/download/<sid>/<kind>')
 def download(sid, kind):
     folder = directory(sid)
+    if kind in ('reading-c','reading-html'):
+        store=browse_store(sid)
+        if not hasattr(store,'export_reading'):raise ValueError('阅读模式需要原生TraceStore记录；请先重解到新记录')
+        start=request.args.get('fromSeq');end=request.args.get('toSeq')
+        if (start is None)!=(end is None):raise ValueError('阅读导出需同时提供fromSeq/toSeq')
+        start=int(start) if start is not None else None;end=int(end) if end is not None else None
+        archive=folder/('export-'+uuid.uuid4().hex+'.zip')
+        try:
+            with tempfile.TemporaryDirectory(prefix='.reading-download-',dir=folder) as tmp:
+                home=Path(tmp);output=home/('trace-reading.c' if kind=='reading-c' else 'trace-reading.html')
+                mapping=home/(output.name+'.projection.jsonl');manifest=home/(output.name+'.manifest.json')
+                info=store.overview();info['sources']=store.sources()
+                store.export_reading(info,output,mapping,manifest,'simplified' if kind=='reading-c' else 'simplified-html',start,end)
+                with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
+                    for p in (output,mapping,manifest):z.write(p,p.name)
+            response=send_file(archive,as_attachment=True,download_name=kind+'.zip',mimetype='application/zip')
+        except BaseException:archive.unlink(missing_ok=True);raise
+        response.response=ClosingIterator(response.response,lambda:archive.unlink(missing_ok=True))
+        return response
     if kind in ('raw', 'kvdat'):
         m = meta(sid)
         sliced = bool(m.get('longWindow')) and (folder / 'slices').is_dir()

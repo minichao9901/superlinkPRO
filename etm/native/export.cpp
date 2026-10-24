@@ -509,6 +509,8 @@ static void readStore(const fs::path &path, const P &plan, Consumer &output) {
     require(hashFile(path) == plan.sha, "store changed during export");
 }
 
+#include "reading_projection.hpp"
+
 // Selection uses the same fully checked sequence reader as exports, without
 // constructing instruction dictionaries or decoding call-stack checkpoints.
 struct SelectionPlan {
@@ -729,7 +731,7 @@ static int run(const std::vector<std::string> &args) {
     if (args.size() == 2 && args[1] == "--version") {
         std::cout << "{\"protocol\":\"etm-export/"
                      "1\",\"abi\":1,\"storeSchema\":1,\"formats\":[\"simplified\",\"source\","
-                     "\"simplified-html\",\"csv\"],\"features\":[\"select-v1\"]}\n";
+                     "\"simplified-html\",\"csv\"],\"features\":[\"select-v1\",\"reading-v1\"]}\n";
         return 0;
     }
     if (args.size() == 4 && args[1] == "--select") {
@@ -738,6 +740,13 @@ static int run(const std::vector<std::string> &args) {
         readStore(filePath(args[3]), plan, selection);
         selection.finish();
         return 0;
+    }
+    if(args.size()==5&&args[1]=="--project"){
+        auto path=filePath(args[4]);require(!fs::exists(path),"projection output already exists");
+        ReadingPlan plan(filePath(args[2]));Output out(path);ReadingRepeats repeats(plan,out);ReadingProjection projection(plan,repeats);
+        readStore(filePath(args[3]),plan,projection);projection.finish();auto sha=out.finish();
+        require(projection.matched==plan.end-plan.start+1,"reading event coverage mismatch");
+        std::cout<<"{\"protocol\":\"etm-reading/1\",\"matchedEvents\":"<<projection.matched<<",\"instructions\":"<<projection.instructions<<",\"unknown\":"<<projection.unknown<<",\"notTaken\":"<<projection.notTaken<<",\"nodes\":"<<repeats.rows<<",\"repeatBlocks\":"<<repeats.repeats<<",\"hiddenInstructions\":"<<repeats.hiddenInstructions<<",\"libraryFragments\":"<<projection.libraries<<",\"unknownGroups\":"<<projection.unknownGroups<<",\"bytes\":"<<out.bytes()<<",\"sha256\":\""<<sha<<"\"}\n";return 0;
     }
     require(args.size() == 4, "usage: etm_export plan.bin store.bin output");
     auto planPath = filePath(args[1]), storePath = filePath(args[2]),

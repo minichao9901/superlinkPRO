@@ -17,6 +17,7 @@ def main():
     commands.append([sys.executable,'-m','unittest','discover','-s','tools/selftest','-p','test_etm_seed.py','-v'])
     commands.append([sys.executable,'-m','unittest','discover','-s','tools/selftest','-p','test_etm_engine.py','-v'])
     commands.append([sys.executable,'-m','unittest','discover','-s','../etm/tools/tests','-p','test_source_export.py','-v'])
+    commands.append([sys.executable,'-m','unittest','discover','-s','../etm/tools/tests','-p','test_reading*.py','-v'])
     commands.append([sys.executable,'-m','unittest','discover','-s','../etm/tools/tests','-p','test_native_export.py','-v'])
     commands.append([sys.executable,'-m','unittest','discover','-s','../etm/tools/tests','-p','test_native_selection.py','-v'])
     commands.append([sys.executable,'-m','unittest','discover','-s','../etm/tools/tests','-p','test_image_preparation.py','-v'])

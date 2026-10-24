@@ -14,6 +14,11 @@
 
 ## 仓库结构
 
+`1.0.14-native.14-rc.2` 源码增加独立阅读投影：重复块、无源码调用、条件未知归组、
+完整语句上下文及ELF宏/枚举注释。网页提供阅读C/HTML加序号映射的ZIP，CLI通过
+`--readability learning` 开启。规则见 [Trace阅读说明](../../../docs/trace-reading.md)。
+源码版本号不代表下载包已经更新；实际下载版本以下载清单和Release为准。
+
 `1.0.14-native.14-rc.1` 为 H743 CLI 候选版：完整候选包新增 `etm-trace.cmd`，
 使用随包 Python/Node 和网页原有调试、烧录、ETM 实现；不依赖 pyOCD。
 候选版从 GitHub Release 单独下载，正式站点下载暂保留 native.13。

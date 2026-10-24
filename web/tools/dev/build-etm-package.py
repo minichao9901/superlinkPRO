@@ -6,7 +6,7 @@ Requires build-only dependencies in bridge/etm/requirements-build.txt.
 import argparse,hashlib,importlib.metadata,json,os,shutil,subprocess,sys,uuid,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
-VERSION='1.0.14-native.14-rc.1'
+VERSION='1.0.14-native.14-rc.2'
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def package_cli(package,toolbox,node):
     """Ship the Web command sources and pinned dependencies, not an SDK."""
@@ -56,7 +56,8 @@ def main():
                  'trace_store','trace_store_write','trace_store_adapter','trace_store_index','trace_store_nav',
                  'native_binary','native_facts_index','native_pipeline','static_dict',
                  'native_frontend','native_storebuild','native_export','native_selection','trace_frontend','concurrent.futures.thread',
-                 'trace_cli','trace_cli_hardware','trace_cli_runtime','trace_cli_paths','trace_cli_legacy','web_cli_queue','serial','serial.tools.list_ports']:
+                 'trace_cli','trace_cli_hardware','trace_cli_runtime','trace_cli_paths','trace_cli_legacy','web_cli_queue','serial','serial.tools.list_ports',
+                 'reading_projection','reading_view','source_reading']:
         command+=['--hidden-import',name]
     # 便携包**随带** numpy/pandas（用户明确要求）：只有它们在，trace_port 的向量化前端才生效，
     # 200 ms 记录端到端才是全速（~120 s）；代价是 runtime 变大（pandas 会带 pytz/PIL/lxml/zstandard）。

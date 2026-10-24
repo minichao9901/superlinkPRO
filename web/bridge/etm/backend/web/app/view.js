@@ -70,7 +70,7 @@ const history=new HistoryView(api,error);
  *  旧后端没有该接口时静默保持 200 ms；能力值只用于校验与提示，不暴露处理引擎细节。 */
 function captureLimitText(){const ms=Math.round(state.captureMaxSeconds*1000);return `单次采集上限 ${ms} ms：一次采集 + 一次解码`+(ms>200?'；长窗可能需十几秒，请核对实际采集时长':'');}
 function applyCaptureCapability(){const ms=Math.max(1,Math.round(state.captureMaxSeconds*1000)),input=$('duration');if(!input)return;input.max=String(ms);input.title=captureLimitText();const hint=$('capture-capability-hint');if(hint)hint.textContent=captureLimitText();if(Number(input.value)>ms)input.value=String(ms);history.setCapability?.(state.capabilities);}
-async function loadCapabilities(){try{const value=await api('capabilities');if(!value||typeof value!=='object')return;const seconds=Number(value.captureMaxSeconds),samples=Number(value.captureMaxSamples);if(Number.isFinite(seconds)&&seconds>0)state.captureMaxSeconds=seconds;if(Number.isFinite(samples)&&samples>0)state.captureMaxSamples=samples;state.capabilities=value;applyCaptureCapability();}catch(e){/* 旧后端没有 /api/capabilities：保持 200 ms 默认上限 */}}
+async function loadCapabilities(){try{const value=await api('capabilities');if(!value||typeof value!=='object')return;const seconds=Number(value.captureMaxSeconds),samples=Number(value.captureMaxSamples);if(Number.isFinite(seconds)&&seconds>0)state.captureMaxSeconds=seconds;if(Number.isFinite(samples)&&samples>0)state.captureMaxSamples=samples;state.capabilities=value;for(const o of $('export-type')?.options||[])if(o.value.startsWith('reading-')){o.hidden=!value.readingProjection;o.disabled=!value.readingProjection;}applyCaptureCapability();}catch(e){/* 旧后端没有 /api/capabilities：保持 200 ms 默认上限 */}}
 /** 区间变化（点分片、火焰图拖选、缩放、重置）都回写分片时间轴的选中态。 */
 history.onScopeChange=()=>syncSliceTimeline();
 function on(id,fn,{exclusive=true}={}){$(id).onclick=async()=>{if(exclusive&&state.operation)return;const button=$(id),recordAction=id==='open-record',hardware=exclusive&&(id==='connect'||PROBE_ACTIONS.has(id)&&!!target.probe||id==='start'&&$('sync').checked);if(exclusive)state.operation=true;if(hardware)state.hardwareOperation=true;if(recordAction)history.setLoading(true);button.disabled=true;controls();try{await(hardware?runEmbedded(host,fn):fn());}catch(e){error(e);}finally{if(exclusive)state.operation=false;if(hardware)state.hardwareOperation=false;if(recordAction)history.setLoading(false);button.disabled=false;controls();}};}
@@ -331,11 +331,11 @@ on('stop',async()=>{state.captureCancelled=true;const id=state.job||state.failed
 on('decode',async()=>{if(!state.current)throw Error('请选择记录');await watchJob((await api('decode/'+state.current,{})).job);});
 async function download(kind){
   if(!state.current)throw Error('请选择记录');
-  const execution=['source','simplified','simplified-html','csv'].includes(kind);
+  const execution=['source','simplified','simplified-html','csv','reading-c','reading-html'].includes(kind);
   const url=apiBase+'download/'+state.current+'/'+kind+(history.range&&execution?'?fromSeq='+history.range.start+'&toSeq='+history.range.end:'');
   if(execution){
     $('job-state').textContent='正在生成导出文件…';
-    const file=await fetchExecutionExport(url);saveExportFile(file);
+    const file=await fetchExecutionExport(url,kind.startsWith('reading-')?{timeout:180000}:{});saveExportFile(file);
     $('job-state').textContent='已生成 '+file.filename;log('导出已生成：'+file.filename);
   }else{const a=document.createElement('a');a.href=url;a.download='';a.click();}
 }

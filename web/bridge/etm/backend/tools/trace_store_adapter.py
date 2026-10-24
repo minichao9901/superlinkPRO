@@ -632,6 +632,11 @@ class TraceStoreAdapter:
             if native_export.prefer_prepared_small_range(store,start,end):return False
             return native_export.write(store,result,path,kind,start,end)
 
+    def export_reading(self,result,path,mapping,manifest,kind,start=None,end=None,config=None,names=None):
+        import reading_projection
+        with self._leased() as store:
+            return reading_projection.write(store,result,self.folder,path,mapping,manifest,kind,start,end,config,names)
+
     def sources(self):
         with self._leased() as store:
             overlay = _read_small_json(self.folder / 'sources.json')

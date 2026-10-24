@@ -8,6 +8,7 @@ FILES += ['tools/trace_store_index.py','tools/trace_store_nav.py','tools/native_
           'tools/native_storebuild.py','tools/trace_frontend.py','tools/native_export.py','tools/native_selection.py']
 FILES += ['tools/trace_cli.py','tools/trace_cli_hardware.py','tools/trace_cli_runtime.py',
           'tools/trace_cli_paths.py','tools/trace_cli_legacy.py','tools/web_cli_queue.py']
+FILES += ['tools/reading_projection.py','tools/reading_view.py','tools/source_reading.py']
 # 可选原生索引器：只有配置时找到 SQLite3，CMakeLists 才会生成 etm_index 目标（否则 Python 回退）。
 # FindSQLite3 模块在缓存里写的是单数 INCLUDE_DIR/LIBRARY；config 模式才可能有 SQLite3_DIR。
 SQLITE_CACHE_KEYS=('SQLite3_INCLUDE_DIR','SQLite3_LIBRARY')
@@ -143,7 +144,7 @@ def main():
     #    裸克隆里没有；旧顺序会先因为缺 exe 抛异常，后面的 cmake 自动构建永远轮不到（审查 R09）。
     #    exe 由下面最后一步 g++ 直接链接进快照。
     paths+=['native/decoder.cpp','native/indexer.cpp','native/frontend.cpp','native/storebuild.cpp','native/export.cpp',
-            'native/SQLITE-LICENSE.txt','vendor/OpenCSD-1.8.3/LICENSE']
+            'native/reading_projection.hpp','native/SQLITE-LICENSE.txt','vendor/OpenCSD-1.8.3/LICENSE']
     for name in paths:
         target=dest/name;target.parent.mkdir(parents=True,exist_ok=True)
         data=(source/name).read_bytes()
