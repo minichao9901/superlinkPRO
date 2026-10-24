@@ -13,9 +13,14 @@ import sys
 import threading
 import time
 import zlib
+from trace_cli_paths import asset_root, frozen, hardware_lock, node_executable
 
 
 def lock_path():
+    if frozen():
+        path = hardware_lock()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
     repo = Path(__file__).resolve().parents[2]
     result = subprocess.run(['git', 'rev-parse', '--git-common-dir'], cwd=repo,
                             capture_output=True, text=True, timeout=10)
@@ -60,10 +65,8 @@ class WebPipe:
         self.sequence = 0
 
     def __enter__(self):
-        node = shutil.which('node')
-        if not node:
-            raise RuntimeError('缺少Node.js；硬件命令使用网页驱动')
-        self.process = subprocess.Popen([node, str(Path(__file__).with_name('trace_target_cli.mjs'))],
+        node = node_executable()
+        self.process = subprocess.Popen([node, str(asset_root()/'etm/tools/trace_target_cli.mjs')],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr,
             text=True, encoding='utf8', bufsize=1)
         self.messages = queue.Queue()

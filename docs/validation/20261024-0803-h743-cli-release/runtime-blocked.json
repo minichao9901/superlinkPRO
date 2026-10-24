@@ -1,0 +1,10 @@
+{
+  "attempt": "2026-10-24 08:03 +08:00",
+  "action": "python etm/trace.py web start --runtime-dir <new owned runtime>",
+  "tool": "exec_command",
+  "outcome": "rejected before process creation",
+  "error": "CreateProcess: Rejected: blocked by policy",
+  "reasonDetailsProvided": false,
+  "applicationStarted": false,
+  "hardwareTestThisRun": "not-run"
+}

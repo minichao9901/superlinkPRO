@@ -6,6 +6,8 @@ FILES=['server.py','requirements.txt','tools/decode_trace.py','tools/decode_stre
 FILES += ['tools/trace_store_index.py','tools/trace_store_nav.py','tools/native_facts_index.py',
           'tools/native_pipeline.py','tools/static_dict.py','tools/native_frontend.py',
           'tools/native_storebuild.py','tools/trace_frontend.py','tools/native_export.py','tools/native_selection.py']
+FILES += ['tools/trace_cli.py','tools/trace_cli_hardware.py','tools/trace_cli_runtime.py',
+          'tools/trace_cli_paths.py','tools/trace_cli_legacy.py','tools/web_cli_queue.py']
 # 可选原生索引器：只有配置时找到 SQLite3，CMakeLists 才会生成 etm_index 目标（否则 Python 回退）。
 # FindSQLite3 模块在缓存里写的是单数 INCLUDE_DIR/LIBRARY；config 模式才可能有 SQLite3_DIR。
 SQLITE_CACHE_KEYS=('SQLite3_INCLUDE_DIR','SQLite3_LIBRARY')
@@ -111,7 +113,9 @@ def build_provenance(source,dest,origins,indexer,revision=None):
         local_changes.append('native/indexer.cpp: static SQLite bulk index and compact browsing metrics')
     else:
         local_changes.append('native/indexer.cpp: 本次快照未构建原生索引器（'+str(indexer.get('reason') or '缺 SQLite3 开发库')+'）；使用 Python 回退，provenance 不含 build-native/etm_index.exe')
-    return dict(sourceRepository='etm',sourceRevision=revision,sourceHashes=origins,
+    status=subprocess.run(['git','status','--porcelain','--',str(source)],cwd=source,text=True,capture_output=True)
+    dirty=bool(status.stdout.strip()) if status.returncode==0 else None
+    return dict(sourceRepository='etm',sourceRevision=revision,sourceDirty=dirty,sourceHashes=origins,
                 localChanges=local_changes,
                 nativeIndexer=dict(available=bool(indexer.get('available')),reason=indexer.get('reason') or None),
                 packagedHashes=packaged_hashes(dest))

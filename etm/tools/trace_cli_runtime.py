@@ -11,9 +11,10 @@ import threading
 import time
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
+from trace_cli_paths import asset_root, backend_root, node_executable, host_command
 
 
-ROOT=Path(__file__).resolve().parents[2]
+ROOT=asset_root()
 
 
 def read(path):
@@ -36,7 +37,9 @@ def request(runtime,payload):
     while time.monotonic()<deadline:
         with urlopen(Request(state['url']+'/trace-cli/result/'+jid,headers=headers),timeout=5) as response:
             value=json.load(response)
-        if value['state']=='done':return value['result']
+        if value['state']=='done':
+            with urlopen(Request(state['url']+'/trace-cli/ack/'+jid,data=b'{}',headers=headers),timeout=5):pass
+            return value['result']
         time.sleep(.1)
     raise TimeoutError('运行时状态查询超时')
 
@@ -44,12 +47,11 @@ def request(runtime,payload):
 def start(folder,url,probe=None,image_root=None):
     folder=Path(folder).resolve()
     parsed=urlsplit(url)
-    if parsed.hostname not in ('127.0.0.1','localhost') or parsed.scheme!='http' or parsed.path not in ('','/'):
+    if parsed.hostname not in ('127.0.0.1','localhost') or parsed.scheme!='http' or parsed.path not in ('','/') or parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError('运行时URL须为 http://127.0.0.1:端口')
     port=parsed.port or 80
     if not 1024<=port<=65535:raise ValueError('端口范围1024～65535')
-    node=shutil.which('node')
-    if not node:raise RuntimeError('缺少Node.js')
+    node=node_executable()
     dependency=ROOT/'etm/tools/node-transport/node_modules/usb'
     if not dependency.is_dir() or not (dependency.parent/'linkedom').is_dir():raise RuntimeError('请先 npm ci --prefix etm/tools/node-transport')
     # Never reuse another application's listener or overwrite an old runtime.
@@ -62,9 +64,13 @@ def start(folder,url,probe=None,image_root=None):
     write(folder/'runtime.json',options)
     log=(folder/'host.log').open('xb')
     flags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0
-    child=subprocess.Popen([sys.executable,'-X','utf8',str(Path(__file__).resolve()),'host',str(folder)],
-        cwd=ROOT,stdin=subprocess.DEVNULL,stdout=log,stderr=log,creationflags=flags)
-    log.close()
+    try:
+        child=subprocess.Popen(host_command(folder),
+            cwd=ROOT,stdin=subprocess.DEVNULL,stdout=log,stderr=log,creationflags=flags)
+    except OSError as error:
+        write(folder/'runtime.json',dict(options,status='failed',error=str(error)))
+        raise
+    finally:log.close()
     deadline=time.monotonic()+15
     while time.monotonic()<deadline:
         state=read(folder/'runtime.json')
@@ -72,12 +78,14 @@ def start(folder,url,probe=None,image_root=None):
         if state['status']=='ready':return state
         if child.poll() is not None:raise RuntimeError('运行时已退出，请查 '+str(folder/'host.log'))
         time.sleep(.1)
-    raise TimeoutError('运行时尚未就绪；保留目录供检查：'+str(folder))
+    write(folder/'stop-request.json',dict(nonce=options['nonce']))
+    raise TimeoutError('运行时尚未就绪，已请求正常退出；保留目录供检查：'+str(folder))
 
 
 def stop(folder):
     folder=Path(folder).resolve();state=read(folder/'runtime.json')
     if state['status']=='stopped':return state
+    if state['status']=='failed':raise RuntimeError(state.get('error','运行时已失败，请检查host.log'))
     write(folder/'stop-request.json',dict(nonce=state['nonce']))
     deadline=time.monotonic()+30
     while time.monotonic()<deadline:
@@ -97,10 +105,12 @@ def host(folder):
     try:
         spec=importlib.util.spec_from_file_location('trace_web_service',ROOT/'web/tools/dev/serve-etm.py')
         service=importlib.util.module_from_spec(spec);spec.loader.exec_module(service)
-        app=service.create_application(ROOT/'etm',ROOT/'web',folder/'cli-token')
+        os.environ['WEB_ETM_RECORDS']=str(folder/'records')
+        app=service.create_application(backend_root(),ROOT/'web',folder/'cli-token')
+        sys.modules['decode_trace'].ROOT=backend_root()
         server=make_server('127.0.0.1',urlsplit(state['url']).port,app,threaded=True)
         threading.Thread(target=server.serve_forever,daemon=True).start()
-        argv=[shutil.which('node'),str(ROOT/'etm/tools/node-transport/worker.mjs'),'--web-url',state['url'],
+        argv=[node_executable(),str(ROOT/'etm/tools/node-transport/worker.mjs'),'--web-url',state['url'],
               '--token-file',str(folder/'cli-token')]
         if state['probe']:argv+=['--probe',state['probe']]
         if state['imageRoot']:argv+=['--image-root',state['imageRoot']]
@@ -130,6 +140,16 @@ def host(folder):
         state.update(status='failed',error=str(error))
         raise
     finally:
+        # A failed handshake must not orphan a worker. Never force-kill a
+        # possible Flash operation: the worker finishes it before disconnect.
+        if worker and worker.poll() is None:
+            try:
+                worker.stdin.write(b'stop\n');worker.stdin.flush()
+                worker.wait(timeout=960)
+                if worker.returncode:
+                    state.update(status='failed',error='worker退出清理失败，请检查host.log')
+            except Exception as cleanup:
+                state.update(status='failed',cleanupPending=True,cleanupError=str(cleanup))
         if server:server.shutdown();server.server_close()
         state['ended']=time.time();write(folder/'runtime.json',state)
 

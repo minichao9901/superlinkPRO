@@ -1,6 +1,6 @@
 {
   "sourceRepository": "etm",
-  "sourceRevision": "b86b860a44ad164b41db078277514106bf9a9f93",
+  "sourceRevision": "604390050b1c368ceb115142d96791f3d6788883",
   "sourceHashes": {
     "server.py": "0054ee90e333e4279c2ea617755ab3a59e10330ed667d8cab3c69adea5e23c7e",
     "requirements.txt": "871c0e677856b3f2b80dc05b19f9522e7f4efa8ae8728b73939c55bbcf678a44",
@@ -33,6 +33,12 @@
     "tools/trace_frontend.py": "3e3ae2dbe056874f2e6d4956652cccaea5829e0d5829f2dd27f5524194b3e7dc",
     "tools/native_export.py": "4cd72d197d98ca0963ec27eebb205915a6add23d1ba80948065d8e6b785c0397",
     "tools/native_selection.py": "b36bddfc8b57471c782b98f7d6a6b9cb666c7450f86307e267b8a4a4453cff43",
+    "tools/trace_cli.py": "c7a7bbf85fa6909393e009cc16288f819a0a99026110ef3ba5852b0eae4124fe",
+    "tools/trace_cli_hardware.py": "3b780863bd61b18d3bded7e5104c4cfd26ba7b6853c4679540e2cdaeef8b06e6",
+    "tools/trace_cli_runtime.py": "23a37d43d6689b5c1ca348d150171b03261309af507a1fa630348b4ba5d6e643",
+    "tools/trace_cli_paths.py": "58e011523898b8c5469f34c4a8a1579f97554c002d76a733278145d5b36842cd",
+    "tools/trace_cli_legacy.py": "2aef0ae0ef7a3b8d52b9e91ffc6b257af03b6168b19e867f19c41b1e159659da",
+    "tools/web_cli_queue.py": "16fa48a6c3dcf56bdbe0e9a865f28c35c5d3e62ee02556b05868e544baf4a120",
     "web/index.html": "ec5a432f7e9d25476e58dde9e857affc188fe1120cd08fa7f240891a6cb38426",
     "web/style.css": "2e74e77e30b6400cf253e043caa7d74d90517ae6bb787920c13aa8c307459f64",
     "web/app/analysis-views.js": "08871b8cd4f18672328aa2488b49e0dc44e85a5d19438b1b79a87c64e7c1bfbf",
@@ -87,7 +93,7 @@
   "packagedHashes": {
     "requirements.txt": "871c0e677856b3f2b80dc05b19f9522e7f4efa8ae8728b73939c55bbcf678a44",
     "server.py": "85d7cb944552f72847c2364096e8dd02108543818fedc8197177bc6704b5622f",
-    "build-native/etm_decode.exe": "56ad82a1b1e0451a40aeb7f7eb11cd512d88718c8dc2e2c8bae2ac8275860577",
+    "build-native/etm_decode.exe": "c864e885e9aa6cffbcda1d627f261eea27912d75e12f0d708960112e73389e7f",
     "build-native/etm_export.exe": "d5094d27c21726715a636a3b0f9326d587060a956f359d103ea487858a99286a",
     "build-native/etm_frontend.exe": "773c28b11d99fe694fd94102c6bc0dbfcbec09e0954b2c783a54e5cc5413805b",
     "build-native/etm_index.exe": "0750c09b8d7a9af6920153c607ad12d3d66884c60881d1cda0b21527e4b8defe",
@@ -121,6 +127,11 @@
     "tools/stream_store.py": "99487d137ad224c6470219ed7ee77dd16f724630003065f83c09fd3ad5d972ef",
     "tools/timeline_index.py": "ff26acddb3637f1661344f747bfb91d526743c93b45c1e61d9e61dc4f067836a",
     "tools/tpiu_demux.py": "51484d4a6830613aa45f44174dbfd12b7aa5de951bcbe5d4a532e7b069f61b02",
+    "tools/trace_cli.py": "c7a7bbf85fa6909393e009cc16288f819a0a99026110ef3ba5852b0eae4124fe",
+    "tools/trace_cli_hardware.py": "3b780863bd61b18d3bded7e5104c4cfd26ba7b6853c4679540e2cdaeef8b06e6",
+    "tools/trace_cli_legacy.py": "2aef0ae0ef7a3b8d52b9e91ffc6b257af03b6168b19e867f19c41b1e159659da",
+    "tools/trace_cli_paths.py": "58e011523898b8c5469f34c4a8a1579f97554c002d76a733278145d5b36842cd",
+    "tools/trace_cli_runtime.py": "23a37d43d6689b5c1ca348d150171b03261309af507a1fa630348b4ba5d6e643",
     "tools/trace_frontend.py": "3e3ae2dbe056874f2e6d4956652cccaea5829e0d5829f2dd27f5524194b3e7dc",
     "tools/trace_port.py": "38e4467450ccdd809cb4bd74627566fd4caf6802f7d9e0abff173475fbaf3c23",
     "tools/trace_store.py": "74cca0d793b240ce7c40e68754120d8dad083a4ca2d627cdb4ac90f7b1a5863c",
@@ -128,6 +139,7 @@
     "tools/trace_store_index.py": "072252d30e08a3a1e0748d380aa9cd1ce5c94846a55288c59752f390fb03d14a",
     "tools/trace_store_nav.py": "a33aba28e3bcfa02fdde368a477d67ccd2dfd215114b99463cfe0ac4a3f2ed09",
     "tools/trace_store_write.py": "c9d3fdb9d736d5923fc54a2420b860cf2d64d3c48d3b3bc5b507f8acfc972685",
+    "tools/web_cli_queue.py": "16fa48a6c3dcf56bdbe0e9a865f28c35c5d3e62ee02556b05868e544baf4a120",
     "web/index.html": "ec5a432f7e9d25476e58dde9e857affc188fe1120cd08fa7f240891a6cb38426",
     "web/style.css": "2e74e77e30b6400cf253e043caa7d74d90517ae6bb787920c13aa8c307459f64",
     "web/app/analysis-views.js": "08871b8cd4f18672328aa2488b49e0dc44e85a5d19438b1b79a87c64e7c1bfbf",
@@ -178,5 +190,6 @@
     "firmware/stm32h743_cdc_trace/fw.elf": "c610192ce4acbefc66d210a9b44b984c47ffdb02314cfce0d94f5b86835fdcd3",
     "firmware/stm32h7b0_spi_trace/stable-70-35-v1/fw.elf": "4e25c663d9e1dda32e41e8c970afce4b176d996b99b396c9cb2b530b84cd02b2",
     "baselines/spi-70-35-v1/manifest.json": "a8d0eeaaa8066b67508fbf3b15c3f76763b802cc98ab28147c3c3d99d12b6ec9"
-  }
+  },
+  "sourceDirty": true
 }

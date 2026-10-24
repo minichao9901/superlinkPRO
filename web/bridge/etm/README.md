@@ -14,6 +14,11 @@
 
 ## 仓库结构
 
+`1.0.14-native.14-rc.1` 为 H743 CLI 候选版：完整候选包新增 `etm-trace.cmd`，
+使用随包 Python/Node 和网页原有调试、烧录、ETM 实现；不依赖 pyOCD。
+候选版从 GitHub Release 单独下载，正式站点下载暂保留 native.13。
+最终版本启动与硬件回归受执行工具策略拦截，未完成；详见包内 `Trace-CLI-中文说明.md`。
+
 - `backend/`：从已验收 ETM 版本复制的运行源码、网页、解码器、单个 Demo 和示例 ELF；不包含 SDK 或用户记录。
 - `etm_bridge.py`：便携桥入口，固定资源定位与记录目录。
 - `provenance.json`：来源提交、原始文件哈希与本地适配。

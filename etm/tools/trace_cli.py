@@ -16,8 +16,9 @@ import sys
 import time
 import uuid
 import zipfile
+from trace_cli_paths import backend_root, asset_root, node_executable
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = backend_root()
 VERSION = 'trace-cli/1'
 MAX_MEMBER = 1 << 30
 MAX_TOTAL = 2 << 30
@@ -778,11 +779,14 @@ def doctor_command(args):
          ('pyserial', 'serial')]}
     tools = {name: str(ROOT/'build-native'/name) if (ROOT/'build-native'/name).is_file() else None
              for name in ('etm_frontend.exe', 'etm_decode.exe', 'etm_storebuild.exe', 'etm_export.exe')}
-    result = dict(dependencies=dependencies, native=tools, node=shutil.which('node'),
+    try:node=node_executable()
+    except RuntimeError:node=None
+    transport=asset_root()/'etm/tools/node-transport/node_modules'
+    result = dict(dependencies=dependencies, native=tools, node=node,
                   hardware='not-probed', captureMaxSeconds=1, captureMaxSamples=500000000)
     result['webCommandTransport']=dict(pyocdRequired=False,
-        nodeUsbInstalled=(ROOT/'tools/node-transport/node_modules/usb').is_dir(),
-        adapterInstalled=(ROOT/'tools/node-transport/node_modules/linkedom').is_dir())
+        nodeUsbInstalled=(transport/'usb').is_dir(),
+        adapterInstalled=(transport/'linkedom').is_dir())
     if args.hardware:
         from trace_cli_hardware import HardwareLease, web_request
         from la.kingst_la import Vis
@@ -798,7 +802,7 @@ def doctor_command(args):
             finally:
                 v.close()
             result['hardware'] = 'enumerated; target not configured'
-    result['ready'] = all(dependencies.values()) and all(tools.values()) and bool(result['node'])
+    result['ready'] = all(dependencies.values()) and all(tools.values()) and bool(result['node']) and result['webCommandTransport']['nodeUsbInstalled'] and result['webCommandTransport']['adapterInstalled']
     if not result['ready']:
         raise CliError('依赖检查未通过', 3, result)
     return result

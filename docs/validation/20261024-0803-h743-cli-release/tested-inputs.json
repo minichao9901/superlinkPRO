@@ -1,0 +1,102 @@
+[
+  {
+    "path": "docs/trace-cli-ai.md",
+    "bytes": 20135,
+    "sha256": "4a9af459501fc8ba2b3902f6561604839a6724fe054b31fa7bbd920adf4a5cd8"
+  },
+  {
+    "path": "etm/tools/tests/test_trace_cli_runtime.py",
+    "bytes": 5919,
+    "sha256": "fd4c20f238107dde5f1db891d2ac43f1b857c9538000b7d98baebda60e06c107"
+  },
+  {
+    "path": "etm/tools/tests/test_trace_cli_paths.py",
+    "bytes": 1809,
+    "sha256": "27095588cecc25fc3fcf554dd0e13db2d7e17dae24f2daca440959073e78c45d"
+  },
+  {
+    "path": "etm/tools/trace_cli.py",
+    "bytes": 54338,
+    "sha256": "c7a7bbf85fa6909393e009cc16288f819a0a99026110ef3ba5852b0eae4124fe"
+  },
+  {
+    "path": "etm/tools/trace_cli_hardware.py",
+    "bytes": 10522,
+    "sha256": "3b780863bd61b18d3bded7e5104c4cfd26ba7b6853c4679540e2cdaeef8b06e6"
+  },
+  {
+    "path": "etm/tools/trace_cli_runtime.py",
+    "bytes": 7677,
+    "sha256": "23a37d43d6689b5c1ca348d150171b03261309af507a1fa630348b4ba5d6e643"
+  },
+  {
+    "path": "etm/tools/trace_cli_paths.py",
+    "bytes": 1108,
+    "sha256": "58e011523898b8c5469f34c4a8a1579f97554c002d76a733278145d5b36842cd"
+  },
+  {
+    "path": "web/bridge/etm/README.md",
+    "bytes": 4094,
+    "sha256": "22be8f31a738bec763ef13d83f4e7bc40ca31afd39af903ff461eefcb85779b4"
+  },
+  {
+    "path": "web/bridge/etm/backend/build-native/etm_decode.exe",
+    "bytes": 4176508,
+    "sha256": "c864e885e9aa6cffbcda1d627f261eea27912d75e12f0d708960112e73389e7f"
+  },
+  {
+    "path": "web/bridge/etm/etm_bridge.py",
+    "bytes": 10595,
+    "sha256": "9b3bf61eb8b1b9cc949f2689c2265ee2866d95ab985e3e8c7f1a30d19e3205c2"
+  },
+  {
+    "path": "web/bridge/etm/provenance.json",
+    "bytes": 18703,
+    "sha256": "35d6fd545b597efc4170f8df80e7e415b46d5ad5946388ecdaf6ab1bb3ad429a"
+  },
+  {
+    "path": "web/tools/dev/build-etm-package.py",
+    "bytes": 10344,
+    "sha256": "8f284cf6c8a151edabcfeec711f588e3524318b9b2ee4443c8c2d1fc040a5c25"
+  },
+  {
+    "path": "web/tools/dev/sync-etm-runtime.py",
+    "bytes": 18290,
+    "sha256": "ccabb4910501c2f1b451fd4496f2282d6835d20ac502e6dece793e917a2108eb"
+  },
+  {
+    "path": "web/bridge/etm/licenses/Node-v24.13.1-LICENSE.txt",
+    "bytes": 145496,
+    "sha256": "9ef8d3fa97d90d93543ee9e2b71394de59c09d8057625fd355d45303243527a3"
+  },
+  {
+    "path": "web/bridge/etm/backend/tools/trace_cli.py",
+    "bytes": 54338,
+    "sha256": "c7a7bbf85fa6909393e009cc16288f819a0a99026110ef3ba5852b0eae4124fe"
+  },
+  {
+    "path": "web/bridge/etm/backend/tools/trace_cli_hardware.py",
+    "bytes": 10522,
+    "sha256": "3b780863bd61b18d3bded7e5104c4cfd26ba7b6853c4679540e2cdaeef8b06e6"
+  },
+  {
+    "path": "web/bridge/etm/backend/tools/trace_cli_runtime.py",
+    "bytes": 7677,
+    "sha256": "23a37d43d6689b5c1ca348d150171b03261309af507a1fa630348b4ba5d6e643"
+  },
+  {
+    "path": "web/bridge/etm/backend/tools/trace_cli_paths.py",
+    "bytes": 1108,
+    "sha256": "58e011523898b8c5469f34c4a8a1579f97554c002d76a733278145d5b36842cd"
+  },
+  {
+    "path": "web/bridge/etm/backend/tools/trace_cli_legacy.py",
+    "bytes": 2915,
+    "sha256": "2aef0ae0ef7a3b8d52b9e91ffc6b257af03b6168b19e867f19c41b1e159659da"
+  },
+  {
+    "path": "web/bridge/etm/backend/tools/web_cli_queue.py",
+    "bytes": 4216,
+    "sha256": "16fa48a6c3dcf56bdbe0e9a865f28c35c5d3e62ee02556b05868e544baf4a120"
+  }
+]

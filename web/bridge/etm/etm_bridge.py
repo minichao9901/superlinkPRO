@@ -5,7 +5,7 @@ from urllib.request import urlopen
 from flask import send_file
 from werkzeug.serving import make_server
 
-VERSION='1.0.14-native.13'
+VERSION='1.0.14-native.14-rc.1'
 HERE=Path(__file__).resolve().parent
 for stream in (sys.stdout,sys.stderr):
     if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf8',errors='replace')
@@ -141,5 +141,18 @@ def main():
     finally:http.server_close()
 
 if __name__=='__main__':
-    try:main()
+    try:
+        if len(sys.argv)>1 and sys.argv[1] in ('--cli','--cli-host'):
+            runtime=Path(sys._MEIPASS) if getattr(sys,'frozen',False) else HERE
+            for path in (runtime/'backend/tools',runtime/'backend/tools/la'):
+                sys.path.insert(0,str(path))
+            if sys.argv[1]=='--cli-host':
+                from trace_cli_runtime import host
+                host(sys.argv[2])
+            else:
+                import decode_trace
+                decode_trace.ROOT=runtime/'backend'
+                from trace_cli import main as cli_main
+                sys.exit(cli_main(sys.argv[2:]))
+        else:main()
     except Exception as error:print('[错误] '+str(error),file=sys.stderr,flush=True);sys.exit(1)

@@ -6,11 +6,38 @@ Requires build-only dependencies in bridge/etm/requirements-build.txt.
 import argparse,hashlib,importlib.metadata,json,os,shutil,subprocess,sys,uuid,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
+VERSION='1.0.14-native.14-rc.1'
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+def package_cli(package,toolbox,node):
+    """Ship the Web command sources and pinned dependencies, not an SDK."""
+    repo=ROOT.parent;cli=package/'cli'
+    shutil.copytree(toolbox,cli/'web')
+    shutil.copyfile(ROOT/'package.json',cli/'web/package.json')
+    service=cli/'web/tools/dev/serve-etm.py';service.parent.mkdir(parents=True)
+    shutil.copyfile(ROOT/'tools/dev/serve-etm.py',service)
+    shutil.copytree(ROOT/'bridge/etm/backend/web',cli/'etm/web')
+    (cli/'package.json').write_text('{"private":true,"type":"module"}\n',encoding='utf8')
+    transport=cli/'etm/tools/node-transport';transport.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copytree(repo/'etm/tools/node-transport',transport,ignore=shutil.ignore_patterns('__pycache__','.git'))
+    shutil.copyfile(repo/'etm/tools/trace_target_cli.mjs',transport.parent/'trace_target_cli.mjs')
+    executable=cli/'node/node.exe';executable.parent.mkdir()
+    shutil.copyfile(node,executable)
+    version=subprocess.check_output([str(node),'-p','process.version'],text=True).strip()
+    license=ROOT/'bridge/etm/licenses'/('Node-'+version+'-LICENSE.txt')
+    if not license.is_file():raise ValueError('缺少对应Node版本的第三方许可证：'+str(license))
+    shutil.copyfile(license,package/'licenses'/license.name)
+    shutil.copyfile(repo/'docs/trace-cli-ai.md',package/'Trace-CLI-中文说明.md')
+    (package/'etm-trace.cmd').write_text('@echo off\n"%~dp0etm-bridge.exe" --cli %*\nexit /b %errorlevel%\n',encoding='ascii')
+    return version
+
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,default=ROOT/'bridge/etm/downloads');args=parser.parse_args()
+    default_output=ROOT/'tmp/packages'/VERSION if '-rc.' in VERSION else ROOT/'bridge/etm/downloads'
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,default=default_output);args=parser.parse_args()
     if os.name!='nt' or sys.maxsize<=2**32:raise ValueError('请在 Windows 64 位 Python 下构建')
-    subprocess.run(['node','tools/dev/build-web.mjs','--check'],cwd=ROOT,check=True)
+    node=shutil.which('node')
+    if not node:raise ValueError('构建CLI包需要Node.js')
+    if subprocess.check_output([node,'-p','process.arch'],text=True).strip()!='x64':raise ValueError('CLI包需要Windows x64 Node')
+    subprocess.run([node,'tools/dev/build-web.mjs','--check'],cwd=ROOT,check=True)
     snapshot=ROOT/'bridge/etm/backend'
     provenance=json.loads((ROOT/'bridge/etm/provenance.json').read_text(encoding='utf8'))
     for name,expected in provenance['packagedHashes'].items():
@@ -28,7 +55,8 @@ def main():
     for name in ['server','werkzeug.middleware.dispatcher','html.parser','decode_trace','decode_stream','stream_store','trace_port','tpiu_demux','flow_analysis','record_store','source_export','breakpoint_resolver','kingst_la','kingst_record','timeline_index','native_index','fast_window',
                  'trace_store','trace_store_write','trace_store_adapter','trace_store_index','trace_store_nav',
                  'native_binary','native_facts_index','native_pipeline','static_dict',
-                 'native_frontend','native_storebuild','native_export','native_selection','trace_frontend','concurrent.futures.thread']:
+                 'native_frontend','native_storebuild','native_export','native_selection','trace_frontend','concurrent.futures.thread',
+                 'trace_cli','trace_cli_hardware','trace_cli_runtime','trace_cli_paths','trace_cli_legacy','web_cli_queue','serial','serial.tools.list_ports']:
         command+=['--hidden-import',name]
     # 便携包**随带** numpy/pandas（用户明确要求）：只有它们在，trace_port 的向量化前端才生效，
     # 200 ms 记录端到端才是全速（~120 s）；代价是 runtime 变大（pandas 会带 pytz/PIL/lxml/zstandard）。
@@ -73,16 +101,17 @@ def main():
                 original=Path(dist.locate_file(member))
                 if original.is_file():
                     destination=licenses/name/member.name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(original,destination)
+    distributions['Node.js']=package_cli(package,toolbox,node)
     shutil.copyfile(ROOT/'bridge/etm/provenance.json',package/'source-provenance.json')
     files=[dict(name=p.relative_to(package).as_posix(),bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(package.rglob('*')) if p.is_file()]
     identity=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()
-    manifest=dict(version='1.0.14-native.13',platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],python=sys.version,dependencies=distributions,files=files)
+    manifest=dict(version=VERSION,platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],sourceDirty=provenance.get('sourceDirty',False),python=sys.version,dependencies=distributions,files=files)
     (package/'package-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     args.output.mkdir(parents=True,exist_ok=True);archive=args.output/'etm-bridge-win64.zip'
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as zip:
         for file in sorted(package.rglob('*')):
             if file.is_file():zip.write(file,'etm-bridge-kit/'+file.relative_to(package).as_posix())
-    download=dict(version='1.0.14-native.13',platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'])
+    download=dict(version=VERSION,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'],sourceDirty=provenance.get('sourceDirty',False))
     (args.output/'manifest.json').write_text(json.dumps(download,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(dict(package=str(package),archive=str(archive),**download),ensure_ascii=False))
 if __name__=='__main__':main()
