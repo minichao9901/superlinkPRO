@@ -153,6 +153,22 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(rows[2]['text'],'/* 此执行块共重复 20 次；省略中间 17 次 */')
         self.assertEqual(rows[2]['repeat']['pattern'][0]['seq'],10)
 
+    def test_expanded_mode_is_visible_in_shared_c_html_rows_and_keeps_original_call(self):
+        from unittest.mock import patch
+        expansion='WRITE(R,V) => (*(R)) = (V); 宏替换表达式上下文，运行时取值未采集；DWARF h:1; "*/"'
+        entry=dict(text='WRITE(reg, value);',inlineConstants={},expansions=[expansion],
+                   file='main.c',firstLine=1,pc=256,function='main')
+        n=dict(kind='code',seq=3,endSeq=4,entry=0,instructions=2)
+        meta=dict(static=[entry],events=[],functions=['main'],options={'macroView':'annotate'})
+        with patch.object(reading,'nodes',return_value=iter([n])):plain=list(reading.visible_rows(None,meta))[0]
+        self.assertEqual(plain['text'],'WRITE(reg, value);')
+        meta['options']['macroView']='expanded'
+        with patch.object(reading,'nodes',return_value=iter([n])):expanded=list(reading.visible_rows(None,meta))[0]
+        self.assertTrue(expanded['text'].startswith(plain['text']+'\n/* WRITE(R,V) =>'))
+        self.assertIn('运行时取值未采集',expanded['text']);self.assertIn('"* /"',expanded['text'])
+        self.assertEqual({k:v for k,v in expanded.items() if k!='text'},
+                         {k:v for k,v in plain.items() if k!='text'})
+
     def test_multiline_calls_strings_comments_for_headers_and_ambiguous_lines(self):
         text='MODIFY_REG(\n  a, /* ; } */\n  b, "semicolon;"\n);\nfor (int i=0;i<2;i++) {\n  f(); g();\n}\n'
         spans=statements(text)

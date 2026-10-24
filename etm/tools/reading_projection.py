@@ -13,7 +13,7 @@ import tempfile
 import time
 
 SCHEMA='etm-reading/1'
-ALGORITHM='reading-v1.2'
+ALGORITHM='reading-v1.3'
 DEFAULTS=dict(repeatThreshold=10,keepFirst=2,keepLast=1,maxBlock=128,
               foldRepeats=True,foldLibraries=True,groupUnknown=True,statements=True,macroView='annotate')
 
@@ -166,6 +166,9 @@ def visible_rows(mapping,meta):
     def row(n,shift=0):
         e=meta['static'][n['entry']] if n['kind']!='event' else {}
         text=inline_constants(e['text'],e.get('inlineConstants',{})) if n['kind']=='code' else '/* '+clean(display(n,meta['static'],meta['events'],meta['functions']))+' */'
+        if n['kind']=='code' and meta.get('options',{}).get('macroView')=='expanded':
+            for expansion in e.get('expansions',[]):
+                text+='\n/* '+clean(expansion)+' */'
         return dict(kind=n['kind'],seq=n['seq']+shift,endSeq=n['endSeq']+shift,
                     text=text,file=e.get('file',''),line=e.get('firstLine',0),pc=e.get('pc'),
                     function=e.get('function',''),records=n['instructions'])
