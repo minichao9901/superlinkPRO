@@ -13,7 +13,7 @@ import tempfile
 import time
 
 SCHEMA='etm-reading/1'
-ALGORITHM='reading-v1.1'
+ALGORITHM='reading-v1.2'
 DEFAULTS=dict(repeatThreshold=10,keepFirst=2,keepLast=1,maxBlock=128,
               foldRepeats=True,foldLibraries=True,groupUnknown=True,statements=True,macroView='annotate')
 

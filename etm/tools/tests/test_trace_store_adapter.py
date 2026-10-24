@@ -41,7 +41,7 @@ atexit.register(shutil.rmtree, TMP_ROOT, True)
 # 缓存在 gitignored 的 etm/records/.p4_test_cache 下，按记录输入/代码版本失效。
 # 首次运行仍会真实构建，之后复用缓存（校验 ready.json 与输入指纹）。
 CACHE_ROOT = ETM_ROOT / 'records' / '.p4_test_cache'
-CACHE_VERSION = 3
+CACHE_VERSION = 4
 SAMPLES = {
     'etm4-10ms': ETM_ROOT / 'records/capture-4395612c313f47ce97af1e1c17e0a0d5',
     'steady': REPO_ROOT / 'docs/validation/20261018-ds-review-bb2f8ee-6ff02745/data/records/'
@@ -164,7 +164,7 @@ def _build_fixture_dirs(record, root, fused):
         # 融合写出器：native.bin 路径的 store（streamed 事件源/包文本有 P3 白名单差异）。
         build = _minimal_inputs(record, root / 'build')
         trace_store_write.write(build, build / 'store', metadata=decoded,
-                                write_decoded=False)
+                                write_decoded=False, engine='native')
         shutil.move(str(build / 'store'), str(adapter_dir / 'store'))
     else:
         # 参考写入器（从 decoded.json 内联事件）：overview 只有 traceStore 差异。

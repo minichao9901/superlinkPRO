@@ -17,6 +17,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / 'dev' / 'sync-etm-runtime.py'
@@ -65,6 +66,17 @@ def workspace(temp, sqlite=True, stale=True):
 
 
 class NativeIndexerTests(unittest.TestCase):
+    def test_identical_mapped_executable_needs_no_write_but_changes_must_publish(self):
+        module=load_module()
+        with tempfile.TemporaryDirectory() as temp:
+            source=Path(temp)/'new.exe';target=Path(temp)/'mapped.exe'
+            source.write_bytes(b'same');target.write_bytes(b'same')
+            with patch.object(module.shutil,'copyfile',side_effect=PermissionError('mapped')) as copy:
+                module.copy_native_if_changed(source,target);copy.assert_not_called()
+                source.write_bytes(b'changed')
+                with self.assertRaises(PermissionError):module.copy_native_if_changed(source,target)
+            self.assertEqual(target.read_bytes(),b'same')
+
     def test_missing_sqlite_falls_back_removes_stale_and_excludes_provenance(self):
         module = load_module()
         with tempfile.TemporaryDirectory() as temp:

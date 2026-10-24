@@ -13,6 +13,16 @@ FILES += ['tools/reading_projection.py','tools/reading_view.py','tools/source_re
 # FindSQLite3 模块在缓存里写的是单数 INCLUDE_DIR/LIBRARY；config 模式才可能有 SQLite3_DIR。
 SQLITE_CACHE_KEYS=('SQLite3_INCLUDE_DIR','SQLite3_LIBRARY')
 INDEXER_TARGET='etm_index'
+
+
+def copy_native_if_changed(source,target):
+    # Windows may hold a mapped executable open. Identical, already validated
+    # bytes need no write; a changed executable still must copy successfully.
+    if target.is_file() and hashlib.sha256(source.read_bytes()).digest()==hashlib.sha256(target.read_bytes()).digest():
+        return
+    shutil.copyfile(source,target)
+
+
 TARGET_MISSING_MARKERS=('unknown target','no rule to make target','msb4057',
                         "target 'etm_index' does not exist",'target "etm_index" does not exist',
                         'does not exist in the project')
@@ -92,7 +102,7 @@ def ensure_native_indexer(source,dest,runner=subprocess.run):
                 drop_stale_indexer(target)
                 raise SystemExit(f'[sync] 原生索引器构建返回成功但缺少产物：{source_exe}')
             target.parent.mkdir(parents=True,exist_ok=True)
-            shutil.copyfile(source_exe,target)
+            copy_native_if_changed(source_exe,target)
             return dict(available=True,reason='',path='build-native/etm_index.exe')
     drop_stale_indexer(target)
     print(f'[sync] 本次快照无原生索引器，走 Python 回退：{reason}')
@@ -249,7 +259,7 @@ int main(int argc,char **argv) { return decode_main(argc,argv); }
     subprocess.run(['cmake','--build',str(source/'build-native'),'--target',
                     'etm_frontend','etm_storebuild','etm_export','--config','Release'],check=True)
     for name in ('etm_frontend.exe','etm_storebuild.exe','etm_export.exe'):
-        shutil.copyfile(source/'build-native'/name,dest/'build-native'/name)
+        copy_native_if_changed(source/'build-native'/name,dest/'build-native'/name)
     # Rebuild the optional native indexer against the current source as well.
     # SQLite3 dev headers are not required for the Python fallback; a source
     # tree without them must still be able to publish a working snapshot.

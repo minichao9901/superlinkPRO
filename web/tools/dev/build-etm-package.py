@@ -50,8 +50,14 @@ def main():
                # numpy 2.x 的 `numpy._core._exceptions` 等子模块不会被默认 hook 完整收进 PYZ，
                # 冻结后首次 import 就 ModuleNotFoundError → 前端静默回退纯 Python（审查 F02）。
                # 用 collect-submodules/binaries（不用 collect-all）：后者会把 numpy 测试数据也带进包。
-               '--collect-submodules','numpy','--collect-binaries','numpy',
-               '--collect-submodules','pandas','--collect-binaries','pandas']
+               '--collect-binaries','numpy','--collect-binaries','pandas']
+    from PyInstaller.utils.hooks import collect_submodules
+    for package_name in ('numpy','pandas'):
+        # Keep runtime modules and the official hooks' DLL/NumPy-2 handling.
+        # Third-party tests are neither the acceleration runtime nor our tests.
+        modules=collect_submodules(package_name,filter=lambda name:'tests' not in name.split('.'))
+        print(f'{package_name}: {len(modules)} runtime submodules (tests excluded)',flush=True)
+        for module in modules:command+=['--hidden-import',module]
     for name in ['server','werkzeug.middleware.dispatcher','html.parser','decode_trace','decode_stream','stream_store','trace_port','tpiu_demux','flow_analysis','record_store','source_export','breakpoint_resolver','kingst_la','kingst_record','timeline_index','native_index','fast_window',
                  'trace_store','trace_store_write','trace_store_adapter','trace_store_index','trace_store_nav',
                  'native_binary','native_facts_index','native_pipeline','static_dict',

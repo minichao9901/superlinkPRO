@@ -191,6 +191,16 @@ class SourceTests(unittest.TestCase):
         # an enumerator token, so ambiguous occurrences must stay unannotated.
         self.assertNotIn('FLAG',row['inlineConstants'])
 
+    def test_active_macro_wins_over_same_named_enumerator_including_aliases(self):
+        from types import SimpleNamespace
+        from source_reading import SourceReading
+        r=SourceReading.__new__(SourceReading)
+        r.lines={'main.c':['use(VALUE, ALIAS);']};r.spans={};r.cache={};r.annotationCount=r.unresolved=0
+        r.macro=SimpleNamespace(unit=lambda pc:0,enums={0:{'VALUE':1}},enumAmbiguity={},knownNames=set(),
+            results={(0,'main.c',1):{'VALUE':('VALUE 2U','h',1),'ALIAS':('ALIAS VALUE','h',2)}})
+        row=r.describe(SimpleNamespace(file='main.c',line=1,pc=256))
+        self.assertEqual(row['inlineConstants'],{'VALUE':'0x2','ALIAS':'0x2'})
+
     def test_macro_scopes_define_undef_import_and_conflicts(self):
         def uv(n):
             out=bytearray()

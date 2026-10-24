@@ -418,8 +418,9 @@ class SourceReading:
             visited=set()
             def resolve(name):
                 if name in visited or len(visited)>32:raise ValueError('宏依赖循环/深度过大')
-                if name in enums:return integer(enums[name])
-                if name not in scope:raise ValueError('未解析定义或运行时值未采集')
+                if name not in scope:
+                    if name in enums:return integer(enums[name])
+                    raise ValueError('未解析定义或运行时值未采集')
                 args,body,_,_=self.definition(scope[name])
                 if args is not None:raise ValueError('函数宏不是独立整数常量')
                 visited.add(name)
@@ -431,9 +432,9 @@ class SourceReading:
                 name=token.group()
                 if name in seen or not IDENT.match(name):continue
                 seen.add(name)
-                if name in enums and name in members:
+                if name in enums and name not in scope and name in members:
                     continue  # A name-level annotation cannot distinguish members.
-                if name in enums:
+                if name in enums and name not in scope:
                     try:value=integer(enums[name])
                     except ValueError:
                         annotations.append(f'{name}：未解析（枚举值超出已支持的目标int范围）');self.unresolved+=1
