@@ -130,20 +130,58 @@ def simplified_html(result):
     payload=json.dumps(dict(rows=rows,sources=result['sources']),ensure_ascii=False,separators=(',',':')).replace('&','\\u0026').replace('<','\\u003c').replace('>','\\u003e')
     return _html_document(payload,result.get('exportRange'))
 
+C_HIGHLIGHT_SCRIPT = r'''
+// Lexical highlighting only: source text is never parsed as HTML or executed.
+const cKeywords=new Set('alignas alignof auto break case const constexpr continue default do else enum extern for goto if inline register restrict return sizeof static static_assert struct switch thread_local typedef typeof typeof_unqual union volatile while _Alignas _Alignof _Atomic _Generic _Noreturn _Static_assert _Thread_local'.split(' '));
+const cTypes=new Set('bool char double float int long short signed unsigned void _Bool _Complex _Imaginary'.split(' '));
+function* cParts(text){
+ const pattern=/\/\*[\s\S]*?(?:\*\/|(?![\s\S]))|\/\/(?:\\\r?\n|[^\r\n])*|(?:u8|[LuU])?"(?:\\[\s\S]|[^"\\])*"|(?:[LuU])?'(?:\\[\s\S]|[^'\\])*'|^[ \t]*#[ \t]*[A-Za-z_]\w*|\b(?:0[xX][\da-fA-F]+(?:\.[\da-fA-F]*)?(?:[pP][+-]?\d+)?|0[bB][01]+|\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)[uUlLfF]*\b|\.\d+(?:[eE][+-]?\d+)?[fFlL]?\b|\b[A-Za-z_]\w*\b/gm;
+ let cursor=0;
+ for(const m of text.matchAll(pattern)){
+  if(m.index>cursor)yield [text.slice(cursor,m.index),''];
+  const t=m[0];let cls='';
+  if(t.startsWith('/*')||t.startsWith('//'))cls='comment';
+  else if(/^(?:u8|[LuU])?["']/.test(t))cls='string';
+  else if(t.trimStart().startsWith('#'))cls='preprocessor';
+  else if(/^(?:\d|\.\d)/.test(t))cls='number';
+  else if(cKeywords.has(t))cls='keyword';
+  else if(cTypes.has(t)||/_t$/.test(t))cls='type';
+  else if(/^[A-Z_][A-Z0-9_]*$/.test(t))cls='constant';
+  else if(/^\s*\(/.test(text.slice(m.index+t.length)))cls='function';
+  yield [t,cls];cursor=m.index+t.length;
+ }
+ if(cursor<text.length)yield [text.slice(cursor),''];
+}
+function cAppend(parent,text,cls){if(text)parent.append(cls?node('span',text,'c-'+cls):document.createTextNode(text));}
+function cCode(text){const e=node('pre');for(const [t,cls] of cParts(text))cAppend(e,t,cls);return e;}
+function cSource(text){
+ const fragment=document.createDocumentFragment();let line=0,content;
+ function next(){const row=node('div',null,'src');row.dataset.line=++line;content=node('span',null,'text');row.append(node('span',line,'number'),content);fragment.append(row);}
+ next();
+ // Tokenize the whole file before splitting lines, so block comments and
+ // continued strings retain their class across physical source lines.
+ for(const [t,cls] of cParts(text)){const lines=t.split(/\r?\n/);lines.forEach((part,i)=>{if(i)next();cAppend(content,part,cls);});}
+ return fragment;
+}
+'''
+
+
 def _html_document(payload,bounds):
     scope=html.escape(f"#{bounds['start']}～#{bounds['end']}" if bounds else '整个已恢复记录')
     return '''<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ETM 简化执行流与源码对照</title><style>
 :root{color-scheme:dark;font:13px/1.5 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:#0d1117;color:#e6edf3}*{box-sizing:border-box}body{margin:0}header{padding:8px 12px;background:#161b22;border-bottom:1px solid #28313b}header strong{display:block}header span{color:#9aa4af;font-size:12px}.tools{display:flex;gap:6px;padding:8px 12px;align-items:center;flex-wrap:wrap}input,button{font:inherit;background:#1c232c;color:inherit;border:1px solid #28313b;border-radius:4px;padding:4px 8px}input{min-width:0}#filter{flex:1}main{display:grid;grid-template-columns:50% 50%;height:calc(100vh - 112px);min-height:250px;padding:0 12px 10px;gap:8px}section{min-width:0;display:flex;flex-direction:column;border:1px solid #28313b;border-radius:5px;overflow:hidden}.title{padding:5px 8px;background:#161b22;color:#58a6ff;flex-shrink:0}#list,#source{overflow:auto;flex:1;min-height:0;font:12px/1.65 Consolas,"Cascadia Mono",monospace}.entry{display:grid;grid-template-columns:90px minmax(0,1fr);gap:7px;padding:3px 6px;border-bottom:1px solid #242c35;cursor:pointer}.entry:hover{background:#1c232c}.entry.selected,.src.current{background:#5bae4426}.entry small{color:#9aa4af}.entry pre{font:inherit;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.entry.event,.entry.unknown,.entry.missing{color:#d29922}.src{display:flex;white-space:pre;min-width:max-content}.src .number{width:55px;flex:none;text-align:right;padding-right:12px;background:#161b22;color:#71808f}.src .text{padding-left:8px}#details{padding:5px 8px;background:#161b22;font:12px Consolas,monospace;overflow-wrap:anywhere}.pager{display:flex;justify-content:space-between;padding:4px 8px;border-top:1px solid #28313b}.muted{color:#9aa4af}@media(max-width:760px){main{grid-template-columns:1fr;height:auto}section{height:65vh}}
+.c-keyword{color:#ff7b72}.c-type{color:#79c0ff}.c-number,.c-constant{color:#a5d6ff}.c-string{color:#a5d6a7}.c-comment{color:#8b949e}.c-function{color:#d2a8ff}.c-preprocessor{color:#ffa657}
 </style><header><strong>ETM 简化执行流 / 原始源码</strong><span>执行序号范围：'''+scope+''' · 按执行先后排列；当前没有逐指令时间戳。未知状态与边界保留。连续相同源码位置合并，循环顺序保留。</span></header>
 <div class="tools"><input id="filter" placeholder="搜索函数、文件或代码"><input id="seek" placeholder="执行序号" size="12"><button id="locate">定位</button><span id="count"></span></div>
 <main><section><div class="title">简化执行流（点击定位右侧源码）</div><div id="list"></div><div class="pager"><button id="prev">上一页</button><span id="page"></span><button id="next">下一页</button></div></section><section><div class="title" id="file">原始源码</div><div id="details">选择左侧一条记录。</div><div id="source"></div></section></main>
 <script id="data" type="application/json">'''+payload+'''</script><script>
 'use strict';const data=JSON.parse(document.getElementById('data').textContent),$=id=>document.getElementById(id);let indexes=data.rows.map((r,i)=>i),offset=0,selected=null,currentFile=null;const size=150;
 const node=(tag,text,cls)=>{const e=document.createElement(tag);e.textContent=text??'';if(cls)e.className=cls;return e;};
+'''+C_HIGHLIGHT_SCRIPT+'''
 function choose(index){selected=index;const r=data.rows[index];for(const e of $('list').children)e.classList.toggle('selected',Number(e.dataset.index)===index);$('file').textContent=r.file||'事件 / 无源码位置';$('details').textContent='#'+r.seq+(r.endSeq!==r.seq?'～'+r.endSeq:'')+(r.pc!=null?' · PC=0x'+r.pc.toString(16).padStart(8,'0'):'')+(r.function?' · '+r.function:'')+(r.line?' · 第 '+r.line+' 行':'')+(r.records?' · 合并 '+r.records+' 条指令记录':'')+(r.kind==='code'?'':' · '+r.text);
-if(!r.file||!data.sources[r.file]){$('source').textContent=r.text||'无配套源码';currentFile=null;return;}if(currentFile!==r.file){const frag=document.createDocumentFragment();data.sources[r.file].split(/\\r?\\n/).forEach((text,i)=>{const e=node('div',null,'src');e.dataset.line=i+1;e.append(node('span',i+1,'number'),node('span',text||' ','text'));frag.append(e);});$('source').replaceChildren(frag);currentFile=r.file;}
+if(!r.file||!data.sources[r.file]){$('source').textContent=r.text||'无配套源码';currentFile=null;return;}if(currentFile!==r.file){$('source').replaceChildren(cSource(data.sources[r.file]));currentFile=r.file;}
 for(const e of $('source').children)e.classList.toggle('current',Number(e.dataset.line)===r.line);const active=$('source').querySelector('.current');if(active)$('source').scrollTop=active.offsetTop-$('source').offsetTop-80;}
-function paint(){const frag=document.createDocumentFragment();for(const index of indexes.slice(offset,offset+size)){const r=data.rows[index],row=node('div',null,'entry '+r.kind+(selected===index?' selected':''));row.dataset.index=index;row.tabIndex=0;row.title=(r.function||'')+' '+(r.file||'')+':'+(r.line||'');row.append(node('small','#'+r.seq),node('pre',r.text));row.onclick=()=>choose(index);row.onkeydown=e=>{if(e.key==='Enter')choose(index);};frag.append(row);}$('list').replaceChildren(frag);$('list').scrollTop=0;$('count').textContent=indexes.length+' 条简化记录';$('page').textContent=indexes.length?Math.floor(offset/size)+1+' / '+Math.ceil(indexes.length/size):'0 / 0';$('prev').disabled=!offset;$('next').disabled=offset+size>=indexes.length;}
+function paint(){const frag=document.createDocumentFragment();for(const index of indexes.slice(offset,offset+size)){const r=data.rows[index],row=node('div',null,'entry '+r.kind+(selected===index?' selected':''));row.dataset.index=index;row.tabIndex=0;row.title=(r.function||'')+' '+(r.file||'')+':'+(r.line||'');row.append(node('small','#'+r.seq),cCode(r.text));row.onclick=()=>choose(index);row.onkeydown=e=>{if(e.key==='Enter')choose(index);};frag.append(row);}$('list').replaceChildren(frag);$('list').scrollTop=0;$('count').textContent=indexes.length+' 条简化记录';$('page').textContent=indexes.length?Math.floor(offset/size)+1+' / '+Math.ceil(indexes.length/size):'0 / 0';$('prev').disabled=!offset;$('next').disabled=offset+size>=indexes.length;}
 $('prev').onclick=()=>{offset=Math.max(0,offset-size);paint();};$('next').onclick=()=>{offset+=size;paint();};let timer;$('filter').oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{const q=$('filter').value.toLowerCase();indexes=data.rows.map((r,i)=>i).filter(i=>[data.rows[i].function,data.rows[i].file,data.rows[i].text].join(' ').toLowerCase().includes(q));offset=0;paint();},120);};$('locate').onclick=()=>{const seq=Number($('seek').value);if(!$('seek').value.trim()||!Number.isInteger(seq)){$('count').textContent='请输入整数执行序号';return;}const i=data.rows.findIndex(r=>r.seq<=seq&&r.endSeq>=seq);if(i<0){$('count').textContent='此序号没有简化源码记录；未成立条件不输出为已执行源码';return;}$('filter').value='';indexes=data.rows.map((r,j)=>j);offset=Math.floor(i/size)*size;paint();choose(i);const row=$('list').querySelector('[data-index="'+i+'"]');if(row)$('list').scrollTop=row.offsetTop-$('list').offsetTop-60;};paint();const first=data.rows.findIndex(r=>r.kind==='code');if(first>=0)choose(first);
 </script></html>'''

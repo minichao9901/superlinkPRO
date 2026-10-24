@@ -25,7 +25,7 @@ def inline_constants(text,values):
     for token in tokens(text):
         value=values.get(token.group())
         if value is None:continue
-        parts.extend((text[cursor:token.end()],'/**'+value+'*/'));cursor=token.end()
+        parts.extend((text[cursor:token.end()],'/*'+value+'*/'));cursor=token.end()
     return ''.join(parts)+text[cursor:]
 
 

@@ -140,7 +140,7 @@ class SourceTests(unittest.TestCase):
     def test_inline_macro_values_preserve_strings_comments_and_other_identifiers(self):
         from source_reading import inline_constants
         text='f(MASK, MASK2, "MASK", \'M\'); /* MASK */ // MASK\nMASK | MASK;'
-        self.assertEqual(inline_constants(text,{'MASK':'0x32'}),'f(MASK/**0x32*/, MASK2, "MASK", \'M\'); /* MASK */ // MASK\nMASK/**0x32*/ | MASK/**0x32*/;')
+        self.assertEqual(inline_constants(text,{'MASK':'0x32'}),'f(MASK/*0x32*/, MASK2, "MASK", \'M\'); /* MASK */ // MASK\nMASK/*0x32*/ | MASK/*0x32*/;')
 
     def test_repeat_comment_covers_only_hidden_iterations_and_retains_seek_template(self):
         from unittest.mock import patch
@@ -149,7 +149,7 @@ class SourceTests(unittest.TestCase):
         n=dict(kind='repeat',seq=10,endSeq=49,totalIterations=20,keepFirst=2,keepLast=1,hiddenIterations=17,stride=2,pattern=[p])
         with patch.object(reading,'nodes',return_value=iter([n])):rows=list(reading.visible_rows(None,meta))
         self.assertEqual([(r['seq'],r['endSeq']) for r in rows],[(10,11),(12,13),(14,47),(48,49)])
-        self.assertEqual(rows[0]['text'],'use(MASK/**0x32*/);')
+        self.assertEqual(rows[0]['text'],'use(MASK/*0x32*/);')
         self.assertEqual(rows[2]['text'],'/* 此执行块共重复 20 次；省略中间 17 次 */')
         self.assertEqual(rows[2]['repeat']['pattern'][0]['seq'],10)
 
