@@ -6,7 +6,7 @@ import requests
 
 run=Path(__file__).resolve().parent
 data=Path('C:/Users/Administrator/.codex/validation')/run.name
-receipt=json.loads((run/'release-receipt.json').read_text(encoding='utf8'))
+receipt=json.loads((run/'public-release-receipt.json').read_text(encoding='utf8'))
 expected=json.loads((data/'package-final/manifest.json').read_text(encoding='utf8'))
 assets={item['name']:item['browser_download_url'] for item in receipt['assets']}
 r=requests.get(assets['manifest.json'],timeout=(15,60));r.raise_for_status();assert r.json()==expected
