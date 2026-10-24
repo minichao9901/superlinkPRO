@@ -137,6 +137,22 @@ class ProjectionTests(unittest.TestCase):
 
 
 class SourceTests(unittest.TestCase):
+    def test_learning_c_uses_context_change_comments_without_per_source_row_metadata(self):
+        from unittest.mock import patch
+        rows=[dict(kind='code',seq=i,endSeq=i,text=text,function='main',file='dir/main.c',line=i)
+              for i,text in enumerate(['a();','b();','c();'],1)]
+        rows += [dict(kind='repeat',seq=4,endSeq=99,text='/* 此执行块共重复 20 次；省略中间 17 次 */'),
+                 dict(kind='unknown',seq=100,endSeq=101,text='/* 条件未证实（2 条指令） */')]
+        meta=dict(static=[dict(file='dir/main.c')],mappingName='reading.c.projection.jsonl',
+                  recordQuality=dict(packetIssues=0,unprocessedBytes=0))
+        with tempfile.TemporaryDirectory() as tmp,patch.object(reading,'visible_rows',return_value=iter(rows)):
+            path=Path(tmp)/'reading.c';reading.c_output(path,None,meta);text=path.read_text(encoding='utf8')
+        self.assertIn('/* main · main.c */\na();\nb();\nc();\n',text)
+        self.assertEqual(text.count('/* main · main.c */'),1)
+        self.assertNotIn('/* #1～#1',text);self.assertNotIn('F1:1',text)
+        self.assertIn('/* #4～#99 此执行块共重复',text)
+        self.assertIn('/* #100～#101 条件未证实',text)
+
     def test_inline_macro_values_preserve_strings_comments_and_other_identifiers(self):
         from source_reading import inline_constants
         text='f(MASK, MASK2, "MASK", \'M\'); /* MASK */ // MASK\nMASK | MASK;'
@@ -216,6 +232,22 @@ class SourceTests(unittest.TestCase):
             results={(0,'main.c',1):{'VALUE':('VALUE 2U','h',1),'ALIAS':('ALIAS VALUE','h',2)}})
         row=r.describe(SimpleNamespace(file='main.c',line=1,pc=256))
         self.assertEqual(row['inlineConstants'],{'VALUE':'0x2','ALIAS':'0x2'})
+
+    def test_repeated_include_macro_conflict_cannot_fall_back_to_enum_through_alias(self):
+        from types import SimpleNamespace
+        from source_reading import SourceReading
+        # h.h is included twice under different X definitions. ALIAS is stable,
+        # but its dependency X is ambiguous at the same source location.
+        raw=struct.pack('<HBI',4,2,0)+b'\x03\0\x01\x01\0ALIAS X\0\x01\x01X 2\0\x03\x02\x02\x04\x01\x03X 3\0\x03\x04\x02\x04\x04\0'
+        m=MacroData.__new__(MacroData);m.raw=raw;m.strings=b'';m.units={};m.expandedUnits={}
+        m.needed={'X','ALIAS'};m.results={};m.lineFiles={0:{1:'/main.c',2:'/h.h'}}
+        m.replay(0,0,m.lineFiles[0],{('/h.h',7):{'X','ALIAS'}})
+        self.assertEqual(m.ambiguous[(0,'/h.h',7)],{'X'})
+        m.unit=lambda pc:0;m.enums={0:{'X':1}};m.enumAmbiguity={};m.knownNames={'X','ALIAS'}
+        r=SourceReading.__new__(SourceReading);r.lines={'/h.h':['']*6+['use(X, ALIAS);']}
+        r.spans={};r.cache={};r.annotationCount=r.unresolved=0;r.macro=m
+        row=r.describe(SimpleNamespace(file='/h.h',line=7,pc=256))
+        self.assertEqual(row['inlineConstants'],{});self.assertEqual(r.unresolved,2)
 
     def test_macro_scopes_define_undef_import_and_conflicts(self):
         def uv(n):

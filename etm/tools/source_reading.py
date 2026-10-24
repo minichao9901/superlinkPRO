@@ -305,6 +305,7 @@ class MacroData:
         yield from self.flatten(offset)
 
     def replay(self,cu,offset,files,wanted):
+        if not hasattr(self,'ambiguous'):self.ambiguous={}
         env={};stack=[];byfile=defaultdict(list);answers=defaultdict(list)
         for key,names in wanted.items():byfile[key[0]].append((key[1],names))
         for file in byfile:byfile[file].sort()
@@ -336,11 +337,13 @@ class MacroData:
         while stack:flush(float('inf'));stack.pop()
         # Resolve dependencies only when every inclusion occurrence agrees.
         for (file,line),values in answers.items():
-            resolved={}
+            resolved={};conflicts=set()
             for name in set().union(*(v.keys() for v in values)):
                 choices={v.get(name) for v in values}
                 if len(choices)==1 and next(iter(choices)) is not None:resolved[name]=next(iter(choices))
+                elif len(choices)>1:conflicts.add(name)
             self.results[(cu,file,line)]=resolved
+            self.ambiguous[(cu,file,line)]=conflicts
 
 
 class SourceReading:
@@ -414,10 +417,13 @@ class SourceReading:
         if key in self.cache:return dict(self.cache[key])
         row=self.context(entry.file,entry.line);annotations=[];expansions=[];constants={}
         if self.macro and row['text']:
-            cu=self.macro.unit(entry.pc);scope=self.macro.results.get((cu,entry.file.replace('\\','/'),entry.line),{});enums=self.macro.enums.get(cu,{})
+            cu=self.macro.unit(entry.pc);location=(cu,entry.file.replace('\\','/'),entry.line)
+            scope=self.macro.results.get(location,{});enums=self.macro.enums.get(cu,{})
+            conflicts=getattr(self.macro,'ambiguous',{}).get(location,set())
             visited=set()
             def resolve(name):
                 if name in visited or len(visited)>32:raise ValueError('宏依赖循环/深度过大')
+                if name in conflicts:raise ValueError('此位置的宏定义有冲突，不能回退枚举值')
                 if name not in scope:
                     if name in enums:return integer(enums[name])
                     raise ValueError('未解析定义或运行时值未采集')
@@ -432,6 +438,9 @@ class SourceReading:
                 name=token.group()
                 if name in seen or not IDENT.match(name):continue
                 seen.add(name)
+                if name in conflicts:
+                    annotations.append(f'{name}：未解析（此位置的宏定义有冲突）');self.unresolved+=1
+                    continue
                 if name in enums and name not in scope and name in members:
                     continue  # A name-level annotation cannot distinguish members.
                 if name in enums and name not in scope:
