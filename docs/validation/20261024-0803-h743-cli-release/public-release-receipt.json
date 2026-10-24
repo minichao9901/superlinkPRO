@@ -1,0 +1,24 @@
+{
+  "id": 422416415,
+  "html_url": "https://github.com/minichao9901/superlinkPRO/releases/tag/etm-cli-v1.0.14-native.14-rc.1",
+  "tag_name": "etm-cli-v1.0.14-native.14-rc.1",
+  "draft": false,
+  "prerelease": true,
+  "published_at": "2026-10-24T00:20:56Z",
+  "assets": [
+    {
+      "id": 670801533,
+      "name": "etm-bridge-win64.zip",
+      "size": 117729048,
+      "browser_download_url": "https://github.com/minichao9901/superlinkPRO/releases/download/etm-cli-v1.0.14-native.14-rc.1/etm-bridge-win64.zip",
+      "state": "uploaded"
+    },
+    {
+      "id": 670804210,
+      "name": "manifest.json",
+      "size": 387,
+      "browser_download_url": "https://github.com/minichao9901/superlinkPRO/releases/download/etm-cli-v1.0.14-native.14-rc.1/manifest.json",
+      "state": "uploaded"
+    }
+  ]
+}

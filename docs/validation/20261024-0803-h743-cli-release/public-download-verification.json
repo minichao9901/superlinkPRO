@@ -1,0 +1,270 @@
+{
+  "passed": true,
+  "url": "https://github.com/minichao9901/superlinkPRO/releases/download/etm-cli-v1.0.14-native.14-rc.1/etm-bridge-win64.zip",
+  "bytes": 117729048,
+  "sha256": "7013b00bd4f37f1260c49abff9a200a6cd19af467a951cc70b59bcf7bd3fa240",
+  "download": "C:\\Users\\Administrator\\.codex\\validation\\20261024-0803-h743-cli-release\\public-etm-bridge-win64.zip",
+  "parts": [
+    {
+      "start": 0,
+      "end": 4194303,
+      "bytes": 4194304,
+      "sha256": "6e99dad7e2f8e9adc5e7f2e1e5bc71ca4773441050c5fbe630372ca37999784e",
+      "seconds": 5.363520099999732,
+      "status": 206,
+      "contentRange": "bytes 0-4194303/117729048"
+    },
+    {
+      "start": 4194304,
+      "end": 8388607,
+      "bytes": 4194304,
+      "sha256": "1a93e16f5919d3cd313d6b4dfcaf7b59b5b0d7de68e913952468679115053d47",
+      "seconds": 3.810283300001174,
+      "status": 206,
+      "contentRange": "bytes 4194304-8388607/117729048"
+    },
+    {
+      "start": 8388608,
+      "end": 12582911,
+      "bytes": 4194304,
+      "sha256": "62ef6063de0c3475ee058454eef614c6f737490db6824ed26cf00043b1f25137",
+      "seconds": 5.895911399995384,
+      "status": 206,
+      "contentRange": "bytes 8388608-12582911/117729048"
+    },
+    {
+      "start": 12582912,
+      "end": 16777215,
+      "bytes": 4194304,
+      "sha256": "41c97199bb158c97ebc3edaa8f9b0a8098dc2f55cecb3ca8ac79a82d52b97d62",
+      "seconds": 5.423597499997413,
+      "status": 206,
+      "contentRange": "bytes 12582912-16777215/117729048"
+    },
+    {
+      "start": 16777216,
+      "end": 20971519,
+      "bytes": 4194304,
+      "sha256": "3c4a378a9389b9e817a1db1ce2e7f5dbf734c3950d67ccbca070b54d7d610ccc",
+      "seconds": 4.734879200004798,
+      "status": 206,
+      "contentRange": "bytes 16777216-20971519/117729048"
+    },
+    {
+      "start": 20971520,
+      "end": 25165823,
+      "bytes": 4194304,
+      "sha256": "f4eb8f143c63afb302fcded8939aa943f9ddef562ab415c33187028681ac1783",
+      "seconds": 47.65406079999957,
+      "status": 206,
+      "contentRange": "bytes 20971520-25165823/117729048"
+    },
+    {
+      "start": 25165824,
+      "end": 29360127,
+      "bytes": 4194304,
+      "sha256": "cdcef6c1d5071c6d96ebde53733506e68790929d05a5660d45442da13f516f7b",
+      "seconds": 91.34794800000236,
+      "status": 206,
+      "contentRange": "bytes 25165824-29360127/117729048"
+    },
+    {
+      "start": 29360128,
+      "end": 33554431,
+      "bytes": 4194304,
+      "sha256": "0996e8affb4ec808de442f2bfb549f89d27ca5b8697dbdde7c13be7e0eb44989",
+      "seconds": 84.52808309999818,
+      "status": 206,
+      "contentRange": "bytes 29360128-33554431/117729048"
+    },
+    {
+      "start": 33554432,
+      "end": 37748735,
+      "bytes": 4194304,
+      "sha256": "3de608c1c23ff246f587f9c06b5b09236f572f6c54d5748bba98bf0553268e7e",
+      "seconds": 34.70076870000048,
+      "status": 206,
+      "contentRange": "bytes 33554432-37748735/117729048"
+    },
+    {
+      "start": 37748736,
+      "end": 41943039,
+      "bytes": 4194304,
+      "sha256": "d529130bdac347848a9be1de3a187a6ae92c33d24ea6321787d2d9c6d01e504d",
+      "seconds": 8.357846000006248,
+      "status": 206,
+      "contentRange": "bytes 37748736-41943039/117729048"
+    },
+    {
+      "start": 41943040,
+      "end": 46137343,
+      "bytes": 4194304,
+      "sha256": "24e1180fc333f06f104e5b75d1682d455f0f5094aec4728f7ae611dba40e4198",
+      "seconds": 45.77056570000423,
+      "status": 206,
+      "contentRange": "bytes 41943040-46137343/117729048"
+    },
+    {
+      "start": 46137344,
+      "end": 50331647,
+      "bytes": 4194304,
+      "sha256": "310188a9663081a0148302404aede3f6f757946428fd231c5d952af819bfc9e4",
+      "seconds": 4.573657699998876,
+      "status": 206,
+      "contentRange": "bytes 46137344-50331647/117729048"
+    },
+    {
+      "start": 50331648,
+      "end": 54525951,
+      "bytes": 4194304,
+      "sha256": "8ac0196bd254993a3803808b936076b45559a37498b7b8e875fa4b3607c0e652",
+      "seconds": 45.62474970000039,
+      "status": 206,
+      "contentRange": "bytes 50331648-54525951/117729048"
+    },
+    {
+      "start": 54525952,
+      "end": 58720255,
+      "bytes": 4194304,
+      "sha256": "296dd207b745a04e35fe6b470358a837380f6e118e8ea6157006ffe2f5fc69a8",
+      "seconds": 2.9986353000058443,
+      "status": 206,
+      "contentRange": "bytes 54525952-58720255/117729048"
+    },
+    {
+      "start": 58720256,
+      "end": 62914559,
+      "bytes": 4194304,
+      "sha256": "6a63dad73b438935602edac6d64f6e1e2c2929649af9fe34f75d31c8ba463485",
+      "seconds": 5.9482231000001775,
+      "status": 206,
+      "contentRange": "bytes 58720256-62914559/117729048"
+    },
+    {
+      "start": 62914560,
+      "end": 67108863,
+      "bytes": 4194304,
+      "sha256": "84fbd5a9dc8af1b7189c11f7172baf49918013ceb276d732305cf82a542357e9",
+      "seconds": 3.099860300004366,
+      "status": 206,
+      "contentRange": "bytes 62914560-67108863/117729048"
+    },
+    {
+      "start": 67108864,
+      "end": 71303167,
+      "bytes": 4194304,
+      "sha256": "fdcbe8fb2e6b65d43871baf0048b3e880d0c340948ec3835000d2c010bd92e30",
+      "seconds": 5.982450600000448,
+      "status": 206,
+      "contentRange": "bytes 67108864-71303167/117729048"
+    },
+    {
+      "start": 71303168,
+      "end": 75497471,
+      "bytes": 4194304,
+      "sha256": "f8956cab1a23b65641cee05446c07de27a063ae3573b8e6d08752aa02d054a8c",
+      "seconds": 3.7021032000047853,
+      "status": 206,
+      "contentRange": "bytes 71303168-75497471/117729048"
+    },
+    {
+      "start": 75497472,
+      "end": 79691775,
+      "bytes": 4194304,
+      "sha256": "e7cc7a17e5dff9fb7ddb907557255bf29d88973737ffe0a169e586aea9113ed8",
+      "seconds": 15.091910800001642,
+      "status": 206,
+      "contentRange": "bytes 75497472-79691775/117729048"
+    },
+    {
+      "start": 79691776,
+      "end": 83886079,
+      "bytes": 4194304,
+      "sha256": "d29e8c16688d7a442d2ca46367b38566564cb714408929e13fb042389548988e",
+      "seconds": 3.399824499996612,
+      "status": 206,
+      "contentRange": "bytes 79691776-83886079/117729048"
+    },
+    {
+      "start": 83886080,
+      "end": 88080383,
+      "bytes": 4194304,
+      "sha256": "9b0fceb9edf8de96cbbd4f6bec54de0ca3c2b65ddfb5f9e380da16a572f9458a",
+      "seconds": 9.006828699995822,
+      "status": 206,
+      "contentRange": "bytes 83886080-88080383/117729048"
+    },
+    {
+      "start": 88080384,
+      "end": 92274687,
+      "bytes": 4194304,
+      "sha256": "e7823d666dc4759e5c0f688ba31c16bc0c831b999e38c1410631c09dbcf33ea8",
+      "seconds": 24.401260500002536,
+      "status": 206,
+      "contentRange": "bytes 88080384-92274687/117729048"
+    },
+    {
+      "start": 92274688,
+      "end": 96468991,
+      "bytes": 4194304,
+      "sha256": "6677b6f87827c68cdf8185135d9181c0f1acbfeaebabdd2895ef90f60fb7e89f",
+      "seconds": 17.901722800001153,
+      "status": 206,
+      "contentRange": "bytes 92274688-96468991/117729048"
+    },
+    {
+      "start": 96468992,
+      "end": 100663295,
+      "bytes": 4194304,
+      "sha256": "e486ce69552e38e8fa4a72ae9095e67c3940438865804d4f6f949e18af87b7ba",
+      "seconds": 10.992918199997803,
+      "status": 206,
+      "contentRange": "bytes 96468992-100663295/117729048"
+    },
+    {
+      "start": 100663296,
+      "end": 104857599,
+      "bytes": 4194304,
+      "sha256": "22b4d01e62a905e9e53dbafbc8c42db94248ed12f0505e5096bd0979acaa1da0",
+      "seconds": 11.58385580000322,
+      "status": 206,
+      "contentRange": "bytes 100663296-104857599/117729048"
+    },
+    {
+      "start": 104857600,
+      "end": 109051903,
+      "bytes": 4194304,
+      "sha256": "e7a4034e1bd16af3b5e92eb9cdd05d28ada7210b6157936bd82837d84355b620",
+      "seconds": 7.625370099995052,
+      "status": 206,
+      "contentRange": "bytes 104857600-109051903/117729048"
+    },
+    {
+      "start": 109051904,
+      "end": 113246207,
+      "bytes": 4194304,
+      "sha256": "cb0e23f40e61a2d900cc6bd1c78f081f5bd416d2bdb4f803d0824debd439b751",
+      "seconds": 11.215197900004569,
+      "status": 206,
+      "contentRange": "bytes 109051904-113246207/117729048"
+    },
+    {
+      "start": 113246208,
+      "end": 117440511,
+      "bytes": 4194304,
+      "sha256": "0ce28b0746db05699590ffb1da7847735aa739d2d00d9e25c41b31b8343110ac",
+      "seconds": 8.584387800001423,
+      "status": 206,
+      "contentRange": "bytes 113246208-117440511/117729048"
+    },
+    {
+      "start": 117440512,
+      "end": 117729047,
+      "bytes": 288536,
+      "sha256": "575a09ed71cdda044d944c7b55c45d17a191538b3eb7ed675e44464c8a47e65b",
+      "seconds": 2.3356156000008923,
+      "status": 206,
+      "contentRange": "bytes 117440512-117729047/117729048"
+    }
+  ]
+}
