@@ -13,7 +13,7 @@ import tempfile
 import time
 
 SCHEMA='etm-reading/1'
-ALGORITHM='reading-v1'
+ALGORITHM='reading-v1.5'
 DEFAULTS=dict(repeatThreshold=10,keepFirst=2,keepLast=1,maxBlock=128,
               foldRepeats=True,foldLibraries=True,groupUnknown=True,statements=True,macroView='annotate')
 
@@ -166,6 +166,9 @@ def visible_rows(mapping,meta):
     def row(n,shift=0):
         e=meta['static'][n['entry']] if n['kind']!='event' else {}
         text=inline_constants(e['text'],e.get('inlineConstants',{})) if n['kind']=='code' else '/* '+clean(display(n,meta['static'],meta['events'],meta['functions']))+' */'
+        if n['kind']=='code' and meta.get('options',{}).get('macroView')=='expanded':
+            for expansion in e.get('expansions',[]):
+                text+='\n/* '+clean(expansion)+' */'
         return dict(kind=n['kind'],seq=n['seq']+shift,endSeq=n['endSeq']+shift,
                     text=text,file=e.get('file',''),line=e.get('firstLine',0),pc=e.get('pc'),
                     function=e.get('function',''),records=n['instructions'])
@@ -187,6 +190,7 @@ def visible_rows(mapping,meta):
 
 
 def c_output(path,mapping,meta):
+    from source_export import base
     clean=lambda x:str(x).replace('*/','* /')
     files={name:i+1 for i,name in enumerate(sorted({e['file'] for e in meta['static'] if e['file']}))}
     with Path(path).open('w',encoding='utf8') as out:
@@ -194,10 +198,17 @@ def c_output(path,mapping,meta):
         for file,identifier in files.items():out.write('/* F'+str(identifier)+' = '+clean(file)+' */\n')
         quality=meta['recordQuality']
         out.write('/* 全记录质量：包边界/问题 '+str(quality.get('packetIssues',0))+'，未处理字节 '+str(quality.get('unprocessedBytes',0))+'；完整质量和诊断见配套清单。 */\n')
+        context=None
         for r in visible_rows(mapping,meta):
             if r['kind']=='code':
-                out.write('/* #'+str(r['seq'])+'～#'+str(r['endSeq'])+' '+clean(r['function'])+' · F'+str(files[r['file']])+':'+str(r['line'])+' */\n')
-            out.write(r['text']+'\n')
+                key=(r['function'],r['file'])
+                if key!=context:
+                    out.write('/* '+clean(r['function'])+' · '+clean(base(r['file']))+' */\n')
+                    context=key
+                out.write(r['text']+'\n')
+            else:
+                out.write('/* #'+str(r['seq'])+'～#'+str(r['endSeq'])+' '+r['text'][3:]+'\n')
+                context=None
 
 
 def html_output(path,mapping,meta,sources):

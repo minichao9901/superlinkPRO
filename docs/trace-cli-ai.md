@@ -2,16 +2,16 @@
 
 入口：仓库根目录下运行 `python -X utf8 etm/trace.py`。
 
-便携候选包 `1.0.14-native.14-rc.1` 另提供 `etm-trace.cmd`，等价于
+完整包 `1.0.14-native.14` 提供 `etm-trace.cmd`，等价于
 `etm-bridge.exe --cli`。包内含 Python、Node.js、USB 适配依赖与原生工具，
 无需在用户机器安装 Python/Node/npm。将下文 `python -X utf8 etm/trace.py`
 替换成 `etm-trace.cmd` 即可；从其他目录调用时使用该 CMD 的完整路径。
 例如：`etm-trace.cmd doctor`、`etm-trace.cmd --runtime E:/trace-runs/runtime-001 web status`。
 
-本轮交付优先覆盖 H743 的 ETM、Cortex-M 调试与烧录。候选包尚未完成最终版本的一键
-启动/退出及硬件回归：执行工具在创建进程前返回 `blocked by policy`，未提供具体理由。
-此前 H743 短窗、断点及原镜像烧录有独立报告；它们不替代候选包本身的真机验收。
-F103ZE/H7B0 不纳入本轮验收。候选包不会替换线上 native.13 正式下载包。
+本轮正式包已完成便携启动/退出、离线解码、查询和阅读导出验收；验证环境中没有系统
+Python/Node PATH。使用 H743 已采记录离线核验，没有执行新的复位、烧录或采集。
+此前 H743 短窗、断点及原镜像烧录有独立报告；不能将它们当作本次完整包的新硬件验收。
+F103ZE/H7B0 不纳入本轮验收。最终交付范围见 `docs/etm-reading-release-2026-10-24.md`。
 
 **硬件操作复用本工程网页的实现，不再依赖或加载 pyOCD。** 调试命令使用
 `web/app/dbg/cmd.js`，调试会话使用 `DebugSession`，烧录使用网页原有
@@ -300,8 +300,10 @@ python -X utf8 etm/trace.py record sources --record E:/trace-runs/capture-001 --
 指纹清单；C/HTML统一进行重复块折叠、无源码片段摘要、条件未知归组及可选源码/宏注释。
 默认旧模式保持兼容。规则、参数、离线HTML边界见 [Trace阅读说明](trace-reading.md)。
 `capabilities` 查看实际工具协议与分页限制；`query --compact` 精简摘要，`--fields` 选择点分字段。
-阅读能力从rc.2源码加入，已经发布的rc.1便携包尚不含这些参数；先检查
+阅读能力已纳入 native.14 正式完整包，旧 rc.1 包不含这些参数；先检查
 `capabilities` 的 `softwareCapabilities.readingProjection.available` 和实际下载版本。
+简化 C 不逐行插入序号/文件行号注释；精确定位在配套映射中。函数宏按需用
+`--macro-view expanded` 显示展开注释，默认仍保持紧凑。
 
 ```powershell
 python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view summary

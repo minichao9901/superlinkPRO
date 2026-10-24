@@ -861,9 +861,13 @@ def query_selection(value,args):
     fields=getattr(args,'fields',None)
     if fields:
         result={}
+        selected=[]
         for field in fields.split(','):
             parts=field.strip().split('.');cursor=value;target=result
             if not all(part and part.replace('_','a').isalnum() for part in parts):raise CliError('无效字段路径')
+            if any(parts[:len(p)]==p or p[:len(parts)]==parts for p in selected):
+                raise CliError('字段选择重复或父子路径冲突')
+            selected.append(parts)
             for part in parts:
                 if not isinstance(cursor,dict) or part not in cursor:raise CliError('查询结果不存在字段：'+field)
                 cursor=cursor[part]
@@ -986,7 +990,7 @@ def build_parser():
     return parser
 
 
-def main(argv=None):
+def _main(argv=None):
     started=time.perf_counter();stdout=sys.stdout;args=None;report_reserved=False
     envelope=dict(protocol=VERSION, runId=time.strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8])
     code=0
@@ -1042,3 +1046,17 @@ def main(argv=None):
             envelope.update(ok=False,exitCode=4,error=dict(type=type(error).__name__,message='结果文件保存失败：'+str(error)));code=4
     print(json.dumps(envelope,ensure_ascii=False),file=stdout)
     return code
+
+
+def main(argv=None):
+    # Children inherit native defaults during the command. Embedded callers must
+    # not retain those overrides for later operations in the host process.
+    keys=('TRACE_CLI_WEB','TRACE_CLI_TOKEN_FILE','ETM_STORE_WRITE','ETM_STORE_ENGINE',
+          'ETM_DECODE_ENGINE','ETM_NATIVE_FORMAT','ETM_STORE_ENGINE_FALLBACK',
+          'ETM_EXPORT_ENGINE','ETM_QUERY_ENGINE','ETM_PREPARE_CACHE')
+    previous={key:os.environ.get(key) for key in keys}
+    try:return _main(argv)
+    finally:
+        for key,value in previous.items():
+            if value is None:os.environ.pop(key,None)
+            else:os.environ[key]=value
