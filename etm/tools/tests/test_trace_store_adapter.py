@@ -41,7 +41,7 @@ atexit.register(shutil.rmtree, TMP_ROOT, True)
 # 缓存在 gitignored 的 etm/records/.p4_test_cache 下，按记录输入/代码版本失效。
 # 首次运行仍会真实构建，之后复用缓存（校验 ready.json 与输入指纹）。
 CACHE_ROOT = ETM_ROOT / 'records' / '.p4_test_cache'
-CACHE_VERSION = 2
+CACHE_VERSION = 3
 SAMPLES = {
     'etm4-10ms': ETM_ROOT / 'records/capture-4395612c313f47ce97af1e1c17e0a0d5',
     'steady': REPO_ROOT / 'docs/validation/20261018-ds-review-bb2f8ee-6ff02745/data/records/'
@@ -474,7 +474,7 @@ class FrontendCapabilityWiringTests(unittest.TestCase):
         index = self._read('web', 'index.html')
         self.assertIn('id="capture-capability-hint"', index)
         self.assertIn('id="browse-capability"', index)
-        self.assertIn('max="200"', index)                # 初始上限仍是 200 ms
+        self.assertIn('max="1000"', index)               # 采集上限已开放至 1 s
         history = self._read('web', 'app', 'history.js')
         self.assertIn('setCapability(capabilities)', history)
         self.assertIn('captureMaxSeconds', history)

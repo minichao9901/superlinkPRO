@@ -3,6 +3,7 @@ import contextlib
 import io
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -17,6 +18,21 @@ import trace_cli_hardware as hw
 
 
 class CliTests(unittest.TestCase):
+    def test_embedded_main_restores_environment_on_success_and_failure(self):
+        for fail in (False,True):
+            with self.subTest(fail=fail),patch.dict(os.environ,{'ETM_STORE_ENGINE':'python','TRACE_CLI_WEB':'original'}):
+                os.environ.pop('ETM_EXPORT_ENGINE',None)
+                before=dict(os.environ)
+                def operation(_):
+                    self.assertEqual(os.environ['ETM_STORE_ENGINE'],'native')
+                    self.assertEqual(os.environ['ETM_EXPORT_ENGINE'],'native')
+                    if fail:raise ValueError('fixture error')
+                    return {'passed':True}
+                args=SimpleNamespace(json_out=None,command='test',func=operation)
+                with patch.object(cli,'build_parser',return_value=SimpleNamespace(parse_args=lambda _:args)),contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(cli.main([]),2 if fail else 0)
+                self.assertEqual(dict(os.environ),before)
+
     def test_argument_errors_are_one_machine_readable_result(self):
         output=io.StringIO()
         with contextlib.redirect_stdout(output):code=cli.main(['capture','--elf','x','--out','y','--rate','nope'])

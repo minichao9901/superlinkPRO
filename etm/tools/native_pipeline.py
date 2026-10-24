@@ -229,7 +229,8 @@ def write(record_dir, store_dir, **options):
         finally:sink.close()
         mark('assemble')
         hash_inputs=options.get('hash_inputs',True)
-        names=('etm.bin','native.bin','native-config.txt','firmware.elf','physical.json','framing.json','tpiu.bin')
+        names=('etm.bin','native.bin','native-config.txt','firmware.elf','physical.json','framing.json','tpiu.bin',
+               'session.json','sources.json')
         names += tuple(p.name for p in record_dir.glob('image-*.bin'))
         capture=decoded.get('capture') or {}
         if capture.get('name'):names += (Path(capture['name']).name,)
@@ -256,6 +257,9 @@ def write(record_dir, store_dir, **options):
                 staged = work / name
                 staged.write_text(json.dumps(value, ensure_ascii=False), encoding='utf8')
                 os.replace(staged, destination)
+                if name=='sources.json':
+                    inputs[name]=dict(bytes=destination.stat().st_size,
+                                      sha256=ts._sha256_file(destination) if hash_inputs else None)
         ts._publish_manifest(store_dir,manifest)
         published = True
         mark('publish')

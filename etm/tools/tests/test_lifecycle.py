@@ -62,7 +62,10 @@ class LifecycleTests(unittest.TestCase):
             def recv(self,_):return b'ACK'
         class Vis:
             def __init__(self):self.sock=Socket()
-            def cmd(self,command):return '500000000' if command=='get-supported-sample-rate' else '0 0.01'
+            def cmd(self,command):
+                return {'get-supported-sample-rate':'500000000',
+                        'get-actual-sample-depth':'100000000',
+                        'get-actual-sample-time':'0 0.2'}.get(command,'ACK')
             def close(self):pass
         def stop_after_export(*args,**kwargs):server.jobs[jid]['_stopped']=True
         options=dict(rate=500000000,seconds=.2,threshold=1.65,sync=True,data=[1,2,3,4],clock=0,decode=True)

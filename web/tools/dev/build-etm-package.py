@@ -6,7 +6,7 @@ Requires build-only dependencies in bridge/etm/requirements-build.txt.
 import argparse,hashlib,importlib.metadata,json,os,shutil,subprocess,sys,uuid,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
-VERSION='1.0.14-native.14-rc.2'
+VERSION='1.0.14-native.14'
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def package_cli(package,toolbox,node):
     """Ship the Web command sources and pinned dependencies, not an SDK."""
@@ -59,10 +59,9 @@ def main():
                  'trace_cli','trace_cli_hardware','trace_cli_runtime','trace_cli_paths','trace_cli_legacy','web_cli_queue','serial','serial.tools.list_ports',
                  'reading_projection','reading_view','source_reading']:
         command+=['--hidden-import',name]
-    # 便携包**随带** numpy/pandas（用户明确要求）：只有它们在，trace_port 的向量化前端才生效，
-    # 200 ms 记录端到端才是全速（~120 s）；代价是 runtime 变大（pandas 会带 pytz/PIL/lxml/zstandard）。
-    # 若不需要加速，删掉 runtime 里的 numpy/pandas 目录即可，代码会自动回退纯 Python（结果相同，约 270 s）。
-    for name in ['tkinter','matplotlib','scipy','IPython','pytest','PyQt6']:
+    # Keep numpy/pandas acceleration; their optional image/XML/crypto adapters
+    # are unused here and bloat the portable Node/WebUSB CLI package.
+    for name in ['tkinter','matplotlib','scipy','IPython','pytest','PyQt6','PIL','lxml','cryptography']:
         command+=['--exclude-module',name]
     command.append(str(ROOT/'bridge/etm/etm_bridge.py'))
     subprocess.run(command,cwd=ROOT,check=True)
@@ -109,9 +108,11 @@ def main():
     manifest=dict(version=VERSION,platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],sourceDirty=provenance.get('sourceDirty',False),python=sys.version,dependencies=distributions,files=files)
     (package/'package-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     args.output.mkdir(parents=True,exist_ok=True);archive=args.output/'etm-bridge-win64.zip'
-    with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as zip:
+    with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as zip:
         for file in sorted(package.rglob('*')):
             if file.is_file():zip.write(file,'etm-bridge-kit/'+file.relative_to(package).as_posix())
+    if archive.stat().st_size>=100*1024*1024:
+        raise ValueError('完整包超过GitHub单文件100MiB限制；不能作为Pages下载提交')
     download=dict(version=VERSION,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'],sourceDirty=provenance.get('sourceDirty',False))
     (args.output/'manifest.json').write_text(json.dumps(download,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(dict(package=str(package),archive=str(archive),**download),ensure_ascii=False))

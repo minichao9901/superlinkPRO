@@ -49,6 +49,7 @@ class NativePipelineTests(SyntheticCase):
                     self.assertEqual(list(store.events()), expected)
 
     def test_published_store_matches_reference_and_all_queries(self):
+        (self.record/'session.json').write_text('{}',encoding='utf8')
         result, decoded = self.write_store(engine='native', write_decoded=True)
         self.assertTrue(result['ok'])
         self.assertFalse(result['engine']['fallback'])
@@ -62,6 +63,10 @@ class NativePipelineTests(SyntheticCase):
                 self.assertEqual(store.window(lo,hi),store._window(lo,hi))
             self.assertTrue(store.manifest['queryIndex']['defaultViews'])
         self.assertFalse(any(self.store_dir.glob('generations/*/work')))
+        from trace_store_adapter import verify_inputs
+        report=verify_inputs(self.record,json.loads((self.store_dir/'manifest.json').read_text(encoding='utf8')))
+        self.assertEqual({x['name']:x['status'] for x in report['metadata']},
+                         {'session.json':'ok','sources.json':'ok'})
 
     def test_index_failure_does_not_replace_complete_generation(self):
         self.write_store(engine='native', write_decoded=True)

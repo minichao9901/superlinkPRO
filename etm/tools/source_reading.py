@@ -124,6 +124,10 @@ class CExpression:
             if not unsigned and value>=(1<<(bits-1)):
                 if base.startswith(('0x','0X','0')) and value<(1<<bits):unsigned=True
                 elif bits==32:bits=64
+            # A literal must fit a C candidate type before any arithmetic wraps.
+            if unsigned and value >= 1 << bits and bits == 32:bits=64
+            if value >= 1 << bits or not unsigned and value >= 1 << (bits-1):
+                raise ValueError('C整数字面量超出目标类型')
             return integer(value,bits,unsigned)
         if IDENT.match(t):return self.resolve(t)
         raise ValueError('不支持的常量表达式')
@@ -139,6 +143,7 @@ class CExpression:
                 value=x<<y if op=='<<' else x>>y
             elif op in ('/','%'):
                 if not y:raise ValueError('常量除零')
+                if not unsigned and x==-(1<<(bits-1)) and y==-1:raise ValueError('目标C有符号除法溢出')
                 q=(abs(x)//abs(y))*(-1 if (x<0)!=(y<0) else 1);value=q if op=='/' else x-q*y
             elif op in ('&&','||','==','!=','<','<=','>','>='):
                 value={'&&':bool(x) and bool(y),'||':bool(x) or bool(y),'==':x==y,'!=':x!=y,'<':x<y,'<=':x<=y,'>':x>y,'>=':x>=y}[op];left=integer(int(value));continue
@@ -421,13 +426,20 @@ class SourceReading:
                 try:return CExpression(body,resolve).value()
                 finally:visited.remove(name)
             seen=set();parts=tokens(row['text'])
+            members={t.group() for i,t in enumerate(parts) if i and parts[i-1].group() in ('.','->')}
             for i,token in enumerate(parts):
                 name=token.group()
                 if name in seen or not IDENT.match(name):continue
                 seen.add(name)
+                if name in enums and name in members:
+                    continue  # A name-level annotation cannot distinguish members.
                 if name in enums:
+                    try:value=integer(enums[name])
+                    except ValueError:
+                        annotations.append(f'{name}：未解析（枚举值超出已支持的目标int范围）');self.unresolved+=1
+                        continue
                     annotations.append(f'{name} = {enums[name]}；DWARF枚举，CU 0x{cu:x}')
-                    value=integer(enums[name]);constants[name]=f'0x{value.value&((1<<value.bits)-1):X}'
+                    constants[name]=f'0x{value.value&((1<<value.bits)-1):X}'
                 elif name in scope:
                     try:
                         args,body,file,line=self.definition(scope[name])
@@ -450,8 +462,8 @@ class SourceReading:
                                     elif t in (')',']','}'):depth-=1
                                 j+=1
                             if j==len(parts) or len(actual)!=len(args):raise ValueError('宏实参无法唯一解析')
-                            replacements=dict(zip(args,actual))
-                            expanded=self.expand(' '.join(replacements.get(t.group(),t.group()) for t in tokens(body)),scope,(name,))
+                            # Check the outer definition as well as nested macros.
+                            expanded=self.expand(' '.join(t.group() for t in parts[i:j+1]),scope)
                             if len(expanded)>8192:raise ValueError('宏表达式超过展示预算')
                             annotations.append(f'{name}({", ".join(args)})；函数宏，DWARF {file}:{line}，CU 0x{cu:x}')
                             expansions.append(f'{name}({", ".join(args)}) => {expanded}；宏替换表达式上下文，运行时取值未采集；DWARF {file}:{line}，CU 0x{cu:x}')

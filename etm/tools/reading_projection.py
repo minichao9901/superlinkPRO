@@ -13,7 +13,7 @@ import tempfile
 import time
 
 SCHEMA='etm-reading/1'
-ALGORITHM='reading-v1'
+ALGORITHM='reading-v1.1'
 DEFAULTS=dict(repeatThreshold=10,keepFirst=2,keepLast=1,maxBlock=128,
               foldRepeats=True,foldLibraries=True,groupUnknown=True,statements=True,macroView='annotate')
 
@@ -197,7 +197,9 @@ def c_output(path,mapping,meta):
         for r in visible_rows(mapping,meta):
             if r['kind']=='code':
                 out.write('/* #'+str(r['seq'])+'～#'+str(r['endSeq'])+' '+clean(r['function'])+' · F'+str(files[r['file']])+':'+str(r['line'])+' */\n')
-            out.write(r['text']+'\n')
+                out.write(r['text']+'\n')
+            else:
+                out.write('/* #'+str(r['seq'])+'～#'+str(r['endSeq'])+' '+r['text'][3:]+'\n')
 
 
 def html_output(path,mapping,meta,sources):

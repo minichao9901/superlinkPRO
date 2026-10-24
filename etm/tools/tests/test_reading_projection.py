@@ -166,8 +166,30 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(value('~0U').value,4294967295)
         self.assertEqual(value('(uint8_t) 257').value,1)
         self.assertEqual(value('-7 / 3').value,-2);self.assertEqual(value('-7 % 3').value,-1)
+        self.assertEqual(value('4294967296U'),Integer(4294967296,64,True))
+        self.assertEqual(value('0x100000000U'),Integer(4294967296,64,True))
         for text in ['2147483647+1','1<<32','1/0','(-1)>>1','function(1)','__import__("os")']:
             with self.assertRaises(ValueError,msg=text):value(text)
+        for text in ['18446744073709551616ULL','0x10000000000000000ULL',
+                     '(-2147483647-1) % -1','(-2147483647-1) / -1']:
+            with self.assertRaises(ValueError,msg=text):value(text)
+
+    def test_describe_checks_outer_macro_and_does_not_annotate_enum_members(self):
+        from types import SimpleNamespace
+        from source_reading import SourceReading
+        text='f(FLAG, obj.FLAG, ptr->FLAG, BAD(x), JOIN(a,b), VAR(x), GOOD(runtime));'
+        r=SourceReading.__new__(SourceReading)
+        r.lines={'main.c':[text]};r.spans={};r.cache={};r.annotationCount=r.unresolved=0
+        r.macro=SimpleNamespace(unit=lambda pc:0,enums={0:{'FLAG':3}},
+            enumAmbiguity={},knownNames=set(),results={(0,'main.c',1):{
+                'BAD':('BAD(x) #x','h',1),'JOIN':('JOIN(a,b) a ## b','h',2),
+                'VAR':('VAR(...) __VA_ARGS__','h',3),'GOOD':('GOOD(x) ((x)+1)','h',4)}})
+        row=r.describe(SimpleNamespace(file='main.c',line=1,pc=256))
+        self.assertEqual(len(row['expansions']),1)
+        self.assertIn('runtime',row['expansions'][0]);self.assertEqual(r.unresolved,3)
+        # A row-level name->value map cannot distinguish a member token from
+        # an enumerator token, so ambiguous occurrences must stay unannotated.
+        self.assertNotIn('FLAG',row['inlineConstants'])
 
     def test_macro_scopes_define_undef_import_and_conflicts(self):
         def uv(n):

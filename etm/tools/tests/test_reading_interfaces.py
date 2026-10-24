@@ -25,6 +25,9 @@ class InterfaceTests(unittest.TestCase):
         args=SimpleNamespace(fields='summary.instructions,quality.unknownExecution',compact=False)
         self.assertEqual(cli.query_selection(dict(summary=dict(instructions=123,functions={'main':100}),quality=dict(unknownExecution=2)),args),dict(summary=dict(instructions=123),quality=dict(unknownExecution=2)))
         with self.assertRaises(cli.CliError):cli.query_selection({},args)
+        for fields in ('summary,summary.instructions','summary.instructions,summary','summary,summary'):
+            args.fields=fields
+            with self.assertRaises(cli.CliError):cli.query_selection(dict(summary=dict(instructions=123)),args)
 
     def test_reading_options_reject_invalid_limits(self):
         for config in [dict(repeatThreshold=2),dict(keepFirst=10,keepLast=2),dict(maxBlock=0),dict(maxBlock=513)]:
