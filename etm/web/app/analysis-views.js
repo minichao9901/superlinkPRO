@@ -45,16 +45,47 @@ function aggregateFlameView(result,onFunction,selectedFunction=''){
   let weightMode=cyclesReady?'cycles':'records';
   const weightOf=node=>weightMode==='cycles'?(node.valueCycles||0):(node.value||0);
   const weightText=()=>weightMode==='cycles'?'宽度＝周期（耗时口径）':'宽度＝路径指令记录数';
-  const tools=make('div',undefined,'row flame-tools'),reset=make('button','重置'),open=make('button','查看函数执行流');
+  const tools=make('div',undefined,'row flame-tools'),reset=make('button','重置'),open=make('button','查看函数执行流'),exportSvg=make('button','导出当前火焰图 SVG');
   const weightBtn=make('button',weightMode==='cycles'?'切换到记录数':'切换到周期');
   weightBtn.disabled=!cyclesReady;
   weightBtn.title=cyclesReady?'火焰图权重：周期数（Ozone 口径）↔ 路径指令记录数':'本记录没有周期计数数据（目标未启用，或 ETMv3/F103 不支持）';
   const label=make('span','全部路径','dim'),canvas=make('div');
   label.title='当前选择与权重口径';
   box.title='点击方块放大；可查看选中函数的执行流'+(selectedFunction?'；蓝框为当前光标所属函数':'');
-  tools.append(reset,open,weightBtn,label);box.append(tools,canvas);
+  exportSvg.title='导出当前区间、当前权重和当前放大层级；SVG 宽度按函数名自动扩展，函数名完整显示';
+  tools.append(reset,open,weightBtn,exportSvg,label);box.append(tools,canvas);
   const namespace='http://www.w3.org/2000/svg',original=result.analysis.flame;let selected=original;
   const levels=node=>1+Math.max(0,...node.children.map(levels));
+  const xmlEscape=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&apos;');
+  function exportCurrentSvg(){
+    const root=selected, rowHeight=30, font=14, minFor=name=>Math.max(150,Array.from(String(name)).length*font*.75+24);
+    const widthOf=node=>Math.max(minFor(node.name),node.children.filter(c=>weightOf(c)>0).reduce((sum,c)=>sum+widthOf(c),0));
+    const width=Math.max(1200,widthOf(root)), graphHeight=levels(root)*rowHeight+18;
+    const rows=[];
+    function flatten(node){
+      rows.push({name:node.name,value:node.value||0,cycles:node.valueCycles,self:node.self||0,selfCycles:node.selfCycles||0});
+      for(const child of [...node.children].filter(c=>weightOf(c)>0).sort((a,b)=>weightOf(b)-weightOf(a)))flatten(child);
+    }
+    flatten(root);
+    const detailTop=graphHeight+30, detailRow=24, height=detailTop+rows.length*detailRow+36;
+    const parts=[`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(width)}" height="${height}" viewBox="0 0 ${Math.ceil(width)} ${height}">`,
+      `<title>ETM 火焰图 · ${xmlEscape(weightMode==='cycles'?'周期':'路径指令记录数')} · 函数名完整</title>`,
+      `<style>text{font-family:Consolas,"Microsoft YaHei",monospace} .name{font-size:${font}px} .detail{font-size:13px}</style>`,
+      `<rect width="100%" height="100%" fill="#0d1117"/>`];
+    function color(name,depth){let hash=0;for(const c of name)hash=(hash*31+c.charCodeAt(0))|0;return name.includes('未知')?'#c4ccd8':`hsl(${25+Math.abs(hash)%40} 78% ${58+depth%3*5}%)`;}
+    function draw(node,x,y,w,depth){
+      const safeW=Math.max(1,w-2),name=xmlEscape(node.name);
+      parts.push(`<g><title>${name}；包含 ${n(node.value)} 条，自身 ${n(node.self)} 条${node.valueCycles!==undefined?`；周期 ${n(node.valueCycles)}（自身 ${n(node.selfCycles||0)}）`:''}</title><rect x="${x.toFixed(2)}" y="${y}" width="${safeW.toFixed(2)}" height="26" rx="2" fill="${color(node.name,depth)}"/>`);
+      parts.push(`<text class="name" x="${(x+6).toFixed(2)}" y="${y+18}" fill="#302d25">${name}</text></g>`);
+      const children=[...node.children].filter(c=>weightOf(c)>0).sort((a,b)=>weightOf(b)-weightOf(a));let next=x,total=weightOf(node)||1;
+      for(const child of children){const natural=w*weightOf(child)/total,cw=Math.max(widthOf(child),natural);draw(child,next,y+rowHeight,cw,depth+1);next+=cw;}
+    }
+    draw(root,0,2,width,0);
+    parts.push(`<text class="detail" x="8" y="${detailTop-10}" fill="#d0d7de">完整函数明细（${xmlEscape(weightMode==='cycles'?'周期':'路径指令记录数')}；当前放大层级；不含源码路径）</text>`);
+    rows.forEach((row,i)=>{const metric=weightMode==='cycles'?`周期 ${n(row.cycles||0)} · 自身 ${n(row.selfCycles||0)}`:`记录 ${n(row.value)} · 自身 ${n(row.self)}`;parts.push(`<text class="detail" x="8" y="${detailTop+i*detailRow+10}" fill="#c9d1d9">${i+1}. ${xmlEscape(row.name)} · ${metric}</text>`);});
+    parts.push('</svg>');
+    const blob=new Blob([parts.join('')],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='etm-flame-current.svg';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  }
   function repaint(root){selected=root;label.textContent=root.name+' · '+(weightMode==='cycles'?n(root.valueCycles||0)+' 周期':n(root.value)+' 条');open.disabled=root===original||/未知|中断/.test(root.name);const svg=document.createElementNS(namespace,'svg'),height=levels(root)*29+12;svg.setAttribute('viewBox',`0 0 1000 ${height}`);svg.setAttribute('role','img');svg.setAttribute('aria-label',`按${weightMode==='cycles'?'周期数':'路径指令记录数量'}加权的调用火焰图`);svg.style.width='100%';
     function draw(node,x,depth,width,path){const group=document.createElementNS(namespace,'g'),rect=document.createElementNS(namespace,'rect'),text=document.createElementNS(namespace,'text'),title=document.createElementNS(namespace,'title'),y=depth*29+2;   // 向下生长：根在顶部，子调用逐层向下
       rect.setAttribute('x',x);rect.setAttribute('y',y);rect.setAttribute('width',Math.max(.2,width-1));rect.setAttribute('height',26);let hash=0;for(const c of node.name)hash=(hash*31+c.charCodeAt(0))|0;rect.setAttribute('fill',node.name.includes('未知')?'#c4ccd8':`hsl(${25+Math.abs(hash)%40} 78% ${58+depth%3*5}%)`);rect.setAttribute('rx',2);if(selectedFunction&&node.name===selectedFunction){rect.setAttribute('stroke','#58a6ff');rect.setAttribute('stroke-width','2');}
@@ -67,7 +98,7 @@ function aggregateFlameView(result,onFunction,selectedFunction=''){
     if(weightOf(root))draw(root,0,0,1000,[]);else canvas.replaceChildren(make('p','当前权重下没有可绘制区间。','hint'));canvas.replaceChildren(svg);
   }
   weightBtn.onclick=()=>{weightMode=weightMode==='cycles'?'records':'cycles';weightBtn.textContent=weightMode==='cycles'?'切换到记录数':'切换到周期';repaint(original);};
-  reset.onclick=()=>repaint(original);open.onclick=()=>onFunction(selected.name);repaint(original);return box;
+  reset.onclick=()=>repaint(original);open.onclick=()=>onFunction(selected.name);exportSvg.onclick=exportCurrentSvg;repaint(original);return box;
 }
 
 export function flameView(result,onFunction,o={}){
