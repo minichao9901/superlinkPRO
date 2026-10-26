@@ -1,3 +1,4 @@
+import {fetchExecutionExport,saveExportFile} from './export.js';
 import {integrityView,flameView} from './analysis-views.js';
 import {bindFunctionTimeline} from './function-timeline.js';
 import {createZoomControls} from './zoom-controls.js';
@@ -77,6 +78,13 @@ export class HistoryView{
     if(r&&Number.isInteger(r.totalStart)&&Number.isInteger(r.totalEnd))return {start:r.totalStart,end:r.totalEnd,totalStart:r.totalStart,totalEnd:r.totalEnd};
     const end=Math.max(0,(this.result?.eventCount||1)-1);return {start:0,end,totalStart:0,totalEnd:end};
   }
+  async exportFlame(options=this.view==='flame'&&this.flameExportOptions||{mode:'timeline',weight:'records',rootPath:''}){
+    if(!this.sid)throw Error('请选择记录');
+    const params=new URLSearchParams(options);this.scopeParams(params);
+    const base=this.downloadBase||'/api/';
+    const file=await fetchExecutionExport(base+'download/'+encodeURIComponent(this.sid)+'/flame-svg?'+params,{timeout:180000});
+    saveExportFile(file);return file;
+  }
   async render(){if(!this.result)return;const revision=++this.revision;for(const b of document.querySelectorAll('[data-view]'))b.classList.toggle('active',b.dataset.view===this.view);$('analysis-panes').classList.toggle('flame-layout',this.view==='flame');$('analysis-panes').classList.toggle('flame-source-collapsed',this.view==='flame'&&this.flameSourceCollapsed);const search=$('search').value.trim().toLowerCase();
     $('scope-state').hidden=$('clear-scope').hidden=!this.range;$('scope-state').textContent=this.range?['packets','quality'].includes(this.view)?'包 / 完整性显示全记录':'区间 #'+this.range.start+'～#'+this.range.end:'';
     // R0-B：默认轨迹图独立/并发加载，**不再 await**。overview/首页行/表格先可用，慢图或超时只影响图表本身。
@@ -97,7 +105,7 @@ export class HistoryView{
     }
     if(this.view==='flame'){
       const flame=flameView(this.result,fn=>{this.view='instructions';$('search').value=fn;this.offset=0;this.render().catch(this.onError);},
-        {window:this.window,mode:this.flameMode,cursorSeq:this.selected,cursorFunction:this.selectedFunction,zoomBusy:this.scopeBusy,sourceCollapsed:this.flameSourceCollapsed,canBack:!!this.rangeHistory.length,onError:this.onError,onZoom:zoomIn=>this.zoomRange(zoomIn),
+        {window:this.window,onExportOptions:options=>{this.flameExportOptions=options;},onExport:options=>this.exportFlame(options),mode:this.flameMode,cursorSeq:this.selected,cursorFunction:this.selectedFunction,zoomBusy:this.scopeBusy,sourceCollapsed:this.flameSourceCollapsed,canBack:!!this.rangeHistory.length,onError:this.onError,onZoom:zoomIn=>this.zoomRange(zoomIn),
          onMode:mode=>{if(this.flameMode!==mode){this.flameMode=mode;if(!this.range)this.window=null;}return this.render();},onToggleSource:()=>{this.flameSourceCollapsed=!this.flameSourceCollapsed;return this.render();},onRange:r=>this.setRange(r),onBack:()=>this.backRange(),onReset:()=>this.setRange(null,true,this.selected),onSelect:seq=>this.select(seq,false)});
       this.flameZoomControls=flame.zoomControls;$('table-container').replaceChildren(flame);
       this.pagination(0,0);return;

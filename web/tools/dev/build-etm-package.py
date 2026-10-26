@@ -27,7 +27,7 @@ def package_cli(package,toolbox,node):
     if not license.is_file():raise ValueError('缺少对应Node版本的第三方许可证：'+str(license))
     shutil.copyfile(license,package/'licenses'/license.name)
     shutil.copyfile(repo/'docs/trace-cli-ai.md',package/'Trace-CLI-中文说明.md')
-    shutil.copyfile(repo/'docs/etm-flame-svg.md',package/'火焰图SVG导出说明.md')
+    shutil.copyfile(repo/'docs/etm-flame-svg.md',package/'etm-flame-svg.md')
     (package/'etm-trace.cmd').write_text('@echo off\n"%~dp0etm-bridge.exe" --cli %*\nexit /b %errorlevel%\n',encoding='ascii')
     return version
 

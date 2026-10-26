@@ -66,6 +66,7 @@ async function api(path,body){return requestJson(apiBase+path,body===undefined?{
 function log(message){$('log').textContent=new Date().toLocaleTimeString('zh-CN')+' '+message+'\n'+$('log').textContent;controls();}
 function error(e){log(e.message);$('job-state').textContent=e.message;$('job-state').classList.add('bad');}
 const history=new HistoryView(api,error);
+Object.defineProperty(history,'downloadBase',{get:()=>apiBase});
 /** 后端能力：采集时长上限以 `/api/capabilities` 为准（默认 200 ms，前端不自行放开）。
  *  旧后端没有该接口时静默保持 200 ms；能力值只用于校验与提示，不暴露处理引擎细节。 */
 function captureLimitText(){const ms=Math.round(state.captureMaxSeconds*1000);return `单次采集上限 ${ms} ms：一次采集 + 一次解码`+(ms>200?'；长窗可能需十几秒，请核对实际采集时长':'');}
@@ -331,6 +332,7 @@ on('stop',async()=>{state.captureCancelled=true;const id=state.job||state.failed
 on('decode',async()=>{if(!state.current)throw Error('请选择记录');await watchJob((await api('decode/'+state.current,{})).job);});
 async function download(kind){
   if(!state.current)throw Error('请选择记录');
+  if(kind==='flame-svg'){await history.exportFlame();return;}
   const execution=['source','simplified','simplified-html','csv','reading-c','reading-html'].includes(kind);
   const url=apiBase+'download/'+state.current+'/'+kind+(history.range&&execution?'?fromSeq='+history.range.start+'&toSeq='+history.range.end:'');
   if(execution){

@@ -40,7 +40,7 @@ def install_web_cli(app, token_file):
     def submit():
         value = request.get_json()
         if not isinstance(value,dict) or value.get('action') not in (
-                'ping','status','connect','disconnect','elf','command','flash','wait-halt','cancel','help','target'):
+                'ping','status','connect','disconnect','elf','command','flash','wait-halt','cancel','help','target','workbench'):
             abort(400)
         with condition:
             now = time.monotonic()

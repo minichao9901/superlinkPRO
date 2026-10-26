@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-27",
+  "sourceRevision": "ca0c7fbbff238aa4a254f5102d9660e961eed394",
+  "sourceDirty": false,
+  "hardwareAccessed": false,
+  "download": {
+    "version": "1.0.14-native.15",
+    "platform": "windows-x64",
+    "file": "etm-bridge-win64.zip",
+    "bytes": 92628064,
+    "sha256": "282a8842d6484c52d0a393eaa6119fc8671e9896a7dee59f55257d397c78757a",
+    "packageId": "2dad4b8270ebee8f88dc7c4e90439371133671e61244cccabf6f95939c79e66d",
+    "sourceRevision": "ca0c7fbbff238aa4a254f5102d9660e961eed394",
+    "sourceDirty": false
+  },
+  "zipVerification": {
+    "zipFilesVerified": 3226,
+    "noUserRecords": true,
+    "version": "1.0.14-native.15",
+    "platform": "windows-x64",
+    "file": "etm-bridge-win64.zip",
+    "bytes": 92628064,
+    "sha256": "282a8842d6484c52d0a393eaa6119fc8671e9896a7dee59f55257d397c78757a",
+    "packageId": "2dad4b8270ebee8f88dc7c4e90439371133671e61244cccabf6f95939c79e66d",
+    "sourceRevision": "ca0c7fbbff238aa4a254f5102d9660e961eed394",
+    "sourceDirty": false
+  },
+  "regressions": {
+    "webNodeTests": 73,
+    "sourceBackendTests": 102,
+    "unifiedCliAndSvgTests": 14,
+    "runtimeSyncTests": 7,
+    "portableTests": 8,
+    "total": 204,
+    "passed": true,
+    "environmentRetest": "Initial reading(26)/native-export(11) suites could not write system TEMP; rerun with workspace TEMP both passed. Other suites unchanged.",
+    "portableRuntimePackageId": "98427999eb7d0e675dbb0806397366179fdf7fde5d436c80642bda2ac0488bd0"
+  },
+  "documentationOnlyRepack": {
+    "previousPackageId": "98427999eb7d0e675dbb0806397366179fdf7fde5d436c80642bda2ac0488bd0",
+    "packageId": "2dad4b8270ebee8f88dc7c4e90439371133671e61244cccabf6f95939c79e66d",
+    "onlyChange": {
+      "removed": "火焰图SVG导出说明.md",
+      "added": "etm-flame-svg.md",
+      "sha256": "911a1ac92aac118a748ae3facf41d514d17483de0ff303c45ffd72cc10c7c615"
+    },
+    "allRuntimeFilesUnchanged": true
+  },
+  "frozenSvgAcceptance": {
+    "version": "1.0.14-native.15",
+    "packageId": "2dad4b8270ebee8f88dc7c4e90439371133671e61244cccabf6f95939c79e66d",
+    "sourceRevision": "ca0c7fbbff238aa4a254f5102d9660e961eed394",
+    "sourceDirty": false,
+    "manifestFilesChecked": 3226,
+    "PATH": "C:\\WINDOWS/System32;C:\\WINDOWS",
+    "hardwareAccessed": false,
+    "cases": [
+      {
+        "record": "tcp-initialization",
+        "depth": 11,
+        "sha256": "86218138d4dcfcd8f8239404bf889a1ad6e764ae3ac0ae7bb288362ce077ebb9",
+        "sourceCliAndFrozenCliAndHTTPBytesEqual": true
+      },
+      {
+        "record": "tcp-two-flows",
+        "depth": 16,
+        "sha256": "52be14e1983d054fb664e585d9d04e9bd679dd302aaa176fa7fbbfaf88ee3689",
+        "sourceCliAndFrozenCliAndHTTPBytesEqual": true
+      },
+      {
+        "record": "udp-initialization",
+        "depth": 11,
+        "sha256": "fc0270844e6fab201c0221ae29f4d5d2d3676e6844508463660efce5889ffab3",
+        "sourceCliAndFrozenCliAndHTTPBytesEqual": true
+      },
+      {
+        "record": "udp-two-flows",
+        "depth": 18,
+        "sha256": "a34b34172aaec7abaac07ed818f65be023aa6f2fda5f5980143753ee1c64b87f",
+        "sourceCliAndFrozenCliAndHTTPBytesEqual": true
+      }
+    ],
+    "server": {
+      "dataDirectory": "E:\\superlinkPRO\\tmp\\flame-release\\frozen-final\\data",
+      "engine": "native",
+      "packageId": "2dad4b8270ebee8f88dc7c4e90439371133671e61244cccabf6f95939c79e66d",
+      "port": 53397,
+      "portable": true,
+      "protocol": 1,
+      "version": "1.0.14-native.15"
+    },
+    "passed": true
+  },
+  "finalSvgFiles": [
+    "docs/examples/etm-flames/tcp-echo-exact-flame.svg",
+    "docs/examples/etm-flames/tcp-initialization-exact-flame.svg",
+    "docs/examples/etm-flames/udp-echo-exact-flame.svg",
+    "docs/examples/etm-flames/udp-initialization-exact-flame.svg"
+  ],
+  "browserVisualCheck": {
+    "tcpEchoDepth": 16,
+    "udpEchoDepth": 18,
+    "overviewChecked": true
+  },
+  "passed": true
+}
