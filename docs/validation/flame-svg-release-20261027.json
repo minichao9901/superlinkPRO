@@ -102,5 +102,14 @@
     "udpEchoDepth": 18,
     "overviewChecked": true
   },
-  "passed": true
+  "passed": true,
+  "onlineAcceptance": {
+    "report": "flame-svg-online-20261027.json",
+    "passed": true,
+    "version": "1.0.14-native.15",
+    "bytes": 92628064,
+    "sha256": "282a8842d6484c52d0a393eaa6119fc8671e9896a7dee59f55257d397c78757a",
+    "deploymentCommit": "203564e8bb1476372c4b43077ee3a29afbf7a905",
+    "handoffThreadId": "01a179d2-9eb8-7902-bee5-86daa8a823c7"
+  }
 }
