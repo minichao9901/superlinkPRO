@@ -8,7 +8,7 @@ FILES += ['tools/trace_store_index.py','tools/trace_store_nav.py','tools/native_
           'tools/native_storebuild.py','tools/trace_frontend.py','tools/native_export.py','tools/native_selection.py']
 FILES += ['tools/trace_cli.py','tools/trace_cli_hardware.py','tools/trace_cli_runtime.py',
           'tools/trace_cli_paths.py','tools/trace_cli_legacy.py','tools/web_cli_queue.py']
-FILES += ['tools/reading_projection.py','tools/reading_view.py','tools/source_reading.py']
+FILES += ['tools/reading_projection.py','tools/reading_view.py','tools/source_reading.py','tools/flame_svg.py']
 # 可选原生索引器：只有配置时找到 SQLite3，CMakeLists 才会生成 etm_index 目标（否则 Python 回退）。
 # FindSQLite3 模块在缓存里写的是单数 INCLUDE_DIR/LIBRARY；config 模式才可能有 SQLite3_DIR。
 SQLITE_CACHE_KEYS=('SQLite3_INCLUDE_DIR','SQLite3_LIBRARY')

@@ -701,6 +701,9 @@ def export_command(args):
             if kind == 'json':
                 writer = lambda p: save(p, dict(result, sources=view.sources(),
                     cliExportNote='摘要/分析JSON；逐事件数据请导出events-jsonl'))
+            elif kind == 'flame-svg':
+                from flame_svg import export_svg
+                writer = lambda p: export_svg(view, p, args.start, args.end, args.flame_mode, args.flame_weight, args.flame_root)
             elif kind == 'events-jsonl':
                 def writer(p):
                     with p.open('w', encoding='utf8') as out:
@@ -847,7 +850,8 @@ def capabilities_command(args):
     available='reading-v1' in native.get('etm_export.exe',{}).get('version',{}).get('features',[])
     return dict(protocol=VERSION,native=native,softwareCapabilities=dict(captureMaxSeconds=1,captureMaxSamples=500000000,
         queryMaxLimit=500,queryMaxBins=5000,queryViews=['summary','overview','page','event','navigate','window','timeline','issues','source','functions','hotspots','flame','integrity'],
-        exportFormats=['simplified','source','html','csv','json','events-jsonl','raw','etm','elf','record'],
+        exportFormats=['simplified','source','html','csv','json','events-jsonl','flame-svg','raw','etm','elf','record'],
+        flameSvg=dict(modes=['timeline','aggregate'],weights=['records','cycles'],exactCallPaths=True,fullDepth=True,maxFrames=200000),
         readingProjection=dict(schema=SCHEMA,available=available,formats=['simplified','html'],defaults=DEFAULTS,
             repeatThresholdMeaning='strictly greater than threshold; 10 means at least 11 iterations',
             mapping='JSONL sidecar; all selected raw events covered; repeat iteration ranges use an exact path template',
@@ -967,8 +971,11 @@ def build_parser():
     p=sub.add_parser('verify', help='输入指纹、实际长度、store绑定和解码质量');p.add_argument('--record', required=True, type=Path)
     p.add_argument('--require-decoded', action='store_true');p.set_defaults(func=lambda a:verify_record(a.record,a.require_decoded))
     p=sub.add_parser('export', help='导出执行流、原始数据或完整记录包');p.add_argument('--record', required=True, type=Path)
-    p.add_argument('--format', required=True, choices=('simplified','source','html','csv','json','events-jsonl','raw','etm','elf','record'))
+    p.add_argument('--format', required=True, choices=('simplified','source','html','csv','json','events-jsonl','flame-svg','raw','etm','elf','record'))
     p.add_argument('--out', required=True, type=Path);bounds(p);p.set_defaults(func=export_command)
+    p.add_argument('--flame-mode',choices=('timeline','aggregate'),default='timeline',help='flame-svg模式：timeline按原始执行顺序保留完整调用深度；aggregate按调用权重聚合')
+    p.add_argument('--flame-weight',choices=('records','cycles'),default='records',help='仅聚合图的宽度权重；cycles要求所选区间有周期计数')
+    p.add_argument('--flame-root',default='',help='仅聚合图：原始调用树children索引组成的放大节点路径，例如0.2；空为整棵树')
     p.add_argument('--readability',choices=('original','learning'),default='original',help='learning生成C/HTML阅读投影与序号映射；original保留既有行为')
     p.add_argument('--projection-manifest',type=Path,help='阅读清单新文件；默认<out>.manifest.json')
     p.add_argument('--repeat-threshold',type=int,default=10,help='总次数严格超过此值才折叠；10表示至少11次')

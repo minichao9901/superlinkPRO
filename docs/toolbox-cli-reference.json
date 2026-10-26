@@ -3997,7 +3997,7 @@
           "id": "export-type",
           "tag": "select",
           "type": null,
-          "label": "阅读折叠 C + 映射 .zip阅读折叠 HTML + 映射 .zip简化源码 .c简化执行流 / 源码 .html完整源码执行流 .c执行流 CSV完整解码 JSON原始波形Kingst KVDAT",
+          "label": "阅读折叠 C + 映射 .zip阅读折叠 HTML + 映射 .zip简化源码 .c简化执行流 / 源码 .html完整源码执行流 .c执行流 CSV当前区间火焰图 SVG完整解码 JSON原始波形Kingst KVDAT",
           "options": [
             {
               "value": "reading-c",
@@ -4022,6 +4022,10 @@
             {
               "value": "csv",
               "label": "执行流 CSV"
+            },
+            {
+              "value": "flame-svg",
+              "label": "当前区间火焰图 SVG"
             },
             {
               "value": "json",

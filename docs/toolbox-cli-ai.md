@@ -270,3 +270,7 @@ python -m unittest discover -s etm/tools/tests -p test_web_cli_queue.py
 该脚本只枚举页面、导入仓库测试工程、修改/恢复波形预览频率并导出，不操作设备。
 
 2026-10-25 补充：命令参数参考覆盖63个节点，增加文档与真实解析器一致性回归；统一 CLI / HTTP 测试现为9项，全部通过。
+
+## 火焰图 SVG
+
+`trace export --format flame-svg` 支持当前序号区间的完整执行顺序图、聚合图及完整函数名。源码使用 `python toolbox.py trace export`，离线包使用 `etm-trace.cmd export`。模式、权重、区间和 HTTP 接口见 [火焰图 SVG 导出](etm-flame-svg.md)。

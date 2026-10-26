@@ -1001,8 +1001,11 @@ usage: toolbox.py trace verify [-h] --record RECORD [--require-decoded]
 
 ```text
 usage: toolbox.py trace export [-h] --record RECORD
-                               --format {simplified,source,html,csv,json,events-jsonl,raw,etm,elf,record}
+                               --format {simplified,source,html,csv,json,events-jsonl,flame-svg,raw,etm,elf,record}
                                --out OUT [--from-seq START] [--to-seq END]
+                               [--flame-mode {timeline,aggregate}]
+                               [--flame-weight {records,cycles}]
+                               [--flame-root FLAME_ROOT]
                                [--readability {original,learning}]
                                [--projection-manifest PROJECTION_MANIFEST]
                                [--repeat-threshold REPEAT_THRESHOLD]
@@ -1018,10 +1021,13 @@ usage: toolbox.py trace export [-h] --record RECORD
 |---|---|---|---|---|---|
 | -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
 | --record | 已有记录目录路径，包含 session/解码或 TraceStore 等绑定文件。 | Path | 是 | 未指定 | — |
-| --format | 导出格式：simplified 简化C，source 完整C，html 阅读HTML，csv 执行流，json 完整解码，events-jsonl 原始事件行，raw 原始波形，etm ETM二进制，elf 绑定镜像，record 可重解记录包。 | str | 是 | 未指定 | ['simplified', 'source', 'html', 'csv', 'json', 'events-jsonl', 'raw', 'etm', 'elf', 'record'] |
+| --format | 导出格式：simplified 简化C，source 完整C，html 阅读HTML，csv 执行流，json 完整解码，events-jsonl 原始事件行，flame-svg 完整函数名火焰图（执行顺序/调用权重），raw 原始波形，etm ETM二进制，elf 绑定镜像，record 可重解记录包。 | str | 是 | 未指定 | ['simplified', 'source', 'html', 'csv', 'json', 'events-jsonl', 'flame-svg', 'raw', 'etm', 'elf', 'record'] |
 | --out | 新的输出文件或目录（取决于命令）；拒绝覆盖已有结果。 | Path | 是 | 未指定 | — |
 | --from-seq | 序号区间起点，非负整数；与 to-seq 一起限定查询/导出，边界规则沿用对应原接口。 | int | 否 | 未指定 | — |
 | --to-seq | 序号区间终点，不小于起点；不是毫秒值，不能代替采集时长。 | int | 否 | 未指定 | — |
+| --flame-mode | flame-svg模式：timeline按原始执行顺序保留完整调用深度；aggregate按调用权重聚合 | str | 否 | timeline | ['timeline', 'aggregate'] |
+| --flame-weight | 仅聚合图的宽度权重；cycles要求所选区间有周期计数 | str | 否 | records | ['records', 'cycles'] |
+| --flame-root | 仅聚合图：原始调用树children索引组成的放大节点路径，例如0.2；空为整棵树 | str | 否 |  | — |
 | --readability | learning生成C/HTML阅读投影与序号映射；original保留既有行为 | str | 否 | original | ['original', 'learning'] |
 | --projection-manifest | 阅读清单新文件；默认<out>.manifest.json | Path | 否 | 未指定 | — |
 | --repeat-threshold | 总次数严格超过此值才折叠；10表示至少11次 | int | 否 | 10 | — |

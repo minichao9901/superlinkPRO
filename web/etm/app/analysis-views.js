@@ -36,7 +36,7 @@ export function integrityView(result){
   return box;
 }
 
-function aggregateFlameView(result,onFunction,selectedFunction=''){
+function aggregateFlameView(result,onFunction,selectedFunction='',o={}){
   const box=make('div',undefined,'flame-panel');
   const timing=result.analysis?.timing;
   const cyclesReady=!!timing?.timeFlameAvailable&&(timing.totalCycles||0)>0;
@@ -56,37 +56,17 @@ function aggregateFlameView(result,onFunction,selectedFunction=''){
   tools.append(reset,open,weightBtn,exportSvg,label);box.append(tools,canvas);
   const namespace='http://www.w3.org/2000/svg',original=result.analysis.flame;let selected=original;
   const levels=node=>1+Math.max(0,...node.children.map(levels));
-  const xmlEscape=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&apos;');
-  function exportCurrentSvg(){
-    const root=selected, rowHeight=30, font=14, minFor=name=>Math.max(150,Array.from(String(name)).length*font*.75+24);
-    const widthOf=node=>Math.max(minFor(node.name),node.children.filter(c=>weightOf(c)>0).reduce((sum,c)=>sum+widthOf(c),0));
-    const width=Math.max(1200,widthOf(root)), graphHeight=levels(root)*rowHeight+18;
-    const rows=[];
-    function flatten(node){
-      rows.push({name:node.name,value:node.value||0,cycles:node.valueCycles,self:node.self||0,selfCycles:node.selfCycles||0});
-      for(const child of [...node.children].filter(c=>weightOf(c)>0).sort((a,b)=>weightOf(b)-weightOf(a)))flatten(child);
-    }
-    flatten(root);
-    const detailTop=graphHeight+30, detailRow=24, height=detailTop+rows.length*detailRow+36;
-    const parts=[`<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(width)}" height="${height}" viewBox="0 0 ${Math.ceil(width)} ${height}">`,
-      `<title>ETM 火焰图 · ${xmlEscape(weightMode==='cycles'?'周期':'路径指令记录数')} · 函数名完整</title>`,
-      `<style>text{font-family:Consolas,"Microsoft YaHei",monospace} .name{font-size:${font}px} .detail{font-size:13px}</style>`,
-      `<rect width="100%" height="100%" fill="#0d1117"/>`];
-    function color(name,depth){let hash=0;for(const c of name)hash=(hash*31+c.charCodeAt(0))|0;return name.includes('未知')?'#c4ccd8':`hsl(${25+Math.abs(hash)%40} 78% ${58+depth%3*5}%)`;}
-    function draw(node,x,y,w,depth){
-      const safeW=Math.max(1,w-2),name=xmlEscape(node.name);
-      parts.push(`<g><title>${name}；包含 ${n(node.value)} 条，自身 ${n(node.self)} 条${node.valueCycles!==undefined?`；周期 ${n(node.valueCycles)}（自身 ${n(node.selfCycles||0)}）`:''}</title><rect x="${x.toFixed(2)}" y="${y}" width="${safeW.toFixed(2)}" height="26" rx="2" fill="${color(node.name,depth)}"/>`);
-      parts.push(`<text class="name" x="${(x+6).toFixed(2)}" y="${y+18}" fill="#302d25">${name}</text></g>`);
-      const children=[...node.children].filter(c=>weightOf(c)>0).sort((a,b)=>weightOf(b)-weightOf(a));let next=x,total=weightOf(node)||1;
-      for(const child of children){const natural=w*weightOf(child)/total,cw=Math.max(widthOf(child),natural);draw(child,next,y+rowHeight,cw,depth+1);next+=cw;}
-    }
-    draw(root,0,2,width,0);
-    parts.push(`<text class="detail" x="8" y="${detailTop-10}" fill="#d0d7de">完整函数明细（${xmlEscape(weightMode==='cycles'?'周期':'路径指令记录数')}；当前放大层级；不含源码路径）</text>`);
-    rows.forEach((row,i)=>{const metric=weightMode==='cycles'?`周期 ${n(row.cycles||0)} · 自身 ${n(row.selfCycles||0)}`:`记录 ${n(row.value)} · 自身 ${n(row.self)}`;parts.push(`<text class="detail" x="8" y="${detailTop+i*detailRow+10}" fill="#c9d1d9">${i+1}. ${xmlEscape(row.name)} · ${metric}</text>`);});
-    parts.push('</svg>');
-    const blob=new Blob([parts.join('')],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='etm-flame-current.svg';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  function nodePath(target,node=original,path=[]){
+    if(node===target)return path;
+    for(let i=0;i<node.children.length;i++){const found=nodePath(target,node.children[i],path.concat(i));if(found)return found;}
+    return null;
   }
-  function repaint(root){selected=root;label.textContent=root.name+' · '+(weightMode==='cycles'?n(root.valueCycles||0)+' 周期':n(root.value)+' 条');open.disabled=root===original||/未知|中断/.test(root.name);const svg=document.createElementNS(namespace,'svg'),height=levels(root)*29+12;svg.setAttribute('viewBox',`0 0 1000 ${height}`);svg.setAttribute('role','img');svg.setAttribute('aria-label',`按${weightMode==='cycles'?'周期数':'路径指令记录数量'}加权的调用火焰图`);svg.style.width='100%';
+  async function exportCurrentSvg(){
+    exportSvg.disabled=true;
+    try{await o.onExport?.({mode:'aggregate',weight:weightMode,rootPath:(nodePath(selected)||[]).join('.')});}
+    catch(error){o.onError?.(error);}finally{exportSvg.disabled=false;}
+  }
+  function repaint(root){selected=root;o.onExportOptions?.({mode:'aggregate',weight:weightMode,rootPath:(nodePath(root)||[]).join('.')});label.textContent=root.name+' · '+(weightMode==='cycles'?n(root.valueCycles||0)+' 周期':n(root.value)+' 条');open.disabled=root===original||/未知|中断/.test(root.name);const svg=document.createElementNS(namespace,'svg'),height=levels(root)*29+12;svg.setAttribute('viewBox',`0 0 1000 ${height}`);svg.setAttribute('role','img');svg.setAttribute('aria-label',`按${weightMode==='cycles'?'周期数':'路径指令记录数量'}加权的调用火焰图`);svg.style.width='100%';
     function draw(node,x,depth,width,path){const group=document.createElementNS(namespace,'g'),rect=document.createElementNS(namespace,'rect'),text=document.createElementNS(namespace,'text'),title=document.createElementNS(namespace,'title'),y=depth*29+2;   // 向下生长：根在顶部，子调用逐层向下
       rect.setAttribute('x',x);rect.setAttribute('y',y);rect.setAttribute('width',Math.max(.2,width-1));rect.setAttribute('height',26);let hash=0;for(const c of node.name)hash=(hash*31+c.charCodeAt(0))|0;rect.setAttribute('fill',node.name.includes('未知')?'#c4ccd8':`hsl(${25+Math.abs(hash)%40} 78% ${58+depth%3*5}%)`);rect.setAttribute('rx',2);if(selectedFunction&&node.name===selectedFunction){rect.setAttribute('stroke','#58a6ff');rect.setAttribute('stroke-width','2');}
       const cycleInfo=(node.valueCycles!==undefined)?`；周期 ${n(node.valueCycles)}（自身 ${n(node.selfCycles||0)}）`:'';
@@ -102,7 +82,7 @@ function aggregateFlameView(result,onFunction,selectedFunction=''){
 }
 
 export function flameView(result,onFunction,o={}){
-  if(!o.window)return aggregateFlameView(result,onFunction,o.cursorFunction||'');
+  if(!o.window)return aggregateFlameView(result,onFunction,o.cursorFunction||'',o);
   const data=o.window,scope=data.range,box=make('div',null,'execution-chart'),toolbar=make('div',null,'row window-tools');
   const safe=fn=>{try{Promise.resolve(fn()).catch(o.onError);}catch(e){o.onError(e);}};
   const button=(text,fn)=>{const b=make('button',text);b.onclick=()=>safe(fn);return b;};
@@ -118,14 +98,21 @@ export function flameView(result,onFunction,o={}){
   const sourceToggle=button(o.sourceCollapsed?'展开源码':'收起源码',o.onToggleSource);sourceToggle.setAttribute('aria-expanded',String(!o.sourceCollapsed));sourceToggle.title=o.sourceCollapsed?'展开源码对照窗格':'收起源码窗格，扩展火焰图';
   modes.append(timeline,aggregate,back);rangeTools.append(make('span','#'),from,make('span','～'),to,button('查看',()=>o.onRange({start:Number(from.value),end:Number(to.value)})));toolbar.append(modes,zoom.element,sourceToggle,rangeTools);
   box.zoomControls=zoom;box.append(toolbar);box.title='拖选放大；Ctrl＋滚轮缩放；纵向按调用深度向下延展。';
-  if(o.mode==='aggregate'){box.append(aggregateFlameView({...result,analysis:data.analysis},onFunction,o.cursorFunction||''));return box;}
+  if(o.mode==='aggregate'){box.append(aggregateFlameView({...result,analysis:data.analysis},onFunction,o.cursorFunction||'',o));return box;}
   if(!Array.isArray(data.timeline)||!data.timeline.length){
     // 全记录没有预计算的分桶时间轴：按调用权重显示（analysis 是解码时算好的，立即出图），
     // 要看执行顺序需先选一个区间（审查 P2：全记录 window() 实测 119.5 s，不能阻塞首屏）。
     box.append(make('p','没有执行序号分桶，先按调用权重显示；选一个区间可看执行顺序。','hint'));
-    box.append(aggregateFlameView({...result,analysis:data.analysis},onFunction,o.cursorFunction||''));
+    box.append(aggregateFlameView({...result,analysis:data.analysis},onFunction,o.cursorFunction||'',o));
     return box;
   }
+  o.onExportOptions?.({mode:'timeline',weight:'records',rootPath:''});
+  const exportSvg=button('导出当前火焰图 SVG',async()=>{
+    exportSvg.disabled=true;
+    try{await o.onExport?.({mode:'timeline',weight:'records',rootPath:''});}finally{exportSvg.disabled=false;}
+  });
+  exportSvg.title='读取当前区间的原始调用栈，完整深度、完整函数名；图宽按最小所需比例扩展';
+  modes.append(exportSvg);
   const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
   const maxDepth=Math.max(1,...data.timeline.map(b=>b.path.length)),height=maxDepth*26+38;
   const unit=1000;svg.setAttribute('viewBox',`0 0 ${unit} ${height}`);svg.setAttribute('role','img');svg.setAttribute('aria-label','按执行先后排列的调用区间图，拖选缩放');svg.classList.add('execution-timeline');svg.style.touchAction='none';
@@ -134,9 +121,10 @@ export function flameView(result,onFunction,o={}){
   for(let i=0;i<=4;i++){text(i*unit/4,height-7,'#'+Math.round(scope.start+(scope.end-scope.start)*i/4));svg.lastChild.setAttribute('text-anchor',i===4?'end':i===0?'start':'middle');}
   const frames=[],active=[];
   for(const b of data.timeline){
-    b.path.forEach((name,depth)=>{let frame=active[depth];
+    let ancestorChanged=false;
+    b.path.forEach((name,depth)=>{let frame=ancestorChanged?null:active[depth];
       if(frame&&frame.name===name&&frame.endSeq+1===b.startSeq&&!frame.cutAfter&&!b.events.length){frame.endSeq=b.endSeq;frame.records+=b.records;frame.unknown+=b.unknown;}
-      else{frame={name,depth,startSeq:b.startSeq,endSeq:b.endSeq,records:b.records,unknown:b.unknown,firstSeq:b.firstSeq,cutAfter:!!b.events.length};frames.push(frame);active[depth]=frame;}
+      else{ancestorChanged=true;frame={name,depth,startSeq:b.startSeq,endSeq:b.endSeq,records:b.records,unknown:b.unknown,firstSeq:b.firstSeq,cutAfter:!!b.events.length};frames.push(frame);active[depth]=frame;}
     });active.length=b.path.length;
     if(b.events.length){const x=(b.startSeq-scope.start)/span*unit,w=(b.endSeq-b.startSeq+1)/span*unit,marker=document.createElementNS(ns,'rect'),title=document.createElementNS(ns,'title');marker.setAttribute('x',x);marker.setAttribute('y',height-29);marker.setAttribute('width',Math.max(1,w));marker.setAttribute('height',7);marker.setAttribute('fill','#d29922');title.textContent=b.events.map(e=>'#'+e.seq+' '+e.text).join('；');marker.append(title);svg.append(marker);}
   }

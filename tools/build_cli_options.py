@@ -68,7 +68,7 @@ EXPLANATIONS = {
     '--hide-skipped': '隐藏被标记为跳过/未执行的事件，保留原始 TraceStore。',
     '--bins': 'Timeline 聚合桶数量，1～5000。',
     '--require-decoded': '要求记录已解码；未解码时验证失败。',
-    '--format': '导出格式：simplified 简化C，source 完整C，html 阅读HTML，csv 执行流，json 完整解码，events-jsonl 原始事件行，raw 原始波形，etm ETM二进制，elf 绑定镜像，record 可重解记录包。',
+    '--format': '导出格式：simplified 简化C，source 完整C，html 阅读HTML，csv 执行流，json 完整解码，events-jsonl 原始事件行，flame-svg 完整函数名火焰图（执行顺序/调用权重），raw 原始波形，etm ETM二进制，elf 绑定镜像，record 可重解记录包。',
     '--repeat-keep-first': '折叠重复执行时保留开头的完整次数。',
     '--repeat-keep-last': '折叠重复执行时保留末尾的完整次数。',
     '--no-fold-repeats': '关闭重复执行块折叠。',

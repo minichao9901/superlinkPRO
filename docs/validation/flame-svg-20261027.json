@@ -1,0 +1,89 @@
+{
+  "schema": "flame-svg-acceptance/1",
+  "hardwareAccessed": false,
+  "cases": [
+    {
+      "record": "tcp-initialization",
+      "phase": "initialization",
+      "fromSeq": 3498186,
+      "toSeq": 3519263,
+      "depth": 11,
+      "frames": 1501,
+      "instructionPathsChecked": 21078,
+      "sha256": "86218138d4dcfcd8f8239404bf889a1ad6e764ae3ac0ae7bb288362ce077ebb9",
+      "webCliBytesEqual": true,
+      "referenceGeometryEqual": true,
+      "xmlPathsIndependentlyChecked": 21078,
+      "allNamesFit": true,
+      "boundary": {
+        "beginFunction": "BSP_Config",
+        "endFunction": "trace_hook_ready",
+        "definition": "Network/application initialization after Board_Init; excludes subsequent idle polling"
+      }
+    },
+    {
+      "record": "tcp-two-flows",
+      "phase": "echo",
+      "fromSeq": 1714288,
+      "toSeq": 1718201,
+      "depth": 16,
+      "frames": 122,
+      "instructionPathsChecked": 3914,
+      "sha256": "52be14e1983d054fb664e585d9d04e9bd679dd302aaa176fa7fbbfaf88ee3689",
+      "webCliBytesEqual": true,
+      "referenceGeometryEqual": true,
+      "xmlPathsIndependentlyChecked": 3914,
+      "allNamesFit": true,
+      "boundary": {
+        "callback": "tcp_echoserver_recv",
+        "callbackSeq": 1715897,
+        "beginFunction": "ethernetif_input",
+        "endFunction": "ethernetif_input",
+        "definition": "First payload-receive callback and its enclosing ingress/echo-transmit invocation"
+      }
+    },
+    {
+      "record": "udp-initialization",
+      "phase": "initialization",
+      "fromSeq": 2814069,
+      "toSeq": 2834448,
+      "depth": 11,
+      "frames": 1491,
+      "instructionPathsChecked": 20380,
+      "sha256": "fc0270844e6fab201c0221ae29f4d5d2d3676e6844508463660efce5889ffab3",
+      "webCliBytesEqual": true,
+      "referenceGeometryEqual": true,
+      "xmlPathsIndependentlyChecked": 20380,
+      "allNamesFit": true,
+      "boundary": {
+        "beginFunction": "BSP_Config",
+        "endFunction": "trace_hook_ready",
+        "definition": "Network/application initialization after Board_Init; excludes subsequent idle polling"
+      }
+    },
+    {
+      "record": "udp-two-flows",
+      "phase": "echo",
+      "fromSeq": 921842,
+      "toSeq": 924860,
+      "depth": 18,
+      "frames": 95,
+      "instructionPathsChecked": 3019,
+      "sha256": "a34b34172aaec7abaac07ed818f65be023aa6f2fda5f5980143753ee1c64b87f",
+      "webCliBytesEqual": true,
+      "referenceGeometryEqual": true,
+      "xmlPathsIndependentlyChecked": 3019,
+      "allNamesFit": true,
+      "boundary": {
+        "callback": "udp_echoserver_receive_callback",
+        "callbackSeq": 923040,
+        "beginFunction": "ethernetif_input",
+        "endFunction": "ethernetif_input",
+        "definition": "First payload-receive callback and its enclosing ingress/echo-transmit invocation"
+      }
+    }
+  ],
+  "aggregate-records": "identical",
+  "aggregate-cycles": "explicitly unavailable: no cycle data",
+  "passed": true
+}

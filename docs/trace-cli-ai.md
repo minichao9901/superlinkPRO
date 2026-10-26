@@ -346,3 +346,7 @@ C/HTML/CSV/JSONL 可按完整序号区间导出，其余格式拒绝执行序号
 `docs/validation/20261024-000104-trace-web-cli-9f57c7/report.md`。
 API 开放范围与真机验收范围在报告中分别列出，不能把软件模拟/离线测试当成每个型号、
 每个 DWARF 优化场景均已板测通过。
+
+## 火焰图 SVG
+
+`trace export --format flame-svg` 支持当前序号区间的完整执行顺序图、聚合图及完整函数名。源码使用 `python toolbox.py trace export`，离线包使用 `etm-trace.cmd export`。模式、权重、区间和 HTTP 接口见 [火焰图 SVG 导出](etm-flame-svg.md)。

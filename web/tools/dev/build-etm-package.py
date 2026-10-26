@@ -6,7 +6,7 @@ Requires build-only dependencies in bridge/etm/requirements-build.txt.
 import argparse,hashlib,importlib.metadata,json,os,shutil,subprocess,sys,uuid,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
-VERSION='1.0.14-native.14'
+VERSION='1.0.14-native.15'
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def package_cli(package,toolbox,node):
     """Ship the Web command sources and pinned dependencies, not an SDK."""
@@ -27,6 +27,7 @@ def package_cli(package,toolbox,node):
     if not license.is_file():raise ValueError('缺少对应Node版本的第三方许可证：'+str(license))
     shutil.copyfile(license,package/'licenses'/license.name)
     shutil.copyfile(repo/'docs/trace-cli-ai.md',package/'Trace-CLI-中文说明.md')
+    shutil.copyfile(repo/'docs/etm-flame-svg.md',package/'火焰图SVG导出说明.md')
     (package/'etm-trace.cmd').write_text('@echo off\n"%~dp0etm-bridge.exe" --cli %*\nexit /b %errorlevel%\n',encoding='ascii')
     return version
 
@@ -63,7 +64,7 @@ def main():
                  'native_binary','native_facts_index','native_pipeline','static_dict',
                  'native_frontend','native_storebuild','native_export','native_selection','trace_frontend','concurrent.futures.thread',
                  'trace_cli','trace_cli_hardware','trace_cli_runtime','trace_cli_paths','trace_cli_legacy','web_cli_queue','serial','serial.tools.list_ports',
-                 'reading_projection','reading_view','source_reading']:
+                 'reading_projection','reading_view','source_reading','flame_svg']:
         command+=['--hidden-import',name]
     # Keep numpy/pandas acceleration; their optional image/XML/crypto adapters
     # are unused here and bloat the portable Node/WebUSB CLI package.
