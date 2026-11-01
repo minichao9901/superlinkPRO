@@ -1,28 +1,33 @@
-# 多 AI 协作约定
+# ETM 子目录工作约定
 
 文档与进度说明优先使用中文。
 
 ## 工作目录
 
-- 集成目录：`E:\web-etm-trace`，由 Codex 负责合并与整体验收。
-- Codex 目标适配：`E:\web-etm-trace-worktrees\codex-f103-target`。
-- 另一位 AI：`E:\web-etm-trace-worktrees\other-ai-f103-ui`。
-- 共享协调目录：`E:\web-etm-trace-coordination`，请先阅读 `plan.md` 和发给自己的消息。
+- 当前集成目录：`E:/superlinkPRO`；本目录为其中的 `etm/` 子树。先阅读根目录 [AGENTS.md](../AGENTS.md)。
+- 旧 `E:/web-etm-trace`、旧 F103 worktree 与 coordination 目录属于迁移前记录，不作为当前 session 的必需环境。
+- 如任务明确启用并行协作，以本次任务提供的分支、worktree、协调目录和租约为准；先用 `git worktree list` 核对实际位置。
 
-各自只修改自己的 worktree。各自提交，不改写另一位 AI 的分支，不对集成目录执行 reset/clean。
-在任务开始、接口修改前、提交后读取协调目录；仅更新自己的任务状态，消息每条独立 JSON 文件。
-文件职责与接口以协调目录 `plan.md` 为准。跨职责修改先协调。
+并行协作时各自只修改分配的 worktree，各自提交，不改写其他会话的分支，不对集成目录执行 reset/clean。
+存在本次协调目录时，在任务开始、接口修改前、提交后读取约定；跨职责修改先协调。
+单会话工作不要求创建已废弃的协调目录，也不因旧文档自动启动并行任务。
+
+## CLI 与问题跟踪
+
+- 统一入口：从仓库根目录运行 `python -X utf8 toolbox.py trace --help`；ETM 直接入口为 `etm/trace.py`，实现位于 `etm/tools/trace_cli.py`。
+- Web 全分类入口和完成判定见 [统一 CLI 总指南](../docs/toolbox-cli-ai.md)；ETM 参数/离线/硬件会话见 [Trace CLI 指南](../docs/trace-cli-ai.md)。
+- 新问题、复现、修复、验收失败或限制变化必须同步更新 [项目问题跟踪列表](../docs/项目问题跟踪列表.md)。关闭条目需要修复与验证证据。
 
 ## 硬件与服务
 
 SWD 探针、烧录、目标复位、Kingst 采集由 Codex 独占验收，另一位 AI 不操作硬件。
-硬件使用前确认协调目录的租约；临时服务使用自己的端口和输出目录，不停止对方进程。
+硬件使用前确认设备占用和本次任务的租约/约定；临时服务使用自己的端口和输出目录，不停止对方进程。
 已验证采集和 `.etmrecord` 作为只读证据；不要覆盖它们。
 
 ## 构建与集成
 
 从共同基线提交开始。F103 固件从当前 worktree 的 build.ps1 构建，不使用指向其他 worktree 的固定源路径。
-忽略的 ELF/采集结果不会随普通 Git worktree 自动复制；需要时从协调目录 artifacts 取对应记录包。
+忽略的 ELF/采集结果不会随普通 Git worktree 自动复制；需要时从本次指定的基准目录或 artifacts 取对应记录包，并核对指纹。
 代码交付消息必须包含 commit SHA、修改范围、验证结果、已知限制与需要对方处理的事项。
 由集成负责人完成合并和实板测试后更新集成状态。
 
