@@ -41,6 +41,26 @@
       "path": "E:\\superlinkPRO\\web\\tmp\\etm-package-5e28c28f",
       "files": 3704,
       "bytes": 372747032
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\workbench-package-43efa540",
+      "files": 3622,
+      "bytes": 640602798.0
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\tmp\\etm-package-5393656b",
+      "files": 3702,
+      "bytes": 372731784.0
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\workbench-installed-web2-verification",
+      "files": 26,
+      "bytes": 110101061.0
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\downloads",
+      "files": 2,
+      "bytes": 102545231.0
     }
   ],
   "protectedArchive": "E:\\superlinkPRO-backups\\20261107-webusb-acceptance",
@@ -52,6 +72,7 @@
     "dist/superlinkPRO/data",
     "all other historical/session directories"
   ],
-  "movedBytes": 2679748062.0,
-  "remaining": 0
+  "movedBytes": 3905728936.0,
+  "remaining": 0,
+  "movedFiles": 25297
 }

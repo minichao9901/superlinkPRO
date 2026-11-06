@@ -2064,7 +2064,7 @@
         "src\\stm32f103_regs.h": "58e311a192383357b291b4d1f3517f677f8bbdd8df6c1ca3c2ddbda800f8a5c4"
       },
       "elfSha256": "5509783efc9c971e7d1a0d9f5129ba7be6907a4452caff9aacf43aef93a14569",
-      "status": "fresh build; board acceptance pending",
+      "status": "fresh build; board acceptance completed, see hardware report",
       "sourceRepository": "https://github.com/minichao9901/zynqlinkPRO",
       "sourceRevision": "b5d3f3de"
     },
@@ -2103,7 +2103,7 @@
         "src\\stm32f103_regs.h": "58e311a192383357b291b4d1f3517f677f8bbdd8df6c1ca3c2ddbda800f8a5c4"
       },
       "elfSha256": "a2fe520afee2aae3490a520cf5d7382ff98e0de7a544210c560f56894a89b55d",
-      "status": "fresh build; board acceptance pending",
+      "status": "fresh build; board acceptance completed, see hardware report",
       "sourceRepository": "https://github.com/minichao9901/zynqlinkPRO",
       "sourceRevision": "b5d3f3de"
     }

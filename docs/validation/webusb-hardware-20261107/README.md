@@ -1,6 +1,6 @@
 # WebUSB 工作台：F103ZE 真机验收与速度测试
 
-日期：2026-11-07（Asia/Shanghai）；源基线`fb46f9e`加本轮待提交变更。设备：akaLinkPro，CMSIS-DAP固件报告2.1.2，自定义HID报告0.1；目标F103ZE，DEV_ID0x414、512KiB Flash。只使用当前已确认空闲的这套探针/目标，未争用另一工程的RISC-V仿真任务。
+日期：2026-11-07（Asia/Shanghai）；源码提交`484e3eea4f039b8a3a41a84b9e66d8f3d3d7edde`。设备：akaLinkPro，CMSIS-DAP固件报告2.1.2，自定义HID报告0.1；目标F103ZE，DEV_ID0x414、512KiB Flash。只使用当前已确认空闲的这套探针/目标，未争用另一工程的RISC-V仿真任务。
 
 ## 本轮结论
 
@@ -67,6 +67,8 @@ WinUSB是另一独立问题ISSUE-040：当前探针MI_00已有WINUSB服务却缺
 
 ## 清理与交付方式
 
-[清理清单](cleanup.json)中的8个本次目录、17945个文件、约2.68GB已移入Windows回收站，原位置残留0；这是可恢复移出工程，不声称已释放对应物理磁盘空间。原始Flash/SRAM/注册项及必要原始失败输入已校验保存在`E:/superlinkPRO-backups/20261107-webusb-acceptance/`。历史.formal-trace、ETM原始记录、基线和其他会话目录不动。永久递归删除被工具审批拒绝后改用回收站，没有绕过拒绝进行不可恢复删除。
+[清理清单](cleanup.json)中的12个本次目录、25297个文件、约3.91GB已移入Windows回收站，原位置残留0；这是可恢复移出工程，不声称已释放对应物理磁盘空间。原始Flash/SRAM/注册项及必要原始失败输入已校验保存在`E:/superlinkPRO-backups/20261107-webusb-acceptance/`。历史.formal-trace、ETM原始记录、基线和其他会话目录不动。永久递归删除被工具审批拒绝后改用回收站，没有绕过拒绝进行不可恢复删除。
 
-源码先独立提交，再从该提交构建web.2，Git只保存完整分发ZIP和manifest；本机展开运行目录及data排除。Pages工作流核验后暂存这两个分发文件，在线下载页无需重新引入工程生成器。最终版本身份和冻结检查见后续[release.json](release.json)。
+源码先独立提交，再从该提交构建web.2，Git只保存完整分发ZIP和manifest；本机展开运行目录及data排除。Pages工作流核验后暂存这两个分发文件，在线下载页无需重新引入工程生成器。最终版本身份和候选/安装版冻结检查见[release.json](release.json)。
+
+最终分发版本为`1.1.0-web.2`，3580个清单文件全部与源码输入/包清单匹配；安装版CLI查询、SVG导出、HTTP原生重解码及完整HTTP下载校验通过。分发ZIP为102544780字节，SHA-256 `efff944ef36f764d8ef0508ae14919400c869426498bfdc86708fae090d08398`；EXE SHA-256 `6e8c98cd18c86c9c9df1d3e6c33806975235c1f06590cb1c27dacaa16518d357`。冻结验收没有再次访问硬件，真机范围按前文原生生产适配器记录。静态分发包与EXE动态重建下载包分别按各自清单核验，不要求ZIP压缩/时间戳相同。

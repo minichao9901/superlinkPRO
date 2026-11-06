@@ -2,7 +2,8 @@
 
 正式站点：[superlinkPRO Web 工作台](https://minichao9901.github.io/superlinkPRO/)。
 ETM 入口：[工作台 #etm](https://minichao9901.github.io/superlinkPRO/#etm)。
-下载清单：`https://minichao9901.github.io/superlinkPRO/bridge/etm/downloads/manifest.json`。
+工作台下载清单：`https://minichao9901.github.io/superlinkPRO/downloads/manifest.json`。
+历史 ETM 桥包清单继续保留在 `bridge/etm/downloads/manifest.json`。
 
 ## 发布方式
 
@@ -16,7 +17,8 @@ node web/tools/dev/sync-etm-page.mjs --check
 git push origin main
 ```
 
-自动发布只监听 `main` 中 `web/**` 或工作流自身的变更。
+自动发布监听 `main` 中 `web/**`、`dist/manifest.json`、`dist/superlinkPRO-win64.zip`、下载暂存脚本及工作流自身的变更。
+上传前运行 `python tools/stage_workbench_download.py`，按大小/SHA256校验分发包，再复制到站点 `downloads/`。
 仅推送文档、或 `git push` 显示 Everything up-to-date，不会重新发布。
 恢复站点配置后，在 Actions → Deploy web/ to GitHub Pages → Run workflow，选择 `main` 手动发布。
 
