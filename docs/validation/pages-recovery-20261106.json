@@ -1,0 +1,99 @@
+{
+  "checkedAt": "2026-11-06T01:16:06.266398+00:00",
+  "issue": "ISSUE-035",
+  "before": {
+    "homeHttpStatus": 404,
+    "downloadManifestHttpStatus": 404,
+    "hasPages": false,
+    "authenticatedPagesApiStatus": 404,
+    "workflowActive": true
+  },
+  "recovery": {
+    "action": "Restore existing Pages site with build_type=workflow; manually dispatch main",
+    "createHttpStatus": 201,
+    "dispatchHttpStatus": 204
+  },
+  "after": {
+    "hasPages": true,
+    "visibility": "public"
+  },
+  "deployment": {
+    "id": 42142498349,
+    "head_sha": "e75f020d92fd08c2327bc4faa8d689167bb0f97d",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/minichao9901/superlinkPRO/actions/runs/42142498349"
+  },
+  "httpChecks": [
+    {
+      "url": "https://minichao9901.github.io/superlinkPRO/",
+      "httpStatus": 200,
+      "bytes": 204019,
+      "contentType": "text/html",
+      "canonicalSha256": "a926e8120ce2657e529a4d872ef5f377f8aed6d92152124d7dccff7ff3ec23b0",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://minichao9901.github.io/superlinkPRO/app/site/main.js",
+      "httpStatus": 200,
+      "bytes": 1333852,
+      "contentType": "application/javascript",
+      "canonicalSha256": "c9f91bbeb06347edc9ec202eb1709acf4bd37c89bebe0209f873f4dcdc1b5d12",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://minichao9901.github.io/superlinkPRO/app/app.css",
+      "httpStatus": 200,
+      "bytes": 105803,
+      "contentType": "text/css",
+      "canonicalSha256": "e27a864e10b78a638a9b0f32f99e6011152c557a23eeafd6c126494f42b67b76",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://minichao9901.github.io/superlinkPRO/etm/index.html",
+      "httpStatus": 200,
+      "bytes": 25584,
+      "contentType": "text/html",
+      "canonicalSha256": "5aa6cbfefd88bda3db9421f910f30b19f9cd7f7377570194752963f60883acf1",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://minichao9901.github.io/superlinkPRO/etm/app/analysis-views.js",
+      "httpStatus": 200,
+      "bytes": 18353,
+      "contentType": "application/javascript",
+      "canonicalSha256": "7f5140b1a894fcb58abb14d2fc36f2690b2a978664797bca307fa163c00cc63c",
+      "matchesLocal": true
+    },
+    {
+      "url": "https://minichao9901.github.io/superlinkPRO/bridge/etm/downloads/manifest.json",
+      "httpStatus": 200,
+      "bytes": 371,
+      "contentType": "application/json",
+      "canonicalSha256": "8949d02bf2b6bd0146678a7450338eb00de60471fdd85314679880e95cfb4666",
+      "matchesLocal": true
+    }
+  ],
+  "zipHeadCheck": {
+    "url": "https://minichao9901.github.io/superlinkPRO/bridge/etm/downloads/etm-bridge-win64.zip",
+    "httpStatus": 200,
+    "contentLength": 92628064,
+    "matchesManifest": true,
+    "method": "HEAD; no full remote ZIP hash recomputed"
+  },
+  "download": {
+    "version": "1.0.14-native.15",
+    "platform": "windows-x64",
+    "file": "etm-bridge-win64.zip",
+    "bytes": 92628064,
+    "sha256": "282a8842d6484c52d0a393eaa6119fc8671e9896a7dee59f55257d397c78757a",
+    "packageId": "2dad4b8270ebee8f88dc7c4e90439371133671e61244cccabf6f95939c79e66d",
+    "sourceRevision": "ca0c7fbbff238aa4a254f5102d9660e961eed394",
+    "sourceDirty": false
+  },
+  "localChecks": {
+    "webBundle": "170 source modules current",
+    "etmPageCopy": "31 files current"
+  },
+  "passed": true
+}

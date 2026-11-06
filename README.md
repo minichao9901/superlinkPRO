@@ -203,6 +203,7 @@ superlinkPRO/
 |---|---|
 | 新 session 工作指引 | [AGENTS.md](AGENTS.md) |
 | 项目问题与 Bug 跟踪 | [docs/项目问题跟踪列表.md](docs/项目问题跟踪列表.md) |
+| Web 发布与站点恢复 | [docs/pages-deployment.md](docs/pages-deployment.md) |
 | 仓库合并说明（原 README） | [docs/merge-readme.md](docs/merge-readme.md) · [docs/merge-map.md](docs/merge-map.md) |
 | ETM 验收与限制 | [docs/acceptance-2026-10-18-etm.md](docs/acceptance-2026-10-18-etm.md) |
 | 周期计数的用途 | [docs/cycle-count.md](docs/cycle-count.md) |
