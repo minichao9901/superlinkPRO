@@ -42,16 +42,28 @@ RTT Viewer另测72MHz固定文本20MHz请求档约0.482MB/s。60MHz普通CMSIS-D
 
 数值、失败、计数、恢复与源码指纹见[summary.json](summary.json)；96/72MHz固定文本ELF的构建参数/指纹见[fixtures.json](fixtures.json)。精确ELF、原始输入代表和清单保存在`E:/superlinkPRO-backups/20261107-perf-pages/`，不向Git提交大波形或用户原固件。
 
-253项Web离线、9项CLI和4项发布器回归通过。发布器测试覆盖远端损坏不公开草稿、既有错误资产不覆盖、哈希通过后才公开、跳转不携带GitHub凭据。ETM页面/分析源码及历史桥包保持原样。
+253项Web离线、9项CLI回归通过。另有4项Release发布器原型回归曾通过，但实际CI创建草稿403；该原型已撤回，这些单测不代表线上发布成功。ETM页面/分析源码及历史桥包保持原样。
 
 ## 启动策略与Codex设置
 
 按[OpenAI Docs：托管配置](https://learn.chatgpt.com/docs/enterprise/managed-configuration)、[Windows部署](https://learn.chatgpt.com/docs/enterprise/windows-deployment)检查用户/项目/系统配置、注册表RequirementsPath和命令规则。当前聊天的桌面持久配置为Full Access、`approvalPolicy=never`、`approvalsReviewer=user`；未发现项目配置、规则目录、系统requirements或旧managed配置。相关时段CodeIntegrity/AppLocker无事件，Defender两条事件均不涉及本项目。未修改Codex或系统安全设置。
 
-历史调用也没有请求require_escalated，原始工具判决仍只给blocked by policy。不能进一步断言它命中了Codex Auto-review的某条规则。当前不开放镜像目录、不连接目标的同一CLI启动到ready并正常stop；这是受限启动恢复证据，不代表重放了原来包含镜像写入能力的完整动作。具体设置和范围见[startup-settings.json](startup-settings.json)。ISSUE-044保留具体执行门禁判决待平台诊断。
+历史调用也没有请求require_escalated，原始工具判决仍只给blocked by policy。不能进一步断言它命中了Codex Auto-review的某条规则。当前不开放镜像目录、不连接目标的同一CLI启动到ready并正常stop；这是受限启动恢复证据，不代表重放了原来包含镜像写入能力的完整动作。具体设置和范围见[startup-settings.json](startup-settings.json)。随后带指定探针的受限启动再次在创建进程前被拒，去掉镜像目录仍拒绝；只读execpolicy check包含待检命令文本时也被同一工具门禁拒绝，没有得到本地分类器输出。没有更换脚本入口或编码来执行已拒动作。ISSUE-044保留具体执行门禁判决待平台诊断。
 
 ## Pages与最新包
 
 未改内容的完整重试[42305818553](https://github.com/minichao9901/superlinkPRO/actions/runs/42305818553)再次build通过、deploy约10分钟超时。此前三次失败证据继续保留。约229MB压缩产物低于[GitHub官方1GB站点限制](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)，不能把失败直接写成超过站点上限。
 
-新方案将已校验工作台ZIP交给GitHub Release，Pages清单指向对应版本。上传先用草稿，完整回读核验后公开；匹配已有同名资产才复用，禁止覆盖不一致资产。本机EXE同源下载与历史ETM下载路径保持。web.3候选、Pages新产物及线上完整下载还需分别验证，最终结果另附发布证据。
+Release原型在CI创建草稿时403（run42308702640，build token日志显示contents:write）；尚未发布任何该原型资产。按用户要求回查历史后，已撤回该替代链路，恢复原来的`web/`静态发布和dist ZIP校验后暂存。当前已备份并重新写入既有workflow配置（PUT204，无删除、无域名变更），见[pages-config.json](pages-config.json)。下一步按历史方式部署web.3并完整核验下载。
+
+### 历史与用户文章复核
+
+`7ac1048`的[2026-10-24源码报告](../20261024-0803-h743-cli-release/source-report.md)已记录同样的CreateProcess之前拒绝，且明确当时为never/user reviewer。更早的[原验收](../20261024-000104-trace-web-cli-9f57c7/report.md)区分了早期worker实测与最终一键启动被拒。本轮不能把已有平台限制写成重构新引入的Web故障。
+
+已实际读完用户提供的[掘金文章](https://juejin.cn/post/7687908992442777651)。其26.915版本案例提示检查PowerShell复合脚本和前置命令策略；本轮单独启动及只读诊断也被拒，故不能仅以拆分脚本认定已找出或修复原因。没有扩大权限、修改ACL或改写已拒动作来绕过策略。
+
+## 包体重复与历史分发复测（ISSUE-048）
+
+历史成功run42142498349的Pages产物128056098B，加入新ZIP后失败产物229303623B。当前workbench ZIP为102544136B；其中CLI复制了完整toolbox，导致同一组samples在两个目录重复，额外5025348压缩字节。此处存在确定的冗余，但GitHub未返回具体后端原因，不能直接断言存在官方未公布的100MB单文件限制。
+
+修复保留toolbox里的全部示例，让冻结CLI服务复用该公共目录；Node所需的cli/web/app与index仍保留。只调整CLI内部资源路径和打包，不修改ETM页面或解码/采集算法。路径、生命周期、样例只保留一份共11项回归通过；新候选还须通过实际冻结CLI无探针启动、样例HTTP回读与退出，再部署按历史同源下载方式验证。

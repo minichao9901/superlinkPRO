@@ -83,6 +83,7 @@ class RuntimeTests(unittest.TestCase):
             server.shutdown.assert_called_once();server.server_close.assert_called_once()
             state=runtime.read(folder/'runtime.json');self.assertEqual(state['status'],'failed')
             self.assertNotIn('cleanupPending',state)
+            service.create_application.assert_called_once_with(runtime.backend_root(),runtime.toolbox_root(),folder/'cli-token')
 
 
 if __name__=='__main__':unittest.main()

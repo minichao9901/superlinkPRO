@@ -1,5 +1,5 @@
 """Verify frozen workbench HTTP, native re-decode, CLI and download without hardware."""
-import argparse,hashlib,json,os,socket,subprocess,time,zipfile
+import argparse,hashlib,json,os,socket,subprocess,sys,time,zipfile
 from pathlib import Path
 from urllib.request import Request,urlopen
 ROOT=Path(__file__).resolve().parents[1]
@@ -20,6 +20,8 @@ def main():
     result['allPackageFilesMatch']=True
     for name,expected in manifest['sourceInputs'].items():assert sha(ROOT/'web'/name)==expected,name
     result['sourceInputsMatch']=True
+    assert (home/'toolbox/samples').is_dir() and not (home/'cli/web/samples').exists()
+    result['publicSamplesSingleCopy']=True
     distribution=home.parent/'manifest.json';archive=home.parent/'superlinkPRO-win64.zip'
     if distribution.exists() and archive.exists():
         info=json.loads(distribution.read_text(encoding='utf8'));assert sha(archive)==info['sha256'] and archive.stat().st_size==info['bytes']
@@ -62,6 +64,30 @@ def main():
         with urlopen(base+'downloads/superlinkPRO-win64.zip',timeout=60) as response:
             while block:=response.read(1048576):digest.update(block);received+=len(block)
         assert info['bytes']==received and info['sha256']==digest.hexdigest();result['httpDownload']=info
+        # Exercise the frozen CLI host's shared sample root without connecting
+        # a probe, granting an image directory, or running hardware commands.
+        with socket.socket() as s:s.bind(('127.0.0.1',0));cli_port=s.getsockname()[1]
+        cli_base=f'http://127.0.0.1:{cli_port}/';cli_runtime=out/'native-readiness';cli_started=False
+        try:
+            started=subprocess.run([str(exe),'--cli','--web-url',cli_base,'web','start','--runtime-dir',str(cli_runtime)],cwd=out,env=cli_env,capture_output=True,text=True,encoding='utf8',errors='replace',timeout=60)
+            (out/'cli-host-start-private.log').write_text(started.stdout+started.stderr,encoding='utf8')
+            if started.returncode:raise RuntimeError('Frozen CLI readiness failed; see private log')
+            value=json.loads(started.stdout);assert value['ok'] and value['result']['status']=='ready';cli_started=True
+            sample='samples/test_images/gradient.bmp';expected=(home/'toolbox'/sample).read_bytes()
+            with urlopen(cli_base+sample,timeout=15) as response:actual=response.read()
+            assert actual==expected;result['frozenCliSharedSamples']={'ready':True,'sample':sample,'bytes':len(actual),'sha256':hashlib.sha256(actual).hexdigest(),'matchesPublicCopy':True,'hardware':'not accessed'}
+        finally:
+            if cli_started:
+                original_error=sys.exc_info()[1]
+                try:
+                    stopped=subprocess.run([str(exe),'--cli','web','stop','--runtime-dir',str(cli_runtime)],cwd=out,env=cli_env,capture_output=True,text=True,encoding='utf8',errors='replace',timeout=45)
+                    (out/'cli-host-stop-private.log').write_text(stopped.stdout+stopped.stderr,encoding='utf8')
+                    if stopped.returncode:raise RuntimeError('Frozen CLI stop failed; retain runtime and inspect private log')
+                    assert json.loads(stopped.stdout)['result']['status']=='stopped'
+                    result.setdefault('frozenCliSharedSamples',{})['stopped']=True
+                except Exception as error:
+                    result['frozenCliCleanupError']=str(error)
+                    if original_error is None:raise
         result['passed']=True
         if args.keep_running:result.update(pid=process.pid,url=base)
     finally:

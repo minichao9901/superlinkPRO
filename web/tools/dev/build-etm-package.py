@@ -11,7 +11,10 @@ def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def package_cli(package,toolbox,node):
     """Ship the Web command sources and pinned dependencies, not an SDK."""
     repo=ROOT.parent;cli=package/'cli'
-    shutil.copytree(toolbox,cli/'web')
+    # The frozen host serves package/toolbox (trace_cli_paths.toolbox_root).
+    # Native Node imports still need cli/web/app and index.html, but copying
+    # panel images/animations here duplicated ~5 MB of compressed sample data.
+    shutil.copytree(toolbox,cli/'web',ignore=lambda folder,names: {'samples'} if Path(folder)==toolbox else set())
     shutil.copyfile(ROOT/'package.json',cli/'web/package.json')
     service=cli/'web/tools/dev/serve-etm.py';service.parent.mkdir(parents=True)
     shutil.copyfile(ROOT/'tools/dev/serve-etm.py',service)

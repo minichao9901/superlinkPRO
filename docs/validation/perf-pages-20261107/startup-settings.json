@@ -44,5 +44,37 @@
     "https://learn.chatgpt.com/docs/sandboxing/auto-review",
     "https://learn.chatgpt.com/docs/enterprise/managed-configuration",
     "https://learn.chatgpt.com/docs/enterprise/windows-deployment"
-  ]
+  ],
+  "codexCliVersion": "0.166.0-alpha.6",
+  "currentBlockedChecks": [
+    {
+      "action": "startup with exact probe and isolated empty image directory",
+      "result": "blocked before process creation"
+    },
+    {
+      "action": "startup with exact probe, no image root",
+      "result": "blocked before process creation"
+    },
+    {
+      "action": "read-only execpolicy check containing the same command tokens",
+      "result": "blocked before the diagnostic process; no classifier result returned"
+    }
+  ],
+  "history": {
+    "commit": "7ac1048",
+    "reports": [
+      "docs/validation/20261024-000104-trace-web-cli-9f57c7/report.md",
+      "docs/validation/20261024-0803-h743-cli-release/source-report.md"
+    ],
+    "alreadyReportedDate": "2026-10-24",
+    "sameNeverUserReviewer": true,
+    "conclusion": "This limitation predates the current refactor; earlier successful browser/existing-worker use is not a full successful one-click startup qualification."
+  },
+  "userArticle": {
+    "url": "https://juejin.cn/post/7687908992442777651",
+    "title": "Codex 的 blocked by policy：一次看似权限问题，实际是 PowerShell 脚本组合触发的策略误判",
+    "articleVersion": "OpenAI.Codex 26.915.4065.0",
+    "read": true,
+    "applicability": "Supports investigating script-level pre-process policy rather than NTFS/Full Access. Our standalone startup and read-only classifier invocation are also denied, so compound scripts alone do not establish the exact trigger."
+  }
 }

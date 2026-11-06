@@ -17,6 +17,7 @@ class PathTests(unittest.TestCase):
             with patch.object(sys,'frozen',True,create=True),patch.object(sys,'executable',str(home/'etm-bridge.exe')),patch.object(sys,'_MEIPASS',str(home/'runtime'),create=True),patch.object(paths.shutil,'which',return_value='unrelated-node') as which:
                 self.assertEqual(paths.node_executable(),str(node))
                 self.assertEqual(paths.backend_root(),home/'runtime/backend')
+                self.assertEqual(paths.toolbox_root(),home/'toolbox')
                 self.assertEqual(paths.host_command('run'),[str(home/'etm-bridge.exe'),'--cli-host','run'])
                 self.assertEqual(paths.hardware_lock(),home/'data/trace-cli-hardware.lock')
                 node.unlink()
@@ -30,6 +31,7 @@ class PathTests(unittest.TestCase):
             self.assertEqual(argv[1:3],['-X','utf8'])
             self.assertEqual(argv[-2:],['host','run'])
             self.assertTrue(paths.backend_root().joinpath('server.py').is_file())
+            self.assertTrue(paths.toolbox_root().joinpath('index.html').is_file())
 
 
 if __name__=='__main__':unittest.main()
