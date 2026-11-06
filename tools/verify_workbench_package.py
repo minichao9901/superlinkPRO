@@ -2,6 +2,7 @@
 import argparse,hashlib,json,os,socket,subprocess,sys,time,zipfile
 from pathlib import Path
 from urllib.request import Request,urlopen
+from urllib.parse import quote
 ROOT=Path(__file__).resolve().parents[1]
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def main():
@@ -22,6 +23,9 @@ def main():
     result['sourceInputsMatch']=True
     assert (home/'toolbox/samples').is_dir() and not (home/'cli/web/samples').exists()
     result['publicSamplesSingleCopy']=True
+    samples=[p[4:] for p in subprocess.check_output(['git','ls-files','-z','--','web/samples'],cwd=ROOT).decode('utf8').split('\0') if p and Path(p).suffix!='.map']
+    for name in samples:assert (home/'toolbox'/name).read_bytes()==(ROOT/'web'/name).read_bytes(),name
+    result['publicSampleFilesMatchSource']=len(samples)
     distribution=home.parent/'manifest.json';archive=home.parent/'superlinkPRO-win64.zip'
     if distribution.exists() and archive.exists():
         info=json.loads(distribution.read_text(encoding='utf8'));assert sha(archive)==info['sha256'] and archive.stat().st_size==info['bytes']
@@ -73,9 +77,12 @@ def main():
             (out/'cli-host-start-private.log').write_text(started.stdout+started.stderr,encoding='utf8')
             if started.returncode:raise RuntimeError('Frozen CLI readiness failed; see private log')
             value=json.loads(started.stdout);assert value['ok'] and value['result']['status']=='ready';cli_started=True
-            sample='samples/test_images/gradient.bmp';expected=(home/'toolbox'/sample).read_bytes()
-            with urlopen(cli_base+sample,timeout=15) as response:actual=response.read()
-            assert actual==expected;result['frozenCliSharedSamples']={'ready':True,'sample':sample,'bytes':len(actual),'sha256':hashlib.sha256(actual).hexdigest(),'matchesPublicCopy':True,'hardware':'not accessed'}
+            checked=[]
+            for sample in ['samples/test_images/gradient.bmp','samples/anim/花园.mp4']:
+                expected=(home/'toolbox'/sample).read_bytes()
+                with urlopen(cli_base+quote(sample),timeout=15) as response:actual=response.read()
+                assert actual==expected;checked.append({'sample':sample,'bytes':len(actual),'sha256':hashlib.sha256(actual).hexdigest()})
+            result['frozenCliSharedSamples']={'ready':True,'samples':checked,'matchesPublicCopy':True,'hardware':'not accessed'}
         finally:
             if cli_started:
                 original_error=sys.exc_info()[1]

@@ -63,7 +63,7 @@
     "app/diagnostics/drawer.js": "c64d07834228a1190580aca5428f8076091ca83720f14adc590b17c2050c4e7f",
     "app/diagnostics/quality.js": "a93bdd3443af4fac2421a7212459944240cfb634b65d8fa8fb147e17dce7b5f6",
     "app/diagnostics/report.js": "59af554143b5018587fff3b557ae4fcf9b1c3ed2124ff8c194133a8cb41d2789",
-    "app/download/view.js": "07925aaff46cafeb5fc6d3baa1dd490447fd8ceab19fce3c0c3dfa2895397665",
+    "app/download/view.js": "a0deb26e2adbb2de3f32d32a4b1e3cb8bc5752f3356910c6539406ad9f7f2cac",
     "app/elf/dwarf.js": "3fcce77dce04388b2652efd5cba53c3b0570ee1002de804ded6627fbc60fa200",
     "app/elf/elf.js": "01906fc7a926c2c51f69d3240b28a8484d90542f50a8c63d4aa70b6d201d158e",
     "app/elf/lines.js": "eb2a9815d75c298981ec9c830b9d94058f4757a59064c9d0ee9d2d09763bdd7c",
@@ -172,6 +172,6 @@
     "app/ui/workspace.js": "9c4fe48834c19f54f2a2b491265aa099a8867a3bd5a41fc149c09aad994d363a",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "4d5cb0ffa188ebdcbfc52acfb34c614ec16c1b749f960b16f1ae5d8e9231734b",
-  "outputBytes": 1222656
+  "outputSha256": "b1e03fa14370282df8e4798c1b9e1f6aca13bc2e762f6b763eaebcf815876fff",
+  "outputBytes": 1222730
 }

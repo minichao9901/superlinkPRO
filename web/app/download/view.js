@@ -1,7 +1,10 @@
 /** Local packages stay same-origin; Pages may use the matching GitHub Release. */
 export function downloadHref(info,base){
   const local=new URL(info.file,new URL('downloads/',base));
-  if(!info.downloadUrl)return local.href;
+  if(!info.downloadUrl){
+    if(/^[0-9a-f]{64}$/.test(info.sha256||''))local.searchParams.set('sha256',info.sha256);
+    return local.href;
+  }
   const expected=`https://github.com/minichao9901/superlinkPRO/releases/download/workbench-v${info.version}/${info.file}`;
   if(info.downloadUrl!==expected||!/^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(info.version))throw Error('下载地址与发布版本不匹配');
   return expected;

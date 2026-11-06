@@ -8,6 +8,10 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 VERSION='1.0.14-native.15'
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def tracked_samples(root):
+    # -z preserves UTF-8, spaces and Git's otherwise C-quoted filenames.
+    return [p for p in subprocess.check_output(['git','ls-files','-z','--','samples'],cwd=root).decode('utf8').split('\0') if p]
 def package_cli(package,toolbox,node):
     """Ship the Web command sources and pinned dependencies, not an SDK."""
     repo=ROOT.parent;cli=package/'cli'
@@ -84,7 +88,7 @@ def main(argv=None):
     # A pre-commit build must also ship newly introduced bundle source modules.
     public_files+=list(json.loads((ROOT/'app/site/manifest.json').read_text(encoding='utf8'))['inputs'])
     public_files+=['docs/etm-integration.md','docs/etm-online-bridge.md']
-    public_files+=subprocess.check_output(['git','ls-files','--','samples'],cwd=ROOT,text=True).splitlines()
+    public_files+=tracked_samples(ROOT)
     for name in sorted(set(public_files)):
         original=ROOT/name
         if original.is_file() and original.suffix!='.map':

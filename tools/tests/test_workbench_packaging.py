@@ -7,6 +7,11 @@ spec=importlib.util.spec_from_file_location('workbench_package',Path(__file__).r
 builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
 
 class PackagingTests(unittest.TestCase):
+    def test_tracked_samples_preserve_utf8_and_spaces(self):
+        wire='samples/anim/花园.mp4\0samples/panel/带 空格.png\0'.encode('utf8')
+        with patch.object(builder.subprocess,'check_output',return_value=wire) as command:
+            self.assertEqual(builder.tracked_samples(Path('web')),['samples/anim/花园.mp4','samples/panel/带 空格.png'])
+            self.assertIn('-z',command.call_args.args[0])
     def test_cli_keeps_imports_but_only_public_toolbox_contains_samples(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);web=root/'web';package=root/'package';toolbox=package/'toolbox'
