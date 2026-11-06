@@ -1,0 +1,49 @@
+{
+  "checkedAt": "2026-11-06T18:19:44.973309+00:00",
+  "sourceCommit": "484e3eea4f039b8a3a41a84b9e66d8f3d3d7edde",
+  "releaseCommit": "b8af3dd597edf5ead0251b19c4cf3781bc2c4466",
+  "remoteMain": "547847692275ef470829605ba648ad30a2c32435\trefs/heads/main",
+  "rawDomainCheck": "Connection timeout; no checksum assertion made for raw.githubusercontent.com",
+  "repositoryDistribution": {
+    "url": "https://api.github.com/repos/minichao9901/superlinkPRO/contents/dist/superlinkPRO-win64.zip?ref=547847692275ef470829605ba648ad30a2c32435",
+    "bytes": 102544780,
+    "sha256": "efff944ef36f764d8ef0508ae14919400c869426498bfdc86708fae090d08398",
+    "fullRemoteHashMatches": true
+  },
+  "pages": {
+    "passed": false,
+    "runs": [
+      {
+        "id": 42267641937,
+        "attempts": [
+          1,
+          2
+        ],
+        "build": "success",
+        "deploy": "failure"
+      },
+      {
+        "id": 42269248208,
+        "attempts": [
+          1
+        ],
+        "build": "success",
+        "deploy": "failure"
+      }
+    ],
+    "message": "Deployment failed, try again later.",
+    "http": [
+      {
+        "url": "https://minichao9901.github.io/superlinkPRO/",
+        "status": 200,
+        "bytes": 204019,
+        "currentBuild": false
+      },
+      {
+        "url": "https://minichao9901.github.io/superlinkPRO/downloads/manifest.json",
+        "status": 404,
+        "error": "HTTPError"
+      }
+    ]
+  }
+}

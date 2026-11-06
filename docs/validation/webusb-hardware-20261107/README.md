@@ -77,4 +77,6 @@ WinUSB是另一独立问题ISSUE-040：当前探针MI_00已有WINUSB服务却缺
 
 ## 线上发布状态
 
-源码`484e3ee`与分发包`b8af3dd`已推送，远端main逐项核对。Pages run [42267641937](https://github.com/minichao9901/superlinkPRO/actions/runs/42267641937)的bundle/ETM副本/ZIP校验与上传均通过，但两次deploy都在deployment_queued后失败。Pages配置仍为workflow，无自定义域，产物229303623字节；具体平台失败原因未返回。保留[失败证据](pages-first-failure.json)，ISSUE-045待定位；本地/源码/包通过不冒充线上成功。继续以当前main启动完整工作流后另存结果。
+源码`484e3ee`与分发包`b8af3dd`已推送，远端main逐项核对。Pages run [42267641937](https://github.com/minichao9901/superlinkPRO/actions/runs/42267641937)的bundle/ETM副本/ZIP校验与上传均通过，但两次deploy都在deployment_queued后失败。Pages配置仍为workflow，无自定义域，产物229303623字节；具体平台失败原因未返回。保留[失败证据](pages-first-failure.json)，ISSUE-045待定位；本地/源码/包通过不冒充线上成功。随后在`5478476`完整重跑[42269248208](https://github.com/minichao9901/superlinkPRO/actions/runs/42269248208)，build再次通过、deploy仍返回相同失败。三次失败均保留；当前Pages发布未完成，仓库远端与可用下载范围见[online.json](online.json)。
+
+仓库分发包已通过GitHub Contents原始媒体API完整下载校验：102544780字节、SHA-256与dist一致。raw.githubusercontent.com直连本机超时，未据该超时认定文件缺失；API实下载独立通过。Pages首页当前仍是旧版（200），新downloads清单404。最新EXE可从本机`dist/superlinkPRO/superlinkPRO.exe`运行；完整分发ZIP在`dist/superlinkPRO-win64.zip`，不依赖Pages部署成功。

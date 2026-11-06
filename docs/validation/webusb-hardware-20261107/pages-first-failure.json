@@ -11,7 +11,7 @@
   "message": "Deployment failed, try again later.",
   "logPath": "E:\\superlinkPRO-backups\\20261107-webusb-acceptance\\pages-first-deploy.log",
   "logSha256": "98eecbf83fae71f5a3aef1f7302e94c3b6fa51e4c5fa07afea67908fb110917f",
-  "action": "Two deployment attempts failed after queued status; prepare complete fresh workflow",
+  "action": "Three attempts failed; repository distribution pushed. Pages online release remains pending.",
   "rootCause": "not established",
   "retry": {
     "attempt": 2,
@@ -30,5 +30,14 @@
   "pagesConfig": {
     "build_type": "workflow",
     "cname": null
+  },
+  "completeFreshRun": {
+    "run": 42269248208,
+    "commit": "547847692275ef470829605ba648ad30a2c32435",
+    "build": "success",
+    "deploy": "failure",
+    "job": 128069427800,
+    "logPath": "E:\\superlinkPRO-backups\\20261107-webusb-acceptance\\pages-third-deploy.log",
+    "logSha256": "0e68ef2ef53458005b888af06ec9f88175ac26de382df8f182f3c7cb5252c2bf"
   }
 }
