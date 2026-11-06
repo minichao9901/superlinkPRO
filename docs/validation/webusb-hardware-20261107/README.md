@@ -53,6 +53,8 @@ OpenOCD计时包括dump_image/load_image及本地文件IO；WebUSB计时为现�
 
 已排除工程启动异常：工具返回的是CreateProcess之前的策略拒绝；用户手工执行相同命令后原生host/worker正常ready，后续status/command均可执行。不是Python异常、USB占用或Windows启动器报错。当前证据将问题定位到Codex工具执行审批层；该层只返回blocked by policy，没有规则ID或详细判决，不能编造更具体根因。读取当前聊天终端诊断也返回未附加终端。没有修改或关闭审批、安全设置。
 
+继续只读检查本机桌面日志及日志SQLite：未找到本次拒绝的判决、规则ID，当前线程也没有exec_policy诊断行。查询范围与计数保存在[startup-diagnostics.json](startup-diagnostics.json)，未复制其他聊天内容或凭据。现有证据不足以把拒绝归因到某个本地规则，进一步定位依赖平台提供本次审核详情。
+
 [官方自动审核说明](https://developers.openai.com/api/docs/guides/agents-api/sessions/approvals)说明审核可能批准或拒绝动作，浏览器来源访问另有控制；它不提供本次命中规则。ISSUE-044继续保留平台判决细节待定位。
 
 WinUSB是另一独立问题ISSUE-040：当前探针MI_00已有WINUSB服务却缺DeviceInterfaceGUIDs。备份后仅补该实例的固件声明GUID并重启该接口，Node/libusb/OpenOCD均恢复。随后完整读回650B MS OS 2描述符，长度与声明一致、包含GUID；当前描述符有效，但旧注册缺失形成原因未证实。
@@ -72,3 +74,7 @@ WinUSB是另一独立问题ISSUE-040：当前探针MI_00已有WINUSB服务却缺
 源码先独立提交，再从该提交构建web.2，Git只保存完整分发ZIP和manifest；本机展开运行目录及data排除。Pages工作流核验后暂存这两个分发文件，在线下载页无需重新引入工程生成器。最终版本身份和候选/安装版冻结检查见[release.json](release.json)。
 
 最终分发版本为`1.1.0-web.2`，3580个清单文件全部与源码输入/包清单匹配；安装版CLI查询、SVG导出、HTTP原生重解码及完整HTTP下载校验通过。分发ZIP为102544780字节，SHA-256 `efff944ef36f764d8ef0508ae14919400c869426498bfdc86708fae090d08398`；EXE SHA-256 `6e8c98cd18c86c9c9df1d3e6c33806975235c1f06590cb1c27dacaa16518d357`。冻结验收没有再次访问硬件，真机范围按前文原生生产适配器记录。静态分发包与EXE动态重建下载包分别按各自清单核验，不要求ZIP压缩/时间戳相同。
+
+## 线上发布状态
+
+源码`484e3ee`与分发包`b8af3dd`已推送，远端main逐项核对。Pages run [42267641937](https://github.com/minichao9901/superlinkPRO/actions/runs/42267641937)的bundle/ETM副本/ZIP校验与上传均通过，但两次deploy都在deployment_queued后失败。Pages配置仍为workflow，无自定义域，产物229303623字节；具体平台失败原因未返回。保留[失败证据](pages-first-failure.json)，ISSUE-045待定位；本地/源码/包通过不冒充线上成功。继续以当前main启动完整工作流后另存结果。

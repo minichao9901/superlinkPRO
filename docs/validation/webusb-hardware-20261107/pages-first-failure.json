@@ -1,0 +1,34 @@
+{
+  "issue": "ISSUE-045",
+  "run": 42267641937,
+  "attempt": 1,
+  "commit": "b8af3dd597edf5ead0251b19c4cf3781bc2c4466",
+  "build": "success",
+  "deploy": "failure",
+  "statusBeforeFailure": "deployment_queued",
+  "deploymentCreatedAt": "2026-11-06T18:06:54Z",
+  "failureAt": "2026-11-06T18:10:57Z",
+  "message": "Deployment failed, try again later.",
+  "logPath": "E:\\superlinkPRO-backups\\20261107-webusb-acceptance\\pages-first-deploy.log",
+  "logSha256": "98eecbf83fae71f5a3aef1f7302e94c3b6fa51e4c5fa07afea67908fb110917f",
+  "action": "Two deployment attempts failed after queued status; prepare complete fresh workflow",
+  "rootCause": "not established",
+  "retry": {
+    "attempt": 2,
+    "job": 128066868734,
+    "result": "failure",
+    "message": "Deployment failed, try again later.",
+    "logPath": "E:\\superlinkPRO-backups\\20261107-webusb-acceptance\\pages-second-deploy.log",
+    "logSha256": "9ad056f937c09a4e9d813054f07f51289641834137ba247d1b6dd75ed25b63bb"
+  },
+  "artifact": {
+    "id": 13528035993,
+    "bytes": 229303623,
+    "expired": false,
+    "digest": "sha256:88ae11efc1a5aa43e01595390e948f91a9b251c01524573477ae0bfe76b206a9"
+  },
+  "pagesConfig": {
+    "build_type": "workflow",
+    "cname": null
+  }
+}

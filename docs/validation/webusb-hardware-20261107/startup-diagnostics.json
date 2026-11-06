@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-07",
+  "thread": "01a1b120-47f2-7152-9e39-6c13cabcfabc",
+  "queriesReadOnly": true,
+  "desktopLogDenialCounts": {
+    "blocked by policy": 0,
+    "decision=deny": 0,
+    "approval denied": 0,
+    "auto-review rejected": 0
+  },
+  "sqliteBlockedByPolicyCount": 0,
+  "threadExecPolicyRows": 0,
+  "conclusion": "No additional approval verdict or rule ID available in desktop logs or SQLite diagnostics. Pre-process rejection remains attributable to tool approval layer; exact trigger remains unconfirmed. No security settings changed."
+}
