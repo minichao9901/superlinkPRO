@@ -11,7 +11,7 @@ import threading
 import time
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
-from trace_cli_paths import asset_root, backend_root, node_executable, host_command
+from trace_cli_paths import asset_root, backend_root, toolbox_root, node_executable, host_command
 
 
 ROOT=asset_root()
@@ -106,7 +106,7 @@ def host(folder):
         spec=importlib.util.spec_from_file_location('trace_web_service',ROOT/'web/tools/dev/serve-etm.py')
         service=importlib.util.module_from_spec(spec);spec.loader.exec_module(service)
         os.environ['WEB_ETM_RECORDS']=str(folder/'records')
-        app=service.create_application(backend_root(),ROOT/'web',folder/'cli-token')
+        app=service.create_application(backend_root(),toolbox_root(),folder/'cli-token')
         sys.modules['decode_trace'].ROOT=backend_root()
         server=make_server('127.0.0.1',urlsplit(state['url']).port,app,threaded=True)
         threading.Thread(target=server.serve_forever,daemon=True).start()

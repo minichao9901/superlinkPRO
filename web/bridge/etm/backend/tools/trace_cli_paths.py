@@ -16,6 +16,11 @@ def backend_root():
     return Path(sys._MEIPASS) / 'backend' if frozen() else asset_root() / 'etm'
 
 
+def toolbox_root():
+    """Serve the complete shared Web assets; CLI imports keep their own modules."""
+    return Path(sys.executable).resolve().parent / 'toolbox' if frozen() else asset_root() / 'web'
+
+
 def node_executable():
     bundled = asset_root() / 'node/node.exe'
     if frozen():

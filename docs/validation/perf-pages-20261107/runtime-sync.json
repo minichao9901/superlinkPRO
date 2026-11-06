@@ -1,0 +1,12 @@
+{
+  "oldDecoderSha256": "fc0feac6b62269b60df455573b1630591e4eeb83f8499f1a6b5c78543d37abad",
+  "newDecoderSha256": "e1cdeafe0a382c8b23cfe0697b98708df91075c64b8e356e508054b021d1a20c",
+  "codeSectionMatches": true,
+  "differentSections": [],
+  "runtimeSourceRevision": "10b612b43d16a6d889ba69957d171dd12faf4be9",
+  "runtimeSourceDirty": false,
+  "syncInitial": "GCC returned 1 with empty stdout/stderr; task TEMP and extra compiler bin PATH did not resolve",
+  "syncRetest": "Passed using historical tmp/flame-release/compiler-runtime; current cc1plus SHA matches that private runtime",
+  "compilerSha256": "a02f8bb360098f4d6d1957aed1c2260bd899f61e52ccfaaeb25dacca36e4d78d",
+  "compilerSettingsScope": "Per-process TEMP/TMP and -B; no system settings changed"
+}

@@ -67,3 +67,5 @@ Release原型在CI创建草稿时403（run42308702640，build token日志显示c
 历史成功run42142498349的Pages产物128056098B，加入新ZIP后失败产物229303623B。当前workbench ZIP为102544136B；其中CLI复制了完整toolbox，导致同一组samples在两个目录重复，额外5025348压缩字节。此处存在确定的冗余，但GitHub未返回具体后端原因，不能直接断言存在官方未公布的100MB单文件限制。
 
 修复保留toolbox里的全部示例，让冻结CLI服务复用该公共目录；Node所需的cli/web/app与index仍保留。只调整CLI内部资源路径和打包，不修改ETM页面或解码/采集算法。路径、生命周期、样例只保留一份共11项回归通过；新候选还须通过实际冻结CLI无探针启动、样例HTTP回读与退出，再部署按历史同源下载方式验证。
+
+运行时同步的首次GCC调用返回1且无诊断，子进程TEMP/PATH调整未消除。按历史私有`compiler-runtime`前缀重新实际构建通过；cc1plus与系统安装版本SHA一致，没有静默复用旧EXE。新旧解码器.text节逐字节指纹一致，完整运行时来源见[runtime-sync.json](runtime-sync.json)。ISSUE-038继续保留其余C模型待补范围。
