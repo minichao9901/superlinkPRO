@@ -14,6 +14,7 @@ on:
       - 'dist/manifest.json'
       - 'dist/superlinkPRO-win64.zip'
       - 'tools/stage_workbench_download.py'
+      - 'tools/publish_workbench_release.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -28,6 +29,10 @@ concurrency:
 
 jobs:
   build:
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,8 +51,13 @@ jobs:
         working-directory: ./web
         run: node tools/dev/sync-etm-page.mjs --check
 
-      - name: Stage verified Windows workbench download
-        run: python tools/stage_workbench_download.py
+      - name: Publish and verify Windows Release asset
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python tools/publish_workbench_release.py
+
+      - name: Stage verified Windows workbench download manifest
+        run: python tools/stage_workbench_download.py --release
 
       - name: Upload web/ as the site artifact
         uses: actions/upload-pages-artifact@v3

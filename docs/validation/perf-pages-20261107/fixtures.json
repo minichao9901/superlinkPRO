@@ -1,0 +1,61 @@
+{
+  "hello72": {
+    "clockMHz": 72,
+    "sourceRevision": "5d7f23b26d644e73f3bc5ff72f99492412aed6f0",
+    "sourceFile": "script_test/stm32f103_rtt_speed/src/main.c",
+    "onlySourceAdjustment": "TARGET_HCLK_MHZ 96 -> 72 in isolated copy",
+    "flags": [
+      "-mcpu=cortex-m3",
+      "-mthumb",
+      "-Os",
+      "-g3",
+      "-gdwarf-4",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-common",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-DBUFFER_SIZE_UP=32768",
+      "-Iscript_test\\stm32f103_rtt_speed\\src",
+      "-Iscript_test\\stm32f103_rtt_speed\\segger_rtt",
+      "-Tscript_test\\stm32f103_rtt_speed\\ld\\stm32f103ze.ld",
+      "-nostartfiles",
+      "-specs=nano.specs",
+      "-specs=nosys.specs",
+      "-Wl,--gc-sections"
+    ],
+    "mainSha256": "c7659d26999ad61bd06bdaab5e5b4b8858cce12ed81dbe2a4486afc947341a60",
+    "elfSha256": "c0862539cf5a4940479c97daf4db2b3e107a91629f968149110e4b595d596466"
+  },
+  "hello96": {
+    "clockMHz": 96,
+    "scope": "Historical overclock benchmark, not product default or rated-frequency result",
+    "sourceRevision": "5d7f23b26d644e73f3bc5ff72f99492412aed6f0",
+    "sourceFile": "script_test\\stm32f103_rtt_speed\\src\\main.c",
+    "sourceUnmodified": true,
+    "flags": [
+      "-mcpu=cortex-m3",
+      "-mthumb",
+      "-Os",
+      "-g3",
+      "-gdwarf-4",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-fno-common",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-DBUFFER_SIZE_UP=32768",
+      "-Iscript_test\\stm32f103_rtt_speed\\src",
+      "-Iscript_test\\stm32f103_rtt_speed\\segger_rtt",
+      "-Tscript_test\\stm32f103_rtt_speed\\ld\\stm32f103ze.ld",
+      "-nostartfiles",
+      "-specs=nano.specs",
+      "-specs=nosys.specs",
+      "-Wl,--gc-sections"
+    ],
+    "mainSha256": "0a95487532250c7e9fdd50a661c64014c677d2fc829728049155000884c5bc7b",
+    "elfSha256": "9398efa77abfe073cf45bdbbeef62a12798bfd3d73415ef1808f3ca37feb9a88"
+  }
+}

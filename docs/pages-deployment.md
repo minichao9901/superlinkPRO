@@ -18,7 +18,8 @@ git push origin main
 ```
 
 自动发布监听 `main` 中 `web/**`、`dist/manifest.json`、`dist/superlinkPRO-win64.zip`、下载暂存脚本及工作流自身的变更。
-上传前运行 `python tools/stage_workbench_download.py`，按大小/SHA256校验分发包，再复制到站点 `downloads/`。
+上传前运行 `python tools/publish_workbench_release.py`：校验 dist 后上传到草稿 Release，完整回读核验大小/SHA256，再公开发布；已有同名资产不匹配时拒绝覆盖。
+随后运行 `python tools/stage_workbench_download.py --release`，只向站点 `downloads/` 写入清单，下载按钮指向对应 `workbench-v<版本>` 的 GitHub Release。本机完整包继续从自身提供同源 ZIP。历史 ETM 独立包的路径保持原样。
 仅推送文档、或 `git push` 显示 Everything up-to-date，不会重新发布。
 恢复站点配置后，在 Actions → Deploy web/ to GitHub Pages → Run workflow，选择 `main` 手动发布。
 

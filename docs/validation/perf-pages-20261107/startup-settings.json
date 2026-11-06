@@ -1,0 +1,48 @@
+{
+  "date": "2026-11-07",
+  "scope": "Read-only Codex configuration and historical tool-call audit; no settings changed",
+  "effectiveThread": {
+    "approvalPolicy": "never",
+    "approvalsReviewer": "user",
+    "sandboxPolicy": "dangerFullAccess",
+    "permissionProfile": ":danger-full-access"
+  },
+  "localConfig": {
+    "approvalOverrides": false,
+    "projectConfigExists": false,
+    "rulesDirectoryExists": false,
+    "managedConfigExists": false,
+    "systemRequirementsExists": false,
+    "registryRequirementsOverridePresent": false,
+    "windowsSandboxDefault": "elevated; session override is full access"
+  },
+  "windowsEventWindowUTC": [
+    "2026-11-06T15:46:00Z",
+    "2026-11-06T15:59:00Z"
+  ],
+  "codeIntegrityEvents": 0,
+  "appLockerEvents": 0,
+  "defenderEvents": 2,
+  "defenderProjectMatches": 0,
+  "originalToolCalls": {
+    "requireEscalatedRequested": false,
+    "verdict": "Rejected before CreateProcess; blocked by policy",
+    "specificRuleReturned": false
+  },
+  "restrictedReadinessTest": {
+    "url": "http://127.0.0.1:8924",
+    "imageRoot": null,
+    "probe": null,
+    "targetAccessed": false,
+    "ready": true,
+    "stopped": true,
+    "hostPid": 26760,
+    "workerPid": 32936
+  },
+  "conclusion": "No local Codex deny setting/rule identified. Desktop session uses user reviewer, not auto_review. Current restricted startup works. Exact historical execution-gate trigger is not exposed; do not attribute it to a specific automatic reviewer or disable safeguards.",
+  "officialSources": [
+    "https://learn.chatgpt.com/docs/sandboxing/auto-review",
+    "https://learn.chatgpt.com/docs/enterprise/managed-configuration",
+    "https://learn.chatgpt.com/docs/enterprise/windows-deployment"
+  ]
+}
