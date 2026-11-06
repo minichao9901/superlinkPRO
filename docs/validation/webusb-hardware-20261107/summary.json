@@ -1,0 +1,2121 @@
+{
+  "date": "2026-11-07",
+  "hardwareScope": "production WebUSB code through Node USB adapter and native HID/USB; not browser device-picker automation",
+  "before": {
+    "probe": {
+      "name": "akaLinkPro CMSIS-DAP · 512B/包 · SWD 1000kHz",
+      "serial": "8F538633E6AEC4CA8ABB6A36FEBB1AC2",
+      "idcode": 463475831,
+      "packetCount": 4,
+      "packet": 512
+    },
+    "initialDHCSR": 16842753,
+    "cpuid": 1092600369,
+    "deviceId": 268657684,
+    "flashSize": 512,
+    "rcc": {
+      "cr": 50548355,
+      "cfgr": 5309450,
+      "flashAcr": 49
+    },
+    "ramSha256": "d966fd1a67836ec556b46c3b43ed059ecbe6d41be36d974ef92827128e384916",
+    "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+    "fpbSha256": "a8af669511c356182afb2ffd87ab864f097aa9ad4c1852827f9d089fee362479",
+    "demcr": 16777216,
+    "dwtCtrl": 1073741825,
+    "passed": true
+  },
+  "after": {
+    "device": 268657684,
+    "cpuid": 1092600369,
+    "dhcsr": 16842753,
+    "cr": 50548355,
+    "cfgr": 5309450,
+    "flashAcr": 49,
+    "cfsr": 0,
+    "hfsr": 0,
+    "computedHclkMHz": 48,
+    "clockBasis": "RCC calculation with board HSE=8MHz; not external frequency measurement",
+    "running": true,
+    "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+    "flashUnchanged": true
+  },
+  "serial": {
+    "passed": true,
+    "reply": "PING\nPONG\r\n"
+  },
+  "debug": {
+    "hardware": "akaLinkPro + F103ZE",
+    "checks": [
+      "register-read-write-restore",
+      "C_STEP-normal-and-self-branch",
+      "step-mask-residue-cleared",
+      "interrupt-progress-after-step-and-FPB-hit",
+      "DWT-configure-and-clear"
+    ],
+    "restoration": {
+      "ram": true,
+      "fpb": true,
+      "core": true,
+      "clock": true,
+      "running": true
+    },
+    "probe": {
+      "serial": "8F538633E6AEC4CA8ABB6A36FEBB1AC2",
+      "idcode": 463475831
+    },
+    "steps": [
+      {
+        "before": 536875008,
+        "after": 536875010,
+        "mode": "dhcsr",
+        "r0": 1,
+        "ok": true
+      },
+      {
+        "before": 536875010,
+        "after": 536875012,
+        "mode": "dhcsr",
+        "r0": 2,
+        "ok": true
+      },
+      {
+        "before": 536875012,
+        "after": 536875012,
+        "mode": "dhcsr",
+        "r0": 2,
+        "ok": true
+      }
+    ],
+    "interruptBreakpoint": {
+      "pc": 134221598
+    },
+    "passed": true
+  },
+  "flash": {
+    "image": "E:/zynqlinkPRO/prebuilt/golden/f103ze-cdc48.elf",
+    "imageSha256": "e379b4680925a1aa06208620494028a65b99de0367df23645becaae8954f676f",
+    "rows": [
+      {
+        "round": 0,
+        "seconds": 2.9506792,
+        "result": "✅ stm32f103 · 19.7 KB · 校验通过 · 已复位运行"
+      },
+      {
+        "round": 1,
+        "seconds": 2.9698008,
+        "result": "✅ stm32f103 · 19.7 KB · 校验通过 · 已复位运行"
+      },
+      {
+        "round": 2,
+        "seconds": 2.788806100000001,
+        "result": "✅ stm32f103 · 19.7 KB · 校验通过 · 已复位运行"
+      }
+    ],
+    "passed": true
+  },
+  "fixtureClocks": {
+    "rtt": {
+      "device": 268657684,
+      "cpuid": 1092600369,
+      "dhcsr": 16842753,
+      "cr": 50548355,
+      "cfgr": 1910026,
+      "flashAcr": 50,
+      "cfsr": 0,
+      "hfsr": 0,
+      "computedHclkMHz": 72,
+      "clockBasis": "RCC calculation with board HSE=8MHz; not external frequency measurement",
+      "running": true
+    },
+    "scope": {
+      "device": 268657684,
+      "cpuid": 1092600369,
+      "dhcsr": 16842753,
+      "cr": 50548355,
+      "cfgr": 1910026,
+      "flashAcr": 50,
+      "cfsr": 0,
+      "hfsr": 0,
+      "computedHclkMHz": 72,
+      "clockBasis": "RCC calculation with board HSE=8MHz; not external frequency measurement",
+      "running": true
+    }
+  },
+  "benchmarks": {
+    "openocd-pipeline-retest": {
+      "passed": true,
+      "restored": true,
+      "rows": [
+        {
+          "requestedKHz": 1000,
+          "round": 0,
+          "loops": 3,
+          "bytesPerTransfer": 20480,
+          "readMs": 690,
+          "writeMs": 696,
+          "readMBps": 0.08904347826086956,
+          "writeMBps": 0.08827586206896552,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 1000,
+          "round": 1,
+          "loops": 3,
+          "bytesPerTransfer": 20480,
+          "readMs": 691,
+          "writeMs": 696,
+          "readMBps": 0.08891461649782922,
+          "writeMBps": 0.08827586206896552,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 1000,
+          "round": 2,
+          "loops": 3,
+          "bytesPerTransfer": 20480,
+          "readMs": 690,
+          "writeMs": 696,
+          "readMBps": 0.08904347826086956,
+          "writeMBps": 0.08827586206896552,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 10000,
+          "round": 0,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 478,
+          "writeMs": 481,
+          "readMBps": 0.8569037656903765,
+          "writeMBps": 0.8515592515592516,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 10000,
+          "round": 1,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 478,
+          "writeMs": 482,
+          "readMBps": 0.8569037656903765,
+          "writeMBps": 0.849792531120332,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 10000,
+          "round": 2,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 478,
+          "writeMs": 481,
+          "readMBps": 0.8569037656903765,
+          "writeMBps": 0.8515592515592516,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 20000,
+          "round": 0,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 275,
+          "writeMs": 271,
+          "readMBps": 1.4894545454545456,
+          "writeMBps": 1.5114391143911439,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 20000,
+          "round": 1,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 275,
+          "writeMs": 273,
+          "readMBps": 1.4894545454545456,
+          "writeMBps": 1.5003663003663004,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 20000,
+          "round": 2,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 276,
+          "writeMs": 271,
+          "readMBps": 1.4840579710144928,
+          "writeMBps": 1.5114391143911439,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 30000,
+          "round": 0,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 198,
+          "writeMs": 192,
+          "readMBps": 2.0686868686868687,
+          "writeMBps": 2.1333333333333333,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 30000,
+          "round": 1,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 198,
+          "writeMs": 192,
+          "readMBps": 2.0686868686868687,
+          "writeMBps": 2.1333333333333333,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 30000,
+          "round": 2,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 199,
+          "writeMs": 192,
+          "readMBps": 2.058291457286432,
+          "writeMBps": 2.1333333333333333,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 40000,
+          "round": 0,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 173,
+          "writeMs": 165,
+          "readMBps": 2.3676300578034684,
+          "writeMBps": 2.4824242424242424,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 40000,
+          "round": 1,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 172,
+          "writeMs": 166,
+          "readMBps": 2.3813953488372093,
+          "writeMBps": 2.4674698795180725,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 40000,
+          "round": 2,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 175,
+          "writeMs": 166,
+          "readMBps": 2.3405714285714283,
+          "writeMBps": 2.4674698795180725,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 45000,
+          "round": 0,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 149,
+          "writeMs": 142,
+          "readMBps": 2.7489932885906043,
+          "writeMBps": 2.884507042253521,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 45000,
+          "round": 1,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 149,
+          "writeMs": 142,
+          "readMBps": 2.7489932885906043,
+          "writeMBps": 2.884507042253521,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 45000,
+          "round": 2,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 149,
+          "writeMs": 142,
+          "readMBps": 2.7489932885906043,
+          "writeMBps": 2.884507042253521,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 50000,
+          "round": 0,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 149,
+          "writeMs": 142,
+          "readMBps": 2.7489932885906043,
+          "writeMBps": 2.884507042253521,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 50000,
+          "round": 1,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 149,
+          "writeMs": 141,
+          "readMBps": 2.7489932885906043,
+          "writeMBps": 2.9049645390070924,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 50000,
+          "round": 2,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 148,
+          "writeMs": 142,
+          "readMBps": 2.7675675675675673,
+          "writeMBps": 2.884507042253521,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 60000,
+          "round": 0,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 126,
+          "writeMs": 117,
+          "readMBps": 3.250793650793651,
+          "writeMBps": 3.500854700854701,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 60000,
+          "round": 1,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 125,
+          "writeMs": 117,
+          "readMBps": 3.2768,
+          "writeMBps": 3.500854700854701,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 60000,
+          "round": 2,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 125,
+          "writeMs": 117,
+          "readMBps": 3.2768,
+          "writeMBps": 3.500854700854701,
+          "byteExact": true
+        }
+      ],
+      "exeSha256": "cb0d4ef35ce090b4ca59281eb5d4ef34b4f64efcbedebe484c2b6f3ce2a182bc",
+      "seconds": 16.118975599994883,
+      "boundary": "OpenOCD dump_image/load_image wall time including local file IO; target clock unchanged",
+      "failure": null
+    },
+    "openocd-stock": {
+      "passed": false,
+      "restored": true,
+      "rows": [
+        {
+          "requestedKHz": 10000,
+          "round": 0,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 499,
+          "writeMs": 481,
+          "readMBps": 0.8208416833667335,
+          "writeMBps": 0.8515592515592516,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 10000,
+          "round": 1,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 498,
+          "writeMs": 481,
+          "readMBps": 0.8224899598393575,
+          "writeMBps": 0.8515592515592516,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 10000,
+          "round": 2,
+          "loops": 20,
+          "bytesPerTransfer": 20480,
+          "readMs": 497,
+          "writeMs": 481,
+          "readMBps": 0.8241448692152918,
+          "writeMBps": 0.8515592515592516,
+          "byteExact": true
+        }
+      ],
+      "exeSha256": "b52c7643b08c8e450d081e95d3565138f163f56dff066358b362e9bfbbbed631",
+      "seconds": 4.062537900012103,
+      "boundary": "OpenOCD dump_image/load_image wall time including local file IO; target clock unchanged",
+      "failure": "Open On-Chip Debugger 0.12.0+dev-gcb0c224 (2026-10-24-09:39)\nLicensed under GNU GPL v2\nFor bug reports, read\n\thttp://openocd.org/doc/doxygen/bugs.html\nWarn : [stm32f1x.dap] DEPRECATED! '-chain-position' will be removed in the future, use '-tap' instead\nInfo : Using CMSIS-DAPv2 interface with VID:PID=0x0d28:0x0204, serial=8F538633E6AEC4CA8ABB6A36FEBB1AC2\nInfo : CMSIS-DAP: SWD supported\nInfo : CMSIS-DAP: Atomic commands supported\nInfo : CMSIS-DAP: Test domain timer supported\nInfo : CMSIS-DAP: UART via USB COM port supported\nInfo : CMSIS-DAP: FW Version = 2.1.2\nInfo : CMSIS-DAP: Interface Initialised (SWD)\nInfo : SWCLK/TCK = 1 SWDIO/TMS = 1 TDI = 1 TDO = 1 nTRST = 1 nRESET = 1\nInfo : CMSIS-DAP: Interface ready\nInfo : clock speed 1000 kHz\nInfo : SWD DPIDR 0x1ba01477\nInfo : [stm32f1x.cpu] Cortex-M3 r1p1 processor detected\nInfo : [stm32f1x.cpu] target has 6 breakpoints, 4 watchpoints\nInfo : [stm32f1x.cpu] Examination succeed\nInfo : [stm32f1x.cpu] gdb port disabled\nWarn : [stm32f1x.cpu] target was in unknown state when halt was requested\nBENCH speed=10000 round=0 loops=20 read_ms=499 write_ms=481\nBENCH speed=10000 round=1 loops=20 read_ms=498 write_ms=481\nBENCH speed=10000 round=2 loops=20 read_ms=497 write_ms=481\nInfo : SWD DPIDR 0x1ba01477\nError: Failed to write memory at 0x20000328\nRESTORE_OK\nBENCH_FAILED \nshutdown command invoked\n"
+    },
+    "openocd-stock-60": {
+      "passed": false,
+      "restored": true,
+      "rows": [],
+      "exeSha256": "b52c7643b08c8e450d081e95d3565138f163f56dff066358b362e9bfbbbed631",
+      "seconds": 1.0353392999968491,
+      "boundary": "OpenOCD dump_image/load_image wall time including local file IO; target clock unchanged",
+      "failure": "Open On-Chip Debugger 0.12.0+dev-gcb0c224 (2026-10-24-09:39)\nLicensed under GNU GPL v2\nFor bug reports, read\n\thttp://openocd.org/doc/doxygen/bugs.html\nWarn : [stm32f1x.dap] DEPRECATED! '-chain-position' will be removed in the future, use '-tap' instead\nInfo : Using CMSIS-DAPv2 interface with VID:PID=0x0d28:0x0204, serial=8F538633E6AEC4CA8ABB6A36FEBB1AC2\nInfo : CMSIS-DAP: SWD supported\nInfo : CMSIS-DAP: Atomic commands supported\nInfo : CMSIS-DAP: Test domain timer supported\nInfo : CMSIS-DAP: UART via USB COM port supported\nInfo : CMSIS-DAP: FW Version = 2.1.2\nInfo : CMSIS-DAP: Interface Initialised (SWD)\nInfo : SWCLK/TCK = 1 SWDIO/TMS = 1 TDI = 1 TDO = 1 nTRST = 1 nRESET = 1\nInfo : CMSIS-DAP: Interface ready\nInfo : clock speed 1000 kHz\nInfo : SWD DPIDR 0x1ba01477\nInfo : [stm32f1x.cpu] Cortex-M3 r1p1 processor detected\nInfo : [stm32f1x.cpu] target has 6 breakpoints, 4 watchpoints\nInfo : [stm32f1x.cpu] Examination succeed\nInfo : [stm32f1x.cpu] gdb port disabled\nWarn : [stm32f1x.cpu] target was in unknown state when halt was requested\nInfo : SWD DPIDR 0x0fd0043f\nError: Failed to write memory at 0x40021008\nRESTORE_OK\nBENCH_FAILED \nshutdown command invoked\n"
+    },
+    "webusb-speed": {
+      "rows": [
+        {
+          "requestedKHz": 10000,
+          "round": 0,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 212.70370000000003,
+          "writeVerifiedMs": 463.7729999999999,
+          "readMBps": 0.3851366948482795,
+          "writeVerifiedMBps": 0.17663813977959048,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 10000,
+          "round": 1,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 200.85550000000012,
+          "writeVerifiedMs": 469.3777,
+          "readMBps": 0.4078553985327758,
+          "writeVerifiedMBps": 0.1745289561050727,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 10000,
+          "round": 2,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 196.64240000000018,
+          "writeVerifiedMs": 490.1681999999996,
+          "readMBps": 0.41659377631680616,
+          "writeVerifiedMBps": 0.16712630480720714,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 20000,
+          "round": 0,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 157.61709999999994,
+          "writeVerifiedMs": 391.2033000000001,
+          "readMBps": 0.5197405611446982,
+          "writeVerifiedMBps": 0.20940518651044093,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 20000,
+          "round": 1,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 149.57839999999987,
+          "writeVerifiedMs": 387.8475000000003,
+          "readMBps": 0.5476726586191594,
+          "writeVerifiedMBps": 0.21121703762432384,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 20000,
+          "round": 2,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 152.06020000000035,
+          "writeVerifiedMs": 397.70350000000053,
+          "readMBps": 0.5387340014020751,
+          "writeVerifiedMBps": 0.20598259758840415,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 30000,
+          "round": 0,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 142.36179999999968,
+          "writeVerifiedMs": 372.6964000000007,
+          "readMBps": 0.5754352642352105,
+          "writeVerifiedMBps": 0.21980357202269687,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 30000,
+          "round": 1,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 152.0598,
+          "writeVerifiedMs": 354.53009999999995,
+          "readMBps": 0.5387354185655906,
+          "writeVerifiedMBps": 0.23106641720970944,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 30000,
+          "round": 2,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 150.13799999999992,
+          "writeVerifiedMs": 335.28700000000026,
+          "readMBps": 0.5456313524890437,
+          "writeVerifiedMBps": 0.24432799362933827,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 40000,
+          "round": 0,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 147.5003000000006,
+          "writeVerifiedMs": 324.6854000000003,
+          "readMBps": 0.5553887009043349,
+          "writeVerifiedMBps": 0.25230577044733127,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 40000,
+          "round": 1,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 148.72580000000016,
+          "writeVerifiedMs": 355.1089000000002,
+          "readMBps": 0.5508123002195981,
+          "writeVerifiedMBps": 0.23068979684823432,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 40000,
+          "round": 2,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 160.3049000000001,
+          "writeVerifiedMs": 375.5149999999994,
+          "readMBps": 0.5110261757438478,
+          "writeVerifiedMBps": 0.21815373553653017,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 45000,
+          "round": 0,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 152.4514999999992,
+          "writeVerifiedMs": 402.4154000000017,
+          "readMBps": 0.5373512231758981,
+          "writeVerifiedMBps": 0.2035707380979944,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 45000,
+          "round": 1,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 142.53689999999915,
+          "writeVerifiedMs": 346.3780999999999,
+          "readMBps": 0.5747283685838579,
+          "writeVerifiedMBps": 0.23650455961274697,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 45000,
+          "round": 2,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 147.6265999999996,
+          "writeVerifiedMs": 341.7019,
+          "readMBps": 0.5549135453908729,
+          "writeVerifiedMBps": 0.23974113108531148,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 50000,
+          "round": 0,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 176.21440000000075,
+          "writeVerifiedMs": 391.64480000000003,
+          "readMBps": 0.4648882270688414,
+          "writeVerifiedMBps": 0.20916912467623724,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 50000,
+          "round": 1,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 139.4459999999999,
+          "writeVerifiedMs": 361.6952000000001,
+          "readMBps": 0.5874675501627874,
+          "writeVerifiedMBps": 0.22648904381368615,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 50000,
+          "round": 2,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 140.65539999999964,
+          "writeVerifiedMs": 325.71399999999994,
+          "readMBps": 0.5824163167571256,
+          "writeVerifiedMBps": 0.2515089925517479,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 60000,
+          "round": 0,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 128.82899999999972,
+          "writeVerifiedMs": 339.97420000000056,
+          "readMBps": 0.635881672604772,
+          "writeVerifiedMBps": 0.24095946104145508,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 60000,
+          "round": 1,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 131.5743999999995,
+          "writeVerifiedMs": 335.1826000000001,
+          "readMBps": 0.622613517523168,
+          "writeVerifiedMBps": 0.2444040949619699,
+          "byteExact": true
+        },
+        {
+          "requestedKHz": 60000,
+          "round": 2,
+          "loops": 4,
+          "bytesPerTransfer": 20480,
+          "readMs": 152.48159999999916,
+          "writeVerifiedMs": 362.9306000000015,
+          "readMBps": 0.5372451495787062,
+          "writeVerifiedMBps": 0.22571808494516488,
+          "byteExact": true
+        }
+      ],
+      "boundary": "production readMem / writeMem API wall time; write includes verification; no file IO in timing",
+      "passed": true,
+      "restored": true,
+      "clockUnchanged": true,
+      "running": true
+    }
+  },
+  "rttViewer": [
+    {
+      "requestedHz": 10000000,
+      "seconds": 3.0466105000000003,
+      "bytes": 1301236,
+      "MBps": 0.42710940568215067,
+      "records": 100089,
+      "gaps": 0,
+      "sha256": "21c553fbfe171321e6d0ddf2000852cfd732d07c0f9b6c5bae95933a18eeb8b8",
+      "controlBlock": 536870924,
+      "passed": true,
+      "case": "rtt-viewer-10"
+    },
+    {
+      "requestedHz": 20000000,
+      "seconds": 3.0016415000000003,
+      "bytes": 1654822,
+      "MBps": 0.5513056772436016,
+      "records": 127294,
+      "gaps": 0,
+      "sha256": "b7cdea0317c173baf3246e8cefe1afd190ce7d74f5ffbbf4c9efb19c5fe07f7c",
+      "controlBlock": 536870924,
+      "passed": true,
+      "case": "rtt-viewer-20"
+    },
+    {
+      "requestedHz": 20000000,
+      "seconds": 3.0310804,
+      "bytes": 1684982,
+      "MBps": 0.5559014534883338,
+      "records": 129614,
+      "gaps": 0,
+      "sha256": "8eaa01935acf9f6f9dea27aacc3556356bb4a54e0e00a34bc27fcb5e58008f02",
+      "controlBlock": 536870924,
+      "passed": true,
+      "case": "rtt-viewer-20-r2"
+    },
+    {
+      "requestedHz": 20000000,
+      "seconds": 3.0204823999999997,
+      "bytes": 1683487,
+      "MBps": 0.5573569970147816,
+      "records": 129499,
+      "gaps": 0,
+      "sha256": "4272666f20943056f0d28d7b77a3715e7bfc218ccbbabe3d7c182f88722ffe77",
+      "controlBlock": 536870924,
+      "passed": true,
+      "case": "rtt-viewer-20-r3"
+    },
+    {
+      "requestedHz": 25000000,
+      "seconds": 3.0487817,
+      "bytes": 1391884,
+      "MBps": 0.4565377704805824,
+      "records": 107068,
+      "gaps": 0,
+      "sha256": "5a5aa5dc8e4b0edd82d01b8d686e9f7d753520ac714ded5b2877fabd75101677",
+      "controlBlock": 536870924,
+      "passed": true,
+      "case": "rtt-viewer-25"
+    },
+    {
+      "error": "Error: SWD ACK=5（传输 0/1 条，地址 0x0）\n    at WebUsbDapProbe._transfer (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:726:19)\n    at async WebUsbDapProbe._targetInitNow (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:796:16)\n    at async WebUsbDapProbe._setupNow (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:239:9)\n    at async OperationBudget.step (file:///E:/superlinkPRO/web/app/core/operation-budget.js:16:20)\n    at async WebUsbDapProbe._budgeted (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:215:18)\n    at async WebUsbDapProbe.open (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:195:11)\n    at async file:///E:/superlinkPRO/tools/validate_f103_rtt.mjs:8:100",
+      "case": "rtt-viewer"
+    },
+    {
+      "requestedHz": 45000000,
+      "error": "Error: SWD 块传输 NO ACK（读 6 字 @0xc）\n    at WebUsbDapProbe._transferBlock (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:744:19)\n    at async WebUsbDapProbe._readMemOnce (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:1202:43)\n    at async WebUsbDapProbe._readMemLocked (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:1177:12)\n    at async WebUsbDapProbe._withLock (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:1065:18)\n    at async Rtt._initNow (file:///E:/superlinkPRO/web/app/rtt/protocol.js:196:17)\n    at async Rtt.init (file:///E:/superlinkPRO/web/app/rtt/protocol.js:192:18)\n    at async file:///E:/superlinkPRO/tools/validate_f103_rtt.mjs:9:41",
+      "case": "rtt-viewer-45"
+    },
+    {
+      "requestedHz": 30000000,
+      "error": "Error: SWD ACK=0（传输 1/1 条，地址 0x4）\n    at WebUsbDapProbe._transfer (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:726:19)\n    at async WebUsbDapProbe._setTAR (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:1014:5)\n    at async WebUsbDapProbe._readMemOnce (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:1201:7)\n    at async WebUsbDapProbe._readMemLocked (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:1177:12)\n    at async WebUsbDapProbe._withLock (file:///E:/superlinkPRO/web/app/rtt/dap-webusb.js:1065:18)\n    at async Rtt._initNow (file:///E:/superlinkPRO/web/app/rtt/protocol.js:196:17)\n    at async Rtt.init (file:///E:/superlinkPRO/web/app/rtt/protocol.js:192:18)\n    at async file:///E:/superlinkPRO/tools/validate_f103_rtt.mjs:9:41",
+      "case": "rtt-viewer-30"
+    }
+  ],
+  "rttForward": [
+    {
+      "kind": "rtt",
+      "requestedClockHz": 20000000,
+      "bytes": 4290522,
+      "seconds": 3.046835100001772,
+      "MBps": 1.4081897638626735,
+      "sha256": "af224bc1a0322729817a263b5ee2b7e1619cbc0cf94dfc2670ee30f32fe16fb3",
+      "records": 330040,
+      "gaps": 0,
+      "passed": true,
+      "stopped": true,
+      "probeMoved": 4290522,
+      "receivedMatchesProbe": true,
+      "reportedClockMHz": 20,
+      "readErrors": 0,
+      "writeErrors": 0,
+      "case": "rtt-forward-20"
+    },
+    {
+      "kind": "rtt",
+      "requestedClockHz": 60000000,
+      "bytes": 7081150,
+      "seconds": 3.0296371000004,
+      "MBps": 2.3372931365274954,
+      "sha256": "8f0056cb76dfc928ca99f875920520ee1c4cea7f7d8ef8effd8067eeebf6b8bf",
+      "records": 544703,
+      "gaps": 0,
+      "passed": true,
+      "stopped": true,
+      "probeMoved": 7081150,
+      "receivedMatchesProbe": true,
+      "reportedClockMHz": 60,
+      "readErrors": 0,
+      "writeErrors": 0,
+      "case": "rtt-forward-60"
+    },
+    {
+      "kind": "rtt",
+      "requestedClockHz": 60000000,
+      "bytes": 6993779,
+      "seconds": 3.0058546000072965,
+      "MBps": 2.326718996981099,
+      "sha256": "b72b9c1fc70bc2ac7596d036557094e532d2d2d1f1f8a331bafd1e30961451b4",
+      "records": 537983,
+      "gaps": 0,
+      "passed": true,
+      "stopped": true,
+      "probeMoved": 6993779,
+      "receivedMatchesProbe": true,
+      "reportedClockMHz": 60,
+      "readErrors": 0,
+      "writeErrors": 0,
+      "case": "rtt-forward-60-r2"
+    },
+    {
+      "kind": "rtt",
+      "requestedClockHz": 60000000,
+      "bytes": 7002905,
+      "seconds": 3.0127779000031296,
+      "MBps": 2.324401344019659,
+      "sha256": "d0cd3cea24fd7b0150f8d7375e647728682f331d586d53ab6635932c51a6a454",
+      "records": 538685,
+      "gaps": 0,
+      "passed": true,
+      "stopped": true,
+      "probeMoved": 7002905,
+      "receivedMatchesProbe": true,
+      "reportedClockMHz": 60,
+      "readErrors": 0,
+      "writeErrors": 0,
+      "case": "rtt-forward-60-r3"
+    }
+  ],
+  "scope": [
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 5,
+        "flags": 1,
+        "nvars": 1,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875076,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 4852,
+        "STAT": 77
+      },
+      "samples": 601648,
+      "first": {
+        "time": 0,
+        "values": [
+          4717299
+        ]
+      },
+      "last": {
+        "time": 3007705,
+        "values": [
+          4747383
+        ]
+      },
+      "seq": {
+        "last": 4929,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 601524,
+        "dropped": 17,
+        "pkts": 4928,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 5,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 1,
+        "swdHz": 60000000,
+        "produced": 601720,
+        "dropped": 17,
+        "bytes": 33792,
+        "usbErr": 0,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 4930,
+        "skipped": 17,
+        "discardPackets": 0,
+        "planHash": 3311445825,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 5,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 72,
+      "rateHz": 200035.24281802902,
+      "passed": true,
+      "case": "hss-1v-200k",
+      "reportedDropPpm": 28.251545110239192,
+      "qualityWithin100ppm": true
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 4,
+        "flags": 1,
+        "nvars": 1,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875076,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 6049,
+        "STAT": 96
+      },
+      "samples": 750076,
+      "first": {
+        "time": 0,
+        "values": [
+          6119941
+        ]
+      },
+      "last": {
+        "time": 2999900,
+        "values": [
+          6149946
+        ]
+      },
+      "seq": {
+        "last": 6145,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 749952,
+        "dropped": 23,
+        "pkts": 6144,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 4,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 1,
+        "swdHz": 60000000,
+        "produced": 750148,
+        "dropped": 23,
+        "bytes": 1024,
+        "usbErr": 0,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 6146,
+        "skipped": 23,
+        "discardPackets": 0,
+        "planHash": 3311445825,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 4,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 72,
+      "rateHz": 250033.33444448147,
+      "passed": true,
+      "case": "hss-1v-250k",
+      "reportedDropPpm": 30.659676260479277,
+      "qualityWithin100ppm": true
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 4,
+        "flags": 1,
+        "nvars": 1,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875076,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 6049,
+        "STAT": 96
+      },
+      "samples": 750076,
+      "first": {
+        "time": 0,
+        "values": [
+          7246167
+        ]
+      },
+      "last": {
+        "time": 2999964,
+        "values": [
+          7276172
+        ]
+      },
+      "seq": {
+        "last": 6145,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 749952,
+        "dropped": 39,
+        "pkts": 6144,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 4,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 1,
+        "swdHz": 60000000,
+        "produced": 750132,
+        "dropped": 39,
+        "bytes": 1024,
+        "usbErr": 0,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 6146,
+        "skipped": 39,
+        "discardPackets": 0,
+        "planHash": 3311445825,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 4,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 56,
+      "rateHz": 250028.00033600404,
+      "passed": true,
+      "case": "hss-1v-250k-r2",
+      "reportedDropPpm": 51.988146702551816,
+      "qualityWithin100ppm": true
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 4,
+        "flags": 1,
+        "nvars": 1,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875076,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 6049,
+        "STAT": 96
+      },
+      "samples": 750076,
+      "first": {
+        "time": 0,
+        "values": [
+          7595028
+        ]
+      },
+      "last": {
+        "time": 2999908,
+        "values": [
+          7625032
+        ]
+      },
+      "seq": {
+        "last": 6145,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 749952,
+        "dropped": 25,
+        "pkts": 6144,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 4,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 1,
+        "swdHz": 60000000,
+        "produced": 750146,
+        "dropped": 25,
+        "bytes": 1024,
+        "usbErr": 0,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 6146,
+        "skipped": 25,
+        "discardPackets": 0,
+        "planHash": 3311445825,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 4,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 70,
+      "rateHz": 250032.66766847516,
+      "passed": true,
+      "case": "hss-1v-250k-r3",
+      "reportedDropPpm": 33.32573506573834,
+      "qualityWithin100ppm": true
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 3,
+        "flags": 1,
+        "nvars": 1,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875076,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 8068,
+        "STAT": 128
+      },
+      "samples": 1000432,
+      "first": {
+        "time": 0,
+        "values": [
+          6478922
+        ]
+      },
+      "last": {
+        "time": 3004128,
+        "values": [
+          6508968
+        ]
+      },
+      "seq": {
+        "last": 8196,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 999936,
+        "dropped": 1067,
+        "pkts": 8192,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 3,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 1,
+        "swdHz": 60000000,
+        "produced": 1000492,
+        "dropped": 1068,
+        "bytes": 2560,
+        "usbErr": 0,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 8197,
+        "skipped": 1068,
+        "discardPackets": 0,
+        "planHash": 3311445825,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 3,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 60,
+      "rateHz": 333018.7661777394,
+      "passed": true,
+      "case": "hss-1v-333k",
+      "reportedDropPpm": 1066.336515036543,
+      "qualityWithin100ppm": false
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 2,
+        "flags": 1,
+        "nvars": 1,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875076,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 6017,
+        "STAT": 95
+      },
+      "samples": 746108,
+      "first": {
+        "time": 0,
+        "values": [
+          3507428
+        ]
+      },
+      "last": {
+        "time": 1983178,
+        "values": [
+          3527263
+        ]
+      },
+      "seq": {
+        "last": 6112,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 742140,
+        "dropped": 244345,
+        "pkts": 6080,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 2,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 1,
+        "swdHz": 60000000,
+        "produced": 746108,
+        "dropped": 246228,
+        "bytes": 49664,
+        "usbErr": 582,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 6113,
+        "skipped": 49038,
+        "discardPackets": 0,
+        "planHash": 3311445825,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 2,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 0,
+      "rateHz": 376217.86849188525,
+      "passed": false,
+      "case": "hss-1v-500k",
+      "reportedDropPpm": 248129.66575837217,
+      "qualityWithin100ppm": false
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 20,
+        "flags": 1,
+        "nvars": 1,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875076,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 1203,
+        "STAT": 19
+      },
+      "samples": 149172,
+      "first": {
+        "time": 0,
+        "values": [
+          3103204
+        ]
+      },
+      "last": {
+        "time": 2981000,
+        "values": [
+          3133039
+        ]
+      },
+      "seq": {
+        "last": 1222,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 148428,
+        "dropped": 2,
+        "pkts": 1216,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 20,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 1,
+        "swdHz": 60000000,
+        "produced": 149232,
+        "dropped": 2,
+        "bytes": 36352,
+        "usbErr": 0,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 1223,
+        "skipped": 2,
+        "discardPackets": 0,
+        "planHash": 3311445825,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 20,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 60,
+      "rateHz": 50040.59040590406,
+      "passed": true,
+      "case": "hss-1v-50k-complete",
+      "reportedDropPpm": 13.40177171422062,
+      "qualityWithin100ppm": true
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 20,
+        "flags": 1,
+        "nvars": 1,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875076,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 1261,
+        "STAT": 20
+      },
+      "samples": 156364,
+      "first": {
+        "time": 0,
+        "values": [
+          1427905
+        ]
+      },
+      "last": {
+        "time": 3124840,
+        "values": [
+          1459179
+        ]
+      },
+      "seq": {
+        "last": 1281,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 156240,
+        "dropped": 2,
+        "pkts": 1280,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 20,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 1,
+        "swdHz": 60000000,
+        "produced": 156435,
+        "dropped": 2,
+        "bytes": 1024,
+        "usbErr": 0,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 1282,
+        "skipped": 2,
+        "discardPackets": 0,
+        "planHash": 3311445825,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 20,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 71,
+      "rateHz": 50038.721982565505,
+      "passed": true,
+      "case": "hss-1v-50k-fixed",
+      "reportedDropPpm": 12.784699271911377,
+      "qualityWithin100ppm": true
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 100,
+        "flags": 1,
+        "nvars": 8,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875028,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875032,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875036,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875040,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875044,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875048,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875052,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875056,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 2016,
+        "STAT": 32
+      },
+      "samples": 30240,
+      "first": {
+        "time": 0,
+        "values": [
+          1065353216,
+          0,
+          5841925,
+          4229432221,
+          3845,
+          268444677,
+          3690603525,
+          0
+        ]
+      },
+      "last": {
+        "time": 3022500,
+        "values": [
+          3210219619,
+          1052266988,
+          5872166,
+          4229431462,
+          29222,
+          268474918,
+          1708759590,
+          0
+        ]
+      },
+      "seq": {
+        "last": 2048,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 30240,
+        "dropped": 0,
+        "pkts": 2048,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 100,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 8,
+        "swdHz": 60000000,
+        "produced": 30246,
+        "dropped": 0,
+        "bytes": 512,
+        "usbErr": 0,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 2049,
+        "skipped": 0,
+        "discardPackets": 0,
+        "planHash": 3429108933,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 100,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 6,
+      "rateHz": 10004.631927212573,
+      "passed": true,
+      "case": "hss-8v-10k",
+      "reportedDropPpm": 0.0,
+      "qualityWithin100ppm": true
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 20,
+        "flags": 1,
+        "nvars": 8,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875028,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875032,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875036,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875040,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875044,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875048,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875052,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875056,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 9944,
+        "STAT": 157
+      },
+      "samples": 149160,
+      "first": {
+        "time": 0,
+        "values": [
+          1065319662,
+          3173242635,
+          3775524,
+          65536524,
+          27684,
+          268475428,
+          1675336740,
+          0
+        ]
+      },
+      "last": {
+        "time": 2982940,
+        "values": [
+          3201965229,
+          1060655596,
+          3805357,
+          4229431653,
+          1965,
+          268439725,
+          4015132845,
+          0
+        ]
+      },
+      "seq": {
+        "last": 10101,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 148365,
+        "dropped": 2,
+        "pkts": 10048,
+        "usbErr": 0,
+        "swdErr": 0,
+        "periodUs": 20,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 8,
+        "swdHz": 60000000,
+        "produced": 149160,
+        "dropped": 74,
+        "bytes": 60416,
+        "usbErr": 72,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 10102,
+        "skipped": 2,
+        "discardPackets": 0,
+        "planHash": 3429108933,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 20,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 0,
+      "rateHz": 50004.02287675917,
+      "passed": false,
+      "case": "hss-8v-50k",
+      "reportedDropPpm": 495.86555342616293,
+      "qualityWithin100ppm": false
+    },
+    {
+      "definition": {
+        "swdHz": 60000000,
+        "periodUs": 20,
+        "flags": 1,
+        "nvars": 8,
+        "spans": 1,
+        "vars": [
+          {
+            "addr": 536875028,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875032,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875036,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875040,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875044,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875048,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875052,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          },
+          {
+            "addr": 536875056,
+            "size": 4,
+            "type": 4,
+            "scalar": "u32"
+          }
+        ],
+        "riscv": false
+      },
+      "counts": {
+        "DEF": 1,
+        "DATA": 9961,
+        "STAT": 158
+      },
+      "samples": 149415,
+      "first": {
+        "time": 0,
+        "values": [
+          3195992540,
+          3210152510,
+          5004196,
+          4229431492,
+          60580,
+          268458916,
+          2757450660,
+          0
+        ]
+      },
+      "last": {
+        "time": 2988160,
+        "values": [
+          3211662460,
+          3195388560,
+          5034081,
+          65536081,
+          9057,
+          268488801,
+          798937185,
+          1
+        ]
+      },
+      "seq": {
+        "last": 10119,
+        "gaps": 0,
+        "missing": 0,
+        "reordered": 0,
+        "dup": 0
+      },
+      "stat": {
+        "produced": 149310,
+        "dropped": 8,
+        "pkts": 10112,
+        "usbErr": 6,
+        "swdErr": 0,
+        "periodUs": 20,
+        "swdMhz": 60,
+        "discarding": false
+      },
+      "status": {
+        "running": false,
+        "supportsTicks": true,
+        "supportsBatch": true,
+        "supportsMetrics": true,
+        "riscv": false,
+        "nspans": 1,
+        "swdReady": true,
+        "nvars": 8,
+        "swdHz": 60000000,
+        "produced": 149415,
+        "dropped": 19,
+        "bytes": 4096,
+        "usbErr": 17,
+        "swdErr": 0,
+        "dapYield": 0,
+        "lastSeq": 10120,
+        "skipped": 2,
+        "discardPackets": 0,
+        "planHash": 3429108933,
+        "lastCmd": 0,
+        "lastResp": 0,
+        "startRc": -100,
+        "periodUs": 20,
+        "discarding": false,
+        "swdMhz": 60
+      },
+      "trailingBytes": 0,
+      "resyncs": 0,
+      "tailDifference": 0,
+      "rateHz": 50002.007924609126,
+      "passed": false,
+      "case": "hss-8v-50k-bulk",
+      "reportedDropPpm": 127.14643253877966,
+      "qualityWithin100ppm": false
+    }
+  ],
+  "startupDiagnosis": {
+    "classification": "execution approval layer before CreateProcess",
+    "manualSameCommand": "host and worker ready; status/commands functional",
+    "specificRule": "not exposed by tool",
+    "terminalDiagnostic": "No app terminal session is attached",
+    "securitySettingsChanged": false
+  },
+  "offlineWeb": {
+    "passed": 251,
+    "failed": 0
+  },
+  "cli": {
+    "passed": 9,
+    "failed": 0
+  },
+  "issues": [
+    "ISSUE-036",
+    "ISSUE-040",
+    "ISSUE-041",
+    "ISSUE-042",
+    "ISSUE-043",
+    "ISSUE-044"
+  ],
+  "firmwareInputs": {
+    "rtt72": {
+      "kind": "rtt",
+      "chip": "STM32F103ZE",
+      "cpuHz": 72000000,
+      "hseHz": 8000000,
+      "compiler": "arm-none-eabi-gcc.exe (GNU Arm Embedded Toolchain 10.3-2021.10) 10.3.1 20210824 (release)",
+      "flags": [
+        "-mcpu=cortex-m3",
+        "-mthumb",
+        "-Os",
+        "-g3",
+        "-gdwarf-4",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-common",
+        "-Wall",
+        "-Wextra",
+        "-DCPU_HZ=72000000u",
+        "-DTARGET_HCLK_MHZ=72",
+        "-IE:\\zynqlinkPRO\\firmware\\target\\stm32f103_rtt_seq72\\src",
+        "-TE:\\zynqlinkPRO\\firmware\\target\\stm32f103_rtt_seq72\\ld\\stm32f103ze.ld",
+        "-nostartfiles",
+        "-specs=nano.specs",
+        "-specs=nosys.specs",
+        "-Wl,--gc-sections",
+        "-Wl,-Map=E:\\superlinkPRO\\tmp\\hw-accept-20261106\\rtt72\\fw.map",
+        "-IE:\\zynqlinkPRO\\firmware\\target\\stm32f103_rtt_seq72\\segger_rtt",
+        "-DBUFFER_SIZE_UP=32768"
+      ],
+      "sourceSha256": {
+        "source-provenance.json": "e653372144d5cd89e80a2ef0989b3c7c9b0945533c97544284204cbebf8eb625",
+        "ld\\stm32f103ze.ld": "cd4e61c40a20d7bf0db1dac11a2bc901c2ffac8d10efce4d54d1c1e5db95f272",
+        "segger_rtt\\README-SEGGER.md": "77d46c3790c35fa2269c5de4c4e19d0f1e77f4aa52257d20aaccb7182aaa8db7",
+        "segger_rtt\\SEGGER_RTT.c": "51f8969b91694d322bfe6fd0a4a5015e67e89eb46b3cbf6d3a22095cfcb58a50",
+        "segger_rtt\\SEGGER_RTT.h": "fe21e9618410807676e5e964ea76da11a1744d20b5c0125afc24f1474b09c595",
+        "segger_rtt\\SEGGER_RTT_Conf.h": "aeade83cfb1005661bd5e3836e65be60298aa8fc7fb3a7fc92ee2812bab15006",
+        "segger_rtt\\SEGGER_RTT_ConfDefaults.h": "f2f1e3a67bf139ba056860a745cf635d029e51f62be6d208f89412d25ea434a4",
+        "src\\main.c": "06a68ddeab30425dd0acf785f373dc1de766a7d74b81e6b92dd00d68ed4d3467",
+        "src\\startup.c": "ded28d85dc381b2abe839c9f371271fb8d8761278a846fa2be9c99475237381b",
+        "src\\stm32f103_regs.h": "58e311a192383357b291b4d1f3517f677f8bbdd8df6c1ca3c2ddbda800f8a5c4"
+      },
+      "elfSha256": "5509783efc9c971e7d1a0d9f5129ba7be6907a4452caff9aacf43aef93a14569",
+      "status": "fresh build; board acceptance pending",
+      "sourceRepository": "https://github.com/minichao9901/zynqlinkPRO",
+      "sourceRevision": "b5d3f3de"
+    },
+    "scope72": {
+      "kind": "scope",
+      "chip": "STM32F103ZE",
+      "cpuHz": 72000000,
+      "hseHz": 8000000,
+      "compiler": "arm-none-eabi-gcc.exe (GNU Arm Embedded Toolchain 10.3-2021.10) 10.3.1 20210824 (release)",
+      "flags": [
+        "-mcpu=cortex-m3",
+        "-mthumb",
+        "-Os",
+        "-g3",
+        "-gdwarf-4",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-common",
+        "-Wall",
+        "-Wextra",
+        "-DCPU_HZ=72000000u",
+        "-DTARGET_HCLK_MHZ=72",
+        "-IE:\\zynqlinkPRO\\firmware\\target\\stm32f103_scope_rated\\src",
+        "-TE:\\zynqlinkPRO\\firmware\\target\\stm32f103_scope_rated\\ld\\stm32f103ze.ld",
+        "-nostartfiles",
+        "-specs=nano.specs",
+        "-specs=nosys.specs",
+        "-Wl,--gc-sections",
+        "-Wl,-Map=E:\\superlinkPRO\\tmp\\hw-accept-20261106\\scope72\\fw.map"
+      ],
+      "sourceSha256": {
+        "source-provenance.json": "f308e2bff66bb2bdcbf937443ec0deae191ce375721b2535e3d3d7d55b44d0be",
+        "ld\\stm32f103ze.ld": "a43b3a93cc8582a91d40e0a3b38bfe7f060b096d864fdb98e132705d692292e5",
+        "src\\main.c": "17051db14191f5bbfa568bddff1d13c6ae244f0119f82764a058200c23df7e7b",
+        "src\\startup.c": "ded28d85dc381b2abe839c9f371271fb8d8761278a846fa2be9c99475237381b",
+        "src\\stm32f103_regs.h": "58e311a192383357b291b4d1f3517f677f8bbdd8df6c1ca3c2ddbda800f8a5c4"
+      },
+      "elfSha256": "a2fe520afee2aae3490a520cf5d7382ff98e0de7a544210c560f56894a89b55d",
+      "status": "fresh build; board acceptance pending",
+      "sourceRepository": "https://github.com/minichao9901/zynqlinkPRO",
+      "sourceRevision": "b5d3f3de"
+    }
+  },
+  "probeFinal": {
+    "rttRunning": false,
+    "rttClockMHz": 60,
+    "rttChunkBytes": 2048,
+    "scopeRunning": false,
+    "scopeVariables": 0,
+    "scopePeriodUs": 100,
+    "scopeClockHz": 60000000,
+    "clearConfigRc": 0
+  }
+}

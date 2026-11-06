@@ -44,6 +44,12 @@ test('flash delegates to the Web flasher with verification and reset enabled',as
   const r=rig();await r.a.dispatch({action:'flash',probe:'probe',name:'test.bin',data:'AA==',chip:'stm32h7',base:0x08000000});
   assert.deepEqual(r.calls,['flash']);assert.equal(r.tools.flash.file.dataB64,'AA==');assert.equal(r.elements.get('f-verify').checked,true);
 });
+test('WebUSB-only flash does not access retired backend or path controls',async()=>{
+  const r=rig(),get=r.win.document.getElementById;
+  r.win.document.getElementById=id=>['f-backend','f-path'].includes(id)?null:get(id);
+  const v=await r.a.dispatch({action:'flash',probe:'probe',name:'test.bin',data:'AA==',chip:'stm32f103',base:0x08000000});
+  assert.equal(v.programmed,true);assert.deepEqual(r.calls,['flash']);
+});
 test('target operations reuse the page object and release its busy guard',async()=>{
   const r=rig();r.e.target.saved.clear();await r.a.dispatch({action:'target',op:'init',profile:'stm32h743',probe:'probe'});
   assert.equal(r.e.state.hardwareOperation,true);

@@ -12,7 +12,7 @@ from html import escape
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 from pathlib import Path
-from flask import Flask,abort,jsonify,request,send_from_directory
+from flask import Flask,abort,jsonify,request,send_from_directory,send_file
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from werkzeug.serving import run_simple
 
@@ -95,6 +95,15 @@ def create_application(etm_root,serial_root=ROOT,cli_token_file=None):
     @app.route('/etm-launcher.json')
     def launcher_info():
         return jsonify(protocol=1,serialRoot=str(serial_root),etmRoot=str(etm_root))
+    @app.route('/downloads/manifest.json')
+    @app.route('/downloads/superlinkPRO-win64.zip')
+    def workbench_download():
+        # The source workbench serves only these two known distribution files.
+        # It never publishes the rest of dist or any user's data directory.
+        name=request.path.rsplit('/',1)[-1]
+        candidate=serial_root.parent/'dist'/name
+        if not candidate.is_file():abort(404)
+        return send_file(candidate,as_attachment=name.endswith('.zip'))
     @app.route('/',defaults={'path':'index.html'})
     @app.route('/<path:path>')
     def static_file(path):

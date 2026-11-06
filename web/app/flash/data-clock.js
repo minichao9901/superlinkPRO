@@ -1,7 +1,8 @@
 /** Bulk flash data may use a user-selected SWD rate; execution control stays
  * at 1MHz. Never execute a flashloader after an unverified fast RAM copy. */
+export const DEFAULT_FLASH_CLOCK_KHZ = 10000;
 export class FlashDataClock {
-  constructor(probe, clockKhz = 1000){
+  constructor(probe, clockKhz = DEFAULT_FLASH_CLOCK_KHZ){
     if (!Number.isInteger(clockKhz) || clockKhz < 100 || clockKhz > 60000) throw new Error('烧录时钟应在 100～60000 kHz 之间');
     this.probe = probe;
     this.clockKhz = clockKhz;

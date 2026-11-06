@@ -1,5 +1,5 @@
 /**
- * 顶部标签页的切换。支持 #serial / #terminal / #rtt / #flash / #gen 直达（也方便做演示链接）。
+ * 顶部标签页的切换。支持 #serial / #terminal / #rtt / #flash / #download 直达（也方便做演示链接）。
  * 不记忆上次标签：每次打开（URL 上没有 #hash）都从「烧录器」开始——2026-10-18 用户明确要求。
  */
 export function initTabs(onSwitch){

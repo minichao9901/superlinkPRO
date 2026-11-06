@@ -33,7 +33,6 @@ export const CHIPS = [
   { v: 'esp32s31',  label: 'ESP32-S31（板载 USB-JTAG）' },
   { v: 'esp32',     label: 'ESP32（Wrover Kit）' },
   ...HPM_BOARDS.map(b => ({ v: b.id, label: b.name + '（RISC-V，零安装）', ram: b.memory.rttRange })),
-  { v: 'custom',    label: '自定义 cfg…' },
 ];
 
 export function fillChipSelect(sel){

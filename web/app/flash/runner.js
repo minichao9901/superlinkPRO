@@ -16,7 +16,7 @@
  *    `yieldTask` = 让一步（不受节流）；`sleep` 只用在"算法真的要跑很久"的兜底节奏上。
  */
 import { sleep, yieldTask } from '../core/pace.js';
-import { FlashDataClock } from './data-clock.js';
+import { FlashDataClock, DEFAULT_FLASH_CLOCK_KHZ } from './data-clock.js';
 
 export function b64ToBytes(b64){
   const s = atob(b64);
@@ -26,7 +26,7 @@ export function b64ToBytes(b64){
 }
 
 export class FlashRunner {
-  constructor(probe, { clockKhz = 1000 } = {}){ this.probe = probe; this.data = new FlashDataClock(probe, clockKhz); }
+  constructor(probe, { clockKhz = DEFAULT_FLASH_CLOCK_KHZ } = {}){ this.probe = probe; this.data = new FlashDataClock(probe, clockKhz); }
 
   // ---------- 寄存器 ----------
   // 读写都委托给 probe（AP1 上的 DCRSR/DCRDR 握手在 dap-webusb.regRead/regWrite 里做，

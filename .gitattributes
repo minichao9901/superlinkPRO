@@ -11,6 +11,9 @@
 
 # ── 批处理：`*.bat` 必须原样（CRLF + 编码），换行转换会让 cmd 解析错位 ──────────────
 *.bat -text
+/dist/superlinkPRO-win64.zip -text
+/dist/manifest.json -text
+/web/tools/fixtures/f103ze-acceptance/*.elf -text
 
 # ── 来自 web/ 的 .gitattributes（路径同步加 web/ 前缀） ─────────────────────────
 # 对账基线必须**原样**保存字节：Python 工具（uvprojx2cmake.py）在 Windows 上写出的是 CRLF，

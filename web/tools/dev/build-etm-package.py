@@ -31,9 +31,12 @@ def package_cli(package,toolbox,node):
     (package/'etm-trace.cmd').write_text('@echo off\n"%~dp0etm-bridge.exe" --cli %*\nexit /b %errorlevel%\n',encoding='ascii')
     return version
 
-def main():
+def main(argv=None):
     default_output=ROOT/'tmp/packages'/VERSION if '-rc.' in VERSION else ROOT/'bridge/etm/downloads'
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,default=default_output);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,default=default_output)
+    parser.add_argument('--app-name',default='etm-bridge',choices=('etm-bridge','superlinkPRO'))
+    parser.add_argument('--version',default=VERSION)
+    args=parser.parse_args(argv)
     if os.name!='nt' or sys.maxsize<=2**32:raise ValueError('请在 Windows 64 位 Python 下构建')
     node=shutil.which('node')
     if not node:raise ValueError('构建CLI包需要Node.js')
@@ -47,7 +50,7 @@ def main():
     payload=work/'backend'
     for name in provenance['packagedHashes']:
         target=payload/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(snapshot/name,target)
-    command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name','etm-bridge','--contents-directory','runtime','--distpath',str(work/'dist'),'--workpath',str(work/'build'),'--specpath',str(work),'--add-data',str(payload)+';backend','--add-data',str(ROOT/'tools/dev/serve-etm.py')+';.','--paths',str(snapshot),'--paths',str(snapshot/'tools'),'--paths',str(snapshot/'tools/la'),'--collect-all','capstone','--collect-all','elftools',
+    command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name',args.app_name,'--contents-directory','runtime','--distpath',str(work/'dist'),'--workpath',str(work/'build'),'--specpath',str(work),'--add-data',str(payload)+';backend','--add-data',str(ROOT/'tools/dev/serve-etm.py')+';.','--paths',str(snapshot),'--paths',str(snapshot/'tools'),'--paths',str(snapshot/'tools/la'),'--collect-all','capstone','--collect-all','elftools',
                # numpy 2.x 的 `numpy._core._exceptions` 等子模块不会被默认 hook 完整收进 PYZ，
                # 冻结后首次 import 就 ModuleNotFoundError → 前端静默回退纯 Python（审查 F02）。
                # 用 collect-submodules/binaries（不用 collect-all）：后者会把 numpy 测试数据也带进包。
@@ -72,13 +75,13 @@ def main():
         command+=['--exclude-module',name]
     command.append(str(ROOT/'bridge/etm/etm_bridge.py'))
     subprocess.run(command,cwd=ROOT,check=True)
-    package=work/'dist/etm-bridge';toolbox=package/'toolbox';toolbox.mkdir()
+    package=work/'dist'/args.app_name;toolbox=package/'toolbox';toolbox.mkdir()
     shutil.copyfile(ROOT/'index.html',toolbox/'index.html')
-    public_files=subprocess.check_output(['git','ls-files','--','app'],cwd=ROOT,text=True).splitlines()
+    public_files=[p.relative_to(ROOT).as_posix() for p in (ROOT/'app').rglob('*') if p.is_file()]
     # A pre-commit build must also ship newly introduced bundle source modules.
     public_files+=list(json.loads((ROOT/'app/site/manifest.json').read_text(encoding='utf8'))['inputs'])
-    # Include new app files introduced by this task before their first commit.
-    public_files+=['app/gen/etm-kit.js','app/gen/etm-kit-src.js','docs/etm-integration.md','docs/etm-online-bridge.md','docs/h743-web-review-2026-10-17.md','docs/etm-audit-2026-10-14.md','docs/etm-review-followup-2026-10-15.md']
+    public_files+=['docs/etm-integration.md','docs/etm-online-bridge.md']
+    public_files+=subprocess.check_output(['git','ls-files','--','samples'],cwd=ROOT,text=True).splitlines()
     for name in sorted(set(public_files)):
         original=ROOT/name
         if original.is_file() and original.suffix!='.map':
@@ -86,10 +89,9 @@ def main():
     # Force the validated bundle in portable mode; original module URLs still resolve for workers/assets.
     index=toolbox/'index.html';text=index.read_text(encoding='utf8').replace("window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);","window.__useWebBundle = mode !== 'source';")
     index.write_text(text,encoding='utf8')
-    js="import {etmKitFiles} from './app/gen/etm-kit.js'; console.log(JSON.stringify(etmKitFiles().map(f=>({name:f.name.split('/').pop(),data:Buffer.from(f.data).toString('base64')}))));"
-    import base64
-    for file in json.loads(subprocess.check_output(['node','--input-type=module','-e',js],cwd=ROOT,text=True)):
-        (package/file['name']).write_bytes(base64.b64decode(file['data']))
+    (package/'etm.config.json').write_text(json.dumps({'port':8878,'engine':'native'},indent=2)+'\n',encoding='utf8')
+    (package/'start-etm-bridge.bat').write_text('@echo off\n"%~dp0'+args.app_name+'.exe" %*\nexit /b %errorlevel%\n',encoding='ascii')
+    (package/'README.txt').write_text('superlinkPRO Windows x64 工作台\n完整解压后双击 '+args.app_name+'.exe；保留 runtime、toolbox、cli 目录。\nETM 沿用 KingstVIS Socket，更新前保留 data。\n',encoding='utf8')
     licenses=package/'licenses';licenses.mkdir();shutil.copyfile(snapshot/'vendor/OpenCSD-1.8.3/LICENSE',licenses/'OpenCSD-BSD-3-Clause.txt')
     shutil.copyfile(snapshot/'vendor/OpenCSD-1.8.3/NOTICES.txt',licenses/'OpenCSD-NOTICES.txt')
     shutil.copyfile(snapshot/'native/SQLITE-LICENSE.txt',licenses/'SQLite-PUBLIC-DOMAIN.txt')
@@ -109,18 +111,27 @@ def main():
                 if original.is_file():
                     destination=licenses/name/member.name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(original,destination)
     distributions['Node.js']=package_cli(package,toolbox,node)
+    # Keep the established offline Trace CLI regardless of the desktop EXE name.
+    (package/'etm-trace.cmd').write_text('@echo off\n"%~dp0'+args.app_name+'.exe" --cli %*\nexit /b %errorlevel%\n',encoding='ascii')
     shutil.copyfile(ROOT/'bridge/etm/provenance.json',package/'source-provenance.json')
     files=[dict(name=p.relative_to(package).as_posix(),bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(package.rglob('*')) if p.is_file()]
     identity=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()
-    manifest=dict(version=VERSION,platform='windows-x64',packageId=identity,sourceRevision=provenance['sourceRevision'],sourceDirty=provenance.get('sourceDirty',False),python=sys.version,dependencies=distributions,files=files)
+    revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+    workspace_dirty=bool(subprocess.check_output(['git','status','--porcelain','--untracked-files=normal'],cwd=ROOT,text=True).strip())
+    source_scope=['web/app','web/index.html','web/samples','web/tools/dev','web/bridge/etm/etm_bridge.py','web/bridge/etm/backend','web/bridge/etm/provenance.json','etm','tools/build_workbench.py','tools/verify_workbench_package.py']
+    dirty=bool(subprocess.check_output(['git','status','--porcelain','--untracked-files=normal','--',*source_scope],cwd=ROOT.parent,text=True).strip())
+    inputs={name:sha(ROOT/name) for name in sorted(set(public_files+['index.html','tools/dev/serve-etm.py','tools/dev/build-etm-package.py','bridge/etm/etm_bridge.py','../tools/build_workbench.py','../tools/verify_workbench_package.py'])) if (ROOT/name).is_file()}
+    manifest=dict(version=args.version,platform='windows-x64',launcher=args.app_name+'.exe',archiveRoot='superlinkPRO' if args.app_name=='superlinkPRO' else 'etm-bridge-kit',packageId=identity,sourceRevision=revision,sourceDirty=dirty,workspaceDirty=workspace_dirty,sourceScope=source_scope,runtimeSourceRevision=provenance['sourceRevision'],sourceInputs=inputs,python=sys.version,dependencies=distributions,files=files)
     (package/'package-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
-    args.output.mkdir(parents=True,exist_ok=True);archive=args.output/'etm-bridge-win64.zip'
+    args.output.mkdir(parents=True,exist_ok=True);archive=args.output/(args.app_name+'-win64.zip')
+    if archive.exists():raise FileExistsError('候选输出已存在：'+str(archive))
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as zip:
         for file in sorted(package.rglob('*')):
-            if file.is_file():zip.write(file,'etm-bridge-kit/'+file.relative_to(package).as_posix())
-    if archive.stat().st_size>=100*1024*1024:
+            if file.is_file():zip.write(file,manifest['archiveRoot']+'/'+file.relative_to(package).as_posix())
+    if args.app_name=='etm-bridge' and archive.stat().st_size>=100*1024*1024:
         raise ValueError('完整包超过GitHub单文件100MiB限制；不能作为Pages下载提交')
-    download=dict(version=VERSION,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=provenance['sourceRevision'],sourceDirty=provenance.get('sourceDirty',False))
+    download=dict(version=args.version,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=revision,sourceDirty=dirty,runtimeSourceRevision=provenance['sourceRevision'])
     (args.output/'manifest.json').write_text(json.dumps(download,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(dict(package=str(package),archive=str(archive),**download),ensure_ascii=False))
+    return dict(package=package,archive=archive,manifest=args.output/'manifest.json')
 if __name__=='__main__':main()

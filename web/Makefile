@@ -50,7 +50,7 @@ test-etm:
 # make test-hss-rate BOARD=ze；依赖探针、匹配的 F103 板和已授权浏览器。
 test-hss-rate:
 	$(NODE) tools/dev/hss-rate-hw.mjs --board=$(BOARD) --seconds=$(HSS_SECONDS) --clock=$(HSS_CLOCK) --cpu=$(HSS_CPU) --periods=$(HSS_PERIODS) --port=$(PORT) --cdp=$(CDP) $(ARGS)
-.PHONY: help serve serve-dev serve-stop browser open page-prep spi-flash-hw idcode board-check-f103ze board-check-f103cb board-check-h743 board-check-6800evk test test-offline test-board-matrix test-random-flow test-ui test-gen test-gen-page gen-embed gen-shared gen-etm-page samples-anim test-hid test-dwarf test-scope test-scope-page test-scope-render test-spi test-read test-spi-page test-hw test-record test-bridge test-bridge-gate test-hpm test-image test-all test-dbg test-dbg-page test-dbg-hw test-dbg-stress test-dbg-stress-f103ze test-dbg-stress-f103cb flash-dbgstress-f103ze flash-dbgstress-f103cb flash-dbgstress-h743 flash-dbgstress-6800evk test-dbg-riscv test-idcode test-dsl test-flash flash-timing hw-campaign hw-campaign-f103ze hw-campaign-f103cb hw-campaign-h743 hw-campaign-hpm hw-campaign-riscv hw-random-flow-f103cb hw-random-flow-h743 hw-random-flow-6800evk build-f103ze-examples build-f103cb-examples build-h743-examples build-6800evk-examples build-all-examples rebuild-all-examples clean-firmware campaign-summary full_flow_f103ze full_flow_f103cb full_flow_h743 full_flow_6800evk tcpecho tcpecho-server tcpecho-selftest \
+.PHONY: help serve serve-dev serve-stop browser open page-prep spi-flash-hw idcode board-check-f103ze board-check-f103cb board-check-h743 board-check-6800evk test test-offline test-board-matrix test-random-flow test-ui    gen-shared gen-etm-page samples-anim test-hid test-dwarf test-scope test-scope-page test-scope-render test-spi test-read test-spi-page test-hw test-record   test-hpm test-image test-all test-dbg test-dbg-page test-dbg-hw test-dbg-stress test-dbg-stress-f103ze test-dbg-stress-f103cb flash-dbgstress-f103ze flash-dbgstress-f103cb flash-dbgstress-h743 flash-dbgstress-6800evk test-dbg-riscv test-idcode test-dsl test-flash flash-timing hw-campaign hw-campaign-f103ze hw-campaign-f103cb hw-campaign-h743 hw-campaign-hpm hw-campaign-riscv hw-random-flow-f103cb hw-random-flow-h743 hw-random-flow-6800evk build-f103ze-examples build-f103cb-examples build-h743-examples build-6800evk-examples build-all-examples rebuild-all-examples clean-firmware campaign-summary full_flow_f103ze full_flow_f103cb full_flow_h743 full_flow_6800evk tcpecho tcpecho-server tcpecho-selftest \
         bridge bridge-stop fw-build fw-flash fw-restore fw-h7-build fw-h7-flash \
         algo-check flash-plan la-info la-capture git-status git-log check clean spi-hw spi-flow i2c-hw spi-partial-hw spi-periodic-hw dbg-step-hw probe-diag
 
@@ -114,7 +114,6 @@ test: test-stability test-dbg-features test-board-matrix test-random-flow test-e
 	$(NODE) tools/selftest/rtt-campaign-wait.test.mjs
 	$(NODE) tools/selftest/campaign-summary.test.mjs
 	$(NODE) tools/selftest/serial-display.test.mjs
-	$(NODE) tools/selftest/gen-parity.mjs
 	$(NODE) tools/selftest/hid-proto.test.mjs
 	$(NODE) tools/selftest/dwarf.test.mjs
 	$(NODE) tools/selftest/scope-array.test.mjs
@@ -122,8 +121,6 @@ test: test-stability test-dbg-features test-board-matrix test-random-flow test-e
 	$(NODE) tools/selftest/scope-rate.test.mjs
 	$(NODE) tools/selftest/scope-transport.test.mjs
 	$(NODE) tools/selftest/scope-store-batch.test.mjs
-	$(NODE) tools/selftest/bridge-origin.test.mjs
-	$(NODE) tools/selftest/bridge-lifecycle.test.mjs
 	$(NODE) tools/selftest/flash-image.test.mjs
 	$(NODE) tools/selftest/shared-drivers.test.mjs
 	$(NODE) tools/selftest/etm-page-copy.test.mjs
@@ -329,9 +326,6 @@ sin-table-check:
 	python tools/dev/gen-sin-table.py --check
 
 # 桥的 WebSocket 准入（Origin 白名单 + 口令）：纯离线，自己拉一个桥实例只做握手
-test-bridge-gate:
-	$(NODE) tools/selftest/bridge-origin.test.mjs
-
 # ELF/DWARF 变量提取（scope 页的变量浏览器底座）—— 基线是真 ELF 快照
 test-dwarf:
 	$(NODE) tools/selftest/dwarf.test.mjs
@@ -344,19 +338,6 @@ test-scope:
 	$(NODE) tools/selftest/scope-rate.test.mjs
 	$(NODE) tools/selftest/scope-transport.test.mjs
 	$(NODE) tools/selftest/scope-store-batch.test.mjs
-
-# 「工程生成」页与 Python 工具（uvprojx2cmake.py）产物的逐字节对账
-# 外加「本地桥安装包」生成器的自测（桥源码哈希对账 + bat/ps1/config 内容）
-test-gen:
-	$(NODE) tools/selftest/gen-parity.mjs
-	$(NODE) tools/selftest/bridge-kit.test.mjs
-	$(NODE) tools/selftest/etm-kit.test.mjs
-
-# 改完 bridge/rtt-bridge.mjs 必须重嵌一次（否则「工程生成」页发出去的桥是旧的）
-# 忘了也没事：test-gen 里那条哈希对账会红
-gen-embed:
-	$(NODE) tools/dev/embed-bridge.mjs
-	$(NODE) tools/dev/embed-etm-kit.mjs
 
 # 改完 web/app/** 里那 7 个共享探针驱动（rtt/dap-webusb、core/{usb-device,probe-bus,pace,bin}、
 # dbg/{bp,source}）必须重跑一次：etm/web/app/shared/** 是它们的生成副本。
@@ -381,12 +362,6 @@ test-ui:
 .PHONY: test-ui-layout
 test-ui-layout: page-prep
 	$(NODE) tools/selftest/ui-layout-page.test.mjs
-
-# 「工程生成」页的真页面验收（需要 8899 服务 + 9333 CDP 浏览器，见 make open）
-test-gen-page:
-	pwsh -NoProfile -Command "if (-not (Get-NetTCPConnection -State Listen -LocalPort $(PORT) -ErrorAction SilentlyContinue)) { Start-Process -FilePath '$(PY)' -ArgumentList '-m','http.server','$(PORT)','--bind','127.0.0.1' -WindowStyle Hidden; Start-Sleep -Seconds 1 }"
-	pwsh -NoProfile -Command "try { Invoke-WebRequest 'http://127.0.0.1:$(CDP)/json/version' -TimeoutSec 2 -UseBasicParsing | Out-Null } catch { & 'tools/selftest/launch-browser.ps1' -Port $(CDP) -Url '$(APP)'; Start-Sleep -Seconds 2 }"
-	$(NODE) tools/selftest/gen-page.test.mjs
 
 # 「J-Scope 波形」页的真页面验收（假探针，不需要硬件；需要 8899 服务 + 9333 CDP 浏览器）
 test-scope-page:
@@ -705,9 +680,6 @@ full_flow_6800evk: board-check-6800evk hw-campaign-hpm flash-dbgstress-6800evk t
 campaign-summary:
 	$(NODE) tools/selftest/campaign-summary.mjs $(ARGS)
 
-test-bridge:
-	$(NODE) tools/selftest/bridge.test.mjs
-
 # 屏页「动画 / 视频」的示例素材（GIF / APNG / 动画 WebP / MP4 / WebM）—— 见 samples/anim/README.md
 samples-anim:
 	$(PY) tools/dev/make-anim-samples.py $(ARGS)
@@ -720,16 +692,10 @@ samples-scenery:
 test-scenery:
 	$(NODE) tools/selftest/scenery-samples.test.mjs
 
-test-all: test test-ui test-hw test-bridge
+test-all: test test-ui test-hw
 	pwsh -NoProfile -Command "Write-Host '全部自测跑完'"
 
 # ---------------------------------------------------------------- 本地桥
-bridge:
-	$(NODE) bridge/rtt-bridge.mjs --target $(TARGET)
-
-bridge-stop:
-	pwsh -NoProfile -Command "Get-Process openocd -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$$_.CommandLine -like '*rtt-bridge.mjs*' } | ForEach-Object { Stop-Process -Id \$$_.ProcessId -Force -ErrorAction SilentlyContinue }"
-
 # ---------------------------------------------------------------- 目标固件
 fw-build:
 	pwsh -NoProfile -File $(FW_DIR)/build.ps1

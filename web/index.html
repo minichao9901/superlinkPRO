@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>串口 / RTT 工具箱 —— 网页版串口助手 · 终端 · SEGGER RTT Viewer</title>
+<title>superlinkPRO 工作台 —— 串口 · RTT · 波形 · 调试 · ETM</title>
 <meta name="description" content="零安装的网页工具：Web Serial 串口助手（SSCOM 风格）、ANSI 终端（Xshell 风格）、以及走 WebUSB/CMSIS-DAP 的 SEGGER RTT Viewer。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1117'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='%2358a6ff'%3E%3E_%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="app/vendor/xterm/xterm.css">
 <link rel="stylesheet" href="app/app.css">
+<link rel="stylesheet" href="app/download.css">
 <script>
 (function(){
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=c9f91bbeb06347ed';
+  window.__webBundleUrl = 'app/site/main.js?v=1fefa586da879159';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -35,7 +36,7 @@
 </div>
 
 <header class="topbar">
-  <div class="brand" title="串口 / RTT 工具箱"><span class="brand-title">串口 / RTT 工具箱</span></div>
+  <div class="brand" title="superlinkPRO 工作台"><span class="brand-title">superlinkPRO</span></div>
   <nav class="tabs" id="tabs" aria-label="工具切换">
     <div class="primary-tabs">
       <button class="tab" data-tab="serial">串口助手</button>
@@ -45,6 +46,7 @@
       <button class="tab" data-tab="scope">J-Scope 波形</button>
       <button class="tab active" data-tab="flash">烧录器</button>
       <button class="tab" data-tab="dbg">调试器</button>
+      <button class="tab" data-tab="download">工程下载</button>
     </div>
     <details class="tool-switch" id="tool-switch">
       <summary>更多功能 <span aria-hidden="true">▾</span></summary>
@@ -56,7 +58,6 @@
         <button class="tab" data-tab="etm">ETM 执行轨迹</button>
         <button class="tab" data-tab="i2c">USB→I2C</button>
         <button class="tab" data-tab="analog">USB→ADC/DAC</button>
-        <button class="tab" data-tab="gen">工程生成</button>
       </div>
     </details>
   </nav>
@@ -84,6 +85,34 @@
 </header>
 
 <main>
+<section class="panel" id="tab-download" aria-labelledby="download-heading">
+  <div class="download-page">
+    <p class="download-eyebrow">SUPERLINK PRO · WINDOWS 工作台</p>
+    <h1 id="download-heading">工程下载</h1>
+    <p class="download-intro">下载完整工作台，在本机使用调试工具和 ETM 执行轨迹。</p>
+    <article class="download-card">
+      <div class="download-card-heading"><h2>superlinkPRO 工作台</h2><span class="download-version" id="download-version">版本读取中</span></div>
+      <p>Windows 10 / 11 · x64 · 免安装便携版</p>
+      <p class="download-description">包含串口、RTT、波形、烧录、调试、外设工具及原有 Kingst ETM 工作台。完整包已包含运行库，无需另装 Python 或 Node.js。</p>
+      <div class="download-actions">
+        <a class="download-primary" id="download-exe" href="downloads/superlinkPRO-win64.zip">下载 Windows 完整包 <span aria-hidden="true">↓</span></a>
+        <a href="downloads/manifest.json" target="_blank" rel="noopener">版本说明与 SHA-256 ↗</a>
+      </div>
+      <p id="download-integrity" class="hint" role="status">正在读取下载包信息…</p>
+      <button id="download-refresh" type="button">刷新下载信息</button>
+      <ol class="download-steps">
+        <li><b>完整解压</b><span>保留整个 superlinkPRO 目录及 runtime 运行库。</span></li>
+        <li><b>双击启动</b><span>运行 superlinkPRO.exe，浏览器会打开本地工作台。</span></li>
+        <li><b>开始使用</b><span>选择工具并连接探针；ETM 采集需另外打开 KingstVIS Socket。</span></li>
+      </ol>
+    </article>
+    <div class="download-notes">
+      <article><h2>网页直接连接</h2><p>使用桌面版 Chrome 或 Edge，通过本页的烧录器、调试器和 RTT 工具连接探针。首次使用需点击连接并选择 USB 设备。</p></article>
+      <article><h2>ETM 在本机运行</h2><p>在线页面不提供采集和解码服务。请下载完整包，双击 EXE 使用本地 ETM 工作台。更新前先退出旧程序，保留 data 目录中的个人记录。</p></article>
+    </div>
+    <p class="download-footer"><a href="https://github.com/minichao9901/superlinkPRO" target="_blank" rel="noopener">GitHub 发布仓库 ↗</a><span>插入探针后的网页提示由浏览器控制；也可收藏本页随时打开。</span></p>
+  </div>
+</section>
 
 <!-- ============================ ETM 执行轨迹 ============================ -->
 <section class="panel" id="tab-etm">
@@ -100,7 +129,7 @@
   </div>
   <iframe id="etm-frame" title="ETM 执行轨迹" allow="usb" hidden></iframe>
 </section>
-<section class="panel" id="tab-serial">
+<section class="panel" id="tab-serial" data-workspace="serial">
   <div class="ws">
     <aside class="side">
       <fieldset>
@@ -166,18 +195,18 @@
         <label class="chk"><input type="checkbox" id="s-autoscroll" checked> 自动滚动</label>
         <label class="chk"><input type="checkbox" id="s-echo"> 显示发送</label>
         <span class="spacer"></span>
-        <button id="s-pause">暂停</button>
+        <button id="s-pause" title="只暂停显示，接收和持续记录仍继续">暂停显示</button>
         <button id="s-clear">清空</button>
-        <button id="s-save">保存数据</button>
+        <button id="s-save" title="导出当前接收缓冲；长时间完整记录请使用持续记录到文件">导出缓冲</button>
       </div>
       <pre class="rx" id="s-rx" tabindex="0"></pre>
       <div class="termbox" id="s-term" hidden></div>
       <div class="stats">
-        <span>RX <b id="s-rxbytes">0</b> B / <b id="s-rxframes">0</b> 段 · <b id="s-rxrate">0 B/s</b></span>
-        <span>TX <b id="s-txbytes">0</b> B / <b id="s-txframes">0</b> 段 · <b id="s-txrate">0 B/s</b></span>
+        <span>RX <b id="s-rxbytes">0 B</b> / <b id="s-rxframes">0</b> 段 · <b id="s-rxrate">0 B/s</b></span>
+        <span>TX <b id="s-txbytes">0 B</b> / <b id="s-txframes">0</b> 段 · <b id="s-txrate">0 B/s</b></span>
         <span class="err" id="s-err"></span>
         <span class="spacer"></span>
-        <button id="s-record" class="mini" title="把收到的字节直接写进本地文件（不走接收区的 2MB 内存上限），高速采集用">● 记录到文件</button>
+        <button id="s-record" class="mini" title="把收到的字节直接写进本地文件（不走接收区的 2MB 内存上限），高速采集用">● 持续记录</button>
         <label class="chk" title="默认开：每段前加一行 [时:分:秒.毫秒]，存 .txt 给人看；关掉则原样写字节存 .bin（二进制安全，事后解析用）"><input type="checkbox" id="s-record-ts" checked> 记录带时间戳</label>
         <label class="chk" title="连接成功后自动弹一次保存框开始记录到文件。配合高速自动关显示（>50KB/s 停渲染、收数/记录照常），MicroLink RTT→CDC 这种一上来就猛灌的场景全程无感"><input type="checkbox" id="s-record-auto"> 连接自动记录</label>
         <button id="s-statclear" class="mini">计数清零</button>
@@ -205,7 +234,7 @@
 </section>
 
 <!-- ============================== 终端 ============================== -->
-<section class="panel" id="tab-terminal">
+<section class="panel" id="tab-terminal" data-workspace="terminal">
   <div class="ws">
     <aside class="side">
       <fieldset>
@@ -259,19 +288,12 @@
 </section>
 
 <!-- =========================== RTT Viewer =========================== -->
-<section class="panel" id="tab-rtt">
+<section class="panel" id="tab-rtt" data-workspace="rtt">
   <div class="ws">
     <aside class="side">
       <fieldset>
-        <legend>调试后端</legend>
-        <label class="row"><span>类型</span>
-          <select id="r-backend">
-            <option value="webusb">WebUSB · CMSIS-DAP（零安装）</option>
-            <option value="bridge-openocd">本地桥 · OpenOCD</option>
-            <option value="bridge-jlink">本地桥 · J-Link（ch0）</option>
-            <option value="mock">内置模拟目标（演示/自测）</option>
-          </select>
-        </label>
+        <legend>WebUSB 连接</legend>
+
         <div id="r-webusb-box">
           <div class="row btnrow">
             <button id="r-usb-connect" class="primary">连接探针</button>
@@ -299,57 +321,9 @@
             </select>
           </label>
           <label class="chk"><input type="checkbox" id="r-usb-all"> 显示所有 USB 设备（非 DAPLink）</label>
-          <p class="hint">支持 CMSIS-DAP v2（bulk）探针：DAPLink、自制 cherrydap 等。<br>J-Link 探针不支持 WebUSB，请改用本地桥。</p>
+          <p class="hint">支持 CMSIS-DAP v2（bulk）探针：DAPLink、自制 cherrydap 等。<br></p>
         </div>
-        <div id="r-bridge-box" hidden>
-          <label class="row"><span>桥地址</span><input id="r-bridge-url" value="ws://127.0.0.1:17321"></label>
-          <!-- J-Link（本地桥 · J-Link ch0）专用两格：原来这两个值只躺在 localStorage 里，页面上没入口。
-               device 是给 J-Link 的器件名；speed 是 SWD 时钟 kHz（50000 = 50MHz，J-Link PRO + F103 实测可用）。 -->
-          <div id="r-jlink-box" hidden>
-            <label class="row"><span>器件</span>
-              <input id="r-jlink-device" value="STM32F103C8" title="给 J-Link 的器件名（如 STM32F103C8 / STM32F103RB / STM32H7B0VB）">
-            </label>
-            <label class="row"><span>SWD kHz</span>
-              <select id="r-jlink-speed" title="SWD 时钟（J-Link）：50000 = 50MHz（J-Link PRO + STM32F103RB 实测可用）">
-                <option value="1000">1 MHz</option>
-                <option value="5000">5 MHz</option>
-                <option value="10000">10 MHz</option>
-                <option value="20000">20 MHz</option>
-                <option value="30000">30 MHz</option>
-                <option value="40000">40 MHz</option>
-                <option value="45000">45 MHz</option>
-                <option value="50000" selected>50 MHz</option>
-                <option value="60000">60 MHz</option>
-              </select>
-            </label>
-            <label class="chk"><input type="checkbox" id="r-jlink-fast"> 高速只读（JLinkRTTLogger）</label>
-            <p class="hint">勾上走 JLinkRTTLogger 直写日志（实测 ~1463 KB/s）；不勾走桥自启的 GDB server telnet（全双工，但它的 RTT 轮询节奏把上限压在 ~565 KB/s）。<br>代价：高速模式<b>只读</b>，下方发送框不能向下发数据。</p>
-          </div>
-          <div class="row cfgrow" id="r-ocd-custom-cfgs-row" hidden><span>cfg 文件</span>
-            <input id="r-ocd-cfgs" title="逗号/空格分隔，按顺序加载。相对 OpenOCD scripts 目录或绝对路径。第一个 cfg 是 cmsis-dap 时会自动加 backend usb_bulk">
-            <button id="r-ocd-cfgs-pick" type="button" title="列出桥所在机器的 OpenOCD cfg 让你挑（浏览器拿不到本地文件路径，所以列表由桥提供）">选择…</button>
-          </div>
-          <p class="hint" id="r-ocd-cfgs-hint" hidden>如 <code>interface/cmsis-dap.cfg, target/stm32f4x.cfg</code>（点「选择…」从列表挑，或直接手填）</p>
-          <label class="row" id="r-ocd-custom-speed-row" hidden><span>SWD kHz</span>
-            <select id="r-ocd-speed">
-              <option value="">不设（默认）</option>
-              <option value="1000">1 MHz</option>
-              <option value="5000">5 MHz</option>
-              <option value="10000">10 MHz</option>
-              <option value="20000">20 MHz</option>
-              <option value="30000">30 MHz</option>
-              <option value="40000">40 MHz</option>
-              <option value="45000">45 MHz</option>
-              <option value="50000">50 MHz</option>
-              <option value="60000">60 MHz</option>
-            </select>
-          </label>
-          <div class="row btnrow">
-            <button id="r-bridge-connect" class="primary">连接桥</button>
-            <button id="r-bridge-disconnect" disabled>断开</button>
-          </div>
-          <p class="hint">零安装模式不需要桥；要用 J-Link / OpenOCD 时再双击仓库里的 <code>bridge/start-bridge.bat</code>。<br>芯片在上方「RTT 控制块 → 芯片」里选；列表外选「自定义 cfg…」直接填 cfg。</p>
-        </div>
+
         <div id="r-mock-box" hidden>
           <p class="hint">模拟目标：内存里放一个假的 RTT 控制块，每 200ms 吐一行日志，用来演示与自测。</p>
         </div>
@@ -357,15 +331,10 @@
 
       <fieldset>
         <legend>RTT 控制块</legend>
-        <!-- 芯片：**一个下拉、两个组**（原来按目标类型显示两个下拉，用户 2026-09-30 要求合并）。
-             组归属由 <optgroup data-arch> 决定（view.js 只读 DOM，不维护第二份名单）：
-               · ARM 组：WebUSB 通路固定走 SWD；桥（OpenOCD/J-Link）那条路用哪条传输由你的 cfg 决定
-                 —— **ARM 也能走 JTAG**，所以这里不写死"ARM=SWD"；
-               · RISC-V 组：**只能 JTAG**（选中它会把「目标类型」自动切到 RISC-V/JTAG）。
-             每一组各自记住上次选的那颗（rtt.ocdTarget / rtt.rvChip），来回切不会丢。 -->
+
         <label class="row" id="r-chip-row"><span>芯片</span>
-          <select id="r-chip" title="ARM：WebUSB 走 SWD，桥侧走 SWD 还是 JTAG 由你的 OpenOCD cfg 决定；RISC-V：只能 JTAG。换芯片在这里选，RAM 扫描范围自动带出（可手改）。走「本地桥 · OpenOCD」时 ARM 组的名字同时是 OpenOCD 的目标 cfg；零安装 WebUSB 模式只用到 RAM 范围。列表外的芯片选 ARM 组的「自定义 cfg…」">
-            <optgroup label="ARM / Cortex-M（WebUSB 走 SWD · 桥侧 SWD 或 JTAG 由 cfg 定）" data-arch="arm">
+          <select id="r-chip" title="选择目标芯片以填入默认 RAM 扫描范围；范围也可手动修改">
+            <optgroup label="ARM / Cortex-M（WebUSB / SWD）" data-arch="arm">
               <option value="stm32f103">STM32F1（F103 等）</option>
               <option value="stm32f0">STM32F0</option>
               <option value="stm32f2">STM32F2</option>
@@ -387,9 +356,7 @@
               <option value="stm32c0">STM32C0</option>
               <option value="stm32wb">STM32WB</option>
               <option value="stm32wl">STM32WL</option>
-              <option value="esp32s31">ESP32-S31（板载 USB-JTAG）</option>
-              <option value="esp32">ESP32（Wrover Kit）</option>
-              <option value="custom">自定义 cfg…</option>
+
             </optgroup>
             <optgroup label="RISC-V（只能 JTAG · 控制块要在非缓存区）" data-arch="riscv">
               <option value="riscv-other">其它 RISC-V（自己填 RAM 范围）</option>
@@ -419,9 +386,9 @@
         <label class="chk"><input type="checkbox" id="r-ts"> 时间戳</label>
         <label class="chk"><input type="checkbox" id="r-autoscroll" checked> 自动滚动</label>
         <span class="spacer"></span>
-        <button id="r-pause">暂停</button>
+        <button id="r-pause" title="只暂停显示，接收和持续记录仍继续">暂停显示</button>
         <button id="r-clear">清空</button>
-        <button id="r-save">保存数据</button>
+        <button id="r-save" title="导出当前接收缓冲；长时间完整记录请使用持续记录到文件">导出缓冲</button>
       </div>
       <div class="rttbox">
         <div class="termbox" id="r-term" hidden></div>
@@ -433,7 +400,7 @@
         <span class="stat-group"><span class="stat-caption">链路</span>读取 <b id="r-rate">0 B/s</b> · 轮询 <b id="r-hz">0</b> Hz</span>
         <span class="stat-group"><span class="stat-caption">缓冲</span>高位 <b id="r-full">0 次 / 峰值 0%</b> · 溢出丢弃 <b id="r-lost">0</b> B · 错位读 <b id="r-corrupt" title="读回了控制块等错误地址的内容（已整段丢弃重读，不进显示/文件）。持续增长说明 SWD 时钟太高或不稳定">0</b></span>
         <span class="spacer"></span>
-        <button id="r-record" class="mini" title="把读到的 RTT 上行字节直接写进本地文件（不走记录的 2MB 内存上限），高速采集用">● 记录到文件</button>
+        <button id="r-record" class="mini" title="把读到的 RTT 上行字节直接写进本地文件（不走记录的 2MB 内存上限），高速采集用">● 持续记录</button>
         <label class="chk" title="默认开：每段前加一行 [时:分:秒.毫秒]，存 .txt 给人看；关掉则原样写字节存 .bin（二进制安全，事后解析用）"><input type="checkbox" id="r-record-ts" checked> 记录带时间戳</label>
         <label class="chk" title="连接成功后自动弹一次保存框开始记录到文件。配合高速自动关显示（>50KB/s 停渲染、收数/记录照常）"><input type="checkbox" id="r-record-auto"> 连接自动记录</label>
         <span class="err" id="r-err"></span>
@@ -455,7 +422,7 @@
 </section>
 
 <!-- ================== RTT 转发（akaLinkPro 探针侧 RTT→CDC，纯输出） ================== -->
-<section class="panel" id="tab-rttcdc">
+<section class="panel" id="tab-rttcdc" data-workspace="rttcdc">
   <div class="ws">
     <aside class="side">
       <fieldset>
@@ -528,17 +495,17 @@
         <label class="chk"><input type="checkbox" id="c-autoscroll" checked> 自动滚动</label>
         <span class="flush hint">纯输出页：没有发送功能</span>
         <span class="spacer"></span>
-        <button id="c-save" title="把接收区里的数据存成 txt（按当前 ASCII/HEX 与时间戳设置）">保存数据</button>
-        <button id="c-pause">暂停</button>
+        <button id="c-save" title="导出当前接收缓冲；长时间完整记录请使用持续记录到文件">导出缓冲</button>
+        <button id="c-pause" title="只暂停显示，接收和持续记录仍继续">暂停显示</button>
         <button id="c-clear">清空</button>
       </div>
       <pre class="rx" id="c-rx" tabindex="0"></pre>
       <div class="termbox" id="c-term" hidden></div>
       <div class="stats">
-        <span>RX <b id="c-rxbytes">0</b> B / <b id="c-rxframes">0</b> 段 · <b id="c-rxrate">0 B/s</b> · 缓冲 <b id="c-buf">0 B</b></span>
+        <span>RX <b id="c-rxbytes">0 B</b> / <b id="c-rxframes">0</b> 段 · <b id="c-rxrate">0 B/s</b> · 缓冲 <b id="c-buf">0 B</b></span>
         <span class="err" id="c-err"></span>
         <span class="spacer"></span>
-        <button id="c-record" class="mini" title="把收到的字节直接写进本地文件（不走接收区 2MB 上限），高速采集用">● 记录到文件</button>
+        <button id="c-record" class="mini" title="把收到的字节直接写进本地文件（不走接收区 2MB 上限），高速采集用">● 持续记录</button>
         <label class="chk" title="默认开：每段前加一行 [时:分:秒.毫秒]，存 .txt 给人看；关掉则原样写字节存 .bin（二进制安全）"><input type="checkbox" id="c-record-ts" checked> 记录带时间戳</label>
         <label class="chk" title="连接成功后自动弹一次保存框开始记录。配合高速自动关显示（>100KB/s 停渲染、收数/记录照常），一上来就猛灌的场景全程无感"><input type="checkbox" id="c-record-auto"> 连接自动记录</label>
         <button id="c-statclear" class="mini">计数清零</button>
@@ -668,7 +635,8 @@
         <div class="legend" id="sc-legend"></div>
       </div>
       <div class="stats">
-        <span>样本 <b id="sc-samples">0</b> · <b id="sc-rate">0 Hz</b> · 包 <b id="sc-packets">0</b> · 丢：探针 <b id="sc-lost">0</b> / USB <b id="sc-lostusb">0</b> / 缺口 <b id="sc-gap">0</b> / 溢出 <b id="sc-over">0</b> · 读错 <b id="sc-readerr">0</b> / 让路 <b id="sc-yields">0</b> · 缓冲 <b id="sc-buf">0%</b> · 内存 <b id="sc-mem">0 B</b> · <b id="sc-mhz">—</b></span>
+        <span>样本 <b id="sc-samples">0</b> · <b id="sc-rate">0 Hz</b> · 缓冲 <b id="sc-buf">0%</b> · 内存 <b id="sc-mem">0 B</b> · <b id="sc-mhz">—</b></span>
+        <details class="scope-counters"><summary>计数详情</summary><span>包 <b id="sc-packets">0</b> · 丢：探针 <b id="sc-lost">0</b> / USB <b id="sc-lostusb">0</b> / 缺口 <b id="sc-gap">0</b> / 溢出 <b id="sc-over">0</b> · 读错 <b id="sc-readerr">0</b> / 让路 <b id="sc-yields">0</b></span></details>
         <span class="err" id="sc-err"></span>
         <span class="spacer"></span>
         <span class="flush hint" id="sc-window"></span>
@@ -680,31 +648,25 @@
 </section>
 
 <!-- ============================ 烧录器 ============================ -->
-<section class="panel active" id="tab-flash">
+<section class="panel active" id="tab-flash" data-workspace="flash">
   <div class="ws">
     <aside class="side tool-side">
       <fieldset>
         <legend>目标与连接</legend>
-        <label class="row"><span>后端</span>
-          <select id="f-backend" title="零安装（默认）：与 RTT 共用探针，直接在浏览器里烧，覆盖 STM32 F0/F1/F4/F7/H7/L0/L4 与 HPM 全系 RISC-V。个别探针固件在 PPB 访问上有兼容问题、或你只想给磁盘路径（不给文件）时，换「本地桥」即可。">
-            <option value="webusb">WebUSB · 零安装（默认）</option>
-            <option value="openocd">本地桥 · OpenOCD</option>
-            <option value="jlink">本地桥 · J-Link</option>
-          </select>
-        </label>
+
         <label class="row"><span>芯片</span>
-          <select id="f-chip" title="走本地桥时它就是 OpenOCD 的目标 cfg；列表外的芯片选「自定义 cfg…」"></select>
+          <select id="f-chip" title="选择与目标匹配的 WebUSB 烧录算法"></select>
         </label>
         <div class="row btnrow">
-          <button id="f-idcode" title="只读地认目标（不动 flash、不改运行状态）：ARM/SWD 读 DP IDCODE + CPUID + STM32 DBGMCU DEV_ID/REV_ID + flash 容量寄存器；RISC-V/JTAG 读 TAP IDCODE。选错芯片也能读 —— 这个按钮不吃「芯片」那一格（只按后端选 SWD 还是 JTAG）。">读 IDCODE</button>
+          <button id="f-idcode" title="只读地认目标（不动 flash、不改运行状态）：ARM/SWD 读 DP IDCODE + CPUID + STM32 DBGMCU DEV_ID/REV_ID + flash 容量寄存器；RISC-V/JTAG 读 TAP IDCODE。选错芯片也能读 —— 这个按钮不吃「芯片」那一格（按目标类型选择 SWD 或 JTAG）。">读 IDCODE</button>
         </div>
       </fieldset>
       <div class="tool-side-panel">
         <fieldset>
           <legend>烧录时钟</legend>
           <label class="row" id="f-custom-speed-row"><span>时钟</span>
-            <select id="f-speed" title="WebUSB Cortex-M：所选档用于 RAM 数据与 Flash 校验，执行控制保留 1 MHz；本地桥和 RISC-V 使用整体调试时钟。高频传输不稳定时请降低档位。">
-              <option value="">默认（WebUSB 1 MHz）</option>
+            <select id="f-speed" title="WebUSB Cortex-M：所选档用于 RAM 数据与 Flash 校验，执行控制保留 1 MHz；RISC-V 使用整体调试时钟。高频传输不稳定时请降低档位。">
+              <option value="">默认（10 MHz）</option>
               <option value="1000">1 MHz</option>
               <option value="4000">4 MHz</option>
               <option value="5000">5 MHz</option>
@@ -719,26 +681,15 @@
             </select>
           </label>
         </fieldset>
-        <fieldset id="f-bridge-settings">
-          <legend>本地桥设置</legend>
-          <label class="row"><span>桥地址</span><input id="f-bridge-url" value="ws://127.0.0.1:17321"></label>
-          <div class="row cfgrow" id="f-custom-cfgs-row" hidden><span>cfg 文件</span>
-            <input id="f-cfgs" title="逗号/空格分隔，按顺序加载。相对 OpenOCD scripts 目录或绝对路径">
-            <button id="f-cfgs-pick" type="button" title="列出桥所在电脑的 OpenOCD cfg 让你挑">选择…</button>
-          </div>
 
-          <p class="hint">烧录走仓库里的 <code>bridge/start-bridge.bat</code>（与 RTT 的桥同一个）。</p>
-        </fieldset>
 
         <fieldset>
           <legend>固件</legend>
-          <label class="row"><span>路径</span>
-            <input id="f-path" placeholder="桥所在电脑上的 .elf / .hex / .bin 路径">
-          </label>
+
           <div class="row btnrow">
             <button id="f-pick">选择文件…</button>
           </div>
-          <p class="hint" id="f-file-info">支持 .elf / .hex / .bin：填桥所在电脑上的路径，或点「选择文件…」/ 拖进右侧日志区</p>
+          <p class="hint" id="f-file-info">支持 .elf / .hex / .bin：点「选择文件…」或拖入固件文件</p>
           <label class="row" id="f-base-row" hidden><span>基地址</span>
             <input id="f-base" class="address" value="0x08000000" title=".bin 没有地址信息，按这里填的地址写入">
           </label>
@@ -751,14 +702,39 @@
         </fieldset>
       </div>
     </aside>
-    <section class="main">
+    <section class="main" id="f-main">
       <div class="toolbar">
         <span id="f-status">空闲</span>
         <progress id="f-bar" value="0" max="100" hidden></progress>
         <span class="spacer"></span>
         <button id="f-logclear">清空日志</button>
       </div>
-      <pre class="rx eventlog" data-empty="烧录、身份读取和复位的进度与结果显示在这里。" id="f-log" tabindex="0"></pre>
+      <nav class="firmware-tabs" role="tablist" aria-label="固件查看">
+        <button id="f-tab-log" role="tab" aria-selected="true" aria-controls="f-log">日志</button>
+        <button id="f-tab-bytes" role="tab" aria-selected="false" aria-controls="f-pane-bytes" tabindex="-1">固件字节</button>
+        <button id="f-tab-elf" role="tab" aria-selected="false" aria-controls="f-pane-elf" tabindex="-1">ELF 解析</button>
+      </nav>
+      <pre class="rx eventlog" data-empty="烧录、身份读取和复位的进度与结果显示在这里。" id="f-log" role="tabpanel" aria-labelledby="f-tab-log" tabindex="0"></pre>
+      <section id="f-pane-bytes" class="firmware-pane" role="tabpanel" aria-labelledby="f-tab-bytes" hidden>
+        <p id="f-byte-info" class="hint"></p>
+        <div class="firmware-tools">
+          <select id="f-byte-source" aria-label="字节来源"><option value="image">烧录映像</option><option value="raw">原文件字节</option></select>
+          <select id="f-byte-region" aria-label="固件区段"></select>
+          <input id="f-byte-address" aria-label="定位固件地址" placeholder="烧录地址，如 0x08000000">
+          <button id="f-byte-go">定位</button>
+        </div>
+        <pre id="f-byte-content" class="firmware-hex" tabindex="0" aria-label="十六进制与 ASCII 字节"></pre>
+        <div class="firmware-tools"><button id="f-byte-prev">上一页</button><button id="f-byte-next">下一页</button><span id="f-byte-page" role="status"></span></div>
+      </section>
+      <section id="f-pane-elf" class="firmware-pane" role="tabpanel" aria-labelledby="f-tab-elf" hidden>
+        <p id="f-elf-note" class="hint"></p>
+        <div class="firmware-tools">
+          <select id="f-elf-view" aria-label="ELF 结构"><option value="header">文件头</option><option value="programs">程序头 / 加载段</option><option value="sections">节表</option><option value="symbols">符号表</option></select>
+          <input id="f-elf-search" placeholder="搜索名称、地址或字段…" aria-label="搜索 ELF 结构">
+        </div>
+        <div id="f-elf-content" class="firmware-table" tabindex="0"></div>
+        <div class="firmware-tools"><button id="f-elf-prev">上一页</button><button id="f-elf-next">下一页</button><span id="f-elf-page" role="status"></span></div>
+      </section>
       <div class="stats">
         <span id="f-result">—</span>
         <span class="spacer"></span>
@@ -2010,193 +1986,7 @@
 </section>
 
 <!-- ============================ 工程生成 ============================ -->
-<section class="panel" id="tab-gen">
-  <div class="ws">
-    <aside class="side">
-      <!-- 左栏卡片按右列的 tab 分组：`data-dock` 决定它属于哪个 tab，切 tab 时只显示当组的卡片
-           （用户 2026-10：左栏太长 → 跟右列联动，"分类简洁"）。见 app/gen/view.js 的 _dockSelect()。 -->
-      <fieldset data-dock="files">
-        <legend>工程</legend>
-        <div class="row btnrow">
-          <button id="g-uvpick" class="primary" title="读取 .uvprojx 里的器件/Flash 信息，自动填下面的参数（也可以直接把文件拖到右边）">选择 .uvprojx…</button>
-        </div>
-        <input type="file" id="g-uvfile" accept=".uvprojx,.xml" hidden>
-        <label class="row"><span>项目名</span><input id="g-project" value="project" title="写进 Makefile 的工程名 / build 目录里的文件名；Python 工具取的是 .uvprojx 所在目录名"></label>
-        <label class="row"><span>器件</span><input id="g-device" list="g-device-list" value="STM32F103RB" title="J-Link 的 -Device 名字；表外的型号直接手输"></label>
-        <datalist id="g-device-list"></datalist>
-        <label class="row"><span>Flash 起址</span><input id="g-flash-start" value="0x08000000"></label>
-        <p class="hint" id="g-detect">把 .uvprojx 拖进来（或点上面的按钮）：项目名、器件、Flash 起址会自动填好，其余都能手改。</p>
-      </fieldset>
 
-      <fieldset data-dock="files">
-        <legend>生成哪些</legend>
-        <label class="chk"><input type="checkbox" id="g-c-jlink" checked> Makefile.jlink（J-Link 烧录/调试）</label>
-        <label class="chk"><input type="checkbox" id="g-c-gdb" checked> jlink_gdb.script（GDB 脚本）</label>
-        <label class="chk"><input type="checkbox" id="g-c-pyocd" checked> Makefile.pyocd（PyOCD）</label>
-        <label class="chk"><input type="checkbox" id="g-c-openocd" checked> Makefile.openocd（附带 rtt_logger.py）</label>
-        <label class="chk"><input type="checkbox" id="g-c-testbin" checked> test_sram.bin（SRAM 测试图案）</label>
-        <label class="row"><span>bin 大小</span><input id="g-testbin-size" class="num" value="20480" inputmode="numeric"></label>
-      </fieldset>
-
-      <fieldset data-dock="params">
-        <legend>参数</legend>
-        <label class="row"><span>接口</span>
-          <select id="g-if"><option>SWD</option><option>JTAG</option></select>
-        </label>
-        <label class="row"><span>时钟 kHz</span><input id="g-speed" class="num" value="25000" inputmode="numeric" title="J-Link 的 -Speed。J-Link PRO 上 50000 也能稳跑"></label>
-        <label class="row"><span>RTT 地址</span><input id="g-rtt-addr" value="0x20002000" title="_SEGGER_RTT 控制块地址，要与链接脚本里钉的位置一致"></label>
-        <label class="row"><span>RTT 范围</span><input id="g-rtt-size" value="0x2000" title="-RTTSearchRanges 的搜索长度。Python 模板原值是 0x5000，在 20KB RAM 的 F103 上会越过 RAM 顶，所以这里默认按修正后的 0x2000"></label>
-        <label class="row"><span>GDB 端口</span><input id="g-gdb-port" class="num" value="3333" inputmode="numeric"></label>
-        <label class="row"><span>build 目录</span><input id="g-build-dir" value="build"></label>
-        <label class="row"><span>CMake 生成器</span>
-          <select id="g-generator"><option>Ninja</option><option>Unix Makefiles</option><option>MinGW Makefiles</option></select>
-        </label>
-        <label class="row"><span>构建类型</span>
-          <select id="g-build-type"><option>Debug</option><option>Release</option><option>RelWithDebInfo</option><option>MinSizeRel</option></select>
-        </label>
-        <label class="row"><span>PyOCD 目标</span><input id="g-pyocd-target" value="stm32f103rb" title="pyocd -t 的 target 名（pyocd pack 里能查到）"></label>
-        <label class="row"><span>PyOCD Hz</span><input id="g-pyocd-freq" class="num" value="10000000" inputmode="numeric"></label>
-        <!-- 路径类输入框用 `row wide`：控件独占一行、撑满侧栏宽度（原来 179px 的框里塞 605px 的路径，
-             看到的永远是开头那截）。浏览器出于安全拿不到真实目录名（showDirectoryPicker 只给文件夹名），
-             所以这里没有"选择…"可挂；完整值看 title。 -->
-        <label class="row wide"><span>OpenOCD 根</span><input id="g-openocd-root" value="E:/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/OpenOCD/OpenOCD" title="OpenOCD 安装/解压目录（里面要有 bin 和 scripts）。留空 = 产物里也留空"></label>
-        <label class="row"><span>OpenOCD 接口</span><select id="g-openocd-if"></select></label>
-        <label class="row"><span>OpenOCD 目标</span><input id="g-openocd-target" list="g-openocd-targets" value="target/stm32f1x.cfg"></label>
-        <datalist id="g-openocd-targets"></datalist>
-        <label class="row"><span>OpenOCD kHz</span><input id="g-openocd-freq" class="num" value="10000" inputmode="numeric"></label>
-        <label class="row"><span>RTT 端口</span><input id="g-rtt-port" class="num" value="9090" inputmode="numeric" title="openocd-rtt 目标里 rtt server start 的端口"></label>
-      </fieldset>
-
-      <fieldset data-dock="files">
-        <legend>落地方式</legend>
-        <label class="row"><span>换行符</span>
-          <select id="g-newline" title="CRLF = 与 uvprojx2cmake.py 的产物逐字节一致；LF 更贴近 git 习惯">
-            <option value="crlf">CRLF（和 Python 工具一致）</option>
-            <option value="lf">LF</option>
-          </select>
-        </label>
-        <label class="chk"><input type="checkbox" id="g-force"> 已存在就直接覆盖（不再问）</label>
-        <div class="row btnrow">
-          <button id="g-save" class="primary" title="Edge/Chrome：选一个文件夹，多个文件直接写进去，不用解压">写入文件夹…</button>
-        </div>
-        <div class="row btnrow">
-          <button id="g-zip" title="不支持选文件夹的浏览器走这里：打包成一个 zip 落「下载」">打包 ZIP</button>
-        </div>
-        <p class="hint">网页不能自动写你的项目目录：得你亲手选一次文件夹（浏览器安全模型）。Edge/Chrome 支持直写，其它浏览器自动走 ZIP。</p>
-      </fieldset>
-
-      <!-- 本地桥：跟"工程配套文件"是两回事（那是本机跑的程序包）—— 单独一个 tab（用户 2026-10 要求） -->
-      <fieldset data-dock="etm">
-        <legend>ETM 本地桥</legend>
-        <label class="row"><span>端口</span><input id="g-etm-port" type="number" min="1024" max="65535" value="8878"></label>
-        <p class="hint">首次使用：下载完整 ETM 桥包 → 解压 → 双击 <code>start-etm-bridge.bat</code>。无需安装 Python 或配置工程目录。</p>
-        <p class="hint">已有完整包：仅下载启动文件，放到完整包目录覆盖同名文件。完整包默认端口 8878；可用左侧端口生成启动配置。</p>
-        <p class="hint">先打开 KingstVIS 的 Socket 并使能五路通道。记录保存在包内 <code>data/records</code>；更新前请保留 data。<code>check-tools.bat</code> 可预检。</p>
-      </fieldset>
-      <fieldset id="g-bridge-card" data-dock="bridge">
-        <legend>本地桥（J-Link / OpenOCD）</legend>
-        <label class="chk"><input type="checkbox" id="g-bk-on" checked title="J-Link / OpenOCD 都是本机程序，浏览器无权启动它们 —— 要用这两条后端就得有个本机桥。零安装的 WebUSB 通路不需要它">生成「本地桥」安装包（双击即用）</label>
-        <label class="row"><span>端口</span><input id="g-bk-port" class="num" value="17321" inputmode="numeric" title="桥监听的本地端口；页面与桥都走它"></label>
-        <label class="row"><span>目标</span>
-          <select id="g-bk-target">
-            <option value="stm32f103">STM32F103（cmsis-dap + stm32f1x）</option>
-            <option value="stm32h7b0">STM32H7B0（cmsis-dap + stm32h7x）</option>
-            <option value="custom">自定义 cfg…</option>
-          </select></label>
-        <label class="row wide"><span>自定义 cfg</span><input id="g-bk-cfgs" value="interface/cmsis-dap.cfg, target/stm32f1x.cfg" title="逗号分隔；相对 OpenOCD 的 scripts 目录（也可写绝对路径）。只有「目标 = 自定义」时才用"></label>
-        <label class="row"><span>OpenOCD kHz</span><input id="g-bk-speed" class="num" value="4000" inputmode="numeric"></label>
-        <label class="row wide"><span>openocd.exe</span><input id="g-bk-openocd" placeholder="留空 = 自动探测" title="找不到 OpenOCD 时填绝对路径（例：C:/Users/你/.espressif/tools/openocd-esp32/vX/openocd-esp32/bin/openocd.exe）"></label>
-        <label class="row"><span>scripts 目录</span><input id="g-bk-scripts" placeholder="留空 = 跟着 openocd.exe 推断"></label>
-        <label class="row"><span>J-Link 器件</span><input id="g-bk-jdev" value="STM32F103C8" title="给 J-Link 的 -Device（留空用默认 STM32F103C8）"></label>
-        <label class="row"><span>J-Link kHz</span><input id="g-bk-jspeed" class="num" value="50000" inputmode="numeric" title="本机 J-Link PRO + F103 实测 50 MHz 可用"></label>
-        <label class="row"><span>便携 Node</span><input id="g-bk-nodever" class="num" value="22.14.0" title="本机没装 Node 时自动下这个版本（绿色包，放到包里的 node/ 目录，不动系统）"></label>
-        <label class="row"><span>下载源</span>
-          <select id="g-bk-mirror">
-            <option value="1">国内镜像优先（npmmirror）</option>
-            <option value="0">官方优先（nodejs.org）</option>
-          </select></label>
-        <label class="chk"><input type="checkbox" id="g-bk-autonode" checked title="关掉 = 没 Node 时只提示、不下载（企业内网/杀软敏感时用）">没 Node 时自动下便携版</label>
-        <p class="hint">包里：启动器（bat/sh）+ 桥本体 + 配置 + 预检脚本 + 便携 Node 下载器 + 说明。
-          <b>路径留空 = 桥自己探测</b>（ESP-IDF 的 openocd-esp32 → Program Files → PATH；J-Link 找 SEGGER 目录里版本号最大的）；
-          起桥前会先跑一次环境预检，把"该改哪一行"打出来。退出用 <b>Ctrl+C</b>（会把 OpenOCD / J-Link 子进程一起收掉）。
-          <b>每个文件的预览与「下载桥包（ZIP）」在右边「本地桥」tab</b>。</p>
-      </fieldset>
-    </aside>
-
-    <section class="main">
-      <!-- 右列 = 一个带 tab 的面板（照 #spi / #i2c 的 `.seg.docktabs` + `.dockpage` 那套）。
-           为什么 tab 化：13 个产物原来挤在一条文件栏里（桥包那 7 个还另占一行），而
-           「工程配套文件」与「本地桥安装包」本来就是两件事；顺带让左栏能按 tab 分组（用户 2026-10 要求）。 -->
-      <fieldset class="gendock" id="g-box-dock">
-        <div class="dockhead">
-          <span class="seg docktabs" id="g-dock-tabs">
-            <button data-dock="files" class="on">工程文件</button>
-            <button data-dock="params">调试参数</button>
-            <button data-dock="bridge">本地桥</button>
-            <button data-dock="etm">ETM 桥</button>
-          </span>
-          <span class="hint dockrun" id="g-dock-pill" title="当前 tab 的一句话状态">待生成</span>
-          <span class="spacer"></span>
-        </div>
-
-        <div class="dockpage on" data-dock="files" id="g-files-card">
-          <div class="toolbar">
-            <span class="flush hint">产物</span>
-            <div class="seg" id="g-files"></div>
-            <span class="spacer"></span>
-            <button id="g-copy" class="mini">复制当前文件</button>
-            <button id="g-dl" class="mini">下载当前文件</button>
-          </div>
-          <pre class="rx fill" id="g-preview" tabindex="0"></pre>
-          <p class="flush hint">这几件是 <code>uvprojx2cmake.py</code> 的模板产物（默认套 4 项修正）——
-            落地用左栏「落地方式」里的「写入文件夹…」/「打包 ZIP」。</p>
-        </div>
-
-        <div class="dockpage" data-dock="params" id="g-params-card">
-          <div class="toolbar">
-            <span class="flush hint">左栏填的值在这里逐项列全（长路径不再被侧栏宽度截断；<b>点值即复制</b>）</span>
-            <span class="spacer"></span>
-            <button id="g-params-copy" class="mini">复制全部（键=值）</button>
-          </div>
-          <div class="scroll fill" id="g-params-wrap">
-            <table class="sp gparamtab"><tbody id="g-params-body"></tbody></table>
-          </div>
-        </div>
-
-        <div class="dockpage" data-dock="etm">
-          <div class="toolbar">
-            <button id="g-etm-full" class="primary mini">下载完整 ETM 桥包</button>
-            <button id="g-zip-etm" class="mini">仅下载启动文件</button>
-            <button id="g-etm-open" class="mini">打开 ETM 工作台</button>
-            <span class="spacer"></span>
-            <button id="g-etm-copy" class="mini">复制当前文件</button>
-            <button id="g-etm-dl" class="mini">下载当前文件</button>
-          </div>
-          <div class="toolbar"><div class="seg" id="g-etm-files"></div></div>
-          <pre class="rx fill" id="g-etm-preview" tabindex="0"></pre>
-          <p class="flush hint" id="g-etm-package-info">Windows 64 位 · 完整包包含运行环境、网页、采集分析服务和 OpenCSD 解码器。网页按钮打开已运行的工作台，启动服务请双击 BAT。</p>
-        </div>
-        <div class="dockpage" data-dock="bridge" id="g-kit-card">
-          <div class="toolbar">
-            <span class="flush hint">安装包里的文件</span>
-            <div class="seg" id="g-kit-files"></div>
-            <span class="spacer"></span>
-            <button id="g-kit-copy" class="mini">复制当前文件</button>
-            <button id="g-zip-bridge" class="primary mini" title="只打包桥的文件（zip 里是 rtt-bridge-kit/…）：解压后双击 start-bridge.bat 就能起桥">下载桥包（ZIP）</button>
-          </div>
-          <pre class="rx fill" id="g-kit-preview" tabindex="0"></pre>
-          <p class="flush hint">7 个文件：启动器（bat / sh）+ 桥本体 + 配置 + 预检脚本 + 便携 Node 下载器 + 说明 ——
-            参数在左栏「本地桥」那张卡里改，改完这里立刻跟着变。</p>
-        </div>
-      </fieldset>
-      <div class="stats">
-        <span id="g-status">待生成</span>
-        <span class="spacer"></span>
-        <span class="hint">模板逐字节移植自 <code>uvprojx2cmake.py</code>，默认再套 4 项修正（<code>make test-gen</code> 负责对账）</span>
-      </div>
-    </section>
-  </div>
-</section>
 
 
 <section class="panel" id="tab-analog">
@@ -2476,12 +2266,8 @@ probe baud = UART Hz ÷ OSR ÷ UART DIV
   </ol>
   <h3>SWO 执行轨迹</h3>
   <p>更多功能 → SWO 执行轨迹。接好 SWO → VCOM RX、SWD 与共地，识别目标主频（HSE 需填写板上频率），选择波特率，载入匹配 ELF 和源码后记录。停止后可离线回放，也可直接载入 F103CB 实测示例。PC 采样展示收到的离散落点，无法恢复 ETM 的逐指令分支流。</p>
-  <h3>RTT 为什么分三种后端</h3>
-  <ul>
-    <li><b>WebUSB · CMSIS-DAP</b>：零安装，页面上直接读目标 RAM 拿 RTT。只认 CMSIS-DAP 类探针（DAPLink、cherrydap…），<b>不认 J-Link</b>。</li>
-    <li><b>本地桥 · OpenOCD / J-Link</b>：J-Link 与 OpenOCD 都是本机程序，网页无权启动它们，需要一个本机小程序当桥（仓库 <code>bridge/</code>，双击启动，零 npm 依赖）。</li>
-    <li><b>内置模拟目标</b>：无硬件也能看效果。</li>
-  </ul>
+  <h3>RTT 连接</h3>
+  <p>通过 WebUSB / CMSIS-DAP 连接探针，载入匹配 ELF 或扫描 RTT 控制块后开始查看。无硬件检查可使用内置模拟目标。</p>
   <h3>RTT 使用要点</h3>
   <ul>
     <li>固件里必须编进了 SEGGER RTT（<code>SEGGER_RTT_Init()</code> 会被自动调用）。</li>
@@ -2489,16 +2275,7 @@ probe baud = UART Hz ÷ OSR ÷ UART DIV
     <li>同一个探针不能被两个程序同时占用：OpenOCD / pyOCD / J-Link 开着时，先关掉它们。</li>
     <li><b>RTT 不重传</b>：目标写太快会覆盖/丢弃还没读走的数据。<b>「缓冲高位」的次数和峰值水位</b>是最实用的
       过载信号（≥75% 就算高位）；「溢出丢弃」只在主机侧读指针落后时才算得出来 —— 两个数字都当下限看。
-      主机读速受调试器限制（OpenOCD RPC 实测 ~17 KB/s），大流量场景优先用 WebUSB 探针。</li>
-  </ul>
-  <h3>工程生成（最后一个标签）</h3>
-  <ul>
-    <li>把 Keil <code>.uvprojx</code> 拖进页面：器件、Flash 起址、PyOCD / OpenOCD 目标会自动填好，其余参数都能手改。</li>
-    <li>勾选要哪些文件，右侧是<b>实时预览</b>；「写入文件夹…」选一次目录就能把多个文件直接写进去（Edge / Chrome），
-        其它浏览器自动改走「打包 ZIP」。</li>
-    <li>生成时在 <code>uvprojx2cmake.py</code> 的模板上<b>固定套 4 项修正</b>（RTT 范围收进 RAM、clean 不再删
-        <code>*.log</code>、OpenOCD 的 <code>-c</code> 改双引号、去掉 SWO 目标）；对账测试验证的是"不带修正时逐字节相同"。</li>
-    <li>网页不能静默写你的项目目录 —— 必须你亲手选一次文件夹；<code>test_sram.bin</code> 是 RAM 测试图案，不是固件。</li>
+      大流量场景可使用 RTT 转发，并检查实际接收质量。</li>
   </ul>
   <h3>RTT → CDC 转发（「RTT 转发」那一页，akaLinkPro 探针）</h3>
   <ul>

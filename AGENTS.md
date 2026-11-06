@@ -25,6 +25,9 @@
 | `web/docs/`、`etm/docs/` | 对应子系统说明和历史记录 |
 | `etm/records/baselines/` | 原始基准记录及配套 ELF/配置/源码；按基线规范保留 |
 | `tmp/` | 每次任务独立的可再生构建、导出、解压、运行目录 |
+| `dist/superlinkPRO/` | 本机 Windows 工作台，双击 `superlinkPRO.exe`；更新时保留 `data` |
+
+本机工作台构建入口为 `python -X utf8 toolbox.py bridge-build`，完整 ZIP 与清单在根 `dist/`；`--candidate-only`只生成候选。当前 Web 调试只保留 WebUSB / CMSIS-DAP，工程生成已替换为工程下载；原 SPI、I2C、SWO、ADC/DAC 等工具继续保留。2026-11-06 工作台重构没有修改 ETM 页面/分析源码，ETM 仍用原 Kingst 链路。本机包生成不等于已发布，下面的历史正式下载清单需在明确发布授权后另行更新。
 
 正式 Windows 下载包及版本事实来源：`web/bridge/etm/downloads/manifest.json`、同目录 `etm-bridge-win64.zip`。
 运行时来源及文件指纹：`web/bridge/etm/provenance.json`。报告必须说明源码提交、包版本和验证对象。
@@ -104,7 +107,7 @@ python -X utf8 toolbox.py trace export --record E:/records/example --format flam
 - 修改 Web 合并脚本涉及的输入后，运行 `node web/tools/dev/build-web.mjs`，检查用 `--check`。
 - 修改 CLI 参数/页面入口后，更新 `python -X utf8 tools/build_cli_options.py`、`node tools/build_toolbox_reference.mjs`；两者均支持 `--check`。
 - 需要发布便携包时，先提交/明确源代码版本，再用 `python -X utf8 web/tools/dev/sync-etm-runtime.py --etm-root etm` 同步运行时；
-  按需更新 `node web/tools/dev/embed-etm-kit.mjs` 和 Web 构建，再运行 `python -X utf8 web/tools/dev/build-etm-package.py --output <独立候选目录>`。
+  工程生成嵌入器已退役；当前工作台使用 `python -X utf8 toolbox.py bridge-build`，原ETM独立包仍可用 `python -X utf8 web/tools/dev/build-etm-package.py --output <独立候选目录>`。
   原生同步需要本地 C++ 工具链；构建异常应先记录和诊断，禁止静默复用不匹配的旧 EXE。
 - 按改动选择必要验证。CLI 可用 `python -X utf8 -m unittest tools.tests.test_toolbox_cli -v`；
   ETM 综合离线入口为 `python -X utf8 web/tools/dev/test-etm.py --output <本次独立目录>`，`--portable` 另测完整 Windows 包。

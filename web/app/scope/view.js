@@ -17,6 +17,10 @@ import { runProbeOperation } from '../core/probe-manager.js';
 import { waitMs } from '../core/pace.js';
 import { $, setStatus, seg, esc } from '../ui/dom.js';
 import { store } from '../core/store.js';
+import { webClockKhz } from '../core/target-clock.js';
+import { constrainClockSelect } from '../ui/target-clock.js';
+import { supportsRiscvStreamClock,streamClockHz } from '../core/stream-clock.js';
+import { rttConfigData } from '../hid/probe.js';
 import { AkaLinkHid } from '../hid/probe.js';
 import { Elf } from '../elf/elf.js';
 import { listSampleable } from '../elf/dwarf.js';
@@ -62,6 +66,7 @@ export class ScopeView {
     this.running = false;
     this.state = '空闲';
     this.packets = 0;
+    this.receivedSamples=0;this.tailCountDelta=null;
     this.lost = 0;
     this.decodeErr = 0;
     this.probeDropped = 0;
@@ -100,6 +105,7 @@ export class ScopeView {
       clk.appendChild(o);
     }
     clk.value = '0';
+    constrainClockSelect(clk,'arm');
 
     // 触发模式 / 通道
     const tm = $('sc-trig-mode');
@@ -260,17 +266,6 @@ export class ScopeView {
 
   onShow(){
     requestAnimationFrame(() => { this._needDraw = true; });
-    /**
-     * 每次切到本页都对一次**全局目标类型**（`rtt.target`，与 RTT Viewer 共用同一个键）：
-     * 用户很可能在 RTT 页刚切过 RISC-V —— 那边一改，这边得跟着（否则"同一个开关两页显示不一样"，
-     * 用户只会以为切换没生效）。真不一致就按新值刷新界面（时钟格名字/置灰/读计划）。
-     */
-    const saved = store.get('rtt.target', '');
-    if ((saved === 'riscv' || saved === 'swd') && saved !== $('sc-target').value){
-      $('sc-target').value = saved;
-      this.targetRiscv = saved === 'riscv';
-      this._applyBackendUi();
-    }
   }
 
   /** 键盘：Esc 清测量游标、Home/End 跳首尾（只在探针页可见、焦点不在输入框时生效）*/
@@ -376,6 +371,7 @@ export class ScopeView {
         return;
       }
       $('sc-info').textContent = info + '（HID 已连接）';
+      this._applyBackendUi();
       this.setStatusText(`探针已连接：${info}`, hid.isProbe ? 'ok' : 'warn');
       if (!hid.isProbe){
         $('sc-info').textContent = info + '（HID 已连接 · ⚠ 不是 akaLinkPro 的 VID/PID）';
@@ -524,9 +520,11 @@ export class ScopeView {
   }
 
   // ================================================================= ELF / 变量
-  async loadElfFile(file){
+  async loadElfFile(file, buffer){
     try {
-      const buf = new Uint8Array(await file.arrayBuffer());
+      if (this.running || this._starting) throw new Error('请先停止采样再载入 ELF');
+      const buf = new Uint8Array(buffer || await file.arrayBuffer());
+      if (this.running || this._starting) throw new Error('请先停止采样再载入 ELF');
       const elf = new Elf(buf);
       const r = listSampleable(elf);
       this.elf = { name: file.name, source: r.source, versions: r.versions, stats: r.stats, note: r.note || '' };
@@ -555,6 +553,8 @@ export class ScopeView {
       this.setStatusText(r.note
         ? `ELF 解析完成（${r.sampleable.length} 个通道，按符号表）—— ⚠ ${r.note}`
         : `ELF 解析完成：${r.sampleable.length} 个可采样通道`, r.note ? 'warn' : 'ok');
+      this.onElfLoaded?.(buf, file.name);
+      return true;
     } catch (e){
       $('sc-elfinfo').textContent = '解析失败：' + (e?.message || e);
       this.setStatusText('ELF 解析失败：' + (e?.message || e), 'err');
@@ -776,13 +776,51 @@ export class ScopeView {
   }
 
   _captureAlive(g){ return g === this._captureGen && !this._stopPromise && !this._releasing; }
+  async confirmTargetArchitecture(){
+    if(this.usingMock)return;
+    const reply=await this.hidXfer(P.HID_CMD_RTT,P.targetTypeData(!!this.targetRiscv));
+    if(!reply||reply.length<3)throw Error('目标类型确认回包不完整；未配置或启动采样');
+    const rc=this.signed(reply[2]);
+    if(rc!==0)throw Error(`目标类型确认失败（${rc}）；请先停止并释放占用探针的功能，未配置或启动采样`);
+  }
+  async applyCaptureClock(){
+    if(this.usingMock)return;
+    const riscv=!!this.targetRiscv,hz=streamClockHz(this._probeInfo,riscv,Number($('sc-clock').value)*1000);
+    if(!hz)return;
+    const reply=await this.hidXfer(riscv?P.HID_CMD_RTT:P.HID_CMD,riscv?rttConfigData({clockHz:hz}):P.clockData(hz));
+    if(!reply||reply.length<3)throw Error('采样时钟配置未获确认，未启动采样');
+    const rc=this.signed(reply[2]);
+    // Legacy akaLinkPro returns its pending START state for CLOCK as well.
+    // Accept that state only when the full status confirms the requested Hz.
+    const pendingApplied=!riscv&&rc===P.START_PENDING&&reply.length>=51&&P.parseScopeStatus(reply.subarray(3)).swdHz===hz;
+    if(rc!==0&&!pendingApplied)throw Error('采样时钟配置未获确认，未启动采样');
+  }
+  _dataAlive(g){ return this._captureAlive(g) || (this._drainGen != null && this._drainGen===g); }
 
   async _stopData(){
     let failure;
+    const drainBeforeQuiesce=this.transport?.epAddr===0x87;
     if (this._stopUnconfirmed && !this.hid) failure = new Error('探针未连接，不能确认 STOP');
-    try { await this.transport?.quiesce?.(); } catch (e) { failure = e; }
-    try { if (this.hid) await this.hidXfer(P.HID_CMD, P.flagsData(P.ACT.STOP)); }
+    // Zynq STOP can report busy until its final PL/USB packets are drained.
+    // Keep the consumer alive during that handshake, then retire native reads.
+    try { if(!drainBeforeQuiesce)await this.transport?.quiesce?.(); } catch (e) { failure = e; }
+    try { if (this.hid){
+      const deadline=performance.now()+2000;
+      for(;;){
+        const reply=await this.hidXfer(P.HID_CMD,P.flagsData(P.ACT.STOP));
+        if(!reply||reply.length<3)throw Error('STOP回包不完整');
+        const rc=this.signed(reply[2]);
+        const legacyStopped=!drainBeforeQuiesce&&rc===P.START_PENDING&&reply.length>=51&&!P.parseScopeStatus(reply.subarray(3)).running;
+        if(rc===0||legacyStopped)break;
+        if(rc!==-7||!drainBeforeQuiesce||performance.now()>=deadline)throw Error(P.scopeRcText(rc,this.targetRiscv));
+        await sleep(10);
+      }
+    }}
     catch (e) { failure = e; }
+    try { if(drainBeforeQuiesce){
+      if(this.transport?.drain)await this.transport.drain();
+      else await this.transport?.quiesce?.();
+    }} catch (e) { failure ||= e; }
     try { await this.transport?.stop(); } catch (e) { failure ||= e; }
     if (failure){
       this._stopUnconfirmed = true;
@@ -837,18 +875,11 @@ export class ScopeView {
           : '数据端点没连上：点「连接数据端点…」授权一次（采样数据走 EP 0x83，必须有它）', 'err');
         return;
       }
-      /**
-       * 🚨 重连后补发**目标类型**：探针侧是粘性状态，但探针被复位/别的页面重设过就回 SWD 了，
-       *    而界面下拉还显示 RISC-V —— 不补发的话采样会按 SWD 去握，报一些看不懂的错。
-       *    （start() 的 config 报文里也带 SCOPE_FLAG.RISCV，那是第二道保险。）
-       */
-      if (this.targetRiscv){
-        try { await this.hidXfer(P.HID_CMD_RTT, P.targetTypeData(true)); } catch { /* 交给 start() 的 flags */ }
-      }
       this.setStatusText('探针已自动重连，开始采样', 'ok');
     }
     if (!this.transport || !this.hid){ this.setStatusText(this.usingMock ? '假探针还没准备好' : '先连探针 + 数据端点', 'warn'); return; }
     if (this.isReal() && !this.transport?.device){ this.setStatusText('真机模式要先点「连接数据端点…」', 'warn'); return; }
+    await this.confirmTargetArchitecture();
 
     if (!this._captureAlive(g)) return;
     const periodUs = this.periodUs();
@@ -900,6 +931,7 @@ export class ScopeView {
     this.trigger = new Trigger();
     this.applyTrigger(true);
     this.packets = 0; this.lost = 0; this.decodeErr = 0; this.probeDropped = 0; this.raw = [];
+    this.receivedSamples=0;this.tailCountDelta=null;
     this.usbDrop = 0; this.probeYield = 0; this.readErrors = 0; this.probeMetrics = null; this.metricsError = null;
     this._metricsAt = 0; this._statAt = 0; this._qualityCounterRolled = false; this.periodActualUs = 0;
     this._qualityReplay = false; this._qualityStat = null;
@@ -915,7 +947,7 @@ export class ScopeView {
       this.transport.configureReadAhead?.(wireBps);
       await this.transport.prepare?.();
       if (!this._captureAlive(g)) return;
-      const clockKhz = Number($('sc-clock').value) || 0;
+      const clockKhz = webClockKhz($('sc-clock').value,'arm');
       /**
        * flags：bit0 允许 60 MHz；bit4 SWD 空闲拍压 0；bit5 采样时暂停 CDC/串口桥；
        *        **bit6 强制本次会话走 RISC-V/JTAG**（不带就跟随全局目标类型）。
@@ -926,10 +958,10 @@ export class ScopeView {
         | (this._captureCdcOff ? P.SCOPE_FLAG.CDC_OFF : 0)
         | ($('sc-batch')?.checked ? P.SCOPE_FLAG.FAST_BATCH : 0)
         | (this.targetRiscv ? P.SCOPE_FLAG.RISCV : 0);
-      if (clockKhz > 0 && this.uiBackend() !== P.BACKEND.RISCV) await this.hidXfer(P.HID_CMD, P.clockData(clockKhz * 1000));
+      await this.applyCaptureClock();
       /**
        * 🚨 **CONFIG 之后当场读一次 rc**（2026-10 代码审查）：固件的配置动作是**同步判定**的，
-       *    应答里那个返回码就是本次配置的结果（0 = 已采纳、-6 = 被拒：变量宽度非法）。
+       *    应答里那个返回码就是本次配置的结果（0 = 已采纳、-6 = 配置条件被拒）。
        *    不看它的话，被拒之后固件已经**把变量表清空了**，紧接着的 START 会回 -3 →
        *    页面显示"变量表为空（先在左侧选 1~8 个变量）"，而用户明明选了变量，方向全错。
        */
@@ -954,7 +986,7 @@ export class ScopeView {
        *    早就被丢掉**，于是"等 DEF 当起跑线"的守卫永远等不到、新采集一个样本都没有。
        *    现在先 start() 读起来（顺便把上一轮的残留吃掉），再发 START。
        */
-      await this.transport.start(chunk => { if (this._captureAlive(g)) this.onChunk(chunk); }, e => { if (this._captureAlive(g)) this._onDataPlaneDead(e); });
+      await this.transport.start(chunk => { if (this._dataAlive(g)) this.onChunk(chunk); }, e => { if (this._captureAlive(g)) this._onDataPlaneDead(e); });
       if (!this._captureAlive(g)) return;
       if (!this.transport.running) throw new Error('数据端点未能启动');
       this._startWatchdog();          // 采集中途断流的兜底（见 _onDataPlaneDead 的说明）
@@ -1052,11 +1084,12 @@ export class ScopeView {
   async stop(reason){
     this.probeManager?.cancel('scope');
     if (this._stopPromise) return await this._stopPromise;
+    this._drainGen=this.transport?.epAddr===0x87 && this._capturing ? (this._captureGen || 0) : null;
     this._captureGen = (this._captureGen || 0) + 1;
     this._stopPromise = this._stopOnce(reason);
     try { return await this._stopPromise; }
     catch (e) { this.setStatusText(e.message, 'err'); throw e; }
-    finally { this._stopPromise = null; this.syncButtons(); }
+    finally { this._drainGen=null;this._capturing=false;this._stopPromise = null; this.syncButtons(); }
   }
 
   async _stopOnce(reason){
@@ -1072,13 +1105,18 @@ export class ScopeView {
     if (!this.running && !this._starting && !this.transport?.running && !this._stopUnconfirmed && !needsManagerConfirm) return;
     const hadData = this.running || this.transport?.running;
     this.running = false;
-    this._capturing = false;                 // DATA 分支据此停止入缓冲（见那里的说明）
+    if(this._drainGen==null)this._capturing = false;
     // 先给个即时反馈：后面两个 await（排空 + HID STOP）要几十毫秒，这期间界面上不该还写着"采样中"
     this.setStatusText('正在停止…', '');
     if (this._startPromise) await this._startPromise.catch(() => {});
     if (this._stopUnconfirmed && !this.hid) throw new Error('采样停止尚未确认，请先重新连接探针，再点停止');
     if (hadData || this._startTouched || this.transport?.running || this._stopUnconfirmed) await this._stopData();
+    this._capturing=false;this._drainGen=null;
     await this.readScopeMetrics({fresh: true}).catch(e => { this.metricsError = e.message; });
+    if(this.transport?.epAddr===0x87 && this.probeMetrics && !(this._captureFlags & P.SCOPE_FLAG.DISCARD)){
+      this.tailCountDelta=(this.receivedSamples || 0)-this.probeMetrics.produced;
+      if(this.tailCountDelta!==0)this.metricsError=`样本未完整接收：收到 ${this.receivedSamples || 0}，探针 ${this.probeMetrics.produced}`;
+    }
     const st = this.store;
     const spanUs = st?.count > 1 ? st.timeAt(st.count - 1) - st.timeAt(0) : 0;
     const why = reason || this._stopReason;
@@ -1087,7 +1125,8 @@ export class ScopeView {
     this.setStatusText(`已停止${why ? `（${why}）` : ''}：${st?.count || 0} 个样本` +
       (spanUs ? ` / ${fmtTime(spanUs)}` : '') +
       `，跳拍 ${this.probeDropped || 0} / USB 丢样本 ${this.usbDrop || 0} / 读错 ${this.readErrors || 0} / 包缺口 ${this.lost}`,
-      why === '缓冲已满' || this.lost || this.probeDropped || this.usbDrop || this.readErrors ? 'warn' : 'ok');
+      why === '缓冲已满' || this.lost || this.probeDropped || this.usbDrop || this.readErrors || this.metricsError ? 'warn' : 'ok');
+    if(this.metricsError)this.setStatusText(this.state+'；'+this.metricsError,'err');
     this.syncButtons();
     this._needDraw = true;
   }
@@ -1185,13 +1224,15 @@ export class ScopeView {
     // SWD 专属：SWD 时钟档在 JTAG 下无效（探针忽略），置灰并说明；采样时暂停串口桥那个 checkbox 仍有效
     const clk = $('sc-clock');
     if (clk){
-      clk.disabled = riscv || !!(this.running || this._starting || this._stopPromise);
-      clk.title = riscv
+      const native=riscv&&supportsRiscvStreamClock(this._probeInfo);
+      constrainClockSelect(clk,native?'hpm':'arm');
+      clk.disabled = riscv&&!native || !!(this.running || this._starting || this._stopPromise);
+      clk.title = native?'Zynq RISC-V JTAG TCK，HPM 最高 25 MHz':riscv
         ? 'RISC-V/JTAG 下无意义：JTAG 时序由 DMI 汇编旋钮 + delay 决定，探针会忽略这个档位'
         : '与 RTT Viewer 同款档位；固件自带失败自动降档';
     }
     const clkRow = $('sc-clock-row');
-    if (clkRow) clkRow.classList.toggle('off', riscv);
+    if (clkRow) clkRow.classList.toggle('off', riscv&&!supportsRiscvStreamClock(this._probeInfo));
     /**
      * 那一格的**名字**要跟着目标类型改（用户 2026-09-30）：同一个档位在 SWD 下是 SWD 时钟，
      * 在 RISC-V/JTAG 下是 **JTAG 时钟（TCK）** —— 名字不改的话，切到 JTAG 后用户会以为
@@ -1329,14 +1370,14 @@ export class ScopeView {
       const vars = (this.selected.length ? this.selected : (this.usingMock ? this.mockVars() : []));
       if (!vars.length){ this.setStatusText('先选变量再标定（标定用的是当前计划）', 'warn'); return; }
       const inputKey = this.benchKeyOf();
-      const clockKhz = Number($('sc-clock').value) || 0;
+      const clockKhz = webClockKhz($('sc-clock').value,'arm');
       const riscv = this.uiBackend() === P.BACKEND.RISCV;      // 选中的是 JTAG 就别发 SWD 时钟档（探针会忽略）
       const flags = (clockKhz >= 60000 ? P.SCOPE_FLAG.ALLOW_60M : 0)
         | ($('sc-cdcoff')?.checked ? P.SCOPE_FLAG.CDC_OFF : 0)
         | ($('sc-batch')?.checked ? P.SCOPE_FLAG.FAST_BATCH : 0)
         | (this.targetRiscv ? P.SCOPE_FLAG.RISCV : 0);
       // JTAG 下 action 3（SWD 时钟）无效，别发
-      if (clockKhz > 0 && !riscv) await this.hidXfer(P.HID_CMD, P.clockData(clockKhz * 1000));
+      await this.applyCaptureClock();
       const configured = await this.configureScope({ periodUs: this.periodUs(), flags, vars });
       if (!configured || configured.length < 3 || this.signed(configured[2]) < 0) throw new Error('标定配置被拒');
       this.plan = this.updatePlan();
@@ -1446,7 +1487,7 @@ export class ScopeView {
   /** 数据面回调：字节流 → 包 → 解码 → 缓冲（+触发 +统计）*/
   onChunk(chunk){
     this._lastPktAt = performance.now();       // 看门狗据此判"流断没断"（见 _startWatchdog）
-    if (this.captureRaw){
+    if (this.captureRaw && !this._replaying){
       const copy = chunk instanceof Uint8Array ? chunk.slice() : new Uint8Array(chunk);
       this.raw.push(copy); this.rawBytes = (this.rawBytes || 0) + copy.length;
     }
@@ -1522,7 +1563,7 @@ export class ScopeView {
            *    注意用 `_capturing` 而不是 `running`：起跑阶段（DEF 已到、START 还没 resolve）的新数据要收，
            *    但收工之后一律不收（`_capturing` 在 start 里打开、stop 里关掉）。
            */
-          if (!this._capturing) break;
+          if (!this._capturing && !this._replaying) break;
           if (this.defMismatch) break;              // 变量表对不上：不解码（见 DEF 分支的说明）
           const vars = this.defVars || this.store?.vars;
           if (!vars?.length) break;
@@ -1544,10 +1585,12 @@ export class ScopeView {
           const direct = this.trigger.mode === TRIG.NONE && vars.length === 1 &&
             vars[0].size === 4 && vars[0].scalar === 'u32' &&
             this.store.pushU32Packet(pkt.payload, pkt.n, t0, per) !== false;
+          let decoded=direct ? pkt.n : 0;
           if (!direct){
             const nums = P.decodeSamples(vars, pkt.payload, pkt.n, []);
             const fr = new Array(nv); // Reuse the frame; Trigger stores only scalar state.
             const fit = Math.min(pkt.n, Math.floor(nums.length / nv));
+            decoded=fit;
             for (let i = 0; i < fit; i++){
               for (let k = 0; k < nv; k++) fr[k] = nums[i * nv + k];
               const idx = this.store.count;
@@ -1557,6 +1600,7 @@ export class ScopeView {
               }
             }
           }
+          this.receivedSamples=(this.receivedSamples || 0)+decoded;
           /**
            * 🚨「时长」= **目标侧过了多久**，不是"攒够多少个样本"。
            *    老算法把缓冲按"名义速率 × 时长 × 1.25"开好、满了才停，而探针达不到名义速率时
@@ -1593,6 +1637,7 @@ export class ScopeView {
   }
 
   clear(){
+    if(!this._capturing){this.receivedSamples=0;this.tailCountDelta=null;}
     this.store?.reset();
     this.stream = new P.PacketStream();
     this.seqT = new P.SeqTracker();
@@ -1699,9 +1744,14 @@ export class ScopeView {
   /** 回放 .jsp：把当时的字节流重新喂一遍（不连硬件也能看波形 / 调触发）*/
   async replayFile(file){
     try {
+      if (this.running || this._capturing || this._starting || this._stopPromise)
+        throw new Error('先停止采样，再回放文件');
+      const buf = new Uint8Array(await file.arrayBuffer());
+      if (this.running || this._capturing || this._starting || this._stopPromise)
+        throw new Error('先停止采样，再回放文件');
+      this.receivedSamples=0;this.tailCountDelta=null;this.probeMetrics=null;
       this._qualityReplay = true; this._qualityConfig = { 文件: file.name || '原始包回放' };
       this.qualityHistory?.reset(); this.qualityHistory?.note('replay','从文件回放，不引用当前探针计数');
-      const buf = new Uint8Array(await file.arrayBuffer());
       const vars = [...(this.selected.length ? this.selected : this.mockVars())].sort((a, b) => a.addr - b.addr);
       const periodUs = this.periodUs();
       this.store = new SampleStore(vars, Math.ceil(buf.length / 16) + 1024);
@@ -1713,9 +1763,15 @@ export class ScopeView {
       this.seqT = new P.SeqTracker();
       this.timeU = new P.TimeUnwrap();
       this.packets = 0; this.lost = 0; this.defVars = null;
+      this._awaitDef = false; this.defMismatch = null; this.stalePackets = 0;
+      this.probeDropped = 0; this.usbDrop = 0; this.readErrors = 0; this.metricsError = null;
+      this.trigger.reset();
       this.decodeErr = 0; this._qualityStat = null; this._statAt = 0; this._metricsAt = 0; this.probeMetrics = null;
       const chunk = 64 * 1024;
-      for (let o = 0; o < buf.length; o += chunk) this.onChunk(buf.subarray(o, o + chunk));
+      this._replaying = true;
+      try {
+        for (let o = 0; o < buf.length; o += chunk) this.onChunk(buf.subarray(o, o + chunk));
+      } finally { this._replaying = false; }
       this.renderer.fitAll();
       this.setStatusText(`回放完成：${this.store.count} 个样本 / ${this.packets} 个包`, 'ok');
       this._needDraw = true;
@@ -1743,7 +1799,7 @@ export class ScopeView {
     $('sc-stop').disabled = !!this._stopPromise || (!this.running && !this._starting);
     const target = $('sc-target'); if (target) target.disabled = !!(this.running || this._starting || this._stopPromise || this._releasing);
     for (const id of ['sc-period', 'sc-clock', 'sc-batch', 'sc-cdcoff', 'sc-bench', 'sc-recc']){
-      const el = $(id); if (el) el.disabled = !!(this.running || this._starting || this._stopPromise || this._releasing) || (id === 'sc-clock' && this.uiBackend() === P.BACKEND.RISCV);
+      const el = $(id); if (el) el.disabled = !!(this.running || this._starting || this._stopPromise || this._releasing) || (id === 'sc-clock' && this.uiBackend() === P.BACKEND.RISCV&&!supportsRiscvStreamClock(this._probeInfo));
     }
   }
 
@@ -1850,6 +1906,8 @@ export class ScopeView {
       plan: this.plan ? { spans: this.plan.spans.length, frameBytes: this.plan.frameBytes,
                           estUs: +this.plan.estUs.toFixed(2), estHz: this.plan.estHz } : null,
       samples: st?.count || 0,
+      receivedSamples:this.receivedSamples || 0,
+      tailCountDelta:this.tailCountDelta ?? null,
       capacity: st?.capacity || 0,
       packets: this.packets,
       lost: this.lost + (this.probeDropped || 0) + (this.usbDrop || 0) + (st?.overrun || 0),
@@ -1868,6 +1926,13 @@ export class ScopeView {
       view: { start: Math.round(this.renderer.view.start), end: Math.round(this.renderer.view.end) },
       lod: !!this.usedLod,
       resyncs: this.stream.resyncs,
+      definitionReceived: Array.isArray(this.defVars),
+      awaitingDefinition: !!this._awaitDef,
+      stalePackets: this.stalePackets || 0,
+      captureFlags: this._captureFlags || 0,
+      supportsMetrics: !!this.supportsMetrics,
+      probeMetrics: this.probeMetrics || null,
+      transport: this.transport ? {running:this.transport.running,chunks:this.transport.chunks,bytes:this.transport.bytes,errors:this.transport.errors,lastError:this.transport.lastError} : null,
       raw: this.raw.length,
       running: this.running,
       mockVars: this.mockVars().map(v => v.name),

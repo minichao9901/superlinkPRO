@@ -104,10 +104,10 @@ export function createTraceAutomation(tools, win=globalThis.window){
       // than pretending its selector honors a serial argument.
       const ds=await win.navigator.usb.getDevices();
       if(ds.filter(d=>/akaLink|CMSIS|DAP/i.test(d.productName||'')).length!==1)throw Error('烧录需要网页只授权一个调试探针');
-      set('f-backend','webusb');set('f-chip',m.chip);set('f-base',m.base||0);
+      set('f-chip',m.chip);set('f-base',m.base||0);
       set('f-verify',true);set('f-reset',true);
       if(tools.flash.busy)throw Error('网页烧录器正在运行，请等待完成');
-      tools.flash.file={name:m.name,dataB64:m.data};element('f-path').value='';
+      tools.flash.file={name:m.name,dataB64:m.data};
       await tools.flash.flash();
       return {programmed:true,name:m.name,chip:m.chip,result:element('f-result').textContent};
     }

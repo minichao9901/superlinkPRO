@@ -2,7 +2,7 @@
 import argparse,gzip,hashlib,importlib.util,json,os,socket,sys,tempfile,threading,time,uuid,webbrowser,zipfile
 from pathlib import Path
 from urllib.request import urlopen
-from flask import send_file
+from flask import send_file,request
 from werkzeug.serving import make_server
 
 VERSION='1.0.14-native.15'
@@ -72,7 +72,9 @@ def seed_demo(backend,records):
 def package_archive(home,data):
     # Re-download the runtime without copying user captures or records.
     manifest=json.loads((home/'package-manifest.json').read_text(encoding='utf8'))
-    destination=data/'exports/etm-bridge-win64.zip';destination.parent.mkdir(parents=True,exist_ok=True)
+    app=Path(manifest.get('launcher','etm-bridge.exe')).stem
+    archive_root=manifest.get('archiveRoot','etm-bridge-kit')
+    destination=data/'exports'/(app+'-win64.zip');destination.parent.mkdir(parents=True,exist_ok=True)
     signature=manifest['packageId']+hashlib.sha256((home/'etm.config.json').read_bytes()).hexdigest()
     stamp=destination.with_suffix('.stamp')
     if destination.exists() and stamp.exists() and stamp.read_text()==signature:return destination
@@ -81,9 +83,9 @@ def package_archive(home,data):
         for item in manifest['files']:
             source=(home/item['name']).resolve()
             if not source.is_relative_to(home.resolve()) or item['name'].startswith('data/'):raise ValueError('Invalid package manifest')
-            archive.write(source,'etm-bridge-kit/'+item['name'])
+            archive.write(source,archive_root+'/'+item['name'])
             if item['name']=='etm.config.json':item.update(bytes=source.stat().st_size,sha256=hashlib.sha256(source.read_bytes()).hexdigest())
-        archive.writestr('etm-bridge-kit/package-manifest.json',json.dumps(manifest,ensure_ascii=False,indent=2))
+        archive.writestr(archive_root+'/package-manifest.json',json.dumps(manifest,ensure_ascii=False,indent=2))
     staging.replace(destination);stamp.write_text(signature);return destination
 
 def main():
@@ -101,24 +103,34 @@ def main():
     for path in [backend/'server.py',backend/'build-native/etm_decode.exe',backend/'build-native/etm_export.exe',toolbox/'index.html']:
         if not path.is_file():raise ValueError('完整包缺少文件：'+str(path)+'；请重新解压完整 ZIP')
     data.mkdir(parents=True,exist_ok=True);records=data/'records';records.mkdir(exist_ok=True)
+    # Native helpers can inherit Low MIC from the package directory and fail
+    # to write the desktop user's system TEMP. Scope a writable runtime temp
+    # directory to this workbench process and its children (ISSUE-029).
+    temporary=data/'runtime-tmp';temporary.mkdir(exist_ok=True)
+    os.environ.update(TEMP=str(temporary),TMP=str(temporary));tempfile.tempdir=str(temporary)
     os.environ['WEB_ETM_RECORDS']=str(records)
     server=load_module('portable_same_origin',runtime/'serve-etm.py')
     application=server.create_application(backend,toolbox)
     # Hidden Python modules have __file__ under the bundled runtime, so select the snapshot root explicitly.
     sys.modules['decode_trace'].ROOT=backend
-    package_id=json.loads((home/'package-manifest.json').read_text(encoding='utf8'))['packageId']
+    package_manifest=json.loads((home/'package-manifest.json').read_text(encoding='utf8'))
+    package_id=package_manifest['packageId'];version=package_manifest.get('version',VERSION)
+    workbench=package_manifest.get('launcher')=='superlinkPRO.exe'
+    entry='' if workbench else '#etm'
     app=application.app
-    app.view_functions['launcher_info']=lambda:dict(protocol=1,portable=True,version=VERSION,packageId=package_id,port=port,dataDirectory=str(data),engine=engine)
+    app.view_functions['launcher_info']=lambda:dict(protocol=1,portable=True,version=version,packageId=package_id,port=port,dataDirectory=str(data),engine=engine)
     archive_guard=threading.Lock()
     def download_package():
-        with archive_guard:return send_file(package_archive(home,data),as_attachment=True,download_name='etm-bridge-win64.zip')
+        with archive_guard:return send_file(package_archive(home,data),as_attachment=True)
     app.add_url_rule('/bridge/etm/downloads/etm-bridge-win64.zip','download_portable',download_package)
     def download_manifest():
         with archive_guard:
             archive=package_archive(home,data)
-            return dict(version=VERSION,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),packageId=package_id)
+            return dict(version=version,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),packageId=package_id)
     app.add_url_rule('/bridge/etm/downloads/manifest.json','portable_download_manifest',download_manifest)
-    print(f'ETM 桥 {VERSION}；解码引擎：{engine}；数据目录：{data}',flush=True)
+    if workbench:
+        app.view_functions['workbench_download']=lambda:download_manifest() if request.path.endswith('/manifest.json') else download_package()
+    print(f'superlinkPRO {version}；解码引擎：{engine}；数据目录：{data}',flush=True)
     if args.check:
         seed_demo(backend,records);print('环境预检通过；运行环境、网页与解码器完整。',flush=True);return
     url=f'http://127.0.0.1:{port}/'
@@ -127,15 +139,15 @@ def main():
     except Exception:existing={}
     if existing.get('portable') and existing.get('packageId')==package_id and existing.get('dataDirectory')==str(data):
         if existing.get('engine')!=engine:raise ValueError('已有工作台使用不同解码引擎，请先退出已有工作台再重新启动；不会停止已有服务')
-        print('同版本工作台已运行：'+url+'#etm',flush=True)
-        if not args.no_browser:webbrowser.open(url+'#etm')
+        print('同版本工作台已运行：'+url+entry,flush=True)
+        if not args.no_browser:webbrowser.open(url+entry)
         return
     try:http=make_server('127.0.0.1',port,application,threaded=True)
     except (OSError,SystemExit):raise ValueError(f'端口 {port} 已被占用，请修改 etm.config.json 的 port；不会停止已有服务')
     seed_demo(backend,records)
     print('KingstVIS 需开启 Socket 并使能五路通道。',flush=True)
-    print('工作台：'+url+'#etm（退出按 Ctrl+C）',flush=True)
-    if not args.no_browser:webbrowser.open(url+'#etm')
+    print('工作台：'+url+entry+'（退出按 Ctrl+C）',flush=True)
+    if not args.no_browser:webbrowser.open(url+entry)
     try:http.serve_forever()
     except KeyboardInterrupt:pass
     finally:http.server_close()

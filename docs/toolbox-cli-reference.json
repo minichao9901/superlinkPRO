@@ -202,7 +202,7 @@
           "id": "s-pause",
           "tag": "button",
           "type": null,
-          "label": "暂停"
+          "label": "只暂停显示，接收和持续记录仍继续"
         },
         {
           "id": "s-clear",
@@ -214,7 +214,7 @@
           "id": "s-save",
           "tag": "button",
           "type": null,
-          "label": "保存数据"
+          "label": "导出当前接收缓冲；长时间完整记录请使用持续记录到文件"
         },
         {
           "id": "s-record",
@@ -478,7 +478,7 @@
       "id": "rtt",
       "label": "RTT Viewer",
       "source": "web/app/rtt/view.js",
-      "features": "探针/桥/模拟目标、通道、上下行、ELF、记录",
+      "features": "WebUSB、通道、上下行、ELF复用、日志检索与记录",
       "commands": [
         "describe",
         "state",
@@ -496,30 +496,6 @@
         "discard"
       ],
       "controls": [
-        {
-          "id": "r-backend",
-          "tag": "select",
-          "type": null,
-          "label": "WebUSB · CMSIS-DAP（零安装） 本地桥 · OpenOCD 本地桥 · J-Link（ch0） 内置模拟目标（演示/自测）",
-          "options": [
-            {
-              "value": "webusb",
-              "label": "WebUSB · CMSIS-DAP（零安装）"
-            },
-            {
-              "value": "bridge-openocd",
-              "label": "本地桥 · OpenOCD"
-            },
-            {
-              "value": "bridge-jlink",
-              "label": "本地桥 · J-Link（ch0）"
-            },
-            {
-              "value": "mock",
-              "label": "内置模拟目标（演示/自测）"
-            }
-          ]
-        },
         {
           "id": "r-usb-connect",
           "tag": "button",
@@ -609,144 +585,10 @@
           "label": ""
         },
         {
-          "id": "r-bridge-url",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "r-jlink-device",
-          "tag": "input",
-          "type": null,
-          "label": "给 J-Link 的器件名（如 STM32F103C8 / STM32F103RB / STM32H7B0VB）"
-        },
-        {
-          "id": "r-jlink-speed",
-          "tag": "select",
-          "type": null,
-          "label": "SWD 时钟（J-Link）：50000 = 50MHz（J-Link PRO + STM32F103RB 实测可用）",
-          "options": [
-            {
-              "value": "1000",
-              "label": "1 MHz"
-            },
-            {
-              "value": "5000",
-              "label": "5 MHz"
-            },
-            {
-              "value": "10000",
-              "label": "10 MHz"
-            },
-            {
-              "value": "20000",
-              "label": "20 MHz"
-            },
-            {
-              "value": "30000",
-              "label": "30 MHz"
-            },
-            {
-              "value": "40000",
-              "label": "40 MHz"
-            },
-            {
-              "value": "45000",
-              "label": "45 MHz"
-            },
-            {
-              "value": "50000",
-              "label": "50 MHz"
-            },
-            {
-              "value": "60000",
-              "label": "60 MHz"
-            }
-          ]
-        },
-        {
-          "id": "r-jlink-fast",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
-        },
-        {
-          "id": "r-ocd-cfgs",
-          "tag": "input",
-          "type": null,
-          "label": "逗号/空格分隔，按顺序加载。相对 OpenOCD scripts 目录或绝对路径。第一个 cfg 是 cmsis-dap 时会自动加 backend usb_bulk"
-        },
-        {
-          "id": "r-ocd-cfgs-pick",
-          "tag": "button",
-          "type": "button",
-          "label": "列出桥所在机器的 OpenOCD cfg 让你挑（浏览器拿不到本地文件路径，所以列表由桥提供）"
-        },
-        {
-          "id": "r-ocd-speed",
-          "tag": "select",
-          "type": null,
-          "label": "不设（默认） 1 MHz 5 MHz 10 MHz 20 MHz 30 MHz 40 MHz 45 MHz 50 MHz 60 MHz",
-          "options": [
-            {
-              "value": "",
-              "label": "不设（默认）"
-            },
-            {
-              "value": "1000",
-              "label": "1 MHz"
-            },
-            {
-              "value": "5000",
-              "label": "5 MHz"
-            },
-            {
-              "value": "10000",
-              "label": "10 MHz"
-            },
-            {
-              "value": "20000",
-              "label": "20 MHz"
-            },
-            {
-              "value": "30000",
-              "label": "30 MHz"
-            },
-            {
-              "value": "40000",
-              "label": "40 MHz"
-            },
-            {
-              "value": "45000",
-              "label": "45 MHz"
-            },
-            {
-              "value": "50000",
-              "label": "50 MHz"
-            },
-            {
-              "value": "60000",
-              "label": "60 MHz"
-            }
-          ]
-        },
-        {
-          "id": "r-bridge-connect",
-          "tag": "button",
-          "type": null,
-          "label": "连接桥"
-        },
-        {
-          "id": "r-bridge-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "断开"
-        },
-        {
           "id": "r-chip",
           "tag": "select",
           "type": null,
-          "label": "ARM：WebUSB 走 SWD，桥侧走 SWD 还是 JTAG 由你的 OpenOCD cfg 决定；RISC-V：只能 JTAG。换芯片在这里选，RAM 扫描范围自动带出（可手改）。走「本地桥 · OpenOCD」时 ARM 组的名字同时是 OpenOCD 的目标 cfg；零安装 WebUSB 模式只用到 RAM ",
+          "label": "选择目标芯片以填入默认 RAM 扫描范围；范围也可手动修改",
           "options": [
             {
               "value": "stm32f103",
@@ -833,18 +675,6 @@
               "label": "STM32WL"
             },
             {
-              "value": "esp32s31",
-              "label": "ESP32-S31（板载 USB-JTAG）"
-            },
-            {
-              "value": "esp32",
-              "label": "ESP32（Wrover Kit）"
-            },
-            {
-              "value": "custom",
-              "label": "自定义 cfg…"
-            },
-            {
               "value": "riscv-other",
               "label": "其它 RISC-V（自己填 RAM 范围）"
             }
@@ -926,7 +756,7 @@
           "id": "r-pause",
           "tag": "button",
           "type": null,
-          "label": "暂停"
+          "label": "只暂停显示，接收和持续记录仍继续"
         },
         {
           "id": "r-clear",
@@ -938,7 +768,7 @@
           "id": "r-save",
           "tag": "button",
           "type": null,
-          "label": "保存数据"
+          "label": "导出当前接收缓冲；长时间完整记录请使用持续记录到文件"
         },
         {
           "id": "r-record",
@@ -1004,23 +834,35 @@
       "methodSourceHints": [
         {
           "name": "connectProbe",
-          "line": 350
+          "line": 283
         },
         {
           "name": "disconnect",
-          "line": 520
+          "line": 406
         },
         {
           "name": "onShow",
-          "line": 821
+          "line": 692
         },
         {
           "name": "resetTarget",
-          "line": 937
+          "line": 786
+        },
+        {
+          "name": "loadElfFile",
+          "line": 812
+        },
+        {
+          "name": "summary",
+          "line": 827
+        },
+        {
+          "name": "saveRaw",
+          "line": 960
         },
         {
           "name": "save",
-          "line": 1107
+          "line": 967
         }
       ]
     },
@@ -1206,13 +1048,13 @@
           "id": "c-save",
           "tag": "button",
           "type": null,
-          "label": "把接收区里的数据存成 txt（按当前 ASCII/HEX 与时间戳设置）"
+          "label": "导出当前接收缓冲；长时间完整记录请使用持续记录到文件"
         },
         {
           "id": "c-pause",
           "tag": "button",
           "type": null,
-          "label": "暂停"
+          "label": "只暂停显示，接收和持续记录仍继续"
         },
         {
           "id": "c-clear",
@@ -1269,12 +1111,16 @@
           "line": 192
         },
         {
+          "name": "captureWindow",
+          "line": 251
+        },
+        {
           "name": "save",
-          "line": 250
+          "line": 277
         },
         {
           "name": "summary",
-          "line": 376
+          "line": 403
         }
       ]
     },
@@ -1818,35 +1664,35 @@
       "methodSourceHints": [
         {
           "name": "onShow",
-          "line": 261
+          "line": 267
         },
         {
           "name": "zoomToPoints",
-          "line": 307
+          "line": 302
         },
         {
           "name": "connectHid",
-          "line": 319
+          "line": 314
         },
         {
           "name": "connectUsb",
-          "line": 394
+          "line": 390
         },
         {
           "name": "releaseProbe",
-          "line": 447
+          "line": 443
         },
         {
           "name": "disconnect",
-          "line": 486
+          "line": 482
         },
         {
           "name": "setMock",
-          "line": 500
+          "line": 496
         },
         {
           "name": "loadElfFile",
-          "line": 527
+          "line": 523
         },
         {
           "name": "addArrayElement",
@@ -1889,140 +1735,148 @@
           "line": 748
         },
         {
+          "name": "confirmTargetArchitecture",
+          "line": 779
+        },
+        {
+          "name": "applyCaptureClock",
+          "line": 786
+        },
+        {
           "name": "stop",
-          "line": 1052
+          "line": 1084
         },
         {
           "name": "applyTargetType",
-          "line": 1100
+          "line": 1139
         },
         {
           "name": "setBackend",
-          "line": 1157
+          "line": 1196
         },
         {
           "name": "benchKeyOf",
-          "line": 1216
+          "line": 1257
         },
         {
           "name": "benchFresh",
-          "line": 1233
+          "line": 1274
         },
         {
           "name": "benchKeyWhy",
-          "line": 1242
+          "line": 1283
         },
         {
           "name": "uiBackend",
-          "line": 1267
+          "line": 1308
         },
         {
           "name": "fastWordUs",
-          "line": 1281
+          "line": 1322
         },
         {
           "name": "planClockMhz",
-          "line": 1287
+          "line": 1328
         },
         {
           "name": "planEstimateUs",
-          "line": 1292
+          "line": 1333
         },
         {
           "name": "recPeriodUsFor",
-          "line": 1297
+          "line": 1338
         },
         {
           "name": "bench",
-          "line": 1313
+          "line": 1354
         },
         {
           "name": "applyRecPeriod",
-          "line": 1390
+          "line": 1431
         },
         {
           "name": "isReal",
-          "line": 1405
+          "line": 1446
         },
         {
           "name": "signed",
-          "line": 1406
-        },
-        {
-          "name": "hidXfer",
-          "line": 1407
-        },
-        {
-          "name": "configureScope",
-          "line": 1413
-        },
-        {
-          "name": "readScopeMetrics",
-          "line": 1424
-        },
-        {
-          "name": "onChunk",
           "line": 1447
         },
         {
+          "name": "hidXfer",
+          "line": 1448
+        },
+        {
+          "name": "configureScope",
+          "line": 1454
+        },
+        {
+          "name": "readScopeMetrics",
+          "line": 1465
+        },
+        {
+          "name": "onChunk",
+          "line": 1488
+        },
+        {
           "name": "clear",
-          "line": 1595
+          "line": 1639
         },
         {
           "name": "trigCfg",
-          "line": 1613
+          "line": 1658
         },
         {
           "name": "applyTrigger",
-          "line": 1624
+          "line": 1669
         },
         {
           "name": "findNextTrigger",
-          "line": 1649
+          "line": 1694
         },
         {
           "name": "clearTrigger",
-          "line": 1665
+          "line": 1710
         },
         {
           "name": "exportCsv",
-          "line": 1673
+          "line": 1718
         },
         {
           "name": "saveRaw",
-          "line": 1692
+          "line": 1737
         },
         {
           "name": "replayFile",
-          "line": 1700
+          "line": 1745
         },
         {
           "name": "setStatusText",
-          "line": 1728
+          "line": 1784
         },
         {
           "name": "syncButtons",
-          "line": 1735
+          "line": 1791
         },
         {
           "name": "drawFrame",
-          "line": 1762
+          "line": 1818
         },
         {
           "name": "renderLegend",
-          "line": 1819
+          "line": 1875
         },
         {
           "name": "summary",
-          "line": 1842
+          "line": 1898
         },
         {
           "name": "if",
-          "line": 1879
+          "line": 1944
         },
         {
           "name": "if",
-          "line": 1880
+          "line": 1945
         }
       ]
     },
@@ -2581,187 +2435,187 @@
       "methodSourceHints": [
         {
           "name": "initSidebar",
-          "line": 296
+          "line": 301
         },
         {
           "name": "selectSidebar",
-          "line": 310
+          "line": 315
         },
         {
           "name": "renderElfInfo",
-          "line": 316
+          "line": 321
         },
         {
           "name": "onShow",
-          "line": 325
+          "line": 330
         },
         {
           "name": "connect",
-          "line": 486
+          "line": 496
         },
         {
           "name": "disconnect",
-          "line": 550
+          "line": 560
         },
         {
           "name": "refreshAll",
-          "line": 610
+          "line": 620
         },
         {
           "name": "afterStop",
-          "line": 624
+          "line": 634
         },
         {
           "name": "renderRegs",
-          "line": 668
+          "line": 678
         },
         {
           "name": "presentBacktrace",
-          "line": 770
+          "line": 780
         },
         {
           "name": "presentSelectedFrame",
-          "line": 789
+          "line": 799
         },
         {
           "name": "presentLocals",
-          "line": 795
+          "line": 805
         },
         {
           "name": "renderDwt",
-          "line": 809
+          "line": 819
         },
         {
           "name": "renderBps",
-          "line": 822
+          "line": 832
         },
         {
           "name": "readMem",
-          "line": 856
+          "line": 866
         },
         {
           "name": "renderMem",
-          "line": 890
+          "line": 900
         },
         {
           "name": "writeMemEdit",
-          "line": 948
+          "line": 958
         },
         {
           "name": "pickImageDirectory",
-          "line": 1080
+          "line": 1090
         },
         {
           "name": "runLine",
-          "line": 1091
+          "line": 1101
         },
         {
           "name": "loadElfBuffer",
-          "line": 1233
+          "line": 1243
         },
         {
           "name": "loadBundledSvd",
-          "line": 1306
+          "line": 1317
         },
         {
           "name": "loadSvdText",
-          "line": 1332
+          "line": 1343
         },
         {
           "name": "renderSyms",
-          "line": 1486
+          "line": 1497
         },
         {
           "name": "addWatch",
-          "line": 1557
+          "line": 1568
         },
         {
           "name": "delWatch",
-          "line": 1578
-        },
-        {
-          "name": "watchItems",
-          "line": 1585
-        },
-        {
-          "name": "clearWatch",
           "line": 1589
         },
         {
+          "name": "watchItems",
+          "line": 1596
+        },
+        {
+          "name": "clearWatch",
+          "line": 1600
+        },
+        {
           "name": "refreshWatch",
-          "line": 1597
+          "line": 1608
         },
         {
           "name": "renderWatch",
-          "line": 1647
+          "line": 1658
         },
         {
           "name": "pickSourceDir",
-          "line": 1753
+          "line": 1764
         },
         {
           "name": "renderSource",
-          "line": 1820
+          "line": 1831
         },
         {
           "name": "toggleSourceBp",
-          "line": 1913
+          "line": 1924
         },
         {
           "name": "runToLine",
-          "line": 1931
+          "line": 1942
         },
         {
           "name": "stepOver",
-          "line": 1968
+          "line": 1979
         },
         {
           "name": "stepInto",
-          "line": 1970
-        },
-        {
-          "name": "stepOut",
-          "line": 1972
-        },
-        {
-          "name": "showSource",
           "line": 1981
         },
         {
+          "name": "stepOut",
+          "line": 1983
+        },
+        {
+          "name": "showSource",
+          "line": 1992
+        },
+        {
           "name": "rttStart",
-          "line": 2021
+          "line": 2032
         },
         {
           "name": "rttStop",
-          "line": 2066
+          "line": 2077
         },
         {
           "name": "rttClear",
-          "line": 2073
+          "line": 2084
         },
         {
           "name": "summary",
-          "line": 2093
+          "line": 2104
         },
         {
           "name": "for",
-          "line": 2125
+          "line": 2137
         },
         {
           "name": "if",
-          "line": 2131
+          "line": 2143
         },
         {
           "name": "if",
-          "line": 2132
+          "line": 2144
         },
         {
           "name": "if",
-          "line": 2133
+          "line": 2145
         },
         {
           "name": "if",
-          "line": 2134
+          "line": 2146
         }
       ]
     },
@@ -2788,47 +2642,27 @@
       ],
       "controls": [
         {
-          "id": "f-backend",
-          "tag": "select",
-          "type": null,
-          "label": "零安装（默认）：与 RTT 共用探针，直接在浏览器里烧，覆盖 STM32 F0/F1/F4/F7/H7/L0/L4 与 HPM 全系 RISC-V。个别探针固件在 PPB 访问上有兼容问题、或你只想给磁盘路径（不给文件）时，换「本地桥」即可。",
-          "options": [
-            {
-              "value": "webusb",
-              "label": "WebUSB · 零安装（默认）"
-            },
-            {
-              "value": "openocd",
-              "label": "本地桥 · OpenOCD"
-            },
-            {
-              "value": "jlink",
-              "label": "本地桥 · J-Link"
-            }
-          ]
-        },
-        {
           "id": "f-chip",
           "tag": "select",
           "type": null,
-          "label": "走本地桥时它就是 OpenOCD 的目标 cfg；列表外的芯片选「自定义 cfg…」",
+          "label": "选择与目标匹配的 WebUSB 烧录算法",
           "options": []
         },
         {
           "id": "f-idcode",
           "tag": "button",
           "type": null,
-          "label": "只读地认目标（不动 flash、不改运行状态）：ARM/SWD 读 DP IDCODE + CPUID + STM32 DBGMCU DEV_ID/REV_ID + flash 容量寄存器；RISC-V/JTAG 读 TAP IDCODE。选错芯片也能读 —— 这个按钮不吃「芯片」那一格（只按后端选 SWD 还是 JT"
+          "label": "只读地认目标（不动 flash、不改运行状态）：ARM/SWD 读 DP IDCODE + CPUID + STM32 DBGMCU DEV_ID/REV_ID + flash 容量寄存器；RISC-V/JTAG 读 TAP IDCODE。选错芯片也能读 —— 这个按钮不吃「芯片」那一格（按目标类型选择 SWD 或 J"
         },
         {
           "id": "f-speed",
           "tag": "select",
           "type": null,
-          "label": "WebUSB Cortex-M：所选档用于 RAM 数据与 Flash 校验，执行控制保留 1 MHz；本地桥和 RISC-V 使用整体调试时钟。高频传输不稳定时请降低档位。",
+          "label": "WebUSB Cortex-M：所选档用于 RAM 数据与 Flash 校验，执行控制保留 1 MHz；RISC-V 使用整体调试时钟。高频传输不稳定时请降低档位。",
           "options": [
             {
               "value": "",
-              "label": "默认（WebUSB 1 MHz）"
+              "label": "默认（10 MHz）"
             },
             {
               "value": "1000",
@@ -2877,30 +2711,6 @@
           ]
         },
         {
-          "id": "f-bridge-url",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "f-cfgs",
-          "tag": "input",
-          "type": null,
-          "label": "逗号/空格分隔，按顺序加载。相对 OpenOCD scripts 目录或绝对路径"
-        },
-        {
-          "id": "f-cfgs-pick",
-          "tag": "button",
-          "type": "button",
-          "label": "列出桥所在电脑的 OpenOCD cfg 让你挑"
-        },
-        {
-          "id": "f-path",
-          "tag": "input",
-          "type": null,
-          "label": "桥所在电脑上的 .elf / .hex / .bin 路径"
-        },
-        {
           "id": "f-pick",
           "tag": "button",
           "type": null,
@@ -2935,24 +2745,131 @@
           "tag": "button",
           "type": null,
           "label": "清空日志"
+        },
+        {
+          "id": "f-tab-log",
+          "tag": "button",
+          "type": null,
+          "label": "日志"
+        },
+        {
+          "id": "f-tab-bytes",
+          "tag": "button",
+          "type": null,
+          "label": "固件字节"
+        },
+        {
+          "id": "f-tab-elf",
+          "tag": "button",
+          "type": null,
+          "label": "ELF 解析"
+        },
+        {
+          "id": "f-byte-source",
+          "tag": "select",
+          "type": null,
+          "label": "字节来源",
+          "options": [
+            {
+              "value": "image",
+              "label": "烧录映像"
+            },
+            {
+              "value": "raw",
+              "label": "原文件字节"
+            }
+          ]
+        },
+        {
+          "id": "f-byte-region",
+          "tag": "select",
+          "type": null,
+          "label": "固件区段",
+          "options": []
+        },
+        {
+          "id": "f-byte-address",
+          "tag": "input",
+          "type": null,
+          "label": "定位固件地址"
+        },
+        {
+          "id": "f-byte-go",
+          "tag": "button",
+          "type": null,
+          "label": "定位"
+        },
+        {
+          "id": "f-byte-prev",
+          "tag": "button",
+          "type": null,
+          "label": "上一页"
+        },
+        {
+          "id": "f-byte-next",
+          "tag": "button",
+          "type": null,
+          "label": "下一页"
+        },
+        {
+          "id": "f-elf-view",
+          "tag": "select",
+          "type": null,
+          "label": "ELF 结构",
+          "options": [
+            {
+              "value": "header",
+              "label": "文件头"
+            },
+            {
+              "value": "programs",
+              "label": "程序头 / 加载段"
+            },
+            {
+              "value": "sections",
+              "label": "节表"
+            },
+            {
+              "value": "symbols",
+              "label": "符号表"
+            }
+          ]
+        },
+        {
+          "id": "f-elf-search",
+          "tag": "input",
+          "type": null,
+          "label": "搜索 ELF 结构"
+        },
+        {
+          "id": "f-elf-prev",
+          "tag": "button",
+          "type": null,
+          "label": "上一页"
+        },
+        {
+          "id": "f-elf-next",
+          "tag": "button",
+          "type": null,
+          "label": "下一页"
         }
       ],
       "methodSourceHints": [
         {
-          "name": "onShow",
-          "line": 139
-        },
-        {
           "name": "flash",
-          "line": 174
+          "line": 140
         },
         {
           "name": "resetTarget",
-          "line": 214
+          "line": 179
         },
         {
           "name": "readIdcode",
-          "line": 335
+          "line": 290
+        },
+        {
+          "name": "summary",
+          "line": 927
         }
       ]
     },
@@ -7384,10 +7301,10 @@
       ]
     },
     {
-      "id": "gen",
-      "label": "工程生成",
-      "source": "web/app/gen/view.js",
-      "features": "uvprojx、Makefile/脚本、参数、预览/下载、本地桥/ETM桥包",
+      "id": "download",
+      "label": "工程下载",
+      "source": "web/app/download/view.js",
+      "features": "Windows完整包、版本、SHA-256、使用说明",
       "commands": [
         "describe",
         "state",
@@ -7406,521 +7323,24 @@
       ],
       "controls": [
         {
-          "id": "g-uvpick",
+          "id": "download-refresh",
           "tag": "button",
-          "type": null,
-          "label": "读取 .uvprojx 里的器件/Flash 信息，自动填下面的参数（也可以直接把文件拖到右边）"
-        },
-        {
-          "id": "g-uvfile",
-          "tag": "input",
-          "type": "file",
-          "label": ""
-        },
-        {
-          "id": "g-project",
-          "tag": "input",
-          "type": null,
-          "label": "写进 Makefile 的工程名 / build 目录里的文件名；Python 工具取的是 .uvprojx 所在目录名"
-        },
-        {
-          "id": "g-device",
-          "tag": "input",
-          "type": null,
-          "label": "J-Link 的 -Device 名字；表外的型号直接手输"
-        },
-        {
-          "id": "g-flash-start",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "g-c-jlink",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
-        },
-        {
-          "id": "g-c-gdb",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
-        },
-        {
-          "id": "g-c-pyocd",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
-        },
-        {
-          "id": "g-c-openocd",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
-        },
-        {
-          "id": "g-c-testbin",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
-        },
-        {
-          "id": "g-testbin-size",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "g-if",
-          "tag": "select",
-          "type": null,
-          "label": "SWDJTAG",
-          "options": [
-            {
-              "value": "SWD",
-              "label": "SWD"
-            },
-            {
-              "value": "JTAG",
-              "label": "JTAG"
-            }
-          ]
-        },
-        {
-          "id": "g-speed",
-          "tag": "input",
-          "type": null,
-          "label": "J-Link 的 -Speed。J-Link PRO 上 50000 也能稳跑"
-        },
-        {
-          "id": "g-rtt-addr",
-          "tag": "input",
-          "type": null,
-          "label": "_SEGGER_RTT 控制块地址，要与链接脚本里钉的位置一致"
-        },
-        {
-          "id": "g-rtt-size",
-          "tag": "input",
-          "type": null,
-          "label": "-RTTSearchRanges 的搜索长度。Python 模板原值是 0x5000，在 20KB RAM 的 F103 上会越过 RAM 顶，所以这里默认按修正后的 0x2000"
-        },
-        {
-          "id": "g-gdb-port",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "g-build-dir",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "g-generator",
-          "tag": "select",
-          "type": null,
-          "label": "NinjaUnix MakefilesMinGW Makefiles",
-          "options": [
-            {
-              "value": "Ninja",
-              "label": "Ninja"
-            },
-            {
-              "value": "Unix Makefiles",
-              "label": "Unix Makefiles"
-            },
-            {
-              "value": "MinGW Makefiles",
-              "label": "MinGW Makefiles"
-            }
-          ]
-        },
-        {
-          "id": "g-build-type",
-          "tag": "select",
-          "type": null,
-          "label": "DebugReleaseRelWithDebInfoMinSizeRel",
-          "options": [
-            {
-              "value": "Debug",
-              "label": "Debug"
-            },
-            {
-              "value": "Release",
-              "label": "Release"
-            },
-            {
-              "value": "RelWithDebInfo",
-              "label": "RelWithDebInfo"
-            },
-            {
-              "value": "MinSizeRel",
-              "label": "MinSizeRel"
-            }
-          ]
-        },
-        {
-          "id": "g-pyocd-target",
-          "tag": "input",
-          "type": null,
-          "label": "pyocd -t 的 target 名（pyocd pack 里能查到）"
-        },
-        {
-          "id": "g-pyocd-freq",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "g-openocd-root",
-          "tag": "input",
-          "type": null,
-          "label": "OpenOCD 安装/解压目录（里面要有 bin 和 scripts）。留空 = 产物里也留空"
-        },
-        {
-          "id": "g-openocd-if",
-          "tag": "select",
-          "type": null,
-          "label": "",
-          "options": []
-        },
-        {
-          "id": "g-openocd-target",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "g-openocd-freq",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "g-rtt-port",
-          "tag": "input",
-          "type": null,
-          "label": "openocd-rtt 目标里 rtt server start 的端口"
-        },
-        {
-          "id": "g-newline",
-          "tag": "select",
-          "type": null,
-          "label": "CRLF = 与 uvprojx2cmake.py 的产物逐字节一致；LF 更贴近 git 习惯",
-          "options": [
-            {
-              "value": "crlf",
-              "label": "CRLF（和 Python 工具一致）"
-            },
-            {
-              "value": "lf",
-              "label": "LF"
-            }
-          ]
-        },
-        {
-          "id": "g-force",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
-        },
-        {
-          "id": "g-save",
-          "tag": "button",
-          "type": null,
-          "label": "Edge/Chrome：选一个文件夹，多个文件直接写进去，不用解压"
-        },
-        {
-          "id": "g-zip",
-          "tag": "button",
-          "type": null,
-          "label": "不支持选文件夹的浏览器走这里：打包成一个 zip 落「下载」"
-        },
-        {
-          "id": "g-etm-port",
-          "tag": "input",
-          "type": "number",
-          "label": ""
-        },
-        {
-          "id": "g-bk-on",
-          "tag": "input",
-          "type": "checkbox",
-          "label": "J-Link / OpenOCD 都是本机程序，浏览器无权启动它们 —— 要用这两条后端就得有个本机桥。零安装的 WebUSB 通路不需要它"
-        },
-        {
-          "id": "g-bk-port",
-          "tag": "input",
-          "type": null,
-          "label": "桥监听的本地端口；页面与桥都走它"
-        },
-        {
-          "id": "g-bk-target",
-          "tag": "select",
-          "type": null,
-          "label": "STM32F103（cmsis-dap + stm32f1x） STM32H7B0（cmsis-dap + stm32h7x） 自定义 cfg…",
-          "options": [
-            {
-              "value": "stm32f103",
-              "label": "STM32F103（cmsis-dap + stm32f1x）"
-            },
-            {
-              "value": "stm32h7b0",
-              "label": "STM32H7B0（cmsis-dap + stm32h7x）"
-            },
-            {
-              "value": "custom",
-              "label": "自定义 cfg…"
-            }
-          ]
-        },
-        {
-          "id": "g-bk-cfgs",
-          "tag": "input",
-          "type": null,
-          "label": "逗号分隔；相对 OpenOCD 的 scripts 目录（也可写绝对路径）。只有「目标 = 自定义」时才用"
-        },
-        {
-          "id": "g-bk-speed",
-          "tag": "input",
-          "type": null,
-          "label": ""
-        },
-        {
-          "id": "g-bk-openocd",
-          "tag": "input",
-          "type": null,
-          "label": "找不到 OpenOCD 时填绝对路径（例：C:/Users/你/.espressif/tools/openocd-esp32/vX/openocd-esp32/bin/openocd.exe）"
-        },
-        {
-          "id": "g-bk-scripts",
-          "tag": "input",
-          "type": null,
-          "label": "留空 = 跟着 openocd.exe 推断"
-        },
-        {
-          "id": "g-bk-jdev",
-          "tag": "input",
-          "type": null,
-          "label": "给 J-Link 的 -Device（留空用默认 STM32F103C8）"
-        },
-        {
-          "id": "g-bk-jspeed",
-          "tag": "input",
-          "type": null,
-          "label": "本机 J-Link PRO + F103 实测 50 MHz 可用"
-        },
-        {
-          "id": "g-bk-nodever",
-          "tag": "input",
-          "type": null,
-          "label": "本机没装 Node 时自动下这个版本（绿色包，放到包里的 node/ 目录，不动系统）"
-        },
-        {
-          "id": "g-bk-mirror",
-          "tag": "select",
-          "type": null,
-          "label": "国内镜像优先（npmmirror） 官方优先（nodejs.org）",
-          "options": [
-            {
-              "value": "1",
-              "label": "国内镜像优先（npmmirror）"
-            },
-            {
-              "value": "0",
-              "label": "官方优先（nodejs.org）"
-            }
-          ]
-        },
-        {
-          "id": "g-bk-autonode",
-          "tag": "input",
-          "type": "checkbox",
-          "label": "关掉 = 没 Node 时只提示、不下载（企业内网/杀软敏感时用）"
-        },
-        {
-          "id": null,
-          "tag": "button",
-          "type": null,
-          "label": "工程文件"
-        },
-        {
-          "id": null,
-          "tag": "button",
-          "type": null,
-          "label": "调试参数"
-        },
-        {
-          "id": null,
-          "tag": "button",
-          "type": null,
-          "label": "本地桥"
-        },
-        {
-          "id": null,
-          "tag": "button",
-          "type": null,
-          "label": "ETM 桥"
-        },
-        {
-          "id": "g-copy",
-          "tag": "button",
-          "type": null,
-          "label": "复制当前文件"
-        },
-        {
-          "id": "g-dl",
-          "tag": "button",
-          "type": null,
-          "label": "下载当前文件"
-        },
-        {
-          "id": "g-params-copy",
-          "tag": "button",
-          "type": null,
-          "label": "复制全部（键=值）"
-        },
-        {
-          "id": "g-etm-full",
-          "tag": "button",
-          "type": null,
-          "label": "下载完整 ETM 桥包"
-        },
-        {
-          "id": "g-zip-etm",
-          "tag": "button",
-          "type": null,
-          "label": "仅下载启动文件"
-        },
-        {
-          "id": "g-etm-open",
-          "tag": "button",
-          "type": null,
-          "label": "打开 ETM 工作台"
-        },
-        {
-          "id": "g-etm-copy",
-          "tag": "button",
-          "type": null,
-          "label": "复制当前文件"
-        },
-        {
-          "id": "g-etm-dl",
-          "tag": "button",
-          "type": null,
-          "label": "下载当前文件"
-        },
-        {
-          "id": "g-kit-copy",
-          "tag": "button",
-          "type": null,
-          "label": "复制当前文件"
-        },
-        {
-          "id": "g-zip-bridge",
-          "tag": "button",
-          "type": null,
-          "label": "只打包桥的文件（zip 里是 rtt-bridge-kit/…）：解压后双击 start-bridge.bat 就能起桥"
+          "type": "button",
+          "label": "刷新下载信息"
         }
       ],
       "methodSourceHints": [
         {
-          "name": "detectEtmPaths",
-          "line": 147
-        },
-        {
           "name": "onShow",
-          "line": 158
-        },
-        {
-          "name": "renderPill",
-          "line": 198
-        },
-        {
-          "name": "params",
-          "line": 212
+          "line": 5
         },
         {
           "name": "refresh",
-          "line": 250
-        },
-        {
-          "name": "renderFileTabs",
-          "line": 299
-        },
-        {
-          "name": "renderPreview",
-          "line": 318
-        },
-        {
-          "name": "renderParams",
-          "line": 338
-        },
-        {
-          "name": "paramsText",
-          "line": 391
-        },
-        {
-          "name": "copyParams",
-          "line": 402
-        },
-        {
-          "name": "renderDetect",
-          "line": 408
-        },
-        {
-          "name": "loadUvprojx",
-          "line": 435
-        },
-        {
-          "name": "saveToFolder",
-          "line": 482
-        },
-        {
-          "name": "downloadZip",
-          "line": 522
-        },
-        {
-          "name": "downloadBridgeZip",
-          "line": 531
-        },
-        {
-          "name": "currentFile",
-          "line": 542
-        },
-        {
-          "name": "downloadEtmZip",
-          "line": 547
-        },
-        {
-          "name": "downloadEtmPackage",
-          "line": 555
-        },
-        {
-          "name": "downloadCurrent",
-          "line": 572
-        },
-        {
-          "name": "copyCurrent",
-          "line": 580
+          "line": 6
         },
         {
           "name": "summary",
-          "line": 593
-        },
-        {
-          "name": "setTimeout",
-          "line": 625
-        },
-        {
-          "name": "for",
-          "line": 632
-        },
-        {
-          "name": "if",
-          "line": 638
+          "line": 30
         }
       ]
     }

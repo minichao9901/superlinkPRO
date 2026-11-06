@@ -33,7 +33,7 @@ RTT · J-Scope 波形 · 烧录 · 源码级调试 · **ETM 执行轨迹与周�
 仓库由三部分组成：
 
 * `firmware/`、`script_test/` —— **探针固件与标定脚本**（HPM5301：CMSIS-DAP + CDC + 自定义 HID + WebUSB）
-* `web/` —— **网页工作台**（串口、RTT、J-Scope、烧录、调试器、SPI/I2C 桥、屏驱动、工程生成）
+* `web/` —— **网页工作台**（串口、RTT、J-Scope、烧录、调试器、SPI/I2C 桥、屏驱动、工程下载）
 * `etm/` —— **ETM 执行轨迹**（Kingst LA 采集 → TPIU 解复用 → OpenCSD 解码 → 源码级回放）
 
 > 仓库是怎么从三个项目合并来的：见 [docs/merge-readme.md](docs/merge-readme.md) 与 [docs/merge-map.md](docs/merge-map.md)。
@@ -56,7 +56,7 @@ AI / 脚本统一入口：`python -X utf8 toolbox.py catalog`。覆盖全部 Web
 | **SPI→CDC 转发** | 探针把目标 SPI 字节流从原生 CDC 转发到串口工具，网页提供引脚图与高流量门控 | 60 MHz 档 **7.53 MB/s**（Web 默认 4 KiB 缓冲，30 s 零缺帧）；原生 CDC **8.41 MB/s @ 67 MHz**（30 s 长测 0 误码） |
 | **USB→ADC 示波器** | 单通道 ADC、时间/电压游标、自动测量、CSV；DAC 波形预留 | 持续 **1 / 2 MSa/s**，8/10/12/16 位各 30 s 计数一致、无溢出（DMA） |
 | **SPI/QSPI 屏** | 面板初始化表、图片/图案/动画、**局部刷新** | QSPI 四线 40/60 MHz **13.2 / 16.77 MB/s**（像素传输；完整墙钟约 10.1）；SPI 单线真屏 4.22 MB/s |
-| **工程生成** | Keil `.uvprojx` → CMake + J-Link/OpenOCD/pyOCD 配套件 | 与 Python 工具逐字节对拍 |
+| **工程下载** | Windows x64 完整工作台、版本与 SHA-256；本机产物在 `dist/superlinkPRO/` | 双击 `superlinkPRO.exe`，无需安装 Python / Node |
 
 ## 界面预览
 
@@ -84,7 +84,7 @@ AI / 脚本统一入口：`python -X utf8 toolbox.py catalog`。覆盖全部 Web
 * **解码链路**：TPIU 帧同步/解复用 → OpenCSD 1.8.3 → 指令级事件 → 源码映射
 * **源码回放**：执行流按源码行回放，可导出**简化 C**（按执行顺序排列的源码行 + 函数上下文）
 * **周期计数**（ETMv4 独有）：函数**自身周期 / 占比 / CPI / 覆盖时长**、**周期加权火焰图**
-* **单次窗口上限 200 ms**（一次采集 + 一次解码；200 ms 记录完整处理的历史单次为 60～62 s、后续完整重跑 103～108 s，均属特定运行、不承诺固定速度，见 [docs/etm-performance-baseline.md](docs/etm-performance-baseline.md)）；旧的长窗分窗记录仍可打开
+* **单次窗口上限 1000 ms（1 s）**，以实际采样深度和质量为准；处理时间与未关闭性能事项见 [1 s 发布说明](docs/etm-1s-release-20261023.md)及[问题表](docs/项目问题跟踪列表.md)。历史分窗记录继续保留兼容。
 
 <div align="center">
 
@@ -149,16 +149,20 @@ AI / 脚本统一入口：`python -X utf8 toolbox.py catalog`。覆盖全部 Web
 
 > Chrome / Edge 支持 WebUSB 与 WebHID；Web Serial 需要 Chromium 内核浏览器。
 
-### 2. 本地桥（离线可用）
+### 2. Windows 工作台（离线可用）
 
-`web/bridge/etm/downloads/etm-bridge-win64.zip`（**1.0.14-native.12，约 78.8 MB**）完整解压后双击
-`start-etm-bridge.bat`。包内自带 Python、依赖、网页和原生解码器，无需安装 Python 或 Node，
-默认启用原生优化链路。升级前退出旧工作台并保留 `data` 目录。
+在网页「工程下载」获取完整包，完整解压后双击 `superlinkPRO.exe`。本机开发产物为
+`dist/superlinkPRO/superlinkPRO.exe`，分发 ZIP 和 SHA-256 清单位于 `dist/`。
+保留整个运行目录；更新前退出旧程序并保留 `data`。ETM 沿用原 KingstVIS Socket 和 native.15 运行时，页面没有迁移到 Zynq。
+本地构建不等于已发布到线上。
 
-```text
-start-etm-bridge.bat    # 起本地桥并打开网页
-check-tools.bat         # 检查完整包与运行资源
+```powershell
+python -X utf8 toolbox.py bridge-build
+.\dist\superlinkPRO\superlinkPRO.exe --check
 ```
+
+调试后端统一为 WebUSB / CMSIS-DAP；工程生成与 OpenOCD/J-Link 后端已移除。
+新增日志检索、目标/ELF 显式复用、设置收起及固件字节/ELF 结构查看；SPI、I2C、SWO、ADC/DAC 等工具继续保留。
 
 ### 3. 烧探针固件（可选）
 

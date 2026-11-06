@@ -1,13 +1,11 @@
-/**
- * RTT Viewer 界面。
- * 后端四种：WebUSB-CMSIS-DAP（零安装）/ 本地桥+OpenOCD / 本地桥+J-Link(ch0) / 内置模拟目标。
- * 显示三种：终端(ANSI，xterm) / 文本 / HEX —— 三种共用同一份 raw 记录，切换时重放，不丢历史。
- */
+/** WebUSB RTT viewer; URL mock mode is reserved for offline checks. */
 import { prepareProbeHandoff } from '../core/probe-users.js';
 import { runProbeOperation } from '../core/probe-manager.js';
 import { $, seg, setStatus, mhzLabel, ensureSelectOption } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { store } from '../core/store.js';
+import { webClockKhz,isHpmClockTarget } from '../core/target-clock.js';
+import { constrainClockSelect } from '../ui/target-clock.js';
 import { RxBuffer } from '../core/rxview.js';
 import { FileRecorder, recordButtonState } from '../core/recorder.js';
 import { Rtt } from './protocol.js';
@@ -16,13 +14,11 @@ import { openRiscvMem } from './riscv-mem.js';
 import { HPM_BOARDS, hpmBoard } from '../targets/hpm/porting.js';
 import { selectedHpmBoard, rememberHpmBoard } from '../targets/hpm/select.js';
 import { MockProbe } from './mock.js';
-import { BridgeClient } from './bridge.js';
 import { findSymbol } from './elf.js';
 import { parseRanges } from '../core/bin.js';
 import { parseHex, textToBytes } from '../core/hex.js';
-import { pickCfgs } from '../ui/cfgpicker.js';
 import { closeProbeUsbDevices } from '../core/probe-bus.js';
-import { sleep } from '../core/pace.js';
+import { sleep,waitMs,yieldTask } from '../core/pace.js';
 import { rate as fRate, bytes as fBytes, fileStamp, download, stamp as stampOf } from '../core/format.js';
 
 const EOL = { cr: '\r', crlf: '\r\n', lf: '\n', none: '' };
@@ -59,26 +55,16 @@ const OCD_RAM = {
 
 const rvRange = id => hpmBoard(id)?.memory.rttRange || '0x01240000-0x01250000';
 
-/**
- * 「芯片」下拉（`#r-chip`）—— **一个下拉、两个组**（用户 2026-09-30：原来按目标类型换着显示的
- * 两个下拉合并成一个）。组的归属**只认 HTML 里的 `<optgroup data-arch="arm|riscv">`**：
- * 以后加芯片只改 index.html，这里不用维护第二份名单。
- *
- * 两条口径（用户强调过"ARM 也能走 JTAG"）：
- *   · **ARM 组**：WebUSB 通路固定 SWD；桥（OpenOCD/J-Link）走哪条传输由**你自己的 cfg** 决定 ——
- *     所以这里不写"ARM = SWD"这种话，只保证桥送出去的 target 名取的是 ARM 组那颗；
- *   · **RISC-V 组**：**只能 JTAG**，选中它就把「目标类型」切到 RISC-V/JTAG
- *     （否则会出现"选了 HPM 却还在走 SWD"这种错配）。
- */
+
 const chipSel = () => document.getElementById('r-chip');
 const chipArchOf = id => {
   const o = [...(chipSel()?.options || [])].find(x => x.value === id);
   return o?.parentElement?.dataset?.arch || 'arm';
 };
-/** 当前 ARM 组那颗（桥的 OpenOCD target 用它；选的是 RISC-V 时回退到上次选过的 ARM 那颗）*/
+
 const armChipId = () => {
   const v = chipSel()?.value || '';
-  return chipArchOf(v) === 'arm' ? v : (store.get('rtt.ocdTarget', '') || 'stm32f103');
+  return chipArchOf(v) === 'arm' ? v : (store.get('rtt.armChip', store.get('rtt.ocdTarget', '')) || 'stm32f103');
 };
 /** 当前 RISC-V 组那颗（RAM 窗口用它；选的是 ARM 时回退到上次选过的 RISC-V 那颗）*/
 const rvChipId = () => {
@@ -89,9 +75,7 @@ const rvChipId = () => {
 export class RttView {
   constructor(){
     this.probe = null;
-    this.bridge = null;
     this.rtt = null;
-    this.stream = false;
     this.mode = 'term';
     this.paused = false;
     this.running = false;
@@ -121,43 +105,12 @@ export class RttView {
     this.tx = new RxBuffer($('r-rx'), { mode: 'ascii', maxLines: 4000, maxRaw: MAX_RAW });
 
     // ---------- 设置 ----------
-    store.bind($('r-backend'), 'rtt.backend');
-    store.bind($('r-bridge-url'), 'rtt.bridgeUrl');
     store.bind($('r-range'), 'rtt.range');
     store.bind($('r-addr'), 'rtt.addr');
     store.bind($('r-poll'), 'rtt.poll');
     store.bind($('r-eol'), 'rtt.eol');
     // 芯片（合并后的 `#r-chip`）不再用 store.bind：两块选项各有自己的键，
     // 由下面 applyTarget() / change 处理器显式读写（rtt.ocdTarget = ARM 组那颗、rtt.rvChip = RISC-V 组那颗）
-    store.bind($('r-ocd-cfgs'), 'rtt.ocdCfgs');
-    store.bind($('r-ocd-speed'), 'rtt.ocdSpeed');
-    // 老版本这里是自由输入框，localStorage 里可能存着候选之外的值（4000/8000…）：补个选项，别悄悄改掉它
-    ensureSelectOption($('r-ocd-speed'), store.get('rtt.ocdSpeed', ''), mhzLabel(store.get('rtt.ocdSpeed', '')));
-    /**
-     * J-Link 这条路的两个参数（以前只有 localStorage、页面上没有入口，用户没法改）：
-     *   · rtt.jlinkDevice —— 传给 J-Link 的器件名
-     *   · rtt.jlinkSpeed  —— SWD 时钟 kHz（50000 = 50MHz）
-     * 注意**页面传的值会覆盖桥的 bridge.config.json**（桥那边是 jlink.device / jlink.speed），
-     * 所以两边的默认值必须一致 —— 都是 STM32F103C8 / 50000，改一处记得改另一处。
-     */
-    store.bind($('r-jlink-device'), 'rtt.jlinkDevice');
-    store.bind($('r-jlink-speed'), 'rtt.jlinkSpeed');
-    ensureSelectOption($('r-jlink-speed'), store.get('rtt.jlinkSpeed', ''), mhzLabel(store.get('rtt.jlinkSpeed', '')));
-    /**
-     * 「高速只读」：数据源从桥自启的 GDBServer telnet（全双工，实测上限 ~565 KB/s）
-     * 换成 JLinkRTTLogger 落文件 + 桥 tail（~1463 KB/s）。默认**关**——勾上就没有下行了。
-     */
-    store.bind($('r-jlink-fast'), 'rtt.jlinkFast', 'checked');
-    this._applyOcdTarget(false);      // 只同步自定义行的显隐；RAM 范围是用户存过的值，别在加载时覆盖
-    // 「选择…」：列出桥所在机器的 OpenOCD cfg 让你挑（浏览器拿不到本地文件路径，列表只能由桥给）
-    $('r-ocd-cfgs-pick').addEventListener('click', async () => {
-      const v = await pickCfgs({
-        bridgeUrl: $('r-bridge-url').value,
-        current: $('r-ocd-cfgs').value,
-        title: '选择 OpenOCD cfg（RTT 后端用）',
-      });
-      if (v !== null){ $('r-ocd-cfgs').value = v; store.set('rtt.ocdCfgs', v); }
-    });
     this._chk($('r-ts'), 'rtt.ts', v => { this.ts = v; this.tx.setTimestamps(v, false); });
     this._chk($('r-autoscroll'), 'rtt.autoscroll', v => { this.tx.setAutoscroll(v); });
     this._chk($('r-hexsend'), 'rtt.hexsend', () => {});
@@ -168,26 +121,7 @@ export class RttView {
     this.interval = Math.max(1, Number($('r-poll').value) || 5);
     $('r-poll').addEventListener('input', () => { this.interval = Math.max(1, Number($('r-poll').value) || 5); });
 
-    // ---------- 后端选择 ----------
-    const applyBackend = () => {
-      const b = $('r-backend').value;
-      $('r-webusb-box').hidden = b !== 'webusb';
-      $('r-bridge-box').hidden = !(b === 'bridge-openocd' || b === 'bridge-jlink');
-      // J-Link 的 device/speed 只在「本地桥 · J-Link」下才有意义，别的后端别摆出来晃眼
-      $('r-jlink-box').hidden = b !== 'bridge-jlink';
-      $('r-mock-box').hidden = b !== 'mock';
-    };
-    applyBackend();
-    $('r-backend').addEventListener('change', () => { applyBackend(); if (this.probe || this.bridge) this.disconnect(); });
 
-    /**
-     * 目标类型：**SWD/ARM** 还是 **RISC-V/JTAG**（零安装通路的两套底层，见 app/rtt/riscv-mem.js）。
-     * 只影响 WebUSB 后端；桥后端（OpenOCD/J-Link）自己知道目标是什么。
-     * RISC-V 下把界面里那几个"只有 Cortex-M 才有"的东西收起来/关掉，别让用户以为坏了：
-     *   · 「复位目标」按钮（DHCSR/AIRCR 那套 RISC-V 上没有）→ 禁用；
-     *   · RAM 扫描范围（RISC-V 板子的 RTT 控制块一般在 AXI SRAM，不在 0x20000000）→ 给常见默认值；
-     *   · SWD 时钟那格的**含义变成 JTAG TCK**（DAP_SWJ_Clock），标签改掉。
-     */
     const chip = chipSel();                 // 合并后的芯片下拉（ARM 组 + RISC-V 组，见文件头的辅助函数）
     const applyTarget = () => {
       const rv = $('r-target').value === 'riscv';
@@ -201,24 +135,21 @@ export class RttView {
       $('r-reset').title = rv
         ? 'RISC-V 下没有 Cortex-M 的 DHCSR/AIRCR 复位语义（探针的 RISC-V 引擎只管 halt/resume）—— 要复位就按板子上的复位键'
         : '复位目标（AIRCR.SYSRESETREQ；探针没接 NRST 时靠软复位）';
-      /**
-       * 芯片下拉跟着目标类型走：切到 RISC-V/JTAG 就选中 RISC-V 组里上次那颗，切回 SWD 就选 ARM 组那颗。
-       * 合并成一个下拉 ≠ 把两边的语义搅在一起：**桥送出去的 OpenOCD target 名永远取 ARM 组那颗**
-       * （`armChipId()`），RISC-V 的 id 不会被当成 OpenOCD 预设名发出去。
-       * ⚠️ 这里**无条件赋值**：下拉的默认值是"第一个选项"（stm32f103），不是用户存过的那颗 ——
-       *    加个"已经在对的组里就不动"的判断，加载时就会显示成 stm32f103（而不是存的 custom）。
-       *    从下拉那头切过来时也不会被覆盖：处理器先写 store 再切目标类型，这里读到的就是刚选的那颗。
-       */
+
       if (chip) chip.value = rv ? (store.get('rtt.rvChip', '') || selectedHpmBoard())
-                                : (store.get('rtt.ocdTarget', '') || 'stm32f103');
+                                : (store.get('rtt.armChip', store.get('rtt.ocdTarget', '')) || 'stm32f103');
+      if (chip && !chip.value) chip.value = rv ? selectedHpmBoard() : 'stm32f103';
       $('r-range').value = rv ? (rvRange(rvChipId()))
                               : (OCD_RAM[armChipId()] || $('r-range').value);
-      this._applyOcdTarget(false);
+      this._applyChipUi(false);
     };
-    applyTarget();
-    this._applyTargetUi = applyTarget;       // onShow 里要对账"别页切过目标类型"（同一个全局开关）
+    // Restore architecture before deriving chip, range, labels and reset capability.
     store.bind($('r-target'), 'rtt.target');
-    const onTargetChanged = () => { applyTarget(); if (this.probe || this.bridge) this.disconnect(); };
+    const savedRange = store.get('rtt.range', null);
+    applyTarget();
+    if (savedRange !== null) $('r-range').value = savedRange;
+    this._applyTargetUi = applyTarget;       // 供明确的会话目标沿用入口刷新本地配置
+    const onTargetChanged = () => { applyTarget(); if (this.probe) this.disconnect(); };
     $('r-target').addEventListener('change', onTargetChanged);
     /**
      * 合并后的芯片下拉：换芯片 = ① 记到**那一组自己的键**（两块各自记住上次选的）
@@ -228,7 +159,7 @@ export class RttView {
      */
     chip?.addEventListener('change', () => {
       const id = chip.value, arch = chipArchOf(id);
-      store.set(arch === 'riscv' ? 'rtt.rvChip' : 'rtt.ocdTarget', id);
+      store.set(arch === 'riscv' ? 'rtt.rvChip' : 'rtt.armChip', id);
       if (arch === 'riscv') rememberHpmBoard(id);
       /**
        * 🚨 **换芯片必须清掉手填的 RTT 地址**：`#r-addr` 绑的是 `rtt.addr`，它是"上一个目标
@@ -244,10 +175,11 @@ export class RttView {
       const wantRv = arch === 'riscv';
       if (wantRv !== ($('r-target').value === 'riscv')){
         $('r-target').value = wantRv ? 'riscv' : 'swd';
+        store.set('rtt.target',$('r-target').value);
         onTargetChanged();
       } else {
         $('r-range').value = wantRv ? (rvRange(id)) : (OCD_RAM[id] || $('r-range').value);
-        this._applyOcdTarget(true);
+        this._applyChipUi(true);
       }
     });
 
@@ -255,8 +187,6 @@ export class RttView {
     $('r-usb-connect').addEventListener('click', () => this.connectProbe());
     $('r-usb-pick').addEventListener('click', () => { this._forcePick = true; this.connectProbe(); });
     $('r-usb-disconnect').addEventListener('click', () => this.disconnect());
-    $('r-bridge-connect').addEventListener('click', () => this.connectProbe());
-    $('r-bridge-disconnect').addEventListener('click', () => this.disconnect());
     $('r-find').addEventListener('click', () => this._startRtt().catch(e => this._err(e)));
     $('r-restart').addEventListener('click', () => this._startRtt().catch(e => this._err(e)));
     $('r-reset').addEventListener('click', () => this.resetTarget());
@@ -267,6 +197,8 @@ export class RttView {
     store.bind($('r-usb-clock'), 'rtt.clockKhz');
     // 老版本这里是 select（0/1000/500/200/2000/4000/8000/12000/20000）：存过 8000/12000 的要能显示出来
     ensureSelectOption($('r-usb-clock'), store.get('rtt.clockKhz', ''), mhzLabel(store.get('rtt.clockKhz', '')));
+    $('r-usb-clock').value=String(store.get('rtt.clockKhz','0'));
+    this._applyClockLimit();
     store.bind($('r-record-ts'), 'rtt.recordTs', 'checked');
     store.bind($('r-record-auto'), 'rtt.recordAuto', 'checked');
     $('r-record').addEventListener('click', () => this._toggleRecord());
@@ -316,15 +248,13 @@ export class RttView {
 
     // URL 参数：?backend=mock&auto=1 直接连上（做演示链接/自测用）
     const q = new URLSearchParams(location.search);
-    const b = q.get('backend');
-    if (b && [...$('r-backend').options].some(o => o.value === b)){
-      $('r-backend').value = b;
-      $('r-backend').dispatchEvent(new Event('change'));
-    }
+    const b = q.get('backend') === 'mock' ? 'mock' : 'webusb';
+    this.backend = b;
+    $('r-mock-box').hidden = b !== 'mock';
     if (q.get('addr')) $('r-addr').value = q.get('addr');
     this._setMode(mode);                       // 起手就要应用显示模式（否则默认的终端模式没容器，数据看不见）
     // 只有当 URL **明确指定了后端**时才自动连接（否则会拿 localStorage 里上次的后端乱连）
-    if (b && q.get('auto') === '1') setTimeout(() => this.connectProbe().catch(() => {}), 150);
+    if (b === 'mock' && q.get('auto') === '1') setTimeout(() => this.connectProbe().catch(() => {}), 150);
   }
 
   _chk(el, key, apply){
@@ -333,24 +263,27 @@ export class RttView {
     apply(el.checked);
   }
 
-  /** 芯片下拉变化：显示/隐藏自定义 cfg 输入；选系列时把 RAM 范围填成常见值 */
-  _applyOcdTarget(applyRange){
-    const t = armChipId();                  // 合并后的下拉里 ARM 组那颗（「自定义 cfg…」也在这组）
-    const custom = t === 'custom';
-    // 「非缓存区」那段提醒只对 RISC-V 有意义（ARM 的 RTT 缓冲放普通 RAM 就行），别让它一直占地方
+
+  _applyChipUi(applyRange){
+    this._applyClockLimit();
+    const t = armChipId();
     const note = $('r-chip-note');
     if (note) note.hidden = chipArchOf(chipSel()?.value || '') !== 'riscv';
-    $('r-ocd-custom-cfgs-row').hidden = !custom;
-    $('r-ocd-cfgs-hint').hidden = !custom;
-    $('r-ocd-custom-speed-row').hidden = !custom;
     if (applyRange && $('r-target').value !== 'riscv' && OCD_RAM[t]) $('r-range').value = OCD_RAM[t];
+  }
+
+  _applyClockLimit(){
+    const target=chipSel()?.value;
+    constrainClockSelect($('r-usb-clock'),target,v=>store.set('rtt.clockKhz',v));
+    $('r-usb-clock').title=isHpmClockTarget(target)?'HPM JTAG TCK 最高 25 MHz；自动使用 10 MHz'
+      : $('r-target').value==='riscv'?'其他 RISC-V JTAG TCK 最高 60 MHz':'SWD 时钟最高 60 MHz；自动从高到低协商';
   }
 
   // ================= 连接 =================
   async connectProbe(){
-    if (this._connectPromise || this._disconnectPromise || this.probe || this.bridge) return;
+    if (this._connectPromise || this._disconnectPromise || this.probe) return;
     const g = this._sessionGen = (this._sessionGen || 0) + 1;
-    const backend = $('r-backend')?.value || 'webusb';
+    const backend = this.backend || 'webusb';
     this._probeMock = backend === 'mock';
     this._connectPromise = runProbeOperation(this, 'rtt', () => this._connectProbe(g, backend), {
       mock: this._probeMock, reason: 'RTT Viewer 要使用探针', recovery: true,
@@ -358,19 +291,20 @@ export class RttView {
     try { return await this._connectPromise; }
     catch (e){ this._err(e); return false; }
     finally {
-      if (g !== this._sessionGen && (this.probe || this.bridge)) await this.disconnect();
+      if (g !== this._sessionGen && (this.probe)) await this.disconnect();
       this._connectPromise = null;
     }
   }
 
-  async _connectProbe(g, b = $('r-backend').value){
+  async _connectProbe(g, b = this.backend || 'webusb'){
     try {
       if (b !== 'mock'){
         await prepareProbeHandoff(this, 'rtt', 'RTT Viewer 要使用探针');
         if (g !== this._sessionGen) return;
       }
       if (b === 'webusb'){
-        const clockKhz = Number(store.get('rtt.clockKhz', 0)) || 0;
+        const clockKhz = webClockKhz($('r-usb-clock').value,chipSel()?.value,
+          isHpmClockTarget(chipSel()?.value)?10000:0);
         if ($('r-target').value === 'riscv'){
           /**
            * RISC-V/JTAG 走另一套底层：HID 切 SWD+JTAG → WebUSB 的 DAP_JTAG_Sequence → DMI → SBA
@@ -389,8 +323,7 @@ export class RttView {
           }
           const inf = this.probe.info();
           toast(`RISC-V 已就绪：${this.probe.name} · IDCODE 0x${Number(inf.idcode || 0).toString(16)}`, 'ok');
-          this.stream = false;
-          if (g !== this._sessionGen) return;
+                if (g !== this._sessionGen) return;
       this._uiConnected(true);
           if ($('r-record-auto').checked && !this.rec.active) this._autoStartRecord();
           await this._startRtt(g);
@@ -429,57 +362,11 @@ export class RttView {
           this.probe = await withTimeout(WebUsbDapProbe.request($('r-usb-all').checked, { clockKhz }), 60000, '等你在浏览器里选探针');
           toast('探针已连接：' + this.probe.name, 'ok');
         }
-        this.stream = false;
       } else if (b === 'mock'){
         this.probe = new MockProbe();
         await this.probe.connect();
-        this.stream = false;
         toast('模拟目标已启动（内存里有个假 RTT 控制块）', 'ok');
-      } else {
-        // 芯片下拉里选的是 RISC-V 那颗时，别把它的 id 当 OpenOCD 预设名发给桥（桥那边没有这个预设）
-        if (chipArchOf(chipSel()?.value || '') === 'riscv'){
-          throw new Error('这一颗是 RISC-V：桥（OpenOCD / J-Link）那条路要你自己给目标 cfg —— '
-            + '改选 ARM 组的「自定义 cfg…」并填 cfg 列表；RISC-V 推荐走「调试后端 → WebUSB」那条零安装的路');
-        }
-        const bc = new BridgeClient($('r-bridge-url').value);
-        await bc.connect({ version: 1 });
-        const backend = b === 'bridge-openocd' ? 'openocd' : 'jlink';
-        // OpenOCD：目标优先用「预设名」（桥端查 bridge.config.json），自定义则直接给 cfg 列表；
-        // 预设时**不传 speed**（桥用配置里的预设速度——之前总是传 4000 会把配置值覆盖掉）。
-        // J-Link 仍走自己的参数。
-        const cfg = {
-          openocd: store.get('rtt.ocdPath', ''),
-          target: armChipId(),
-        };
-        if (cfg.target === 'custom'){
-          cfg.cfgs = String($('r-ocd-cfgs').value || '').split(/[,\s;]+/).map(s => s.trim()).filter(Boolean);
-          cfg.speed = Number($('r-ocd-speed').value) || 0;
-          if (!cfg.cfgs.length) throw new Error('自定义目标要填 cfg 文件（逗号分隔，相对 OpenOCD scripts 目录或绝对路径）');
-        }
-        if (backend === 'jlink'){
-          cfg.jlink = store.get('rtt.jlinkPath', '');
-          // device/speed 现在页面上有输入框了（#r-jlink-device / #r-jlink-speed）：
-          // 留空就退回默认（与 bridge/bridge.config.json 的 jlink 段保持一致）
-          cfg.device = String(store.get('rtt.jlinkDevice', 'STM32F103C8') || 'STM32F103C8').trim();
-          cfg.speed = Number(store.get('rtt.jlinkSpeed', 50000)) || 50000;
-          // 勾了「高速只读」就让桥用 JLinkRTTLogger 当数据源（桥端见 JLinkBackend.start 的 loggerExe）
-          if ($('r-jlink-fast').checked) cfg.mode = 'logger';
-        }
-        const r = await bc.open(backend, cfg);
-        this.bridge = bc;
-        if (backend === 'jlink'){
-          this.stream = true;
-          this.probe = null;
-          bc.onStream = d => this._ingest(d, new Date());
-          bc.onClose = () => this._fail(new Error('桥断开'));
-          toast('J-Link 流模式已连接（RTT ch0 全双工）', 'ok');
-        } else {
-          this.stream = false;
-          this.probe = bc;
-          toast('桥 + OpenOCD 已连接', 'ok');
-        }
-        if (r?.info?.note) setStatus($('r-err'), r.info.note);
-      }
+      } else { throw new Error('仅支持 WebUSB 连接'); }
       this._uiConnected(true);
       if ($('r-record-auto').checked && !this.rec.active) this._autoStartRecord();
       /**
@@ -491,8 +378,7 @@ export class RttView {
        *      把"探针明明连上了"说成连接失败，还顺手把探针断掉。）
        */
       const probeNow = this.probe;
-      if (this.stream) this._stats();
-      else {
+      {
         try { await this._startRtt(g); }
         catch (e){
           if (g === this._sessionGen && this.probe === probeNow){
@@ -537,6 +423,10 @@ export class RttView {
   async _disconnectNow(){
     this.running = false;
     clearTimeout(this.timer);
+    // A readUp transaction can still be reading/writing RdOff. Let it retire
+    // before DAP_Disconnect and native USB close consume the same reply queue.
+    if(this._pollTask)await this._pollTask.catch(()=>{});
+    this._pollTask=null;
     if (this.rec.active || this.rec.needsClose || this.rec.starting || this.rec.draining){
       const info = await this.rec.stop();
       this._recordBtn();
@@ -548,12 +438,8 @@ export class RttView {
       try { await this.probe.disconnect(); this.probe = null; }
       catch (e){ failure = e; }
     }
-    if (this.bridge?.close){
-      try { this.bridge.close(); this.bridge = null; }
-      catch (e){ failure ||= e; }
-    }
     if (failure) throw failure;
-    this.rtt = null; this.stream = false;
+    this.rtt = null;
     this.suppManual = false;
     if (this.suppressed) this._setSuppressed(false);
     this._uiConnected(false);
@@ -562,8 +448,6 @@ export class RttView {
 
   _uiConnected(on){
     $('r-usb-connect').disabled = on; $('r-usb-pick').disabled = on; $('r-usb-disconnect').disabled = !on;
-    $('r-bridge-connect').disabled = on; $('r-bridge-disconnect').disabled = !on;
-    $('r-backend').disabled = on;
     if (!on){ $('r-cb').textContent = '—'; $('r-up').textContent = '0'; $('r-down').textContent = '0'; }
   }
 
@@ -653,22 +537,14 @@ export class RttView {
     const active = () => this.running && g === this._sessionGen && this.rtt === rtt && this.probe === probe;
     clearTimeout(this.timer);
     this.running = true;
-    /**
-     * 后台轮询切**快速档**（RAM 单读 + 热点写不回读）——吞吐优先；
-     * 用户手动动作（下行/复位/定位）在 _strict() 里临时切回严格档。
-     * 桥后端没有这个开关（它是 RPC，不涉及 AP 读写细节）。
-     */
+
     if (this.probe && typeof this.probe.fast === 'boolean') this.probe.fast = true;
     this.stats.polls = 0; this.stats.bytes = 0; this.stats.lost = 0;
+    this.stats.lastBytes=0;this.stats.lastPolls=0;this._lastStatsAt=performance.now();
     this.fullPolls = 0; this.highPolls = 0; this.peak = 0; this._faults = 0;
     this._pollT0 = Date.now(); this._zeroHinted = false; this._zeroHintSet = false;   // 见 _stats 里的"零速率"诊断
-    /**
-     * 轮询间隔下限：走桥（OpenOCD Tcl RPC）时不能按 WebUSB 那种节奏猛刷 ——
-     * 一轮 readUp 是 3 条 RPC，190 Hz 就是 ~570 条/秒，OpenOCD 的 Tcl 口扛不住，
-     * 会冒出"read_memory 只回来 0 个字"这种瞬时失败（本机实测）。
-     * 反正 OpenOCD 的读数只有 ~17 KB/s，快轮询没有意义。
-     */
-    const minGap = this.bridge ? 30 : 0;
+
+    const minGap = 0;
     const loop = async () => {
       if (!active()) return;
       const t0 = performance.now();
@@ -739,7 +615,9 @@ export class RttView {
       if (!active()) return;
       this.stats.polls++;
       const cost = performance.now() - t0;
-      this.timer = setTimeout(() => { if (active()) this._pollTask = loop(); }, Math.max(minGap, this.interval - cost, 0));
+      const gap=Math.max(minGap,this.interval-cost,0);
+      await (gap>0?waitMs(gap):yieldTask());
+      if(active())this._pollTask=loop();
     };
     this._pollTask = loop();
   }
@@ -760,14 +638,6 @@ export class RttView {
     if (!bytes?.length) return;
     this.stats.bytes += bytes.length;
     this.rec.push(bytes, t);            // 落文件在"显示之前"：暂停/丢历史都不影响它
-    if (this.suppressed){
-      if (this.records.length === 0 && this.mode === 'term'){
-        const hint = $('r-empty');
-        if (hint) hint.hidden = true;
-      }
-      this.suppBytes += bytes.length;
-      return;
-    }
     this.records.push({ t, b: bytes });
     if (this.records.length === 1) this._updateEmptyHint();
     this.recBytes += bytes.length;
@@ -775,6 +645,7 @@ export class RttView {
       this.recBytes -= this.records.shift().b.length;
       this.truncated = true;
     }
+    if(this.suppressed){this.suppBytes+=bytes.length;return;}
     if (this.paused) return;
     if (this.mode === 'term') this._termWrite(bytes, t);
     else this.tx.push(bytes, t);
@@ -819,22 +690,6 @@ export class RttView {
 
   /** 切到本标签时调用（隐藏状态下建的终端在这里补尺寸/重放） */
   onShow(){
-    if (!this.probe && !this.bridge && $('r-target').value === 'riscv' && hpmBoard(chipSel()?.value)) {
-      const previous = hpmBoard(chipSel().value);
-      const id = selectedHpmBoard();
-      if ($('r-range').value === previous.memory.rttRange) $('r-range').value = rvRange(id);
-      chipSel().value = id; // Preserve custom range and explicit ELF address.
-    }
-    /**
-     * 目标类型是**全局且粘**的（HID 0x31 action 10），波形页也能切、而且写的是同一个键
-     * （`rtt.target`）。用户很可能在那边刚切过 RISC-V —— 切回来时这一格得跟上，
-     * 否则"同一个开关，两页显示不一样"，看起来就像没生效。真不一致就按新值重摆界面。
-     */
-    const savedTarget = store.get('rtt.target', '');
-    if ((savedTarget === 'riscv' || savedTarget === 'swd') && savedTarget !== $('r-target').value && this._applyTargetUi){
-      $('r-target').value = savedTarget;
-      this._applyTargetUi();
-    }
     if (this.mode !== 'term' || !this.term) return;
     try { this.fit?.fit(); } catch {}
     if (this._termStale){ this._redrawAll(); this._termStale = false; }
@@ -867,7 +722,7 @@ export class RttView {
 
   _togglePause(){
     this.paused = !this.paused;
-    $('r-pause').textContent = this.paused ? '继续' : '暂停';
+    $('r-pause').textContent = this.paused ? '恢复显示' : '暂停显示';
     $('r-pause').classList.toggle('primary', this.paused);
     if (!this.paused) this._redrawAll();
   }
@@ -921,15 +776,9 @@ export class RttView {
 
   async _sendBytes(bytes){
     try {
-      if (this.stream){
-        if (!this.bridge) throw new Error('桥未连接');
-        await this.bridge.streamWrite(bytes);
-      } else {
-        if (!this.rtt) throw new Error('RTT 还没就绪（先扫描控制块）');
-        // 下行命令是"用户按下就要成功"的动作 → 严格档（写指针必须落地）
-        const n = await this._strict(() => this.rtt.writeDown(0, bytes));
-        if (n < bytes.length) toast(`下行缓冲只写进 ${n}/${bytes.length} 字节（固件没在取？）`, 'warn');
-      }
+      if (!this.rtt) throw new Error('RTT 还没就绪（先扫描控制块）');
+      const n = await this._strict(() => this.rtt.writeDown(0, bytes));
+      if (n < bytes.length) toast(`下行缓冲只写进 ${n}/${bytes.length} 字节（固件没在取？）`, 'warn');
       setStatus($('r-err'), '', null);
     } catch (e){ this._err(e); }
   }
@@ -959,24 +808,33 @@ export class RttView {
   }
 
   // ================= ELF =================
-  async _loadElf(){
-    const f = this._elfInput.files?.[0];
-    if (!f) return;
+  async _loadElf(){ return await this.loadElfFile(this._elfInput.files?.[0]); }
+  async loadElfFile(f, buffer){
+    if (!f) return false;
     try {
-      const buf = await f.arrayBuffer();
+      const buf = buffer || await f.arrayBuffer();
       const sym = findSymbol(buf, '_SEGGER_RTT');
       if (!sym){ toast(`${f.name} 里没有 _SEGGER_RTT 符号（strip 过了？）→ 改用扫描`, 'warn', 6000); return; }
       $('r-addr').value = '0x' + sym.addr.toString(16);
       store.set('rtt.addr', $('r-addr').value);
+      this.onElfLoaded?.(buf, f.name);
       toast(`从 ELF 拿到 _SEGGER_RTT = 0x${sym.addr.toString(16)}（${sym.size} B）`, 'ok', 6000);
+      return true;
     } catch (e){ this._err(e); }
   }
 
   // ================= 统计 / 保存 =================
+  summary(){
+    return {connected:!!this.probe,running:this.running,backend:this.backend || 'webusb',
+      stats:{...this.stats},controlBlock:this.rtt?.addr??null,
+      bufferedBytes:this.recBytes,displaySuppressed:this.suppressed,error:$('r-err').textContent};
+  }
   _stats(){
     const s = this.stats;
-    s.rate = Math.max(0, s.bytes - s.lastBytes) * 2;
-    s.hz = Math.max(0, s.polls - s.lastPolls) * 2;
+    const now=performance.now(),elapsed=Math.max(.001,(now-(this._lastStatsAt??(now-500)))/1000);
+    this._lastStatsAt=now;
+    s.rate = Math.max(0, s.bytes - s.lastBytes) / elapsed;
+    s.hz = Math.max(0, s.polls - s.lastPolls) / elapsed;
     s.lastBytes = s.bytes; s.lastPolls = s.polls;
     $('r-rate').textContent = fRate(s.rate);
     $('r-hz').textContent = Math.round(s.hz);
@@ -987,9 +845,9 @@ export class RttView {
     $('r-full').textContent = `${this.highPolls || 0} 次 / 峰值 ${peak}%`;
     $('r-full').parentElement.title =
       '缓冲水位：RTT 不重传，水位打到 3/4 以上说明目标写速 ≥ 主机读速，可能已有覆盖/丢弃。\n' +
-      '（主机读速受调试器限制：OpenOCD RPC 实测约 17 KB/s，WebUSB 会快得多）';
+      '（缓冲水位和丢弃计数以实际目标及采集窗口为准）';
     if (peak >= 75) $('r-full').classList.add('err');
-    if (this.paused) $('r-pause').title = '暂停中（数据仍在收，继续后补上）';
+    if (this.paused) $('r-pause').title = '显示已暂停，接收和记录继续；恢复后显示当前缓冲';
     // 记录/落盘期间按钮要一直刷：字节数与"待落盘"量都得看得见（见 recorder.js 的说明）
     if (this.rec.active || this.rec.draining) this._recordBtn();
     /**
@@ -1010,7 +868,7 @@ export class RttView {
       this._zeroHintSet = false;
       setStatus($('r-err'), '', null);
     }
-    if (!this.stream && !this.rtt && this.probe) $('r-cb').textContent = '查找中…';
+    if (!this.rtt && this.probe) $('r-cb').textContent = '查找中…';
   }
 
   // ================= 高速自动关显示 =================
@@ -1024,7 +882,7 @@ export class RttView {
   static HS_ON  = 50 * 1024;    // 降到 50KB/s 以下才自动恢复（回滞）
 
   _highspeedGate(r){
-    if (!this.probe && !this.bridge){
+    if (!this.probe){
       if (this.suppressed) this._setSuppressed(false);
       this.suppManual = false;
       return;
@@ -1039,12 +897,7 @@ export class RttView {
     if (on){
       setStatus($('r-err'), `高速 ${fRate(r)}：渲染已停（收数/记录不受影响）· 点此恢复显示`, 'err');
       $('r-err').title = '点击恢复显示。若速率仍高于阈值会再次自动关闭';
-      /**
-       * 🚨 **必须在这块区域里也留一行**，不能只改状态栏。
-       *    实测踩到：J-Link 高速只读（~1.4MB/s）一接上，用户盯着的终端就"凭空冻住"了 ——
-       *    状态栏那句小字没人注意，于是得出"页面一个字节都没收到"的结论（其实 10 秒收了 15MB）。
-       *    这里跟下面"恢复显示"时的提示对称：开始停渲染时说明一次，之后一个字都不再写。
-       */
+
       const note = `\r\n[高速 ${fRate(r)}：已停止渲染以省 CPU —— 数据仍在收（统计、计数、记录到文件都照常）· 点状态栏可恢复显示]\r\n`;
       if (this.mode === 'term' && this.term) this._termWrite(new TextEncoder().encode(note), new Date());
       else this.tx.push(new TextEncoder().encode(note), new Date());
@@ -1102,6 +955,13 @@ export class RttView {
     b.textContent = s.text;
     b.title = s.title.replace('收到的字节', '读到的 RTT 上行字节');
     b.classList.toggle('primary', s.primary);
+  }
+
+  saveRaw(){
+    if(!this.records.length)throw Error('还没有原始数据');
+    const name=`rtt-raw-${fileStamp()}.bin`;
+    download(name,new Blob(this.records.map(r=>r.b),{type:'application/octet-stream'}));
+    return {name,bytes:this.recBytes,truncated:!!this.truncated};
   }
 
   save(){

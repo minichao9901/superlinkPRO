@@ -16,7 +16,6 @@ import { Assistant } from './serial/assistant.js';
 import { TerminalView } from './serial/terminal.js';
 import { RttView } from './rtt/view.js';
 import { FlashView } from './flash/view.js';
-import { GenView } from './gen/view.js';
 import { RttCdcView } from './hid/view.js';
 import { RttCdcStreamView } from './hid/stream.js';
 import { ScopeView } from './scope/view.js';
@@ -33,6 +32,11 @@ import { toast } from './ui/toast.js';
 import { SwoView } from './swo/view.js';
 import { EtmView } from './etm/view.js';
 import { BUILD } from './core/build.js';
+import { initLogSearch } from './ui/log-search.js';
+import { initSessionContext } from './ui/session-context.js';
+import { initScopeOnboarding } from './ui/scope-onboarding.js';
+import { DownloadView } from './download/view.js';
+
 
 // ---------- 错误收集（自检/排障用；平时看不见） ----------
 const errors = [];
@@ -44,7 +48,6 @@ const assistant = new Assistant(session);
 const terminal = new TerminalView(session);
 const rtt = new RttView();
 const flash = new FlashView();
-const gen = new GenView();
 const hid = new RttCdcView();
 const stream = new RttCdcStreamView(session);
 const scope = new ScopeView();
@@ -60,10 +63,11 @@ const analog = new AnalogView();
 const spiCdc = new SpiCdcView(session);
 const swo = new SwoView();
 const etm = new EtmView();
+const download = new DownloadView();
 
 // Install ownership before init(): automatic reconnect/start paths use the same manager.
 const probeBus = new ProbeBus('page');
-const tools = { session, assistant, terminal, rtt, flash, gen, hid, stream, scope, spi, panel, dbg, i2c, analog, spiCdc, spiSession, swo, etm, probeBus, summary, errors };
+const tools = { session, assistant, terminal, rtt, flash, hid, stream, scope, spi, panel, dbg, i2c, analog, spiCdc, spiSession, swo, etm, download, probeBus, summary, errors };
 const probeManager = installProbeManager(tools, { bus: probeBus });
 initProbeStatus(tools);
 initEventLogs();
@@ -79,7 +83,6 @@ assistant.init();
 terminal.init();
 rtt.init();
 flash.init();
-gen.init();
 hid.init();
 stream.init();
 scope.init();
@@ -91,11 +94,17 @@ analog.init();
 spiCdc.init();
 swo.init();
 etm.init();
+download.init();
+tools.sessionContext=initSessionContext(tools);
+initScopeOnboarding(scope);
+initLogSearch({page:'serial',prefix:'s',records:()=>assistant.rx.raw,isHex:()=>assistant.rx.mode==='hex',isSuppressed:()=>assistant.suppressed});
+initLogSearch({page:'rtt',prefix:'r',records:()=>rtt.records,isHex:()=>rtt.mode==='hex',isSuppressed:()=>rtt.suppressed});
+initLogSearch({page:'rttcdc',prefix:'c',records:()=>stream.rx.raw,isHex:()=>stream.rx.mode==='hex',isSuppressed:()=>stream.suppressed});
 initDockNavigation();
 installAcquisitionDiagnostics(tools);
 
 const pages = { serial:assistant, terminal, rtt, rttcdc:stream, scope, flash, spi, panel,
-  dbg, i2c, analog, swo, etm, spicdc:spiCdc, gen };
+  dbg, i2c, analog, swo, etm, spicdc:spiCdc, download };
 initTabs(name => {
   workspace.sync();
   requestAnimationFrame(() => {
@@ -132,7 +141,6 @@ function summary(){
     xtermLoaded: !!window.Terminal,
     tabs: [...document.querySelectorAll('#tabs .tab')].map(t => t.dataset.tab),
     quickSlots: document.querySelectorAll('#s-quick .qrow').length,
-    genFiles: (gen?.files || []).map(f => f.name),
     hid: hid?.summary?.() || null,
     stream: stream?.summary?.() || null,
     spiCdc: {connected:spiCdc.session.connected,running:spiCdc.session.running,status:spiCdc.session.last,stream:spiCdc.stream.summary()},

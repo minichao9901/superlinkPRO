@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent
 PAGES = {
     'serial': ('串口助手', 'serial/assistant.js', 'ASCII/HEX/ANSI、端口、定时/快捷发送、记录、DTR/RTS'),
     'terminal': ('终端', 'serial/terminal.js', '交互终端、回显、按键/粘贴、保存'),
-    'rtt': ('RTT Viewer', 'rtt/view.js', '探针/桥/模拟目标、通道、上下行、ELF、记录'),
+    'rtt': ('RTT Viewer', 'rtt/view.js', 'WebUSB、通道、上下行、ELF复用、日志检索与记录'),
     'rttcdc': ('RTT 转发', 'hid/stream.js', 'RTT→CDC、HID配置、接收/记录、质量报告'),
     'spicdc': ('SPI 转发', 'spi-cdc/view.js', 'SPI从机→CDC、DMA、接收/记录、状态'),
     'scope': ('J-Scope', 'scope/view.js', 'ELF变量、1–8通道、采样、触发/游标、CSV/原始数据、质量'),
@@ -31,7 +31,7 @@ PAGES = {
     'panel': ('SPI/QSPI 屏', 'spi/panel-view.js', '初始化表、GPIO/电源、图片/动画/视频、刷新、寄存器/GRAM读回'),
     'i2c': ('USB I2C', 'i2c/view.js', '配置、扫描、事务/长读写、寄存器、命令表、DSL/周期脚本'),
     'analog': ('ADC / DAC', 'analog/view.js', 'ADC配置/采集/测量/游标/导出；DAC波形/发送/停止'),
-    'gen': ('工程生成', 'gen/view.js', 'uvprojx、Makefile/脚本、参数、预览/下载、本地桥/ETM桥包'),
+    'download': ('工程下载', 'download/view.js', 'Windows完整包、版本、SHA-256、使用说明'),
 }
 
 
@@ -216,6 +216,9 @@ def parser():
     c.add_argument('--args', default='[]', help='JSON位置参数数组；大参数可用--args-file')
     c.add_argument('--args-file')
     sub.add_parser('trace', help='原样转交全部现有ETM Trace CLI参数（trace之后的--help）')
+    s=sub.add_parser('bridge-build',help='构建并验收Windows工作台，安装到dist/superlinkPRO，保留data')
+    s.add_argument('--install-dir',type=Path,default=ROOT/'dist/superlinkPRO',help='工作台安装目录；更新前归档旧程序并保留data')
+    s.add_argument('--candidate-only',action='store_true',help='只构建和验收候选，不替换dist安装目录')
     return p
 
 
@@ -233,6 +236,10 @@ def main(argv=None):
         if args.command == 'catalog':
             emit({'ok': True, 'value': load_json(ROOT / 'docs/toolbox-cli-reference.json') if args.full else catalog()}, args.out)
             return 0
+        if args.command == 'bridge-build':
+            command=[sys.executable,'-X','utf8',str(ROOT/'tools/build_workbench.py'),'--out',str(args.install_dir)]
+            if args.candidate_only:command.append('--candidate-only')
+            return subprocess.call(command)
         if not args.runtime:
             p.error('此命令需要 --runtime 目录')
         if args.command == 'serve':

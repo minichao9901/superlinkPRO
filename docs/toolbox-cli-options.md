@@ -18,7 +18,7 @@ Unified AI entry: python -X utf8 toolbox.py --help. See docs/toolbox-cli-ai.md.
 
 ```text
 usage: toolbox.py [-h] [--runtime RUNTIME] [--timeout TIMEOUT] [--out OUT]
-                  {catalog,serve,ping,status,job,ack,request,batch,page,trace} ...
+                  {catalog,serve,ping,status,job,ack,request,batch,page,trace,bridge-build} ...
 ```
 
 | 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
@@ -136,14 +136,14 @@ usage: toolbox.py batch [-h] file
 
 ```text
 usage: toolbox.py page [-h]
-                       {serial,terminal,rtt,rttcdc,spicdc,scope,dbg,flash,swo,etm,spi,panel,i2c,analog,gen}
+                       {serial,terminal,rtt,rttcdc,spicdc,scope,dbg,flash,swo,etm,spi,panel,i2c,analog,download}
                        {describe,state,show,downloads,download,discard,event,read,click,interrupt,set,upload,wait,invoke} ...
 ```
 
 | 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
 |---|---|---|---|---|---|
 | -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
-| page | 网页功能分类，取下面 choices 中的值；先 describe 再操作。 | str | 是 | 未指定 | ['serial', 'terminal', 'rtt', 'rttcdc', 'spicdc', 'scope', 'dbg', 'flash', 'swo', 'etm', 'spi', 'panel', 'i2c', 'analog', 'gen'] |
+| page | 网页功能分类，取下面 choices 中的值；先 describe 再操作。 | str | 是 | 未指定 | ['serial', 'terminal', 'rtt', 'rttcdc', 'spicdc', 'scope', 'dbg', 'flash', 'swo', 'etm', 'spi', 'panel', 'i2c', 'analog', 'download'] |
 
 ## toolbox.py page <page> describe
 
@@ -339,6 +339,21 @@ usage: toolbox.py page <page> invoke [-h] [--target TARGET] [--args ARGS]
 | --target | 以describe返回的targets为准 | str | 否 | view | — |
 | --args | JSON位置参数数组；大参数可用--args-file | str | 否 | [] | — |
 | --args-file | UTF-8 JSON 位置参数数组文件；参数内支持 $file 引用，规则见总指南。 | str | 否 | 未指定 | — |
+
+## toolbox.py bridge-build
+
+构建并验收Windows工作台，安装到dist/superlinkPRO，保留data
+
+```text
+usage: toolbox.py bridge-build [-h] [--install-dir INSTALL_DIR]
+                               [--candidate-only]
+```
+
+| 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
+|---|---|---|---|---|---|
+| -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+| --install-dir | 工作台安装目录；更新前归档旧程序并保留data | Path | 否 | <仓库>\dist\superlinkPRO | — |
+| --candidate-only | 只构建和验收候选，不替换dist安装目录 | flag × 0 | 否 | False | — |
 
 ## toolbox.py trace
 
@@ -1124,4 +1139,4 @@ usage: toolbox.py trace record sources [-h] --record RECORD
 | --sources-json | 路径→正文的源码字典 | Path | 否 | 未指定 | — |
 | --source-root | 只读取此目录内、ELF记录的实际源码路径；不猜basename | Path | 否 | 未指定 | — |
 
-共覆盖 **63 个命令/分类节点**。
+共覆盖 **64 个命令/分类节点**。

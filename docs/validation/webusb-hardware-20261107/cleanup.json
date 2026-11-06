@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-07",
+  "mode": "Windows Recycle Bin",
+  "directories": [
+    {
+      "path": "E:\\superlinkPRO\\tmp\\web-refactor-20261106",
+      "files": 92,
+      "bytes": 399946364
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\hw-accept-20261106",
+      "files": 258,
+      "bytes": 69296068
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\workbench-package-063f35a7",
+      "files": 11,
+      "bytes": 125519090
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\workbench-package-7a5ab16c",
+      "files": 3236,
+      "bytes": 478299961
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\workbench-package-64bf85fd",
+      "files": 3596,
+      "bytes": 530508858
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\tmp\\etm-package-8c67bf16",
+      "files": 3344,
+      "bytes": 330684017
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\tmp\\etm-package-b36a9ec2",
+      "files": 3704,
+      "bytes": 372746672
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\tmp\\etm-package-5e28c28f",
+      "files": 3704,
+      "bytes": 372747032
+    }
+  ],
+  "protectedArchive": "E:\\superlinkPRO-backups\\20261107-webusb-acceptance",
+  "excluded": [
+    ".formal-trace-20261024",
+    "tmp/perf-baseline",
+    "etm/records",
+    "web/bridge/etm/downloads",
+    "dist/superlinkPRO/data",
+    "all other historical/session directories"
+  ],
+  "movedBytes": 2679748062.0,
+  "remaining": 0
+}

@@ -281,10 +281,10 @@ export class MockTarget {
   _writeDhcsr(val){
     const dbg = val & 1, halt = (val >>> 1) & 1, step = (val >>> 2) & 1;
     this.dhcsr = val & 0xf;
-    if (step && halt){
+    if (step && !halt){
       /* 🚨 brokenCStep = 真机实测的那种坏组合：C_STEP 位写进去了、但核一步都不走，
        *    S_HALT 一直是 1（DHCSR 读回恒定 0x30007）。上层必须自己发现"PC 没动"再兜底。 */
-      if (this.brokenCStep) return;
+      if (this.brokenCStep){ this.running=false; return; }
       // 单步：执行一条指令。**不要**立刻把 running 归零 —— 交给 _dhcsrWord 的状态机，
       // 让上层能观察到 "S_HALT 0 → 1" 这个过程（真硬件上这一步是真实发生的）。
       this._exec(1);

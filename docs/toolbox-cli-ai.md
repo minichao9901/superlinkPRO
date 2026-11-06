@@ -3,12 +3,12 @@
 总入口是仓库根目录 **`toolbox.py`**。本文件是给 AI 的第一阅读入口；
 全部页面的分类、静态控件和方法源码位置集中在 **`docs/toolbox-cli-reference.json`**。
 逐条命令、全部参数、默认值、可选值和必填/互斥规则见
-**[CLI 命令与参数完整参考](toolbox-cli-options.md)**（从真实解析器生成，覆盖63个命令/分类节点）。
+**[CLI 命令与参数完整参考](toolbox-cli-options.md)**（从真实解析器生成，覆盖64个命令/分类节点）。
 运行时的 `page <分类> describe` 返回当前页面真实控件、当前选项、公开方法和可用子对象，优先于静态清单。
 
 这里提供两种执行方式：`trace` 原样复用成熟的 ETM CLI；`page` 通过本机授权队列调用
 正在运行的网页。后者覆盖全部 15 个工具页面的控件及公开方法，共用网页协议、会话和资源协调。
-它需要浏览器，不能等同于所有功能均已实现独立的无浏览器驱动。此次没有新增真机验收。
+它需要浏览器，不能等同于所有功能均已实现独立的无浏览器驱动。F103ZE原生适配器真机范围见 [2026-11-07验收](validation/webusb-hardware-20261107/README.md)。
 
 ## 1. AI 的执行规则
 
@@ -58,7 +58,7 @@ python -X utf8 toolbox.py --runtime E:/trace-runs/toolbox-001 page serial state
 |---|---|---|
 | `serial` | 串口助手 | 端口和参数、ASCII/HEX/ANSI、时间戳、定时/快捷发送、DTR/RTS、接收/记录；`view.sendText`、`session.write` |
 | `terminal` | 终端 | 交互输入、ANSI、回显、键盘映射、粘贴、清空/保存；`event` 和共享 `session` |
-| `rtt` | RTT Viewer | 探针/本地桥/模拟目标、RTT 搜索和通道、上下行、ELF、接收记录 |
+| `rtt` | RTT Viewer | WebUSB/模拟目标、RTT 搜索和通道、上下行、ELF、接收记录 |
 | `rttcdc` | RTT 转发 | `view` 管 CDC 数据；`hid` 管目标/时钟、转发启停/状态；共享串口 `session` |
 | `spicdc` | SPI 转发 | `session` 管从机 SPI/DMA 配置与启停；`stream` 管接收显示/记录；`serial` 管 CDC |
 | `scope` | J-Scope | ELF/DWARF 变量、标量/数组/成员、1–8 通道、速率标定、采样、触发/游标、分道/缩放、CSV/原始包和质量报告 |
@@ -70,7 +70,7 @@ python -X utf8 toolbox.py --runtime E:/trace-runs/toolbox-001 page serial state
 | `panel` | SPI/QSPI 屏 | 与 `spi` 共用 `session`；面板档、初始化表解析/重放/导出、复位/背光/电源、图案/图片/动画/视频/局部更新、寄存器与 GRAM 读回 |
 | `i2c` | USB I2C | 扫描、地址/速率、读写事务/长读写、命令表、寄存器、DSL/周期任务、实时值 |
 | `analog` | USB ADC/DAC | ADC 配置/单次或连续采集、时压游标/测量/触发、CSV；DAC 预览、波形参数、启停/状态、波形 CSV；协议操作用 `session` |
-| `gen` | 工程生成 | `.uvprojx`、路径/参数、生成 Makefile/脚本、预览、单文件/ZIP、本地桥包/ETM 桥包下载 |
+| `download` | 工程下载 | Windows完整包、版本、SHA-256、刷新下载信息 |
 
 控制按钮、图形视图并不都对应一个可单独调用的方法。闭包内动作通过控件接口执行，
 画布/终端交互通过 `event`；方法需要 DOM、回调或浏览器设备对象时也应采用控件接口。
@@ -267,10 +267,14 @@ python -m unittest discover -s etm/tools/tests -p test_web_cli_queue.py
 
 浏览器验收可复现：启动服务并打开其 browserUrl 后，执行
 `python -X utf8 tools/test_toolbox_browser.py --runtime <运行时目录> --out <新的结果JSON>`。
-该脚本只枚举页面、导入仓库测试工程、修改/恢复波形预览频率并导出，不操作设备。
+该脚本只枚举页面、导入小型固件文件、修改/恢复波形预览频率并导出，不操作设备。
 
 2026-10-25 补充：命令参数参考覆盖63个节点，增加文档与真实解析器一致性回归；统一 CLI / HTTP 测试现为9项，全部通过。
 
 ## 火焰图 SVG
 
 `trace export --format flame-svg` 支持当前序号区间的完整执行顺序图、聚合图及完整函数名。源码使用 `python toolbox.py trace export`，离线包使用 `etm-trace.cmd export`。模式、权重、区间和 HTTP 接口见 [火焰图 SVG 导出](etm-flame-svg.md)。
+
+## Windows 工作台构建（2026-11-06）
+
+`python -X utf8 toolbox.py bridge-build` 构建、校验候选并安装到 `dist/superlinkPRO/`，主程序为 `superlinkPRO.exe`；完整ZIP与清单在根`dist/`。`--candidate-only`只生成候选，`--install-dir`可选择独立安装目录；已有程序先归档并保留data。冻结EXE保留`--cli`离线Trace入口。网页调试仅保留WebUSB；工程生成分类已替换为download，仍为15页。ETM页面/解码实现本轮保持不变。

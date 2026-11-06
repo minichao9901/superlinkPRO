@@ -4,9 +4,9 @@ const gate=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {prom
 const tick=()=>new Promise(r=>setImmediate(r));
 globalThis.document={getElementById:id=>({value:id==='sc-period'?'100':'0'})};
 for(const fail of [false,true]){
- const cfg=gate(),v=Object.create(ScopeView.prototype),events=[];let calls=0;
- Object.assign(v,{selected:[{addr:0x20000000,scalar:'u32',name:'x',size:4}],usingMock:true,hid:{},running:false,transport:{running:false,start:async function(){calls++;this.running=true;},stop:async function(){events.push('USB-stop');this.running=false;}},renderer:{setStore(){},setTrigger(){},clearMarks(){}},periodUs:()=>100,seconds:()=>1,isReal:()=>false,updatePlan:()=>({}),applyTrigger(){},configureScope:()=>cfg.promise,_startWatchdog(){},_stopWatchdog(){},_absorbeStatusBackend(){},benchFresh:()=>false,setStatusText(){},syncButtons(){},hidXfer:async(cmd,data)=>{events.push(data[0]===0?'HID-stop':'HID-start');return Uint8Array.of(0,0,0);}});
- const start=v.start();await v.start();const stop=v.stop('cancel');await tick();cfg.resolve(fail?null:Uint8Array.of(0,0,0));await Promise.all([start,stop]);
+ const cfg=gate(),configured=gate(),v=Object.create(ScopeView.prototype),events=[];let calls=0;
+ Object.assign(v,{selected:[{addr:0x20000000,scalar:'u32',name:'x',size:4}],usingMock:true,hid:{},running:false,transport:{running:false,start:async function(){calls++;this.running=true;},stop:async function(){events.push('USB-stop');this.running=false;}},renderer:{setStore(){},setTrigger(){},clearMarks(){}},periodUs:()=>100,seconds:()=>1,isReal:()=>false,updatePlan:()=>({}),applyTrigger(){},configureScope:()=>{configured.resolve();return cfg.promise;},_startWatchdog(){},_stopWatchdog(){},_absorbeStatusBackend(){},benchFresh:()=>false,setStatusText(){},syncButtons(){},hidXfer:async(cmd,data)=>{events.push(data[0]===0?'HID-stop':'HID-start');return Uint8Array.of(0,0,0);}});
+ const start=v.start();await v.start();await configured.promise;const stop=v.stop('cancel');await tick();cfg.resolve(fail?null:Uint8Array.of(0,0,0));await Promise.all([start,stop]);
  assert.equal(calls,0);assert.equal(v.running,false);assert.equal(v._capturing,false);assert.deepEqual(events,['HID-stop','USB-stop']);assert.equal(v._starting,false);
 }
 {

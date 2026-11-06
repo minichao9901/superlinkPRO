@@ -292,3 +292,18 @@ etm/baselines/*/execution-simplified.c
 # ↑ 例外：这两处 .bin 是**入库的证据**（SPI 线上实际/期望字节、ETM 抓取前的 flash 快照）
 !**/docs/validation/2026-10-08-spi-image-rate/wire-*.bin
 !etm/docs/validation/*.bin
+# Expanded local application and CI-generated download copies. The distributable
+# dist ZIP and manifest are versioned; mutable data and duplicate runtimes are not.
+/dist/superlinkPRO/
+/web/downloads/
+
+# Compact reports and exact small hardware fixtures for the WebUSB release.
+!/docs/validation/web-refactor-20261106/
+!/docs/validation/web-refactor-20261106/README.md
+!/docs/validation/web-refactor-20261106/summary.json
+!/docs/validation/web-refactor-20261106/download.jpg
+!/docs/validation/webusb-hardware-20261107/
+!/docs/validation/webusb-hardware-20261107/README.md
+!/docs/validation/webusb-hardware-20261107/summary.json
+!/docs/validation/webusb-hardware-20261107/release.json
+!/web/tools/fixtures/f103ze-acceptance/*.elf

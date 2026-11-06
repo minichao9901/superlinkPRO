@@ -1,0 +1,219 @@
+{
+  "date": "2026-11-06",
+  "referenceRevision": "b5d3f3de",
+  "frozen": {
+    "version": "1.1.0-web.1",
+    "sourceRevision": "fb46f9e59e3de671620e92dbe1669da3d6471560",
+    "sourceDirty": true,
+    "runtimeSourceRevision": "ca0c7fbbff238aa4a254f5102d9660e961eed394",
+    "packageId": "256af48c6c5299f32b167bcb96730a53b4559702db5e848a3e48c6b0adba209e",
+    "files": 3582,
+    "hardware": "not accessed",
+    "allPackageFilesMatch": true,
+    "sourceInputsMatch": true,
+    "distribution": {
+      "version": "1.1.0-web.1",
+      "platform": "windows-x64",
+      "file": "superlinkPRO-win64.zip",
+      "bytes": 102549358,
+      "sha256": "73a0392c18844cf8ea855aa3167dd2191cb8018240524c1c349d9193794cbb4d",
+      "packageId": "256af48c6c5299f32b167bcb96730a53b4559702db5e848a3e48c6b0adba209e",
+      "sourceRevision": "fb46f9e59e3de671620e92dbe1669da3d6471560",
+      "sourceDirty": true,
+      "runtimeSourceRevision": "ca0c7fbbff238aa4a254f5102d9660e961eed394"
+    },
+    "zipExcludesRetiredCodeAndUserData": true,
+    "launcher": {
+      "dataDirectory": "E:\\superlinkPRO\\tmp\\web-refactor-20261106\\frozen-verified\\data",
+      "engine": "native",
+      "packageId": "256af48c6c5299f32b167bcb96730a53b4559702db5e848a3e48c6b0adba209e",
+      "port": 8919,
+      "portable": true,
+      "protocol": 1,
+      "version": "1.1.0-web.1"
+    },
+    "frozenDemoRedecode": true,
+    "demoSummary": {
+      "exceptions": 1,
+      "executed": 42209,
+      "functions": {
+        "HAL_GPIO_WritePin": 76,
+        "HAL_GetTick": 39,
+        "HAL_IncTick": 7,
+        "HAL_RCCEx_GetPLL2ClockFreq": 60,
+        "HAL_RCCEx_GetPeriphCLKFreq": 22,
+        "HAL_RCC_GetHCLKFreq": 19,
+        "HAL_RCC_GetSysClockFreq": 100,
+        "HAL_SPI_Transmit": 37309,
+        "SPI_CloseTransfer": 492,
+        "SPI_WaitOnFlagUntilTimeout": 193,
+        "SysTick_Handler": 3,
+        "main": 3875,
+        "spi_trace_ready": 14
+      },
+      "gaps": 1,
+      "instructions": 47537,
+      "packetIssues": 0,
+      "packets": 2876,
+      "ranges": 9441,
+      "sourceMapped": 47537,
+      "unknownExecution": 39
+    },
+    "query": true,
+    "export": true,
+    "httpDownload": {
+      "bytes": 103086646,
+      "file": "superlinkPRO-win64.zip",
+      "packageId": "256af48c6c5299f32b167bcb96730a53b4559702db5e848a3e48c6b0adba209e",
+      "platform": "windows-x64",
+      "sha256": "c63fed98b2139d6ef655376009d6d857324a747fe92804a65a32129c25e6b1aa",
+      "version": "1.1.0-web.1"
+    },
+    "passed": true
+  },
+  "web": {
+    "passed": 247,
+    "failed": 0,
+    "runner": {
+      "exitCode": 0,
+      "files": 134,
+      "seconds": 54.153,
+      "separate": [
+        {
+          "file": "adc-measure-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "analog-connection-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "analog-wire.test.mjs",
+          "reason": "optional C compiler model"
+        },
+        {
+          "file": "browser-hw.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "bus-periodic.test.mjs",
+          "reason": "optional C compiler model"
+        },
+        {
+          "file": "dbg-image-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "dbg-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "dbg-svd-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "diagnostics-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "hpm-porting-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "i2c-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "inspector-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "recorder-file.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "scope-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "scope-render.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "serial-display-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "spi-bus-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "spi-cdc-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "spi-panel-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "swo-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "tool-sidebar-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "ui-layout-page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "ui.page.test.mjs",
+          "reason": "browser/hardware harness"
+        },
+        {
+          "file": "workspace-page.test.mjs",
+          "reason": "browser/hardware harness"
+        }
+      ],
+      "hardware": "not accessed"
+    }
+  },
+  "cli": {
+    "passed": 9,
+    "failed": 0
+  },
+  "launcherUnitTests": 9,
+  "ui": [
+    "real-F103-ELF-byte-and-header-inspection",
+    "rtt-explicit-target-and-ELF-reuse",
+    "dbg-explicit-target-and-ELF-reuse",
+    "scope-explicit-target-and-ELF-reuse",
+    "HPM-clock-options-at-most-25MHz",
+    "serial-log-search-opens-without-device",
+    "rtt-log-search-opens-without-device",
+    "rttcdc-log-search-opens-without-device",
+    "no-page-errors-and-no-hardware-connection"
+  ],
+  "layout": {
+    "height": 768,
+    "scrollWidth": 1366,
+    "topbarHeight": 36.400001525878906,
+    "version": "v1.1.0-web.1",
+    "width": 1366
+  },
+  "protectedEtmFiles": 1295,
+  "hardware": "not accessed",
+  "publication": "not performed",
+  "knownIssues": [
+    "ISSUE-029",
+    "ISSUE-036",
+    "ISSUE-038",
+    "ISSUE-039"
+  ],
+  "buildTools": {
+    "tools\\build_workbench.py": "4bad1eaaa837aeca0b284fa1e3e7fa4d465c4dda7f567ae98899be79900e3324",
+    "tools\\verify_workbench_package.py": "02192d5f999f225550056f89c588f7a45588d1c0013affb8a4d662e6b71cacd1",
+    "tools\\test_workbench_offline.py": "3d51aa4ee85117b929e9c54b0576537dc8ebcad3815d2155f7dd3e54e0d8ecf4"
+  }
+}

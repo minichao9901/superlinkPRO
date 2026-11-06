@@ -43,15 +43,6 @@ def main():
                 raise AssertionError('missing controls: ' + page)
             evidence['pages'][page] = {'controls': len(value['controls']), 'methods': len(value['methods']), 'targets': value['targets']}
         evidence['checks'].append('all-15-live-page-descriptions')
-        fixture = toolbox.ROOT / 'web/tools/fixtures/gen/uvprojx-sample/CubeMX_Config.uvprojx'
-        call('gen', 'upload', selector='#g-uvfile', files=[toolbox.pack_file(fixture)])
-        for attempt in range(30):
-            project = call('gen', 'read', selector='#g-project')['value']
-            if project == 'CubeMX_Config':
-                break
-            time.sleep(.1)
-        assert project == 'CubeMX_Config', project
-        evidence['checks'].append('real-file-input-uvprojx-upload-and-parse')
         # FlashView intentionally mounts its picker outside #tab-flash. Loading
         # this tiny image exercises that entry without programming the device.
         flash = call('flash', 'describe')

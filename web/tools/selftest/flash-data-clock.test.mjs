@@ -14,7 +14,7 @@ function probe({corrupt=false,failWrite=false,failRestore=false}={}){
 }
 const data=Uint8Array.of(1,2,3,4);
 const normal=probe();await new FlashDataClock(normal).writeMem(0x20000000,data);
-assert.deepEqual(normal.calls,[['write',1000000,true]],'default flash behavior is unchanged');
+assert.deepEqual(normal.calls,[['clock',10000000],['write',10000000,false],['flush',10000000],['read',10000000],['clock',1000000]],'default data transport is 10MHz with RAM verification and 1MHz control restore');
 const fast=probe();await new FlashDataClock(fast,20000).writeMem(0x20000000,data);
 assert.deepEqual(fast.calls,[['clock',20000000],['write',20000000,false],['flush',20000000],['read',20000000],['clock',1000000]]);
 assert.equal(fast.verifyWrites,true);

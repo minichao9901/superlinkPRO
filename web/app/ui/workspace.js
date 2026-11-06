@@ -3,13 +3,17 @@ import { store } from '../core/store.js';
 
 export function initWorkspaces(){
   const panels = [...document.querySelectorAll('[data-workspace]')];
-  const sync = () => document.body.classList.toggle('workspace-focused', !!document.querySelector('.panel.active[data-focus]'));
+  const summaries=[];
+  const sync = () => {
+    document.body.classList.toggle('workspace-focused', !!document.querySelector('.panel.active[data-focus]'));
+    for(const update of summaries)update();
+  };
   const button = (id, text, title) => {
     const b = document.createElement('button'); b.id=id; b.className='workspace-button';
     b.type='button'; b.textContent=text; b.title=title; return b;
   };
   for (const p of panels){
-    const name=p.dataset.workspace, prefix=name==='dbg'?'d':'sc';
+    const name=p.dataset.workspace, prefix=({dbg:'d',scope:'sc',serial:'s',terminal:'t',rtt:'r',rttcdc:'c',flash:'f'})[name];
     const toolbar=p.querySelector('.main>.toolbar'), side=p.querySelector('.ws>.side');
     side.id ||= `${prefix}-settings`;
     const fold=button(`${prefix}-layout-sidebar`,'收起设置','显示或收起设置侧栏；记住本页选择');
@@ -28,6 +32,19 @@ export function initWorkspaces(){
       applyFold(collapsed);store.set(`workspace.${name}.sidebarCollapsed`,collapsed);
     });
     toolbar.prepend(fold);
+    if(!['dbg','scope'].includes(name)){
+      const summary=document.createElement('span');summary.className='workspace-summary';
+      const fields=({serial:['s-port','s-baud'],terminal:[],rtt:['r-target','r-chip'],rttcdc:['h-target'],flash:['f-chip']})[name]||[];
+      const update=()=>{
+        const text=fields.map(id=>{
+          const el=document.getElementById(id);if(!el)return '';
+          return el.selectedOptions?.[0]?.textContent||el.value||'';
+        }).filter(Boolean).join(' · ');
+        summary.textContent=text;summary.title=text;
+      };
+      summaries.push(update);p.addEventListener('change',update);p.addEventListener('input',update);
+      fold.addEventListener('click',update);fold.after(summary);update();
+    }
     const targets=[];
     const addFocus=(id,host,target,label)=>{
       const b=button(id,label,'放大当前工作区；点击还原，或在非输入区域按 Esc 还原');
@@ -36,7 +53,7 @@ export function initWorkspaces(){
       b.addEventListener('click',()=>p.focusWorkspace(p.dataset.focus===target?null:target));
       host.append(b);targets.push({b,target,label,area});
     };
-    addFocus(`${prefix}-layout-focus`,toolbar,'work',name==='dbg'?'专注调试':'最大化波形');
+    if(name==='dbg'||name==='scope') addFocus(`${prefix}-layout-focus`,toolbar,'work',name==='dbg'?'专注调试':'最大化波形');
     if(name==='dbg') for(const [target,id] of [['src','d-box-src'],['term','d-box-term'],['dock','d-box-dock']])
       addFocus(`d-max-${target}`,document.getElementById(id).querySelector('legend'),target,'最大化');
     p.focusWorkspace=target=>{

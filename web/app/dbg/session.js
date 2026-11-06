@@ -80,8 +80,8 @@ export class DebugSession {
     this.arch = ARM_ARCH;
     /**
      * C_STEP（DHCSR 单步）到底能不能用：null=还没试过，true/false=试过的结论。
-     * 这颗探针/内核（akaLinkPro + F103ZE/H743）实测**不执行 C_STEP**，一次试探要 ~400 ms，
-     * 所以失败一次就记住，后面全走断点单步（见 `step()`）。
+     * 按正确的 C_HALT 握手试探；只有真实失败才在本会话改用断点单步。
+     * 旧实现只写 C_HALT|C_STEP、没有释放 C_HALT，曾因此误判内核不支持单步。
      */
     this._cStepWorks = null;
     this._prev = null;                     // 上一次读到的寄存器值（算 changed 高亮）
@@ -198,6 +198,7 @@ export class DebugSession {
       this.probe.onLog = s => this._log('   [usb] ' + s, 'dim');
       this.probe.fast = false;             // 严格档：调试动作全都要回读确认
       this.name = this.probe.name || 'CMSIS-DAP';
+      if(this.probe.device?.nativeService)this.backendName='本地探针服务';
       this.idcode = this.probe.idcode >>> 0;
       this.clockHz = this.probe.clockHz || clockKhz * 1000;
     }
@@ -392,20 +393,8 @@ export class DebugSession {
     finally { this.bps = saved; await this._programBps(); }
   }
 
-  /**
-   * 单步一条指令。
-   *
-   * 主路径：DHCSR 写 C_STEP。
-   * 🚨 先看到 S_HALT 变 0 再等它变回 1 —— 写 C_STEP 的那一刻 DHCSR 还是旧值，
-   *    只等"=1"会立刻返回（等于没等）。C_MASKINTS 让这一步不响应中断（gdb 的 stepi 语义）。
-   *
-   * 兜底（2026-10-02 真机实测加）：**有的探针/内核组合根本不执行 C_STEP**。
-   *    本机 akaLinkPro(CMSIS-DAP v2) + STM32F103ZE 实测：写完 C_STEP 后 DHCSR 回读**恒定**
-   *    `0x30007`（C_STEP 位一直在、S_HALT 从不掉），PC 一动不动 —— 换个姿势（带/不带 C_MASKINTS）、
-   *    换干净状态（AIRCR 复位后线程模式、CFSR/HFSR 全 0）都一样；而**同一个地址上
-   *    "放 FPB 比较器 + 运行"能精确停在下一条指令**（实测 pc → pc+2 命中）。
-   *    旧代码在这种情况下**静默当成功返回**，用户看到的是"点了单步没反应"，还以为是页面坏了。
-   *    现在：C_STEP 没让 PC 前进就自动改用**断点单步**，并把这件事写进日志（不许静默降级）。
+  /** 指令单步：先在暂停状态设置中断掩码，再清 C_HALT 触发 C_STEP。
+   * 正确握手仍失败时保留断点兜底；不能把未释放暂停误报成探针不支持。
    */
   async step(){
     this.clearFrames();
@@ -418,18 +407,13 @@ export class DebugSession {
      */
     this.lastStepOk = null;
     await this._withBpCleared(pc, async () => {
-      /**
-       * 🚨 `_cStepWorks` 是**粘性记忆**：这颗探针/内核不执行 C_STEP（DHCSR 写进去 C_STEP、
-       *    回读 0x3000f、PC 纹丝不动 —— 真机实测 F103ZE 与 H743 都是这样），
-       *    而"试一次 C_STEP"要烧掉 400 ms（60 轮 DHCSR 轮询）。不记住的话每次单步都白等半秒，
-       *    「单步跳出」要走上百条指令时就变成"卡死"。失败一次之后直接走断点单步（~15 ms/步）。
-       */
+      // 不重复探测本会话已确认失败的握手；重连会重置此状态。
       if (this._cStepWorks !== false){
         if (await this._stepByDhcsr(pc)){ this._cStepWorks = true; this.lastStepMode = 'dhcsr'; this.lastStepOk = true; return; }
         const wasOk = this._cStepWorks === true;
         this._cStepWorks = false;
         this._log((wasOk ? 'C_STEP 没让目标前进（这次；可能刚复位或重连过）'
-                         : '这颗探针/内核不执行 C_STEP（DHCSR 单步位写进去但核纹丝不动）')
+                         : 'C_STEP 正确握手后仍未确认指令执行')
           + ' —— 改用「断点单步」，后面每一步都走这条路，不再重复试探', 'warn');
       }
       this.lastStepMode = 'breakpoint';
@@ -441,46 +425,45 @@ export class DebugSession {
     return this.lastStepMode;
   }
 
-  /** C_STEP 主路径。@returns {Promise<boolean>} PC 是否**真的**前进了 */
+  /** DHCSR retirement is read-to-clear: bypass generic double-read validation. */
+  async _readStepStatus(){
+    const p=this.probe;
+    if(typeof p._readMemOnce!=='function'||typeof p._withLock!=='function')return p._readWord(DHCSR);
+    return p._withLock(async()=>{
+      if(p._faulted||p._recovering)throw new Error('调试口故障，未自动重放单步');
+      const b=await p._readMemOnce(DHCSR,4,0);
+      if(b.length!==4)throw new Error('DHCSR 单步状态短读');
+      return new DataView(b.buffer,b.byteOffset,4).getUint32(0,true);
+    });
+  }
+
+  /** C_STEP 主路径。S_RETIRE_ST 也能确认 PC 不变的自跳转已经执行。 */
   async _stepByDhcsr(pc){
-    let moved = false;
     try {
-      try { await this.probe._dhcsr(DBGKEY | C_DEBUGEN | C_HALT | C_STEP | C_MASKINTS); }
-      catch (e){ this._log('写 C_STEP 失败：' + (e?.message || e), 'warn'); return false; }
-      let sawRun = false;
-      for (let i = 0; i < 400; i++){
+      // DHCSR 读取清除旧的 S_RETIRE_ST，避免把上次执行当成本次完成。
+      await this._readStepStatus();
+      try {
+        // C_MASKINTS 只能在核已暂停且本次 C_HALT=1 时改变。
+        await this.probe._dhcsr(DBGKEY | C_DEBUGEN | C_HALT | C_MASKINTS);
+        await this.probe._dhcsr(DBGKEY | C_DEBUGEN | C_STEP | C_MASKINTS);
+      } catch (e){ this._log('写 C_STEP 失败：' + (e?.message || e), 'warn'); return false; }
+      let sawRun=false,retired=false;
+      for(let i=0;i<400;i++){
         let v;
-        try { v = await this.probe._readWord(DHCSR); }
-        catch (e){ this._log('读 DHCSR 失败：' + (e?.message || e), 'warn'); return false; }
-        const h = ((v >>> 17) & 1) === 1;
-        if (!h) sawRun = true;
-        else if (sawRun) break;
-        /* 「根本没跑起来」不用等满 400 轮：C_STEP 生效的话 S_HALT 在前几轮就该掉下去。
-           这一步在坏组合上会白等 400 次 USB 往返（每次 ~0.3 ms + 1 ms 延时）。 */
-        if (!sawRun && i >= 60) break;
+        try{v=await this._readStepStatus();}
+        catch(e){this._log('读 DHCSR 失败：'+(e?.message||e),'warn');return false;}
+        retired ||= !!(v & (1<<24));
+        if(!(v & (1<<17)))sawRun=true;
+        else{
+          if(retired)return true;
+          try{if(align2(await this.readReg('PC'))!==pc)return true;}catch{return false;}
+          if(!sawRun&&i>=60)return false;
+        }
         await waitMs(1);
       }
-      /* 判据用 PC，不用 S_HALT —— S_HALT 位本身也可能读滞后/读脏（本仓有过先例） */
-      try { moved = align2(await this.readReg('PC')) !== pc; }
-      catch { moved = false; }
-      return moved;
+      return false;
     } finally {
-      /**
-       * 🚨 **无论成败都要把单步位收干净**（2026-10-03 F103 真机定因，本文件最贵的一条）。
-       *
-       * 上面那笔写的是 `C_HALT|C_STEP|C_MASKINTS`，而这颗探针/内核**不执行 C_STEP**
-       * （见 step() 的说明）—— 于是 `C_MASKINTS` 就留在 DHCSR 里了。麻烦在于：
-       *   · 恢复运行写的是 `C_HALT=0` 的值，其中的 `MASKINTS=0` **不生效**
-       *     （该位只在核**已经停住**时可写）→ 核带着"中断屏蔽"一直跑下去；
-       *   · 症状极具误导性：**SysTick 不再触发**（`g_ticks` 冻住）而主循环照跑（`g_loops` 照涨），
-       *     于是**任何下在中断里的断点永远不可能命中**。压测里表现成"ISR 断点等满 4 s 超时、
-       *     核停在随机位置"；而套件的 `alive()` 只看 ticks/loops 任一在动就判"活着"，把真因盖住；
-       *   · 更糟的是 `_cStepWorks` 是粘性记忆（只试一次 C_STEP）：**一次粘上，整个会话都坏**
-       *     （实测就是这么连坏 6 轮压测的）。
-       *
-       * 实测（2026-10-03，F103ZE + akaLinkPro）：坏状态 `DHCSR=0x1010009`（MASKINTS=1 / C_HALT=0）
-       * → 写一次 `0xA05F0003` 回到 `0x30003` → 恢复运行 Δticks 立即恢复、ISR 断点 406 ms 命中。
-       */
+      // 无论成功、超时还是传输失败，都不把单步/中断掩码残留带回应用。
       await this._clearStepResidue();
     }
   }

@@ -1,7 +1,6 @@
-/** Layout-only keyboard/ARIA behavior for dock and generated-file tabs. */
+/** Layout-only keyboard/ARIA behavior for dock tabs. */
 export function initDockNavigation(){
   const groups = [...document.querySelectorAll('.docktabs')].filter(g => g.querySelector('button[data-dock]'));
-  groups.push(...['g-files','g-kit-files','g-etm-files'].map(id => document.getElementById(id)).filter(Boolean));
   for (const group of groups){
     group.setAttribute('role','tablist');
     const sync = () => {
@@ -11,7 +10,7 @@ export function initDockNavigation(){
         b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(b===active)); b.tabIndex=b===active?0:-1;
         const panel = b.dataset.dock
           ? [...group.closest('.panel').querySelectorAll('.dockpage')].find(p=>p.dataset.dock===b.dataset.dock)
-          : document.getElementById({'g-files':'g-preview','g-kit-files':'g-kit-preview','g-etm-files':'g-etm-preview'}[group.id]);
+          : null;
         if (panel){
           panel.id ||= `${group.id}-panel-${b.dataset.dock}`;
           b.setAttribute('aria-controls',panel.id); panel.setAttribute('role','tabpanel');

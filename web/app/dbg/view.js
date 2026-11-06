@@ -23,6 +23,8 @@ import { runProbeOperation } from '../core/probe-manager.js';
 import { $, setFlag, appendLogLine, ensureSelectOption } from '../ui/dom.js';
 import { toast } from '../ui/toast.js';
 import { store } from '../core/store.js';
+import { webClockKhz } from '../core/target-clock.js';
+import { constrainClockSelect } from '../ui/target-clock.js';
 import { InspectorTable, flashValue } from '../ui/inspector-table.js';
 import { waitMs } from '../core/pace.js';
 import { DebugSession, DEFAULT_CLOCK_KHZ } from './session.js';
@@ -109,11 +111,13 @@ export class DbgView {
     $('d-hpm-target')?.addEventListener('change', () => {
       store.set('dbg.rvTarget', $('d-hpm-target').value);
       rememberHpmBoard($('d-hpm-target').value);
+      this._applyClockLimit();
     });
     const be = $('d-backend');
     if (be){ store.bind(be, 'dbg.backend'); be.addEventListener('change', () => this._syncBackend()); }
     const clk = $('d-clock');
     if (clk){
+      constrainClockSelect(clk,'arm');
       store.bind(clk, 'dbg.clock');
       /**
        * 时钟默认值迁移（2026-10-02）：老版本的默认是 1 MHz，那时下拉里也只有 1000/500/200 ——
@@ -127,6 +131,7 @@ export class DbgView {
         if (saved === '1000') this.clockMigrated = true;
       } else {
         ensureSelectOption(clk, saved, saved + ' kHz');    // 老值不在候选里时补一个，别静默改设置
+        clk.value=saved;
       }
       clk.addEventListener('change', () => store.set('dbg.clock', clk.value));
     }
@@ -323,8 +328,6 @@ export class DbgView {
   static supported(){ return typeof navigator !== 'undefined' && 'usb' in navigator; }
 
   onShow(){
-    if (!this.session.connected && !$('d-hpm-target')?.disabled && $('d-hpm-target'))
-      $('d-hpm-target').value = store.get('dbg.rvTarget') === 'riscv-other' ? 'riscv-other' : selectedHpmBoard();
     // 切回本页时对账一次状态（目标可能在别的页签里被复位/被烧录器抢走）
     // 🚨 用 tryExclusive：观察循环正在读的时候直接跳过这一拍，别和它抢 SWD
     if (this.session.connected){
@@ -434,6 +437,7 @@ export class DbgView {
     const v = $('d-backend')?.value || 'webusb';
     const mock = v === 'mock';
     const riscv = v === 'riscv';
+    this._applyClockLimit();
     await this._ensureSession(riscv);
     if ($('d-hpm-target-row')) {
       $('d-hpm-target-row').hidden = !riscv;
@@ -452,6 +456,12 @@ export class DbgView {
       : (riscv
         ? '未载入 ELF · RISC-V/JTAG'
         : '未载入 ELF（符号、源码与变量）');
+  }
+
+  _applyClockLimit(){
+    const target=$('d-backend')?.value==='riscv'?$('d-hpm-target')?.value:'arm';
+    constrainClockSelect($('d-clock'),target,v=>store.set('dbg.clock',v));
+    if($('d-clock'))$('d-clock').title=target?.startsWith('hpm')?'HPM JTAG 时钟最高 25 MHz':'调试时钟最高 60 MHz';
   }
 
   _syncButtons(connected, halted){
@@ -510,7 +520,7 @@ export class DbgView {
      */
     await this._ensureSession(riscv, { preserveAcquisition: true });
     if (this._disconnecting || generation !== this._connectionGen) return false;
-    const clockKhz = Number($('d-clock')?.value) || DEFAULT_CLOCK_KHZ;
+    const clockKhz = webClockKhz($('d-clock')?.value,riscv?$('d-hpm-target')?.value:'arm',DEFAULT_CLOCK_KHZ);
     this._out('', 'dim');
     this._out(`──── 连接（${mock ? '模拟目标' : riscv ? 'RISC-V/JTAG' : 'WebUSB'}${mock ? '' : ` · ${clockKhz} kHz`}）────`, 'dim');
     if (this.clockMigrated){ this._out('（SWD 时钟默认值已从 1 MHz 改为 10 MHz —— 真机实测 PPB/内存都正常；不想要就在上面改回去）', 'dim'); this.clockMigrated = false; }
@@ -1259,6 +1269,7 @@ export class DbgView {
       this._updatePcStrip();
       this.renderSource();
       this._renderSrcSuggest();          // 载入就能说"该选哪个源码目录"（DWARF 里存的是编译路径）
+      this.onElfLoaded?.(buf, name);
       return st;
     } catch (e){
       this._out('✗ 解析 ELF 失败：' + (e?.message || e), 'err');
@@ -2100,7 +2111,8 @@ export class DbgView {
       clockKhz: (s.clockHz / 1000) | 0,
       regs: s.regList().length,
       bps: s.bps.map(a => hex32(a)),
-      lastStepMode: s.lastStepMode || null,     // 'dhcsr' | 'breakpoint'（后者 = C_STEP 不生效，走了兜底）
+      lastStepMode: s.lastStepMode || null,     // 原生握手 / 断点兜底 / 源码步进
+      lastStepOk: s.lastStepOk ?? null,
       bpCap: s.bpCapacity,
       elf: this.sym ? { name: this.elfName, symbols: this.sym.size, vars: this.sym.varCount, source: this.sym.source,
         lines: this.sym.lines ? this.sym.lines.size : 0, files: this.sym.lines ? this.sym.lines.fileCount : 0,

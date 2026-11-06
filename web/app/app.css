@@ -228,41 +228,6 @@ dialog form{margin-top:16px;text-align:right}
 /* 烧录器进度条 */
 #f-bar{width:220px;height:8px;accent-color:#58a6ff}
 
-/* ---------------- 工程生成 ---------------- */
-#tab-gen.dragging{outline:2px dashed var(--acc);outline-offset:-6px}
-#tab-gen .side .row>span:first-child{width:var(--label-w)}   /* 参数名比别的页长（OpenOCD 接口…） */
-/* 右列 = tab 面板（照 #spi/#i2c 那套）；左栏卡片按 `data-dock` 分组，切 tab 时只显示当组。
-   为什么 tab 化见 index.html 里的注释：13 个产物挤一条栏、桥包另占一行，且左栏太长。 */
-#tab-gen .main{gap:6px}
-#tab-gen .gendock{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;flex:1 1 auto}
-#tab-gen .dockpage{display:none;flex:1 1 auto;min-height:0;flex-direction:column;gap:6px}
-#tab-gen .dockpage.on{display:flex}
-#tab-gen .dockpage>.toolbar{margin:0;flex:none}
-#tab-gen .dockpage>p.hint{margin:0;flex:none}
-#g-files,#g-kit-files{flex-wrap:wrap;border-radius:var(--radius-control)}
-#g-dock-pill{color:var(--fg2)}
-/* 🚨 `.scroll` 是**按页写的**（`#tab-spi .scroll` / `#tab-i2c .scroll` / `#tab-panel .scroll`），
-   本页原来没有这条 → 「调试参数」的表格撑高后被 `.gendock{overflow:hidden}` 裁掉、**连滚动条都没有**
-   （用户 2026-10 现场："下面显示不全，还没有滑条"）。这里补上本页的滚动区规则：
-   吃满剩余高度 + 自己滚（`min-height:0` 是关键，flex 子项默认 min-height:auto 会顶破父容器）。 */
-#tab-gen .dockpage>.scroll{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;
-  border:1px solid var(--line);border-radius:var(--radius-card);margin-top:0}
-/* 预览：代码别折行（横向滚），并吃掉剩余高度 */
-#g-preview,#g-kit-preview{white-space:pre;overflow:auto;flex:1 1 auto;min-height:0}
-.fixlist{margin:4px 0 0;padding-left:18px}
-.fixlist li{margin:3px 0}
-.fixlist code{font-size:var(--text-xs)}
-
-/* 「调试参数」tab 的参数一览表：左列参数名、右列值（等宽，长路径不截断、点一下复制） */
-.gparamtab{width:100%;border-collapse:collapse;font-size:var(--text-xs)}
-.gparamtab td{padding:2px 8px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
-.gparamtab tr.gparamhead td{padding-top:8px;color:var(--acc);font-weight:600;font-size:var(--text-xs);
-  letter-spacing:.4px;border-bottom:1px solid var(--line);background:rgba(74,163,255,.06)}
-.gparamtab td.gpk{width:150px;color:var(--fg2);white-space:nowrap}
-.gparamtab td.gpv code{font-family:var(--mono);font-size:var(--text-xs);color:#cdd6e4;white-space:pre-wrap;
-  word-break:break-all;cursor:copy;border-bottom:1px dashed transparent}
-.gparamtab td.gpv code:hover{color:#9fd0ff;border-bottom-color:#9fd0ff}
-
 /* ---------------- 终端页的 RTT→CDC 转发面板 ---------------- */
 #tab-terminal .side .row>span:first-child{width:var(--label-w)}   /* 「RTT 地址 / 搜索长度」比默认 60px 宽些 */
 
@@ -1453,3 +1418,47 @@ fieldset,.toolbar,.sendbar,.stats,.an-measurements,.an-plot,
 @media(max-width:860px){#tab-swo{overflow:auto}#tab-swo .sw-main{min-height:820px}#tab-swo .ws{height:auto;min-height:100%}}
 
 #tab-swo .sw-table tr.sw-selected{background:#5bae441f;color:#d9efc8}
+
+/* Configuration summaries use existing toolbar space when the sidebar is folded. */
+.workspace-summary{display:none;min-width:0;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg2);font-size:var(--text-xs)}
+.sidebar-collapsed .workspace-summary{display:inline-block}
+
+/* Search occupies one optional row; results never replace the retained bytes. */
+.log-search-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:none;padding:3px 2px;border-bottom:1px solid var(--line)}
+.log-search-bar input[type=search]{flex:1;min-width:140px;max-width:340px}
+.log-search-bar button{padding:2px 7px}
+.log-search-status{font-size:var(--text-xs);color:var(--fg2)}
+.log-search-results{flex:1;min-height:0;margin:0;padding:8px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#0a0f15;font:13px/1.5 var(--mono)}
+.log-search-results mark{background:#d2992240;color:var(--fg);border-radius:2px}
+.log-search-results mark.current{background:#d29922;color:#0d1117;outline:1px solid #f2cc60}
+.log-search-bar[hidden],.log-search-results[hidden]{display:none!important}
+.log-searching .main>.rx,.log-searching .main>.termbox,.log-searching #r-empty{display:none!important}
+.session-context-card{min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:0 0 6px;padding:4px 2px;border:0;border-bottom:1px solid var(--line);border-radius:0}
+.session-context-card>span:first-of-type{flex:1;min-width:0;font-size:var(--text-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.session-context-note{display:block;flex-basis:100%;font-size:var(--text-xs);color:var(--fg2);overflow-wrap:anywhere}
+.session-context-note:empty{display:none}
+.session-elf-reuse{min-width:0;margin:3px 0;display:flex;flex-direction:column;gap:3px}
+.session-elf-reuse button{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.session-elf-reuse[hidden]{display:none!important}
+.scope-empty-actions{position:absolute;top:calc(50% + 40px);left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:2;white-space:nowrap}
+.scope-empty-actions[hidden]{display:none!important}
+#tab-scope .stats{position:relative}
+.scope-counters{font-size:var(--text-xs);color:var(--fg2)}
+.scope-counters summary{cursor:pointer;white-space:nowrap}
+.scope-counters>span{position:absolute;bottom:calc(100% + 4px);right:0;max-width:340px;padding:8px;background:var(--bg2);border:1px solid var(--line);border-radius:4px;z-index:3}
+
+/* Firmware inspection stays local; large files render one page at a time. */
+#f-main [hidden]{display:none!important}
+.firmware-tabs{display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--line);flex:none}
+.firmware-tabs [aria-selected=true]{color:var(--acc);border-color:var(--acc);background:var(--bg3)}
+.firmware-pane{display:flex;flex:1;flex-direction:column;min-height:0;min-width:0;gap:8px;padding:10px;overflow:auto}
+.firmware-pane>.hint{margin:0;overflow-wrap:anywhere;flex:none}
+.firmware-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:none}
+.firmware-tools>input{min-width:100px;flex:1;max-width:320px}
+.firmware-tools>select{min-width:0;max-width:100%}
+.firmware-hex,.firmware-table{flex:1;min-height:100px;overflow:auto;margin:0;background:#0a0f15;border:1px solid var(--line);border-radius:4px;padding:8px}
+.firmware-hex{font:12px/1.7 var(--mono);white-space:pre;tab-size:4}
+.firmware-table table{border-collapse:collapse;white-space:nowrap;font:12px/1.6 var(--mono);width:100%}
+.firmware-table th,.firmware-table td{text-align:left;padding:5px 10px;border-bottom:1px solid var(--line)}
+.firmware-table th{position:sticky;top:-8px;background:var(--bg2)}
+.firmware-table td{max-width:600px;overflow-wrap:anywhere;white-space:normal}

@@ -4,7 +4,7 @@ export const PAGES = {
   rttcdc:['RTT 转发','stream'], spicdc:['SPI 转发','spiCdc'], scope:['J-Scope 波形','scope'],
   flash:['烧录器','flash'], dbg:['调试器','dbg'], swo:['SWO PC 采样','swo'],
   etm:['ETM 执行轨迹','etm'], spi:['USB SPI/QSPI','spi'], panel:['SPI/QSPI 屏','panel'],
-  i2c:['USB I2C','i2c'], analog:['ADC / DAC','analog'], gen:['工程生成','gen'],
+  i2c:['USB I2C','i2c'], analog:['ADC / DAC','analog'], download:['工程下载','download'],
 };
 export const INTERRUPTS={
   rttcdc:['#h-stop'],spicdc:['#si-stop'],scope:['#sc-stop'],dbg:['#d-rtt-stop'],

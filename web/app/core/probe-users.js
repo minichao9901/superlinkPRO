@@ -26,7 +26,7 @@ export const PROBE_FEATURES = Object.freeze([
   {
     id: 'rtt', label: 'RTT Viewer', client: t => t.rtt, usbKind: 'dap',
     resources: ['target-engine', 'debug-pins', 'rtt-ring', 'dap-bulk'],
-    active: t => !!(t.rtt?.probe || t.rtt?.bridge) && !t.rtt?._probeMock,
+    active: t => !!t.rtt?.probe && !t.rtt?._probeMock,
     release: async t => {
       const pending = t.rtt?._connectPromise;
       await t.rtt.disconnect();

@@ -1,0 +1,27 @@
+#tab-download{overflow:auto;padding:36px 28px 48px}
+.download-page{max-width:960px;margin:0 auto}
+.download-eyebrow{color:var(--acc);font-size:12px;letter-spacing:1.8px;margin:0 0 10px}
+.download-page h1{font-size:32px;line-height:1.25;margin:0 0 12px}
+.download-intro{font-size:16px;color:var(--fg2);margin:0 0 28px}
+.download-card{padding:28px;border:1px solid var(--line);border-top:3px solid var(--acc);border-radius:var(--radius-card);background:var(--bg2)}
+.download-card-heading{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.download-page h2{font-size:18px;margin:0}
+.download-version{font:12px var(--mono);color:var(--acc);border:1px solid var(--line);border-radius:4px;padding:3px 8px}
+.download-card p{color:var(--fg2)}
+.download-description{max-width:680px;line-height:1.8}
+.download-actions{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin:24px 0 30px}
+.download-page a{color:var(--acc);text-decoration:none}
+.download-page a:hover{text-decoration:underline}
+.download-page a.download-primary{display:inline-flex;gap:30px;align-items:center;background:var(--acc);color:var(--bg);font-weight:600;padding:12px 20px;border-radius:5px}
+.download-page a.download-primary:hover{filter:brightness(1.12);text-decoration:none}
+.download-page a:focus-visible{outline:2px solid var(--acc);outline-offset:4px}
+.download-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding:22px 0 0;margin:0;list-style:none;border-top:1px solid var(--line);counter-reset:download-step}
+.download-steps li{counter-increment:download-step}
+.download-steps b{display:block;margin-bottom:8px}
+.download-steps b::before{content:counter(download-step) ". ";color:var(--acc)}
+.download-steps span{display:block;color:var(--fg2);line-height:1.8;overflow-wrap:anywhere}
+.download-notes{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin:28px 0}
+.download-notes h2{font-size:15px}
+.download-notes p{color:var(--fg2);line-height:1.8}
+.download-footer{display:flex;gap:18px;flex-wrap:wrap;color:var(--fg2);font-size:12px;border-top:1px solid var(--line);padding-top:18px}
+@media(max-width:700px){#tab-download{padding:24px 16px}.download-card{padding:20px}.download-steps,.download-notes{grid-template-columns:1fr;gap:18px}.download-page h1{font-size:26px}}

@@ -23,7 +23,7 @@
 | --- | --- |
 | 串口助手 | ASCII / HEX / ANSI 收发、时间戳、定时与快捷发送、文件记录 |
 | 终端 | xterm.js 交互终端、ANSI 显示、本地回显、按键映射和粘贴发送 |
-| RTT Viewer | RTT 通道查看与下行输入；CMSIS-DAP 直连、可选本地桥及模拟目标 |
+| RTT Viewer | RTT 通道查看与下行输入；CMSIS-DAP WebUSB、模拟目标、日志检索和 ELF 显式复用 |
 | RTT 转发 | 探针读取目标 RTT 并转成 CDC 字节流；高速接收、显示保护与采集质量报告 |
 | SPI转发 | 外部 SPI 主机数据经探针从机 DMA 转为 CDC；附引脚分配图 |
 | J-Scope 波形 | 1–8 通道变量采集、速率标定、触发、游标、CSV / 原始包与分项质量报告 |
@@ -35,11 +35,11 @@
 | SPI/QSPI 屏 | 初始化表解析与重放、图案 / 图片 / 动画 / 视频、局部刷新及支持的读回模式 |
 | USB→I2C | 总线扫描、寄存器编辑、命令表、周期脚本和数据解码 |
 | USB→ADC / DAC | ADC 示波器、时间 / 电压游标与自动测量；DAC 波形预览和导出 |
-| 工程生成 | 从 Keil `.uvprojx` 生成调试 Makefile、脚本及可选本地桥包 |
+| 工程下载 | Windows 完整工作台、版本、SHA-256 和启动说明；开发包在 `dist/superlinkPRO/` |
 
 ## SWO：记录、离线分析与源码回放
 
-ETM使用 [完整便携桥包与说明](docs/etm-integration.md)：在“工程生成 → ETM 桥”下载完整 Windows 64 位包，解压后双击 `start-etm-bridge.bat`，打开 `http://127.0.0.1:8878/#etm`。包已包含运行环境与解码器，只需另行准备 KingstVIS；无需配置两个工程目录。
+ETM使用 [完整便携桥包与说明](docs/etm-integration.md)：在“工程下载”下载完整 Windows 64 位包，解压后双击 `superlinkPRO.exe`，打开 `http://127.0.0.1:8878/#etm`。包已包含运行环境与解码器，只需另行准备 KingstVIS；无需配置两个工程目录。
 
 第一次用 ETM 的五个坑（都是真机踩过的，按顺序看）：
 
@@ -216,3 +216,9 @@ node tools/dev/serve-nocache.mjs 8899
 ## 许可证
 
 本仓库自有代码使用 [Apache License 2.0](LICENSE)。xterm.js 与 SEGGER RTT 等第三方组件遵循各自许可证，设备名称和商标归对应所有者。
+
+## 2026-11 工作台重构
+
+调试仅保留 WebUSB / CMSIS-DAP，工程生成和 OpenOCD/J-Link 桥已移除。串口、终端、RTT、RTT转发及烧录器新增设置收起；串口/RTT日志支持最近128KiB查找过滤。烧录、调试、RTT和波形之间可显式复用目标与SHA-256绑定的ELF，烧录器可只读查看字节和ELF结构。ETM页面与Kingst采集保持原版本，其他外设工具继续保留。
+
+构建：`python -X utf8 toolbox.py bridge-build`。产物：`dist/superlinkPRO/superlinkPRO.exe`（仓库根目录）。完整ZIP和清单同在根`dist/`。本地生成的包不自动推送或替换历史正式下载。

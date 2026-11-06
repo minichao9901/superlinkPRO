@@ -97,7 +97,7 @@ export class Assistant {
     $('s-pause').addEventListener('click', () => {
       const on = !this.rx.paused;
       this.rx.setPaused(on);
-      $('s-pause').textContent = on ? '继续' : '暂停';
+      $('s-pause').textContent = on ? '恢复显示' : '暂停显示';
       $('s-pause').classList.toggle('primary', on);
       if (!on && this.ansiOn) this._ansiRedraw();
     });
@@ -364,7 +364,7 @@ export class Assistant {
     $('s-txbytes').textContent = fBytes(this.txc.total);
     $('s-txframes').textContent = this.txc.frames;
     $('s-txrate').textContent = fRate(this.txc.rate(now));
-    if (this.rx?.paused) $('s-pause').title = `暂停中，已缓存 ${fBytes(this.rx.bytes)}`;
+    if (this.rx?.paused) $('s-pause').title = `显示已暂停，接收/记录继续；缓冲 ${fBytes(this.rx.bytes)}`;
     // 记录/落盘期间按钮要一直刷：字节数与"待落盘"量都得看得见（见 recorder.js 的说明）
     if (this.rec.active || this.rec.draining) this._recordBtn();
   }
