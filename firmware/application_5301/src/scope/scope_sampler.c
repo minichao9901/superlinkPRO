@@ -124,6 +124,11 @@ static uint8_t s_pkt[SCOPE_TX_BUFS][SCOPE_PACKET];
 static volatile uint8_t s_tx_busy[SCOPE_TX_BUFS];
 static uint8_t  s_inflight[SCOPE_TX_BUFS];    /* 发送队列（FIFO）：回调不带下标，只能按序还 */
 static uint8_t  s_if_head, s_if_count;
+static uint8_t  s_tx_zlp;                     /* STOP fence, not a protocol packet */
+enum { SCOPE_STOP_CANCEL_START = 1, SCOPE_STOP_FLUSH_TAIL = 2 };
+static volatile uint8_t s_starting, s_stopping, s_stop_req;
+static volatile uint8_t s_stop_zlps, s_stop_aborted, s_stop_tail_done;
+static uint32_t s_invalid_samples;            /* posted reads that could not be finalized */
 static uint8_t  s_tx_active;                  /* 端点上有 1 笔在飞（DWC2 只认一笔，见 scope_tx_kick） */
 static uint8_t  s_tx_gen;                     /* 队列代数：START / USB 复位清账时 +1 */
 static uint8_t  s_tx_armed_gen;               /* 当前在飞那一笔属于哪一代 */
@@ -159,6 +164,7 @@ static uint8_t *s_pipe_dst;                   /* 等待回填的样本槽位；N
 
 static void scope_push_stat(void);
 static int  scope_pipe_flush(void);
+static void scope_stop_progress(void);
 
 /* MCHTMR 低 32 位（24 MHz → 约 179 s 绕回一次；这里只算"到点没有"，差值运算天然安全） */
 static uint32_t mchtmr_now(void)
@@ -371,8 +377,21 @@ static void scope_tx_kick(void)
 
         if (usbd_ep_start_write(0, SWO_IN_EP, s_pkt[buf], SCOPE_PACKET) == 0)
         {
+            s_tx_zlp = 0U;
             s_tx_active = 1U;
             s_tx_armed_gen = s_tx_gen;
+        }
+    }
+    else if ((s_tx_active == 0U) && s_stop_zlps && !s_stop_req)
+    {
+        /* A short USB transfer releases the partially filled host bulk read.
+         * It is ordered after every DATA/STAT packet, without fabricated data. */
+        if (usbd_ep_start_write(0, SWO_IN_EP, NULL, 0U) == 0)
+        {
+            s_tx_zlp = 1U;
+            s_tx_active = 1U;
+            s_tx_armed_gen = s_tx_gen;
+            s_stop_zlps--;
         }
     }
     scope_irq_restore(lvl);
@@ -702,7 +721,17 @@ static int scope_sample_once(void)
     /* 读失败：管线状态已经不可信（那次 DRW 可能发出去了也可能没发），清空它 ——
      * 下一拍读回来的值会被丢掉、重新起链。不这么做的话，这一拍的值会被写进
      * 上一拍的槽位，而上一拍的值永远收不回来。 */
-    if (scope_sample_bytes(dst) != 0) { s_pipe_dst = NULL; return -1; }
+    if (scope_sample_bytes(dst) != 0)
+    {
+        if (s_pipe_dst != NULL)
+        {
+            s_pipe_dst = NULL;
+            s_fill_n--;
+            s_invalid_samples++;
+            if (s_fill_n != 0U) { scope_push_packet(); }
+        }
+        return -1;
+    }
 
     if (s_fill_n == 0U) { s_fill_t0 = s_t_time; }
     s_fill_n++;
@@ -713,10 +742,16 @@ static int scope_sample_once(void)
     {
         /* 单字流水：包满了，最后一拍的值还押在管线里（要等下一次 DRW 读才回来），
          * 所以推包前先补一次读把它收回来 —— 每包一次，摊到每拍是 1/124 次传输。
-         * 收不回来也照推：那一拍的值是旧的，但**绝不能把"包已满"这个状态留着**，
-         * 否则下一拍的 dst 会算到帧区外面去。 */
+         * 收不回来的最后一拍从包里剔除，仍然交付前面有效的样本。 */
         int frc = scope_pipe_flush();
-        scope_push_packet();
+        if (frc != 0)
+        {
+            /* Never publish the stale last slot. produced remains monotonic;
+             * the separate invalid counter accounts for the rejected sample. */
+            s_fill_n--;
+            s_invalid_samples++;
+        }
+        if (s_fill_n != 0U) { scope_push_packet(); }
         if (frc != 0) { return -1; }
     }
     return 0;
@@ -733,6 +768,34 @@ static int scope_pipe_flush(void)
     put32(s_pipe_dst, v);
     s_pipe_dst = NULL;
     return 0;
+}
+
+/* STOP may arrive from USB IRQ or during a bounded read batch. Only the main
+ * loop may finish the posted SWD read and publish its partially filled packet. */
+static void scope_stop_progress(void)
+{
+    if (s_stop_req)
+    {
+        uint8_t flush_tail = (s_stop_req == SCOPE_STOP_FLUSH_TAIL);
+        s_stop_req = 0U;
+        if (flush_tail && scope_pipe_flush() != 0)
+        {
+            if (s_fill_n != 0U) { s_fill_n--; s_invalid_samples++; }
+            s_swd_err++;
+        }
+        if (flush_tail && s_fill_buf < SCOPE_TX_BUFS && s_fill_n != 0U) { scope_push_packet(); }
+        s_pipe_dst = NULL;
+        s_fill_n = 0U;
+        s_fill_buf = 0xFFU;
+        s_stop_zlps = 1U;
+        s_stop_tail_done = 1U;
+    }
+    scope_tx_kick();
+    if (!s_stop_req && !s_stop_zlps && !s_tx_active && s_if_count == 0U)
+    {
+        if (s_cdc_suspended) { s_cdc_suspended = 0U; chry_dap_usb2uart_set_enabled(1U); }
+        s_stopping = 0U;
+    }
 }
 
 /* 用指定后端把链路拉起来。0 = ok，其它 = 后端初始化码。 */
@@ -829,16 +892,21 @@ static int scope_be_link_ready(void)
 
 static int scope_start_now(void)
 {
+    if (s_stopping) return -7;
     if (adc_stream_enabled()) return -14;
     if ((s_nvars == 0U) || (s_frame_bytes == 0U)) { return -3; }
     scope_make_plan();
 
     int rc = scope_be_link_ready();
     if (rc != 0) { s_swd_ready = 0U; return rc; }
+    if (s_stopping) return -7;
 
     s_seq = 0U; s_t_time = 0U; s_produced = 0U; s_dropped = 0U; s_usb_drop = 0U;
     s_swd_err = 0U; s_yield = 0U; s_pkts = 0U; s_bytes = 0U; s_discard_pkts = 0U;
     s_last_sample_ticks = 0U;
+    s_invalid_samples = 0U;
+    s_stop_aborted = 0U;
+    s_stop_tail_done = 0U;
     s_if_head = 0U; s_if_count = 0U;
     memset((void *)s_tx_busy, 0, sizeof(s_tx_busy));
     /* 队列代数 +1：上一轮遗留的在飞传输（主机不读时它可能还挂着）即使回调迟到，
@@ -852,7 +920,9 @@ static int scope_start_now(void)
 
     scope_push_def();                            /* 先发变量表 */
     s_next_tick = mchtmr_now() + s_period_ticks;
-    s_running = 1U;
+    uint32_t lvl = scope_irq_save();
+    s_running = !s_stopping;                     /* STOP may interrupt START */
+    scope_irq_restore(lvl);
 
     /* SCOPE_FLAG_CDC_OFF：采样期间把主循环里的 CDC/串口桥让出去。
      * 只记"是我们关的"，停采样时只恢复自己关过的那一次 —— 免得把主机
@@ -918,7 +988,20 @@ static void scope_run_bench(void)
 static void scope_usb_reset_apply(void)
 {
     /* 管线里可能还押着一拍读的结果：先交付回它该在的样本槽，再清账。 */
-    if (s_pipe_dst != NULL) { (void)scope_pipe_flush(); }
+    if (scope_pipe_flush() != 0)
+    {
+        if (s_fill_n != 0U) { s_fill_n--; s_invalid_samples++; }
+        s_swd_err++;
+    }
+    if (s_stopping)
+    {
+        s_stop_req = 0U;
+        s_stop_zlps = 0U;
+        s_stop_aborted = 1U;
+        s_fill_n = 0U;
+        s_fill_buf = 0xffU;
+    }
+    s_stop_tail_done = 0U;
 
     for (uint8_t i = 0U; i < SCOPE_TX_BUFS; i++)
     {
@@ -930,6 +1013,7 @@ static void scope_usb_reset_apply(void)
     /* 在飞那一笔随总线复位一起作废（回调不会来），代数 +1 让任何迟到的回调
      * 都不会去动已经被清空的队列。 */
     s_tx_active = 0U;
+    s_tx_zlp = 0U;
     s_tx_gen++;
 
     /* 正在填的那个缓冲按设计不会是"在飞"的，内容还作数；只有本来就是"没有缓冲"
@@ -954,10 +1038,25 @@ void scope_sampler_poll(void)
         s_usb_reset_req = 0U;
         scope_usb_reset_apply();
     }
+    if (s_stopping)
+    {
+        scope_stop_progress();
+        if (s_stopping) { return; }
+    }
     if (s_start_req)
     {
+        uint32_t lvl = scope_irq_save();
+        s_starting = s_start_req;
         s_start_req = 0U;
-        s_start_rc = (int8_t)scope_start_now();
+        scope_irq_restore(lvl);
+        if (s_starting)
+        {
+            int8_t rc = (int8_t)scope_start_now();
+            lvl = scope_irq_save();
+            if (!s_stopping) { s_start_rc = rc; }
+            s_starting = 0U;
+            scope_irq_restore(lvl);
+        }
     }
     if (s_bench_req)
     {
@@ -1051,6 +1150,7 @@ static void scope_stop_for_reconfig(void)
 
 static int scope_configure(uint32_t period, uint8_t version, uint8_t flags, uint8_t nvars, const scope_var_t *vars)
 {
+    if (s_stopping) { s_start_rc = -7; return -7; }
     if (nvars > SCOPE_MAX_VARS) { nvars = SCOPE_MAX_VARS; }
 
     /* 🚨 主机输入面：变量宽度必须合法（见 SCOPE_VAR_SIZE_OK 的说明）。不合法**整包拒绝**
@@ -1145,6 +1245,7 @@ int scope_sampler_configure_ticks(uint32_t period_ticks, uint8_t flags, uint8_t 
 
 void scope_sampler_set_clock(uint32_t hz)
 {
+    if (s_stopping) { s_start_rc = -7; return; }
     if (hz == 0U) { return; }
     /* 走"请求 + 下次重新初始化"，不要直接在旧档上调 set_swd_clock()：
      * 链路没起来时那只是把值记下来，硬件里还是旧 blob，而状态字会报新频率。 */
@@ -1156,6 +1257,7 @@ void scope_sampler_set_clock(uint32_t hz)
 
 void scope_sampler_request_start(void)
 {
+    if (s_stopping) { s_start_rc = -7; return; }
     s_start_req = 1U;
     s_start_rc = -100;                 /* 排队中：与 RTT 桥的约定一致 */
 }
@@ -1165,24 +1267,44 @@ int scope_sampler_start_result(void)
     return (int)s_start_rc;
 }
 
-void scope_sampler_stop(void)
+void scope_sampler_stop(uint8_t drain_tail)
 {
+    if (s_stopping) { return; }
+    if (drain_tail && (s_running || s_start_req || s_starting))
+    {
+        s_stopping = 1U;
+        /* A queued START can be canceled without publishing an earlier fill. */
+        s_stop_req = s_running ? SCOPE_STOP_FLUSH_TAIL : SCOPE_STOP_CANCEL_START;
+    }
     s_running = 0U;
     s_start_req = 0U;
     s_start_rc = -100;
     s_last_cmd = 0U;
-
-    /* 只在"是我们关的"那一次恢复（见 scope_start_now 的说明） */
-    if (s_cdc_suspended)
+    if (!s_stopping)
     {
-        s_cdc_suspended = 0U;
-        chry_dap_usb2uart_set_enabled(1U);
+        /* Older clients stop reading before STOP and do not consume an EOF. */
+        if (!drain_tail) { s_stop_tail_done = 0U; }
+        scope_stop_for_reconfig();
     }
+}
+
+/* After EOF the host knows exactly how many empty native requests remain.
+ * Never emit unsolicited ZLPs: an extra one could leak into the next START. */
+int scope_sampler_retire_reads(uint8_t count)
+{
+    if (!count || count > 32U) { return -6; }
+    if (scope_sampler_is_running() || !s_stop_tail_done || s_stop_aborted) { return -7; }
+    s_stop_tail_done = 0U;
+    s_stop_zlps = count;
+    s_stopping = 1U;
+    s_start_rc = 0;
+    return 0;
+
 }
 
 int scope_sampler_is_running(void)
 {
-    return (int)s_running;
+    return s_running || s_stopping || s_start_req || s_starting;
 }
 
 uint32_t scope_sampler_span_count(void)
@@ -1215,14 +1337,15 @@ int scope_sampler_bench_result(uint32_t *iters, uint32_t *ticks, int32_t *err)
 
 void scope_sampler_tx_complete(void)
 {
-    s_tx_done++;
-
     /* 一笔传完：端点空了，接着把队列里的下一包踢出去。
      * 跨代的那笔（清账之前发出去的）**不还缓冲** —— 队列已经被清、缓冲已经被回收，
      * 再去 pop 只会把新队列里的某一包误还掉（spi_bridge 的 armed_gen 同一个道理）。 */
     uint32_t lvl = scope_irq_save();
+    uint8_t was_data = s_tx_active && !s_tx_zlp;
     s_tx_active = 0U;
-    if ((s_tx_armed_gen == s_tx_gen) && (s_if_count != 0U))
+    s_tx_zlp = 0U;
+    if (was_data) { s_tx_done++; }
+    if (was_data && (s_tx_armed_gen == s_tx_gen) && (s_if_count != 0U))
     {
         uint8_t idx = s_inflight[s_if_head];
         s_if_head = (uint8_t)((s_if_head + 1U) % SCOPE_TX_BUFS);
@@ -1249,6 +1372,9 @@ uint32_t scope_sampler_status(uint32_t *out, uint32_t words)
              (1U << 2) | /* 支持 action 10 / v2 tick 时间轴 */
              (1U << 3) | /* 支持 flags bit7 短批次 */
              (1U << 4) | /* 支持 action 11 完整计数快照 */
+             (1U << 5) | /* STOP drains DATA and terminates bulk read with ZLP */
+             ((uint32_t)s_stopping << 6) |
+             ((uint32_t)s_stop_aborted << 7) |
              ((uint32_t)((s_backend == SCOPE_BE_RISCV) ? 1U : 0U) << 1) |   /* bit1 = 生效后端是 RISC-V */
              ((uint32_t)s_nspans << 8) |
              ((uint32_t)(s_swd_ready ? 1U : 0U) << 16) |
@@ -1287,7 +1413,9 @@ uint32_t scope_sampler_metrics(uint32_t *out, uint32_t words)
     out[8] = s_tx_done;
     out[9] = s_bytes;
     out[10] = s_period_ticks;
-    out[11] = (uint32_t)s_flags | ((uint32_t)s_running << 8);
+    out[11] = (uint32_t)s_flags | ((uint32_t)s_running << 8) |
+              ((uint32_t)s_stopping << 9) | ((uint32_t)s_stop_aborted << 10);
+    if (words >= 13U) { out[12] = s_invalid_samples; }
     scope_irq_restore(lvl);
-    return 12U;
+    return words >= 13U ? 13U : 12U;
 }

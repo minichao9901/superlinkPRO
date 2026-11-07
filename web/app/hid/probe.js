@@ -164,6 +164,7 @@ export function startRcText(rc, riscv = false){
       ? '没找到 RTT 控制块：RISC-V 请点「载入 ELF…」按 _SEGGER_RTT 定位（HPM 上盲目大范围搜搜不到）'
       : '没找到 RTT 控制块（地址区间不对？Cortex-M7 要给 AXI SRAM）';
     case -4: return riscv ? '该档位链路不可用（DMI 无应答）' : '该档位链路不可用';
+    case -7: return '探针忙，请先停止波形采样并等待收尾完成';
     case -15: return 'CDC 正由“SPI转发”使用，请先停止转发';
     default: return `未知返回码 ${rc}`;
   }

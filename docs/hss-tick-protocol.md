@@ -45,23 +45,25 @@ instruction timing, ISR latency and throughput require an on-board measurement.
 
 ## Measurement snapshot (HID 0x32 action 11)
 
-STATUS word0 bit4 advertises this action. Response envelope and length match STATUS,
-but the following 12 little-endian u32 words have a separate layout:
+STATUS word0 bit4 advertises this action. The first 12 little-endian u32 words
+keep their layout. A STOP-tail capable HPM probe adds word 12; use the HID
+length field to distinguish 48- and 52-byte snapshots from report padding.
 
 | Word | Meaning |
 | --- | --- |
 | 0 | Magic `0x31535348` (HSS1) |
 | 1 | Hardware timer tick, u32 wrap |
 | 2 | Timer frequency, 24000000 Hz |
-| 3 | Produced samples |
+| 3 | Accepted sample slots, including a posted read later counted as invalid |
 | 4 | Scheduler skipped samples |
 | 5 | USB buffer exhaustion samples |
 | 6 | SWD errors |
 | 7 | DAP yield events |
-| 8 | USB TX completions |
+| 8 | USB TX completions for protocol packets (excluding STOP ZLPs) |
 | 9 | Formatted bytes (includes discarded packets in DISCARD mode) |
 | 10 | Full sampling period in ticks |
-| 11 | Flags bits0..7; running bit8 |
+| 11 | Flags bits0..7; running bit8; on STOP-tail firmware, draining bit9 and reset-aborted bit10 |
+| 12 (optional) | Invalid accepted sample slots omitted after a posted-read failure |
 
 Timer and counters are captured in a short critical section. Counters are full u32;
 use modulo subtraction across rollover. At 24 MHz a timer window must be shorter
@@ -74,3 +76,34 @@ M0 now uses an independent aligned 64-byte scratch buffer while stopped. Queued
 USB DATA packets are never used as benchmark destinations, and posted-read
 pointers are cleared before the scratch buffer leaves scope. Running benchmarks
 are rejected before link initialization.
+
+## STOP tail on HPM EP 0x83
+
+STATUS word0 bit5 advertises the opt-in tail protocol, bit6 is draining, and
+bit7 records a USB reset that interrupted a drain. Bit0 goes low when sampling
+stops, before delivery completes. A bare STOP retains the old behavior.
+
+1. Keep the ordered WebUSB reader alive and pause normal rearming. Send HID
+   action 0 with one extra byte `1`. A canceled queued START also returns an
+   end marker; an already idle probe has no new stream to finish.
+2. The sampler stops scheduling in the ISR, then finalizes any posted read in
+   the main loop. A final DATA packet is still 512 bytes on the wire; its header
+   lists only the valid samples. After all queued packets, one USB zero-length
+   packet (ZLP) makes the current native read return short, including zero
+   bytes when the data ended exactly on a read boundary. This is not a protocol
+   packet and does not affect its sequence or sample count.
+3. Deliver the bytes of that short read before acknowledging EOF. After
+   STATUS confirms the first drain, send action 13 once, with the exact number
+   of additional reads already submitted (1–32, omit the action when zero).
+   The probe sends that many ZLPs and the host checks that all those reads end
+   empty. Then read STATUS until bit6 clears. No device reset is needed for
+   this successful path.
+4. With DISCARD off, the final count must satisfy `received + invalid == produced`.
+   Report invalid samples separately from scheduling gaps and USB buffer
+   exhaustion. A timeout, malformed end read or reset is not a clean stop.
+
+Old probes can still be used with the legacy STOP. The browser delivers any
+reads that complete in the bounded legacy drain and reports count mismatches;
+the old probe cannot supply a final partial packet. The Zynq EP 0x87 STOP
+handshake is separate. See the [offline report](validation/hss-stop-offline-20261107/README.md)
+for the pending hardware checks.

@@ -93,6 +93,7 @@ service_gate_t api_param_gate;
 #define SCOPE_ACT_CONFIG 7U
 #define SCOPE_ACT_CONFIG_TICKS 10U
 #define SCOPE_ACT_METRICS 11U
+#define SCOPE_ACT_RETIRE_READS 13U
 #define SCOPE_ACT_BENCH 8U
 #define SCOPE_ACT_BENCH_RESULT 9U
 
@@ -300,12 +301,12 @@ void api_param_proc_hid(uint8_t *req_hid, uint8_t *res_hid)
                             ((uint32_t)req_hid[6] << 16) | ((uint32_t)req_hid[7] << 24);
             uint32_t size = (uint32_t)req_hid[8] | ((uint32_t)req_hid[9] << 8) |
                             ((uint32_t)req_hid[10] << 16) | ((uint32_t)req_hid[11] << 24);
-            scope_sampler_stop();      /* 采样器与桥都要独占 SWD，只能开一个 */
+            if (scope_sampler_is_running()) { rc = -7; break; }
             rtt_bridge_request_start(addr, size, req_hid[12]);
             break;
         }
         case RTT_ACT_AUTOSTART:
-            scope_sampler_stop();
+            if (scope_sampler_is_running()) { rc = -7; break; }
             rtt_bridge_request_start(0U, 0U, 0U);
             break;
         case RTT_ACT_RAW_DAP:
@@ -496,12 +497,16 @@ void api_param_proc_hid(uint8_t *req_hid, uint8_t *res_hid)
          *   · 启动码读的是 `signed(res[2])`（view.js:356）→ 写 res_hid[3]；
          *   · 标定结果读的是 `getUint32(3)` 与 `getUint32(7)`（view.js:396）
          *     → 写 res_hid[4] 与 res_hid[8]。 */
-        uint32_t out[12] = {0};
+        uint32_t out[13] = {0};
+        int32_t retire_rc = 0;
 
         switch (req_hid[3])
         {
         case SCOPE_ACT_STOP:
-            scope_sampler_stop();
+            scope_sampler_stop(req_hid[1] >= 3U && req_hid[4] == 1U);
+            break;
+        case SCOPE_ACT_RETIRE_READS:
+            retire_rc = scope_sampler_retire_reads(req_hid[1] >= 3U ? req_hid[4] : 0U);
             break;
         case SCOPE_ACT_START:
             /* 互斥：桥和采样器都要独占 SWD。停桥走排队（主循环里先补写 RdOff），
@@ -585,14 +590,13 @@ void api_param_proc_hid(uint8_t *req_hid, uint8_t *res_hid)
 
         if (req_hid[3] != SCOPE_ACT_BENCH_RESULT)
         {
-            if (req_hid[3] == SCOPE_ACT_METRICS)
-                (void)scope_sampler_metrics(out, 12U);
-            else
-                (void)scope_sampler_status(out, 12U);
-            res_hid[1] = 1U + 1U + 4U * 12U;
+            uint32_t words = (req_hid[3] == SCOPE_ACT_METRICS) ?
+                scope_sampler_metrics(out, 13U) : scope_sampler_status(out, 12U);
+            res_hid[1] = (uint8_t)(1U + 1U + 4U * words);
             res_hid[2] = CMD_SCOPE;
-            res_hid[3] = (uint8_t)(int8_t)scope_sampler_start_result();   /* 网页在 res[2] 读它 */
-            for (uint32_t i = 0U; i < 12U; i++)
+            res_hid[3] = (uint8_t)(int8_t)(req_hid[3] == SCOPE_ACT_RETIRE_READS ?
+                retire_rc : scope_sampler_start_result());
+            for (uint32_t i = 0U; i < words; i++)
             {
                 res_hid[4U + i * 4U + 0U] = (uint8_t)(out[i] >> 0);
                 res_hid[4U + i * 4U + 1U] = (uint8_t)(out[i] >> 8);

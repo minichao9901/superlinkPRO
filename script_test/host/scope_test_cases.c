@@ -2,10 +2,12 @@ static uint32_t get32(const uint8_t *p)
 { return (uint32_t)p[0] | (uint32_t)p[1]<<8 | (uint32_t)p[2]<<16 | (uint32_t)p[3]<<24; }
 static void reset_test(void)
 {
-    scope_sampler_stop();
+    scope_sampler_stop(1);
     scope_usb_reset_apply();
+    scope_sampler_poll();
     test_clock = test_previous = test_calls = test_last_dap = 0;
     test_fail_read = 0; test_stop_call = 0; test_cdc = 1; test_read_cost = 36;
+    test_fail_call = 0; test_tx_count = 0; test_zlp_count = 0;
 }
 int main(void)
 {
@@ -92,16 +94,21 @@ int main(void)
     /* M0 while running is rejected without reads, even with a full TX pool. */
     scope_sampler_request_bench(20); scope_sampler_poll();
     assert(s_bench_err == -5 && test_calls == reads_before);
-    scope_sampler_stop();
-    scope_sampler_request_bench(20); scope_sampler_poll();
-    assert(s_bench_err == 0 && s_bench_iters == 20 && s_pipe_dst == NULL);
-    assert(memcmp(frozen, s_pkt, sizeof frozen) == 0);
-    s_running = 1; /* Continue the buffer-return scenario without resetting the pool. */
     scope_sampler_tx_complete();
     assert(s_fill_buf < SCOPE_TX_BUFS);
     test_clock = s_next_tick; scope_sampler_poll();
     assert(s_produced == produced_before + 64);
-    scope_sampler_stop(); assert(test_cdc);
+    scope_sampler_stop(1);
+    scope_sampler_poll();
+    assert(!test_cdc && !test_zlp_count && s_if_count == SCOPE_TX_BUFS);
+    scope_sampler_request_bench(20);
+    for (unsigned i = 0; i < SCOPE_TX_BUFS; i++) {
+        assert(s_if_count == SCOPE_TX_BUFS - i && !test_zlp_count);
+        scope_sampler_tx_complete();
+    }
+    assert(test_zlp_count == 1 && s_tx_zlp && !test_cdc);
+    scope_sampler_tx_complete(); scope_sampler_poll();
+    assert(test_cdc && !scope_sampler_is_running() && s_bench_err == 0 && s_bench_iters == 20);
     /* Recent DAP traffic still prevents entry into a batch. */
     reset_test();
     assert(scope_sampler_configure_ticks(48, SCOPE_FLAG_FAST_BATCH | SCOPE_FLAG_DISCARD, 1, &one) == 0);
@@ -148,8 +155,96 @@ int main(void)
     assert(scope_start_now() == 0); test_clock = s_next_tick; scope_sampler_poll(); assert(s_produced == 1);
     assert(scope_sampler_configure_ticks(96, SCOPE_FLAG_RISCV | SCOPE_FLAG_DISCARD | SCOPE_FLAG_FAST_BATCH, 2, two) == 0);
     assert(scope_start_now() == 0); test_clock = s_next_tick; scope_sampler_poll(); assert(s_produced == 1 && !s_pipe_ok);
+
+    /* STOP arrived in the read, while DEF is still in flight. The last
+     * accepted value belongs in the tail and can only be fetched in poll. */
+    reset_test();
+    assert(scope_sampler_configure_ticks(48, SCOPE_FLAG_FAST_BATCH | SCOPE_FLAG_CDC_OFF, 1, &one) == 0);
+    assert(scope_start_now() == 0 && !test_cdc && test_tx_count == 1);
+    test_stop_call = 3; test_clock = s_next_tick; scope_sampler_poll();
+    assert(s_stopping && s_stop_req && test_calls == 3 && s_fill_n == 3);
+    assert(scope_sampler_is_running() && !s_running);
+    scope_sampler_status(status_words, 12);
+    assert((status_words[0] & 0xe1) == 0x60);
+    scope_sampler_request_start();
+    assert(!s_start_req && scope_sampler_start_result() == -7);
+    assert(scope_sampler_configure_ticks(96, 0, 1, &one) == -7);
+    scope_sampler_poll(); scope_sampler_stop(1); scope_sampler_poll();
+    assert(test_calls == 4 && s_if_count == 2 && test_tx_count == 1 && !test_zlp_count);
+    scope_sampler_tx_complete();
+    assert(test_tx_count == 2 && test_tx_last[3] == SCOPE_KIND_DATA);
+    assert(get32(test_tx_last+12) == (12U<<16 | 3U));
+    assert(get32(test_tx_last+16) == 1 && get32(test_tx_last+20) == 2 && get32(test_tx_last+24) == 3);
+    uint32_t seq_before = s_seq, done_before = s_tx_done;
+    scope_sampler_tx_complete();
+    assert(test_zlp_count == 1 && s_tx_zlp && !test_cdc && s_seq == seq_before && s_tx_done == done_before + 1);
+    scope_sampler_stop(1); scope_sampler_tx_complete(); scope_sampler_poll();
+    assert(test_cdc && !scope_sampler_is_running() && s_tx_done == done_before + 1);
+    scope_sampler_stop(1); scope_sampler_poll(); assert(test_zlp_count == 1);
+    assert(scope_sampler_retire_reads(33) == -6 && scope_sampler_retire_reads(2) == 0);
+    scope_sampler_poll();
+    assert(test_zlp_count == 2 && s_stopping && s_tx_zlp);
+    scope_sampler_tx_complete();
+    assert(test_zlp_count == 3 && s_stopping && s_tx_zlp);
+    scope_sampler_tx_complete(); scope_sampler_poll();
+    assert(!s_stopping && s_tx_done == done_before + 1 && s_seq == seq_before);
+    assert(scope_sampler_retire_reads(1) == -7);
+
+    /* Last posted read fails at either STOP or the full-packet boundary. */
+    for (unsigned full = 0; full < 2; full++) {
+        reset_test();
+        assert(scope_sampler_configure_ticks(96, 0, 1, &one) == 0);
+        assert(scope_start_now() == 0); scope_sampler_tx_complete();
+        unsigned n = full ? 124 : 3;
+        test_fail_call = n + 1;
+        for (unsigned i = 0; i < n; i++) { test_clock = s_next_tick; scope_sampler_poll(); }
+        scope_sampler_stop(1); scope_sampler_poll();
+        assert(s_produced == n && s_swd_err == 1 && s_invalid_samples == 1);
+        assert(test_tx_count == 2 && get32(test_tx_last+12) == ((n-1)*4U<<16 | (n-1)));
+        assert(get32(test_tx_last+16+(n-2)*4U) == n-1);
+        uint32_t m[13];
+        assert(scope_sampler_metrics(m, 13) == 13 && m[12] == 1 && (m[11] & (1U<<9)));
+        scope_sampler_tx_complete();
+        assert(test_zlp_count == 1 && !s_if_count);
+        scope_sampler_tx_complete(); scope_sampler_poll();
+    }
+
+    /* Non-pipelined, 8-variable tail. Reset aborts queued data instead of
+     * reporting a clean stop; no fabricated EOF is sent after reset. */
+    reset_test();
+    scope_var_t eight[8];
+    for (unsigned i = 0; i < 8; i++) { eight[i] = one; eight[i].addr += i * 4; }
+    assert(scope_sampler_configure_ticks(480, SCOPE_FLAG_CDC_OFF, 8, eight) == 0);
+    assert(scope_start_now() == 0); scope_sampler_tx_complete();
+    for (unsigned i = 0; i < 2; i++) { test_clock = s_next_tick; scope_sampler_poll(); }
+    scope_sampler_stop(1); scope_sampler_poll();
+    assert(test_tx_count == 2 && get32(test_tx_last+12) == (64U<<16 | 2U));
+    scope_sampler_usb_reset(); scope_sampler_poll();
+    scope_sampler_status(status_words, 12);
+    assert((status_words[0] & 0xe1) == 0xa0 && !test_zlp_count && test_cdc);
+    assert(!scope_sampler_is_running() && !s_if_count);
+
+    /* A queued START canceled before the first sample still completes
+     * the browser's pending bulk read, and never starts the sampler. */
+    reset_test();
+    scope_sampler_request_start(); scope_sampler_stop(1); scope_sampler_poll();
+    assert(test_tx_count == 0 && test_zlp_count == 1 && s_stopping);
+    scope_sampler_tx_complete(); scope_sampler_poll();
+    assert(!scope_sampler_is_running());
+
+    /* Old clients send a bare STOP and never read an EOF. */
+    reset_test();
+    assert(scope_sampler_configure_ticks(96, SCOPE_FLAG_CDC_OFF, 1, &one) == 0);
+    assert(scope_start_now() == 0); scope_sampler_tx_complete();
+    test_clock = s_next_tick; scope_sampler_poll();
+    scope_sampler_stop(0); scope_sampler_poll();
+    assert(!scope_sampler_is_running() && test_cdc && !test_zlp_count && test_tx_count == 1);
+    scope_sampler_request_start(); scope_sampler_stop(1); scope_sampler_poll();
+    assert(test_zlp_count == 1 && test_tx_count == 1); /* no previous partial DATA */
+    scope_sampler_tx_complete(); scope_sampler_poll();
+
     one.size = 255;
     assert(scope_sampler_configure_ticks(60, 0, 1, &one) == -6 && s_nvars == 0);
-    puts("scope host tests: protocol units, pipeline, packet boundary, limits, bounded batching, stop/error, rollover, USB ownership/starvation, DAP yield, multi-span PASS");
+    puts("scope host tests: protocol, batches, SWD/JTAG pipeline, partial/full stop, ZLP, invalid tail, USB reset, ownership PASS");
     return 0;
 }

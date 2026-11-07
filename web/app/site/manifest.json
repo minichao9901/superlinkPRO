@@ -86,7 +86,7 @@
     "app/flash/target-reset.js": "28bba630fa0131a29c298709fbbc6fa4822247e32caf50ba9e60e9ae18371c3e",
     "app/flash/view.js": "7fee156c146cbf0e1b12095b8364d8cde2e26be396aeb6e148575e5bb685f5fe",
     "app/hid/mock.js": "b37788033bc12dfc5febb3beaaa20f6b293bdaa83dba9898df1c693b94d832d5",
-    "app/hid/probe.js": "5416330921bf987fceb3d2a447a6f69d570c14b08b9e9755577eb30b5809f8b3",
+    "app/hid/probe.js": "6f2e246bc1749bb5c916db34326f79b2ccd39fcab9faa711709e9115b7d0cb4a",
     "app/hid/stream.js": "a05b79790f156f3cbf3d8e30ef463cff965d82769759af696b204dc448fe9415",
     "app/hid/view.js": "67e851367c69c9907e16bd2ab64575cbf41145a42cba4e5c54d752424ab7ffc1",
     "app/i2c/dsl.js": "c6dbe0ea012f1d33aab34d648471890712f2b518fad25cdf5f670e7a70c17f1c",
@@ -108,11 +108,11 @@
     "app/rtt/view.js": "26d70d0f7711a6b4b7277437a64fee914c52507a0f174008e58475d0dd004c1b",
     "app/scope/array-vars.js": "acef3efbffe7e2c70958e06c8dc8d0ea3fe123db3928a4baa6463f5ea9cafb5b",
     "app/scope/mock.js": "06cd937bb48f81dee9c7a1d5753e8dd1b3b177c4823f21e0f67d4b71484d4ef6",
-    "app/scope/protocol.js": "91bc38afb5a6f5e9cf1177a2d4462348b66d1c2b706f69f3578649115b09cef9",
+    "app/scope/protocol.js": "382afcce7dd771b92781167e73d4ff5dc6ca0b7d284113fa9d93ea7f38b8964e",
     "app/scope/render.js": "539faa88133f619836d12b3086c189367f7c28894165bc0240b6f0ff1283b6ca",
     "app/scope/store.js": "a54138c35048ae447446201f3491ef81bb989ebad3e23e32fb26ca44800937e3",
-    "app/scope/transport.js": "35895457dd1c2f138ad275b560f607e7df5d483b931b814ea1855b6f4268986b",
-    "app/scope/view.js": "d757c1e743161de37556b2c1e8d733bc608e01c7d5448678e1d0cdd76ed988c8",
+    "app/scope/transport.js": "9525ce4f786ed2d6fe12ae25a6e804a1ab2ba9f93aa84b28efaf75688b7efdcd",
+    "app/scope/view.js": "c4c81f6e31e27a16096dce60e902f55f5eb60d5f66291b0482384d4cf26c963b",
     "app/serial/assistant.js": "ce2247371bc23f8ecab3ab559d18bb0a68c918ee22741525b568ef667c7bd1a5",
     "app/serial/demo.js": "7e1cc7301b5edbcb99edaa1d2b43778aa5696a038d565b754abae5ae0a6d7ad6",
     "app/serial/session.js": "5d37537c36613d8a062a34f94d8afe834eb7c6746d5510ddb9d9fb14714fbff2",
@@ -172,6 +172,6 @@
     "app/ui/workspace.js": "9c4fe48834c19f54f2a2b491265aa099a8867a3bd5a41fc149c09aad994d363a",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "a874082bb0b77e941fb64fd3d0e61a182153823a4c92715716fbc9fe5aecbde0",
-  "outputBytes": 1222730
+  "outputSha256": "eeae117b5109a7acede7c31f01f53f77b8180ab2102a5f5395ec1b039df2146f",
+  "outputBytes": 1225262
 }

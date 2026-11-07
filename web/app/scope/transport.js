@@ -13,6 +13,7 @@ import { waitMs } from '../core/pace.js';
  */
 import { withTimeout } from '../rtt/dap-webusb.js';
 import { MockScopeProbe } from './mock.js';
+import { PACKET } from './protocol.js';
 import { UsbLease, isUsbResourceConflict } from '../core/usb-device.js';
 
 /** 探针上那个空闲的 bulk IN 端点（SWO 端点，SWO_STREAM=0 所以没人用）*/
@@ -147,8 +148,6 @@ export class VendorEpTransport {
           '（已经试过自动端口复位重连；再不行就拔插一次探针）');
       }
     }
-    // 认领后清一次端点：上一场会话（或上一次断开）可能残留数据
-    try { await d.clearHalt('in', this.ep); } catch { /* 有的设备不支持，忽略 */ }
     return this;
   }
 
@@ -246,7 +245,9 @@ export class VendorEpTransport {
     this._fatal = why;
     this.errors++; this.lastError = why;
     this.running = false;
-    try { this.onError?.(new Error(why)); } catch { /* 页面自己出错不该拖垮这里 */ }
+    const error = new Error(why);
+    this._drain?.finish?.(error);
+    try { this.onError?.(error); } catch { /* 页面自己出错不该拖垮这里 */ }
   }
 
   async _worker(onChunk, g){
@@ -267,7 +268,12 @@ export class VendorEpTransport {
      *    下一轮 —— 那时 `running` 又被 `start()` 置回 true，只判 running 的话它会"复活"继续收，
      *    而且已经不在 `workers` 里，后面的 `stop()` 再也等不到它（worker 数无界增长，2026-10 代码审查）。
      */
-    while (this.running && g === this.gen){
+    const alive = () => g === this.gen && (this.running || this._drain);
+    while (alive()){
+      if (!queue.length){
+        if (this._drain?.finish) queue.push(issue()); // exact-boundary EOF needs one more read
+        else break;
+      }
       let r;
       try {
         const completed = await queue[0];
@@ -277,17 +283,23 @@ export class VendorEpTransport {
       } catch (e){
         /* 读抛异常（USB 抖动、探针复位）以前是直接 break —— 几条 worker 全退出后数据面就停了，
          * 而 `running` 还是 true、页面还显示"采样中"（2026-10 代码审查）。现在上报并整体停下。 */
-        if (this.running && g === this.gen){
+        if (alive()){
           this._fail('数据流中断：' + (e?.message || String(e)) + '（探针掉线了？拔插一次，或改用假探针）');
         }
         break;
       }
-      if (!this.running || g !== this.gen) break;     // 收尾 / 换轮：这一条读到了也不再用
+      if (!alive()) break;
+      const drain = this._drain;
+      const length = r.data?.byteLength ?? 0;
+      if (drain?.finish && (r.status !== 'ok' || length % PACKET || length > this.chunkBytes)){
+        this._fail('采样尾部 USB 传输无效：' + r.status + ' / ' + length + ' B');
+        break;
+      }
       if (r.status === 'ok' && r.data?.byteLength){
         stalls = 0;
         this.chunks++; this.bytes += r.data.byteLength;
         // Keep the native USB request queue full before doing synchronous JS work.
-        queue.push(issue());
+        if (this.running) queue.push(issue());
         try { onChunk(new Uint8Array(r.data.buffer, r.data.byteOffset, r.data.byteLength)); }
         catch (e){ this._fail('数据解析失败：' + (e?.message || String(e))); break; }
       } else if (r.status !== 'ok'){
@@ -307,6 +319,20 @@ export class VendorEpTransport {
           }
         }
       }
+      if (drain?.finish && r.status === 'ok' && length < this.chunkBytes){
+        // A short read completes only after its bytes have reached the decoder.
+        // Each later submission needs its own ZLP. Keep it tracked, and
+        // require it to complete empty before reporting a clean teardown.
+        const retired = Promise.all(queue).then(reads => {
+          for (const { result, error } of reads){
+            if (error || result?.status !== 'ok' || result.data?.byteLength)
+              throw error || new Error('结束标记后的 USB 读未正常退场');
+          }
+        });
+        retired.catch(() => {});
+        drain.finish(null, { remaining: queue.length, retired });
+        break;
+      }
       if (queue.length < this.inFlight && this.running && g === this.gen) queue.push(issue());
     }
     } finally {
@@ -315,8 +341,29 @@ export class VendorEpTransport {
     }
   }
 
+  /** Keep consuming in submission order until the firmware's STOP ZLP. */
+  beginStopDrain(timeoutMs = 2000){
+    if (!this.running || this._drain || this.chunkBytes % PACKET || this.inFlight > 32)
+      throw new Error('采样端点未就绪，不能确认停止尾部');
+    this.running = false;
+    const drain = {};
+    const promise = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => drain.finish(new Error('未收到采样结束标记')), timeoutMs);
+      drain.finish = (error, result) => {
+        if (this._drain !== drain) return;
+        this._drain = null;
+        clearTimeout(timer);
+        if (error) reject(error); else resolve(result);
+      };
+    });
+    // The deadline can fire while the caller is still waiting for HID STOP.
+    promise.catch(() => {});
+    this._drain = drain;
+    return promise;
+  }
+
   /** Stop rearming while the producer can still finish already submitted reads. */
-  async quiesce(timeoutMs){
+  async quiesce(timeoutMs, { deliverPending = false } = {}){
     if (timeoutMs === undefined){
       // Drain while the producer still runs. Under simultaneous SPI/CDC load
       // a nominal 500 kHz plan can deliver far less: 16 x 8 KiB native reads
@@ -328,16 +375,24 @@ export class VendorEpTransport {
       timeoutMs = bytesPerMs > 0 ? Math.max(40, Math.min(2000, Math.ceil(pendingBytes / bytesPerMs + 100))) : 40;
     }
     this.running = false;
-    this.gen++;
+    const drain = deliverPending ? {} : null;
+    if (drain) this._drain = drain;
+    else this.gen++;
     if (this.workers.length)
       await Promise.race([Promise.allSettled(this.workers), sleep(timeoutMs)]);
+    if (drain && this._drain === drain){
+      this._drain = null;
+      this.gen++;
+    }
   }
 
   /** 停止收流：等在飞的读全部回来（最多 800 ms），**不要**让它们挂在那儿 */
   async stop(){
+    this._drain?.finish?.(new Error('采样结束确认已取消'));
+    this._drain = null;
     this.gen++;                    // 代号一变，超时残留在飞的那条读回来后就自行作废
-    if (!this.workers.length){ this.stalledInFlight = 0; return; }
     this.running = false;
+    if (!this.workers.length){ this.stalledInFlight = 0; return; }
     let settled = 0;
     const all = this.workers.map(p => p.then(() => { settled++; }, () => { settled++; }));
     await Promise.race([Promise.allSettled(all), sleep(800)]);

@@ -11,20 +11,29 @@ static uint32_t test_clock, test_read_cost = 36U, test_previous, test_calls;
 static uint32_t test_last_dap;
 static int test_fail_read;
 static uint32_t test_stop_call;
-void scope_sampler_stop(void);
+static uint32_t test_fail_call;
+static unsigned test_tx_count, test_zlp_count;
+static uint8_t test_tx_last[512];
+void scope_sampler_stop(uint8_t drain_tail);
 static uint8_t test_cdc = 1;
 static uint32_t test_clock_read(void) { return test_clock++; }
 static uint32_t disable_global_irq(uint32_t m) { (void)m; return 1; }
 static void enable_global_irq(uint32_t m) { (void)m; }
 static int usbd_ep_start_write(uint8_t b, uint8_t e, uint8_t *p, uint32_t n)
-{ (void)b; (void)e; (void)p; (void)n; return 0; }
+{
+    assert(b == 0 && e == SWO_IN_EP);
+    if (n == 0) { assert(!p); test_zlp_count++; }
+    else { assert(n == sizeof test_tx_last); memcpy(test_tx_last, p, n); test_tx_count++; }
+    return 0;
+}
 static uint8_t swd_read_word_hold_prepare(uint32_t a) { (void)a; return 1; }
 static uint8_t swd_read_word_pipe(uint32_t *v)
 {
-    if (test_fail_read) { test_fail_read = 0; return 0; }
+    if (test_fail_read || (test_fail_call && test_calls + 1 == test_fail_call))
+    { test_fail_read = 0; test_fail_call = 0; return 0; }
     if (v) *v = test_previous;
     test_previous = ++test_calls;
-    if (test_stop_call && test_calls == test_stop_call) scope_sampler_stop();
+    if (test_stop_call && test_calls == test_stop_call) scope_sampler_stop(1);
     test_clock += test_read_cost;
     return 1;
 }

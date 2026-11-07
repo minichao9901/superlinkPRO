@@ -82,7 +82,9 @@ void scope_sampler_request_start(void);
 int  scope_sampler_start_result(void);
 
 /* HID 0x32 action 0 */
-void scope_sampler_stop(void);
+/* drain_tail=1 is the opt-in bulk EOF protocol; older hosts pass 0. */
+void scope_sampler_stop(uint8_t drain_tail);
+int scope_sampler_retire_reads(uint8_t count);
 
 /* 主循环里调（紧跟 rtt_bridge_poll()）：处理排队的启动/标定请求、到点采一拍、把满包推给 USB。 */
 void scope_sampler_poll(void);
@@ -104,6 +106,7 @@ void scope_sampler_tx_complete(void);
  * 完成回调不会再来，所以要把包缓冲的账一次清干净（真正的清账在主循环里做）。 */
 void scope_sampler_usb_reset(void);
 
+/* True while starting, sampling or draining: another SWD owner must wait. */
 int      scope_sampler_is_running(void);
 uint32_t scope_sampler_plan_hash(void);   /* 与网页 planHash 同一算法，用来对账"配置生效了吗" */
 

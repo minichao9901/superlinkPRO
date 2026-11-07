@@ -282,7 +282,7 @@ RISC-V/JTAG 侧不套这个模型，直接用**实测分档**（`RISCV_COST`）�
 
 | action | 语义 | 数据段（`payload[2..]`） |
 |---|---|---|
-| 0 | 停止 | — |
+| 0 | 停止 | 旧式无参数；支持尾部协议的 HPM 固件可传 `1`，交付半包和 USB 结束标记 |
 | 1 | 启动推流 | — |
 | 2 | 查状态 | — |
 | **3** | **设 SWD 时钟** | `hz(4)`；0 = 不动。走 RTT 桥那套斜坡换挡，失败返回 -4 由固件降档 |
@@ -290,6 +290,8 @@ RISC-V/JTAG 侧不套这个模型，直接用**实测分档**（`RISCV_COST`）�
 | **7** | **配置：周期 + 1~8 个变量** | `period_us(4) flags(1) nvars(1)` + `nvars × (addr(4) size(1) type(1))`；`nvars=8` 时 = 54 B ✔ 一条装下 |
 | 8 | 标定：用当前计划跑 N 次 | `iters(4)` → 结果走 action 9 |
 | 9 | 取标定结果 | → `ticks(4) iters(4) err(4)` |
+| 11 | 读完整采样计数 | → 48 B，支持 STOP 尾部协议的 HPM 固件追加 4 B 无效样本计数 |
+| 13 | 收回 EOF 后的空读（HPM） | 已提交的剩余读笔数 `count(1)`，1～32 |
 
 `type` 编码：`0=u8 1=i8 2=u16 3=i16 4=u32 5=i32 6=f32 7=f64`（够用；`f64` 单独走 8 字节）。
 `flags`：bit0 = 允许 60 MHz；bit1 = 丢弃模式（排障）；bit2 = 触发使能（v2）。
@@ -298,7 +300,7 @@ RISC-V/JTAG 侧不套这个模型，直接用**实测分档**（`RISCV_COST`）�
 
 | 字 | 位域 |
 |---|---|
-| w0 | bit0 running；bit1 RISC-V；bit2 tick 周期支持；bit3 短批次支持；bit4 完整计数支持；bit8-15 **探针算出的 span 数**；bit16 SWD ready；bit24-31 探针收到的变量数 |
+| w0 | bit0 running；bit1 RISC-V；bit2 tick 周期支持；bit3 短批次支持；bit4 完整计数支持；bit5 STOP 尾部能力；bit6 正在收尾；bit7 USB 复位中断收尾；bit8-15 **探针算出的 span 数**；bit16 SWD ready；bit24-31 探针收到的变量数 |
 | w1 | 实际 SWD Hz |
 | w2 | produced 样本数 |
 | w3 | **调度跳拍 + USB 无缓冲丢样数** |
@@ -316,7 +318,7 @@ RISC-V/JTAG 侧不套这个模型，直接用**实测分档**（`RISCV_COST`）�
 主机侧：
 - 认领 interface 0（与 RTT Viewer 相同的接口），**选 `endpointNumber === 0x83` 的 bulk IN**；
 - 低流量保持 3 × 4096 B 预读；小窗口不足以覆盖 30 ms 时，采用 8192 B/读、按约 80 ms 覆盖动态安排 6～16 条读，上限 128 KiB；按提交顺序消费完成结果。显式指定窗口的调用者不自动改动；
-- 收尾顺序：**先 HID STOP → 等 100~200 ms → 把在飞的读收干净 → 再 close**（WebUSB 没有取消接口）。
+- 新版 HPM 停止时保留预读：发 STOP、交付最后一包、读到结束标记，再按实际笔数收回剩余空读并核对计数。旧探针采用有界收读后再发 STOP，无法保证最后半包完整。详见 [HSS 协议](../../docs/hss-tick-protocol.md#stop-tail-on-hpm-ep-0x83)。
 
 ---
 

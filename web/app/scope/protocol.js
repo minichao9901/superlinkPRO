@@ -391,7 +391,7 @@ export function packetTimeUs(pkt, unwrap){
 
 // ---------------------------------------------------------------- HID 0x32（控制面）
 export const HID_CMD = 0x32;
-export const ACT = { STOP: 0, START: 1, STATUS: 2, CLOCK: 3, TRIGGER: 4, CONFIG: 7, BENCH: 8, BENCH_RESULT: 9, CONFIG_TICKS: 10, METRICS: 11 };
+export const ACT = { STOP: 0, START: 1, STATUS: 2, CLOCK: 3, TRIGGER: 4, CONFIG: 7, BENCH: 8, BENCH_RESULT: 9, CONFIG_TICKS: 10, METRICS: 11, RETIRE_READS: 13 };
 export const ACT_NAME = { 0: '停止', 1: '启动', 2: '查状态', 3: '设 SWD 时钟', 4: '触发配置', 7: '配置', 8: '标定', 9: '取标定结果', 10: '配置 tick 周期' };
 
 /**
@@ -499,6 +499,9 @@ export function parseScopeStatus(bytes){
     supportsTicks: !!(w0 & 4),
     supportsBatch: !!(w0 & 8),
     supportsMetrics: !!(w0 & 16),
+    supportsStopTail: !!(w0 & 32),
+    stopping: !!(w0 & 64),
+    stopAborted: !!(w0 & 128),
     riscv: !!(w0 & 2),               // **生效**后端：bit1 = 这次会话真的在走 RISC-V/JTAG
     nspans: (w0 >>> 8) & 0xff,       // 探针自己算出来的 span 数（与本地计划对账用）
     swdReady: !!(w0 & (1 << 16)),
@@ -530,7 +533,8 @@ export function parseScopeMetrics(bytes){
   const w = i => dv.getUint32(i * 4, true);
   if (w(0) !== 0x31535348 || w(2) !== TIME_HZ) throw new Error('采样计数响应无效');
   return { tick: w(1), hz: w(2), produced: w(3), skipped: w(4), usb: w(5),
-    errors: w(6), yields: w(7), tx: w(8), bytes: w(9), periodTicks: w(10), flags: w(11) };
+    errors: w(6), yields: w(7), tx: w(8), bytes: w(9), periodTicks: w(10), flags: w(11),
+    invalidSamples: bytes.byteLength >= 52 ? w(12) : null };
 }
 
 /**

@@ -15,6 +15,7 @@
 import { releaseLocalProbeUsers, prepareProbeHandoff } from '../core/probe-users.js';
 import { runProbeOperation } from '../core/probe-manager.js';
 import { waitMs } from '../core/pace.js';
+import { withTimeout } from '../rtt/dap-webusb.js';
 import { $, setStatus, seg, esc } from '../ui/dom.js';
 import { store } from '../core/store.js';
 import { webClockKhz } from '../core/target-clock.js';
@@ -800,23 +801,60 @@ export class ScopeView {
   async _stopData(){
     let failure;
     const drainBeforeQuiesce=this.transport?.epAddr===0x87;
+    const tailCapable = !drainBeforeQuiesce && this.supportsStopTail;
+    let tail;
     if (this._stopUnconfirmed && !this.hid) failure = new Error('探针未连接，不能确认 STOP');
     // Zynq STOP can report busy until its final PL/USB packets are drained.
     // Keep the consumer alive during that handshake, then retire native reads.
-    try { if(!drainBeforeQuiesce)await this.transport?.quiesce?.(); } catch (e) { failure = e; }
+    try {
+      if (tailCapable && this.transport?.running) tail = this.transport.beginStopDrain();
+      else if (!drainBeforeQuiesce) await this.transport?.quiesce?.(undefined, { deliverPending: true });
+    } catch (e) { failure ||= e; }
     try { if (this.hid){
       const deadline=performance.now()+2000;
       for(;;){
-        const reply=await this.hidXfer(P.HID_CMD,P.flagsData(P.ACT.STOP));
+        const reply=await this.hidXfer(P.HID_CMD,tail ? Uint8Array.of(P.ACT.STOP,1) : P.flagsData(P.ACT.STOP));
         if(!reply||reply.length<3)throw Error('STOP回包不完整');
         const rc=this.signed(reply[2]);
-        const legacyStopped=!drainBeforeQuiesce&&rc===P.START_PENDING&&reply.length>=51&&!P.parseScopeStatus(reply.subarray(3)).running;
+        if (tailCapable){
+          if (rc !== 0 && rc !== P.START_PENDING) throw Error(P.scopeRcText(rc, this.targetRiscv));
+          const readStatus = (res) => {
+            if (!res || res.length < 51) throw Error('STOP 状态响应不完整');
+            const status = P.parseScopeStatus(res.subarray(3));
+            const recovering = this._stopUnconfirmed && !tail && !status.stopping;
+            if (!status.supportsStopTail || (status.stopAborted && !recovering) || status.running)
+              throw Error('探针未确认停止收尾（仍运行、USB 已复位或能力变化）');
+            return status;
+          };
+          const waitStopped = async (status, until) => {
+            while (status.stopping){
+              if (performance.now() >= until) throw Error('探针仍在发送采样尾部');
+              await sleep(10);
+              status = readStatus(await this.hidXfer(P.HID_CMD, P.flagsData(P.ACT.STATUS)));
+            }
+          };
+          const status = readStatus(reply);
+          const eof = status.stopping && tail ? await tail : null;
+          await waitStopped(status, deadline);
+          if (eof?.remaining){
+            const retired = await this.hidXfer(P.HID_CMD, Uint8Array.of(P.ACT.RETIRE_READS, eof.remaining));
+            const retireStatus = readStatus(retired);
+            const retireRc = this.signed(retired[2]);
+            if (retireRc !== 0) throw Error(P.scopeRcText(retireRc, this.targetRiscv));
+            await withTimeout(eof.retired, 2000, '等待剩余采样 USB 读退场');
+            await waitStopped(retireStatus, performance.now() + 2000);
+          }
+          break;
+        }
+        const legacyStatus = !drainBeforeQuiesce && reply.length >= 51 ? P.parseScopeStatus(reply.subarray(3)) : null;
+        const legacyStopped = rc === P.START_PENDING && legacyStatus &&
+          !legacyStatus.running && !legacyStatus.stopping && !legacyStatus.stopAborted;
         if(rc===0||legacyStopped)break;
         if(rc!==-7||!drainBeforeQuiesce||performance.now()>=deadline)throw Error(P.scopeRcText(rc,this.targetRiscv));
         await sleep(10);
       }
     }}
-    catch (e) { failure = e; }
+    catch (e) { failure ||= e; }
     try { if(drainBeforeQuiesce){
       if(this.transport?.drain)await this.transport.drain();
       else await this.transport?.quiesce?.();
@@ -972,6 +1010,7 @@ export class ScopeView {
       const cfgRes = await this.configureScope({ periodUs, flags, vars });
       if (!this._captureAlive(g)) return;
       if (!cfgRes || cfgRes.length < 3) throw new Error('采样配置响应不完整');
+      this._absorbeStatusBackend(cfgRes);
       const cfgRc = this.signed(cfgRes?.[2]);
       if (cfgRc < 0 && cfgRc !== P.START_PENDING){
         this._capturing = false;
@@ -1084,7 +1123,7 @@ export class ScopeView {
   async stop(reason){
     this.probeManager?.cancel('scope');
     if (this._stopPromise) return await this._stopPromise;
-    this._drainGen=this.transport?.epAddr===0x87 && this._capturing ? (this._captureGen || 0) : null;
+    this._drainGen=this._capturing ? (this._captureGen || 0) : null;
     this._captureGen = (this._captureGen || 0) + 1;
     this._stopPromise = this._stopOnce(reason);
     try { return await this._stopPromise; }
@@ -1112,10 +1151,13 @@ export class ScopeView {
     if (this._stopUnconfirmed && !this.hid) throw new Error('采样停止尚未确认，请先重新连接探针，再点停止');
     if (hadData || this._startTouched || this.transport?.running || this._stopUnconfirmed) await this._stopData();
     this._capturing=false;this._drainGen=null;
-    await this.readScopeMetrics({fresh: true}).catch(e => { this.metricsError = e.message; });
-    if(this.transport?.epAddr===0x87 && this.probeMetrics && !(this._captureFlags & P.SCOPE_FLAG.DISCARD)){
-      this.tailCountDelta=(this.receivedSamples || 0)-this.probeMetrics.produced;
-      if(this.tailCountDelta!==0)this.metricsError=`样本未完整接收：收到 ${this.receivedSamples || 0}，探针 ${this.probeMetrics.produced}`;
+    const finalMetrics = await this.readScopeMetrics({fresh: true}).catch(e => { this.metricsError = e.message; });
+    if(finalMetrics && !(this._captureFlags & P.SCOPE_FLAG.DISCARD)){
+      const received = this.receivedSamples || 0;
+      const invalid = finalMetrics.invalidSamples || 0;
+      this.tailCountDelta=received+invalid-finalMetrics.produced;
+      if(this.tailCountDelta!==0)this.metricsError=`样本未完整接收：收到 ${received}，探针 ${finalMetrics.produced}，无效 ${invalid}`;
+      else if(invalid)this.metricsError=`探针报告 ${invalid} 个样本未能完成读取，已剔除`;
     }
     const st = this.store;
     const spanUs = st?.count > 1 ? st.timeAt(st.count - 1) - st.timeAt(0) : 0;
@@ -1183,6 +1225,7 @@ export class ScopeView {
       if (res.length >= 51) {
         const status = P.parseScopeStatus(res.subarray(3));
         this.supportsMetrics = status.supportsMetrics;
+        this.supportsStopTail = status.supportsStopTail;
         this.swdMhz = status.swdMhz || 0;
         this._reportedClockSelection = Number($('sc-clock').value) || 0;
       }
@@ -1472,7 +1515,9 @@ export class ScopeView {
     const pending = (async () => {
       const res = await this.hidXfer(P.HID_CMD, Uint8Array.of(P.ACT.METRICS));
       if (generation !== this._captureGen) return;
-      const m = P.parseScopeMetrics(res.subarray(3));
+      // HID reports are padded; res[0] counts only meaningful bytes after the length.
+      const m = P.parseScopeMetrics(res.subarray(3, 1 + res[0]));
+      if (this.supportsStopTail && m.invalidSamples === null) throw Error('采样计数缺少无效样本字段');
       this.probeMetrics = m; this.probeDropped = m.skipped; this.usbDrop = m.usb;
       this._metricsAt = Date.now();
       this.probeYield = m.yields; this.readErrors = m.errors;
@@ -1556,13 +1601,9 @@ export class ScopeView {
           break;
         }
         case P.KIND.DATA: {
-          /**
-           * 🚨 收工之后**不再往缓冲里塞**。stop() 是异步的（要等 transport.stop() 排空、还要发 HID STOP），
-           *    这期间设备和已排队的分片还在送包 —— 实测"时长到 5.001 s"之后又灌进来 1612 个样本，
-           *    还把缓冲挤满（界面显示 100% + 溢出计数），停下来那一刻的数字全不可信。
-           *    注意用 `_capturing` 而不是 `running`：起跑阶段（DEF 已到、START 还没 resolve）的新数据要收，
-           *    但收工之后一律不收（`_capturing` 在 start 里打开、stop 里关掉）。
-           */
+          // Keep accepting this generation through START acknowledgement and
+          // STOP drain. The buffer still enforces capacity; the receipt
+          // counter also includes valid frames past that capacity.
           if (!this._capturing && !this._replaying) break;
           if (this.defMismatch) break;              // 变量表对不上：不解码（见 DEF 分支的说明）
           const vars = this.defVars || this.store?.vars;
