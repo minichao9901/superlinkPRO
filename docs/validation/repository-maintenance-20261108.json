@@ -432,5 +432,35 @@
       }
     ],
     "duplicateGeneratedSvgRemoved": 2
+  },
+  "publication": {
+    "releaseRevision": "ef1227606b8a6b7bedc00be517e1a464920bac8a",
+    "url": "https://minichao9901.github.io/superlinkPRO/",
+    "expectedVersion": "1.1.0-web.6",
+    "workflow": {
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "ef1227606b8a6b7bedc00be517e1a464920bac8a",
+      "html_url": "https://github.com/minichao9901/superlinkPRO/actions/runs/42397232085"
+    },
+    "verifiedAssets": {
+      "app/site/main.js": "1000d6ca63f8dde2c7f41b1b2bb343ceb9b75bbe5df7e240c61b0f2a14fdd82c",
+      "app/automation/workbench.js": "4a234b2270f62fe1ce4bb1e03b7bcbad1a2e71d121bf5d425365fd23961a1b97",
+      "app/core/openocd-runtime/openocd-core.wasm": "5ee31e1e56f89bb9376e120d950de1a769bf3a84a158e9cd0aa6b346d6607b9e",
+      "etm/index.html": "5aa6cbfefd88bda3db9421f910f30b19f9cd7f7377570194752963f60883acf1"
+    },
+    "zip": {
+      "bytes": 103378160,
+      "sha256": "26eb754ff888f4274548ef4c2ec19b964a19d7765e1f09bfef8472801e8adf36",
+      "sourceRevision": "bb435e6918cd9b3e6d5ce60527a641081958ff8d"
+    },
+    "browser": {
+      "pages": 15,
+      "rtt": true,
+      "flash": true,
+      "debug": true,
+      "build": true
+    },
+    "passed": true
   }
 }

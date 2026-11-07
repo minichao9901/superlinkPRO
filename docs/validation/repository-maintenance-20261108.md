@@ -29,3 +29,7 @@ Web 与 CLI 定向回归通过（Node 40 项、Python CLI/打包 12 项），Web
 已删除 33,440 个清单内文件，逻辑体积 68,590,133,205 字节（约 63.9 GiB），包括旧 Trace、临时脚本和文档、验收解压副本及可重建编译中间件。另删除了原始四份 TCP/UDP 记录目录中的两份重复临时 SVG；四份火焰图 CLI/HTTP、几何和逐条路径复验通过。主仓五条支线均已合入 `main`，删除分支、拆除已验证干净的旧性能工作树并清理另一条失效工作树登记。
 
 旧 H743 自动解码运行目录的日志在预检期间变动，和仍在运行的工作台一起保留（ISSUE-081）。Windows 仍占用旧 H743 10 ms 的单个 Store 文件及 500 ms 记录的 Store，整份 500 ms 暂留（ISSUE-082）。未停止服务，未动正式样本、独立回归夹具、用户数据或原有未提交的探针固件输出。核对后尝试删除重复的 OpenOCD checkout，执行工具在启动前以 `blocked by policy` 拒绝，副本仍保留（ISSUE-083）。
+
+## 发布
+
+发布提交 `ef1227606b8a6b7bedc00be517e1a464920bac8a` 推送时一并删除了远程已合入的 `codex/hss-stop-offline`，远端分支只剩 `main`。[Pages 工作流 42397232085](https://github.com/minichao9901/superlinkPRO/actions/runs/42397232085) 部署成功。[线上工作台](https://minichao9901.github.io/superlinkPRO/)在 Edge 启动后有 15 个工具页，调试、烧录和 RTT Viewer 的共享目标入口均在。线上页面入口、合并脚本、CLI 模块、Wasm 和 ETM 页面副本与本地发布文件一致；[线上 Windows ZIP](https://minichao9901.github.io/superlinkPRO/downloads/superlinkPRO-win64.zip)完整读取后，大小和 SHA-256 与发布清单一致。
