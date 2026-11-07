@@ -1,0 +1,122 @@
+{
+  "distribution": {
+    "version": "1.1.0-web.4",
+    "platform": "windows-x64",
+    "file": "superlinkPRO-win64.zip",
+    "bytes": 99685437,
+    "sha256": "3c0851dbec17f74a51e776bb0c513f9485cd74f13733ee5e45442df43dd3254b",
+    "packageId": "e8cb6b4d1651db770836c5cc803f9325706020d0dca24c0dcff8dbd6f75943a5",
+    "sourceRevision": "89c5acfa337e60ef8cf82bb2b4c0df0ec557428c",
+    "sourceDirty": false,
+    "runtimeSourceRevision": "10b612b43d16a6d889ba69957d171dd12faf4be9"
+  },
+  "build": {
+    "version": "1.1.0-web.4",
+    "sourceRevision": "89c5acfa337e60ef8cf82bb2b4c0df0ec557428c",
+    "sourceDirty": false,
+    "files": 3407,
+    "candidate": "E:\\superlinkPRO\\web\\tmp\\etm-package-ffac7760\\dist\\superlinkPRO",
+    "frozenCheck": true,
+    "hardwareTest": "not-run",
+    "installed": "E:\\superlinkPRO\\dist\\superlinkPRO",
+    "exeSha256": "73eefbf094e61beca794a19cda3a3dee96f1fe25217043c5b98904d6828906cf",
+    "archive": "E:\\superlinkPRO\\dist\\superlinkPRO-win64.zip",
+    "dataPreserved": false,
+    "previous": "E:\\superlinkPRO\\tmp\\workbench-package-ef078db7\\previous"
+  },
+  "frozenVerification": {
+    "version": "1.1.0-web.4",
+    "sourceRevision": "89c5acfa337e60ef8cf82bb2b4c0df0ec557428c",
+    "sourceDirty": false,
+    "runtimeSourceRevision": "10b612b43d16a6d889ba69957d171dd12faf4be9",
+    "packageId": "e8cb6b4d1651db770836c5cc803f9325706020d0dca24c0dcff8dbd6f75943a5",
+    "files": 3407,
+    "hardware": "not accessed",
+    "allPackageFilesMatch": true,
+    "sourceInputsMatch": true,
+    "publicSamplesSingleCopy": true,
+    "guiBundleSingleCopy": true,
+    "publicSampleFilesMatchSource": 184,
+    "launcher": {
+      "dataDirectory": "E:\\superlinkPRO\\tmp\\workbench-package-ef078db7\\frozen-verification\\data",
+      "engine": "native",
+      "packageId": "e8cb6b4d1651db770836c5cc803f9325706020d0dca24c0dcff8dbd6f75943a5",
+      "port": 60821,
+      "portable": true,
+      "protocol": 1,
+      "version": "1.1.0-web.4"
+    },
+    "frozenDemoRedecode": true,
+    "demoSummary": {
+      "exceptions": 1,
+      "executed": 42209,
+      "functions": {
+        "HAL_GPIO_WritePin": 76,
+        "HAL_GetTick": 39,
+        "HAL_IncTick": 7,
+        "HAL_RCCEx_GetPLL2ClockFreq": 60,
+        "HAL_RCCEx_GetPeriphCLKFreq": 22,
+        "HAL_RCC_GetHCLKFreq": 19,
+        "HAL_RCC_GetSysClockFreq": 100,
+        "HAL_SPI_Transmit": 37309,
+        "SPI_CloseTransfer": 492,
+        "SPI_WaitOnFlagUntilTimeout": 193,
+        "SysTick_Handler": 3,
+        "main": 3875,
+        "spi_trace_ready": 14
+      },
+      "gaps": 1,
+      "instructions": 47537,
+      "packetIssues": 0,
+      "packets": 2876,
+      "ranges": 9441,
+      "sourceMapped": 47537,
+      "unknownExecution": 39
+    },
+    "query": true,
+    "export": true,
+    "httpDownload": {
+      "bytes": 100211609,
+      "file": "superlinkPRO-win64.zip",
+      "packageId": "e8cb6b4d1651db770836c5cc803f9325706020d0dca24c0dcff8dbd6f75943a5",
+      "platform": "windows-x64",
+      "sha256": "bc5011ffdc7f893355f95b3c83e847a88bcdcdc971f0020d8ad9fcdf7e76d061",
+      "version": "1.1.0-web.4"
+    },
+    "frozenCliSharedSamples": {
+      "ready": true,
+      "samples": [
+        {
+          "sample": "samples/test_images/gradient.bmp",
+          "bytes": 213174,
+          "sha256": "483e3513c694a1f24bbcc319b9e0909a5252149801f3ea1ce66c6fb85ad96b0d"
+        },
+        {
+          "sample": "samples/anim/花园.mp4",
+          "bytes": 1242529,
+          "sha256": "be6029de5f4a0747002ad473d0f626eeab49c01aeb6bffe7d1d2f01cd0bf6bd4"
+        },
+        {
+          "sample": "app/site/main.js",
+          "bytes": 1222730,
+          "sha256": "a874082bb0b77e941fb64fd3d0e61a182153823a4c92715716fbc9fe5aecbde0"
+        }
+      ],
+      "matchesPublicCopy": true,
+      "hardware": "not accessed",
+      "stopped": true
+    },
+    "passed": true
+  },
+  "distributionZip": {
+    "bytes": 99685437,
+    "sha256": "3c0851dbec17f74a51e776bb0c513f9485cd74f13733ee5e45442df43dd3254b",
+    "files": 3408,
+    "publicSamples": 184,
+    "allPublicSamplesMatchGitSource": true,
+    "cliDuplicateSamples": 0,
+    "cliDuplicateGuiBundle": 0,
+    "mutableUserDataIncluded": false
+  },
+  "scope": "Hardware production transports separately validated before reboot; frozen HTTP/CLI/ETM demo/decode/query/export/sample routing/download tested without hardware. Bound-probe policy denial remains separately tracked."
+}

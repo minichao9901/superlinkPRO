@@ -81,3 +81,9 @@ Release原型在CI创建草稿时403（run42308702640，build token日志显示c
 用户提供曾切换private/public的线索，随后澄清日期不确定。当前仓库public、Pages公开workflow、Actions启用，环境仅允许main且匹配发布分支，未发现表面配置拦截。GitHub官方说明Free仓库转private会自动取消Pages发布；因套餐/精确变更时刻未获证据，不把这条规则直接认定为全部故障根因。
 
 重新登记workflow站点后，同一bae6042提交及同一98670156B ZIP的run42314593240成功；重建前同内容run42312746387持续排队后由本会话取消。此前未改内容重试多次失败，故本次成功没有依赖换Web代码或Release分发。见[配置重建](pages-reset.json)、[设置审计](github-settings.json)。后续发布web.4，补齐中文样例并去掉CLI重复GUI bundle，以版本标记和SHA缓存键区分已上线的旧web.3候选。
+
+## 最终web.4本机包
+
+版本1.1.0-web.4，源码`89c5acfa337e60ef8cf82bb2b4c0df0ec557428c`、运行时`10b612b`，sourceDirty=false。ZIP99685437B，SHA-256 `3c0851dbec17f74a51e776bb0c513f9485cd74f13733ee5e45442df43dd3254b`；EXE SHA-256 `73eefbf094e61beca794a19cda3a3dee96f1fe25217043c5b98904d6828906cf`。3407个清单文件匹配，184份公开样例逐项与Git UTF-8原路径/内容一致，CLI样例及GUI bundle重复副本为0。
+
+真实冻结CLI受限启动、中文视频/图片/GUI bundle共享HTTP回读、正常退出通过；没有连接目标或开放镜像目录。冻结原生重解码、查询/导出、完整HTTP下载通过，见[release.json](release.json)。这不代替被拒的绑定探针CLI启动。web.3是过程候选，最终交付以web.4及其指纹为准。

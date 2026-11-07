@@ -76,5 +76,14 @@
     "articleVersion": "OpenAI.Codex 26.915.4065.0",
     "read": true,
     "applicability": "Supports investigating script-level pre-process policy rather than NTFS/Full Access. Our standalone startup and read-only classifier invocation are also denied, so compound scripts alone do not establish the exact trigger."
+  },
+  "afterUserReboot": {
+    "date": "2026-11-07",
+    "action": "Direct CLI bound-probe startup, no image root, no hardware command",
+    "verdict": "Rejected before CreateProcess: blocked by policy",
+    "shell": "CodexPrimaryRuntime v26.1104 bundled PowerShell",
+    "processCreated": false,
+    "targetAccessed": false,
+    "ruleDetailsReturned": false
   }
 }

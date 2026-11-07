@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-07",
+  "before": {
+    "run": 42312746387,
+    "head": "bae6042e7b4aa225bced163588839f5695e3ebaa",
+    "outcome": "stalled in deployment queue; owner session cancelled before configuration rebuild"
+  },
+  "after": {
+    "id": 42314593240,
+    "head_sha": "bae6042e7b4aa225bced163588839f5695e3ebaa",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/minichao9901/superlinkPRO/actions/runs/42314593240",
+    "created_at": "2026-11-06T23:51:29Z",
+    "updated_at": "2026-11-06T23:52:21Z"
+  },
+  "sameSourceAndZip": true,
+  "zipSha256": "fecffa5a0f00a5ef0561ebde34a844c30fb54cb8463ce9033c158f1adad2a8d9",
+  "configAction": "Backed up, deleted existing workflow Pages registration and recreated same public workflow configuration; no repo-content/domain change",
+  "inference": "The same source/archive deployed after resetting site registration. Configuration/backend publication state is implicated; exact server-side flag and causal visibility-change time remain unconfirmed."
+}
