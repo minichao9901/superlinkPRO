@@ -377,6 +377,19 @@ def shared_source_store():
     return send_file(ROOT/'web/app/shared/dbg/source.js',mimetype='text/javascript')
 
 
+@app.get('/app/core/<path:name>')
+def openocd_web_asset(name):
+    assets = {
+        'openocd-probe.js', 'openocd-profile.js', 'openocd-session.js',
+        'openocd-worker.mjs', 'openocd-hpm-profile.js',
+        'openocd-runtime/openocd-core.mjs', 'openocd-runtime/openocd-core.wasm',
+    }
+    if name not in assets:
+        abort(404)
+    from trace_cli_paths import toolbox_root
+    return send_from_directory(toolbox_root() / 'app/core', name)
+
+
 @app.get('/api/health')
 def health():
     """不依赖 LA/探针的轻量自检：解码器是否在、向量化前端是否真的可用。

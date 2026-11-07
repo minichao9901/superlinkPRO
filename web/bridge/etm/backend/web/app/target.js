@@ -1,4 +1,3 @@
-import {WebUsbDapProbe} from './shared/rtt/dap-webusb.js';
 import {ProbeBus} from './shared/core/probe-bus.js';
 import {identifyTarget,completeClocks} from './clock.js';
 import {Breakpoints} from './breakpoints.js';
@@ -12,15 +11,16 @@ const ETM=0xe0041000,FUNNEL=0x5c013000,ETF=0x5c014000,TPIU=0x5c015000;
 const hex=n=>'0x'+(n>>>0).toString(16).padStart(8,'0');
 
 export class EtmTarget {
-  constructor(log=()=>{},{host=null}={}){this.probe=null;this.log=log;this.embedded=!!host;this.canRelease=()=>true;this.Probe=host?.probeType||WebUsbDapProbe;this.bus=host?{requestRelease:async()=>{},close:()=>{}}:new ProbeBus('etm');this.bus.onRelease=()=>{if(!this.canRelease())throw Error('ETM 正在操作目标或采集，请先停止后再切换探针');return this.disconnect();};this.config=null;this.saved=new Map();this.locks=new Map();this.hseHz=null;this.osLocked=null;this.info=null;this.profile='auto';this.breakpoints=new Breakpoints(this);}
+  constructor(log=()=>{},{host=null}={}){this.probe=null;this.log=log;this.embedded=!!host;this.canRelease=()=>true;this.Probe=host?.probeType;this.bus=host?{requestRelease:async()=>{},close:()=>{}}:new ProbeBus('etm');this.bus.onRelease=()=>{if(!this.canRelease())throw Error('ETM 正在操作目标或采集，请先停止后再切换探针');return this.disconnect();};this.config=null;this.saved=new Map();this.locks=new Map();this.hseHz=null;this.osLocked=null;this.info=null;this.profile='auto';this.breakpoints=new Breakpoints(this);}
   async connect(){
     if(this.probe)return this.inspect();
     await this.bus.requestRelease({why:'ETM 页面连接'});
-    const devices=(await this.Probe.authorized()).filter(d=>d.vendorId===0x0d28);
-    if(!this.Probe.supported())throw Error('请用支持 WebUSB 的桌面 Chrome / Edge 打开页面');
+    const Probe=this.Probe||(await import('../../app/core/openocd-probe.js')).OpenOcdProbe;
+    if(!Probe.supported())throw Error('请用支持 WebUSB 的桌面 Chrome / Edge 打开页面');
+    const devices=(await Probe.authorized()).filter(d=>d.vendorId===0x0d28);
     let device=devices.length===1?devices[0]:null;
     if(!device){let timer;try{device=await Promise.race([navigator.usb.requestDevice({filters:[{vendorId:0x0d28}]}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('浏览器仍在等待 USB 设备选择；请选中探针后重新连接')),30000);})]);}finally{clearTimeout(timer);}}
-    this.probe=await this.Probe.open(device,{clockKhz:1000});
+    this.probe=await Probe.open(device,{onLog:this.log});
     this.debugFault=false;this.probe.onLog=this.log;
     try{return await this.inspect();}catch(e){try{await this.disconnect();}catch(cleanup){this.log('连接失败后的清理错误（保留首次错误）：'+cleanup.message);}throw e;}
   }
