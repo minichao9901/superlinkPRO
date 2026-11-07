@@ -44,13 +44,13 @@
 |---|---|---|---|
 | `steady` | `docs/validation/20261018-ds-review-bb2f8ee-6ff02745/data/records/capture-be1e…` | 200 ms、约 368 万条路径指令 | ETMv4 / STM32H743 |
 | `boundary` | `docs/validation/20261018-ds-recheck-0cd4229-a7b4f912/live-data/records/capture-3643…` | 200 ms、约 386 万条指令（含未知/边界） | ETMv4 / STM32H743 |
-| `ds-rerun` | `etm/records/capture-de9b…` | 200 ms、3,675,477 条指令 | ETMv4 / STM32H743 |
-| `usb-init-10ms` | `etm/records/capture-4395…` | 10 ms、210,706 条指令（USB 初始化） | ETMv4 / STM32H743 |
+| `ds-rerun` | `etm/records/baselines/legacy-h743/capture-de9b…` | 200 ms、3,675,477 条指令 | ETMv4 / STM32H743 |
+| `usb-init-10ms` | `etm/records/baselines/legacy-h743/capture-4395…` | 10 ms、210,706 条指令（USB 初始化） | ETMv4 / STM32H743 |
 | `etm-v3-10ms` | `etm/records/capture-2d6d…` | 10 ms、172,596 条指令 | ETMv3.4 / STM32F103ZE |
 
 清单对每份记录给出 `capture.csv` / `capture.kvdat` / `etm.bin` / `firmware.elf` /
 `native-config.txt` / `session.json` / `sources.json` / `tpiu.bin` / `capture.csv.la.json`
-的字节数与 SHA256，另有目录清单摘要（文件名+大小）。记录始终只读：基准把原始输入
+的字节数与 SHA256，另有目录清单摘要（文件名+大小，不计可重建的浏览 SQLite 缓存）。记录始终只读：基准把原始输入
 复制/硬链接到本次 run 目录并只改写副本的 `session.input`。
 
 ## 3. 复现命令
@@ -59,7 +59,7 @@
 
 ```text
 # 1) 固定基线源码快照（示例：7f6c042），并在快照内构建解码器
-git worktree add tmp/perf-baseline 7f6c042
+git worktree add --detach tmp/perf-baseline 7f6c042
 pwsh -NoProfile -File tmp/perf-baseline/etm/build-decoder.ps1
 
 # 2) 单样本完整链路（记录可直接写目录，也可写 inputs.json 键名）
@@ -289,7 +289,7 @@ environment.json、sha256.json、sanity/、compare-*.json、logs/）。
 
 | 项 | 值 |
 |---|---|
-| 构造 | 10 ms USB 记录（`etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5`）的 `etm.bin`（22,342 B）**字节拼接 100 次** = **2,234,200 B**（1 s 量级 ETM 字节流） |
+| 构造 | 10 ms USB 记录（`etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5`）的 `etm.bin`（22,342 B）**字节拼接 100 次** = **2,234,200 B**（1 s 量级 ETM 字节流） |
 | 输入指纹 | `sha256=8433fff5dbbd18fa…`（完整值见证据 `build.json.record.etmSha256`） |
 | 记录目录 | `tmp/p6b-scale/record-1s/`（gitignored）：`etm.bin` + `firmware.elf`/`native-config.txt`/`session.json`/`sources.json` 拷贝 + `synthetic.json` 声明 |
 | 段语义 | 100 个独立 capture 的重复；段间没有真机会话复位标记，解码器在拼接处重新同步；**不是连续真机 trace** |

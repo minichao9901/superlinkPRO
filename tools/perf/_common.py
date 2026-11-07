@@ -142,12 +142,12 @@ def normalized_text_sha256(path) -> str:
     return sha256_bytes(normalize_paths_text(path).encode('utf-8'))
 
 
-def directory_manifest(folder, chunk=True) -> dict:
+def directory_manifest(folder, chunk=True, *, exclude=None) -> dict:
     """目录清单摘要：文件名 + 字节数，再对清单行做 SHA256（不逐个哈希大文件）。"""
     folder = Path(folder)
     rows = []
     for path in sorted(folder.rglob('*')):
-        if not path.is_file():
+        if not path.is_file() or (exclude and exclude(path)):
             continue
         rows.append(f'{path.relative_to(folder).as_posix()}\t{path.stat().st_size}')
     text = '\n'.join(rows) + ('\n' if rows else '')

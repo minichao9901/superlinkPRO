@@ -32,7 +32,7 @@ ETM_ROOT = Path(__file__).resolve().parents[2]
 DECODER = ETM_ROOT / 'build-native/etm_decode.exe'
 ELF_H743 = ETM_ROOT / 'firmware/stm32h743_cdc_trace/fw.elf'
 ELF_F103 = ETM_ROOT / 'firmware/stm32f103_cdc_trace/fw-ze.elf'
-RECORD_ETMV4 = ETM_ROOT / 'records/capture-4395612c313f47ce97af1e1c17e0a0d5'
+RECORD_ETMV4 = ETM_ROOT / 'records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5'
 
 V3_CONFIG = {'protocol': 'ETMv3', 'idr': 1091891777, 'ctrl': 2064, 'ccer': 100352,
              'traceid': 2}

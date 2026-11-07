@@ -4,7 +4,7 @@
 
 ## 输入与方法
 
-- 记录：`etm/records/capture-de9b8e0ed24c41c68e5b374f3cb3c9c5`（200 ms、500 MSa/s、3,675,477 指令；把原始 KVDAT 复制到临时记录目录，`session.input` 改为 `capture.kvdat`，删掉 decoded/events/index 后重解）。
+- 记录：`etm/records/baselines/legacy-h743/capture-de9b8e0ed24c41c68e5b374f3cb3c9c5`（200 ms、500 MSa/s、3,675,477 指令；把原始 KVDAT 复制到临时记录目录，`session.input` 改为 `capture.kvdat`，删掉 decoded/events/index 后重解）。
 - EXE：仓库 1.0.13 便携包 `web/bridge/etm/downloads/etm-bridge-win64.zip`，解压到独立目录，`--port 8895 --no-browser --data-dir <temp>`。
 - 源码后端：同一份记录，`python etm/server.py --port 8896`（非冻结 Python，使用同一套 `etm/` 源码）。
 - 计时：`POST /api/decode/<sid>` 后轮询 `/api/jobs/<jid>` 到 `state=done`；同时记录 `events.jsonl`、`browse-v3.sqlite` 的 mtime。

@@ -1,0 +1,436 @@
+{
+  "schema": "repository-maintenance/1",
+  "date": "2026-11-08",
+  "hardwareAccessed": false,
+  "retained": {
+    "h743-200ms": {
+      "path": "etm/records/capture-477f0c8526af4c8c9de9b6538566cfce",
+      "files": {
+        "capture.kvdat": {
+          "bytes": 64267109,
+          "sha256": "457e2cd9271cc8802bb4401e66569cb4013e214d9556a4c4ade95683f33e2b01"
+        },
+        "firmware.elf": {
+          "bytes": 2178620,
+          "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+        },
+        "session.json": {
+          "bytes": 4939,
+          "sha256": "a83261c5c5ca6d764767decb3d655042b95728bd28898adcb68db33c8d7f760f"
+        }
+      },
+      "strictVerify": true,
+      "verifiedQuality": {
+        "passed": true,
+        "failures": {},
+        "terminalBoundaryPackets": [],
+        "note": "尾部INCOMPLETE_EOT单列保留；初始化未同步/条件未知不视作已证实执行；字节核算不等于无损证明"
+      }
+    },
+    "h743-1000ms": {
+      "path": "etm/records/capture-83af7022ef054155ac5bb9889e381f02",
+      "files": {
+        "capture.kvdat": {
+          "bytes": 321313265,
+          "sha256": "2fa512ce150caddc549bd32bd8c71f1a1b30b95a233fbffddfa04a979344062b"
+        },
+        "firmware.elf": {
+          "bytes": 2178620,
+          "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+        },
+        "session.json": {
+          "bytes": 4931,
+          "sha256": "8af2ed91813d1e50647291d51e7a6d74341cb635d6f62c412af6cb1140e7ea6c"
+        }
+      },
+      "strictVerify": true,
+      "verifiedQuality": {
+        "passed": true,
+        "failures": {},
+        "terminalBoundaryPackets": [],
+        "note": "尾部INCOMPLETE_EOT单列保留；初始化未同步/条件未知不视作已证实执行；字节核算不等于无损证明"
+      }
+    },
+    "f103ze": {
+      "path": "etm/records/capture-2d6da5829a8c4811b7c5ed2ca9e08cc3",
+      "files": {
+        "capture.kvdat": {
+          "bytes": 4304647,
+          "sha256": "080b06e70037caff7ce43acc5c2df38e71b6e448ccd6d0f5eecd5c414c900682"
+        },
+        "firmware.elf": {
+          "bytes": 1216776,
+          "sha256": "63881ed9f6c1187d56924795ccad3f151a677aea0dfa201823fe44e0cb857522"
+        },
+        "session.json": {
+          "bytes": 3444,
+          "sha256": "9d43b26cf262119cfb42814e1763269b15e3cfacde2bbf5c2455f00165310349"
+        }
+      },
+      "strictVerify": true,
+      "verifiedQuality": {
+        "passed": true,
+        "failures": {},
+        "terminalBoundaryPackets": [],
+        "note": "尾部INCOMPLETE_EOT单列保留；初始化未同步/条件未知不视作已证实执行；字节核算不等于无损证明"
+      }
+    },
+    "h7b0-1ms": {
+      "path": "etm/records/capture-926a4f2b899542f5b566e68a1d1eb631",
+      "files": {
+        "capture.kvdat": {
+          "bytes": 555480,
+          "sha256": "587cc9c8b4e36779df331dfc4cd15fa9072abf24de60eee2fad706f5361a3720"
+        },
+        "firmware.elf": {
+          "bytes": 2068492,
+          "sha256": "4e25c663d9e1dda32e41e8c970afce4b176d996b99b396c9cb2b530b84cd02b2"
+        },
+        "session.json": {
+          "bytes": 3418,
+          "sha256": "2f899f1bd63ba3238c74bda84825494fd49404016fea57da21b5d5414477ff52"
+        }
+      },
+      "strictVerify": true,
+      "verifiedQuality": {
+        "passed": true,
+        "failures": {},
+        "terminalBoundaryPackets": [],
+        "note": "尾部INCOMPLETE_EOT单列保留；初始化未同步/条件未知不视作已证实执行；字节核算不等于无损证明"
+      }
+    },
+    "h7b0-10ms": {
+      "path": "etm/baselines/spi-70-35-v1/capture-10ms.etmrecord",
+      "files": {
+        "capture-10ms.etmrecord": {
+          "bytes": 5726888,
+          "sha256": "f4989ed7437809837f314fe9e6e81b084d70ee1a139bc9382042e44069496906"
+        }
+      },
+      "strictVerify": true,
+      "verifiedQuality": {
+        "passed": true,
+        "failures": {},
+        "terminalBoundaryPackets": [],
+        "note": "尾部INCOMPLETE_EOT单列保留；初始化未同步/条件未知不视作已证实执行；字节核算不等于无损证明"
+      }
+    }
+  },
+  "retiredH743Fingerprints": {
+    "1000ms": {
+      "capture.kvdat": {
+        "bytes": 321244405,
+        "sha256": "f82082f0b016c81bbc0c0d529444f4fee58907f4ba94bab750c6df2cfaf8d753"
+      },
+      "firmware.elf": {
+        "bytes": 2178620,
+        "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+      },
+      "session.json": {
+        "bytes": 5195,
+        "sha256": "9eaba8b94948dab4a12f49c729e87369cf3af63d4329bb59697b4c49e70fbf0e"
+      },
+      "inputs.json": {
+        "bytes": 408,
+        "sha256": "28ae19925465e4f3c9f42cc38e985b7c9a0fc84fb022212819d13024e5bf4e66"
+      }
+    },
+    "10ms": {
+      "capture.kvdat": {
+        "bytes": 3217462,
+        "sha256": "8501b926dcc2cd036f51f8b6c6d6f728b15f249246a7b438735b5220a6d5c822"
+      },
+      "firmware.elf": {
+        "bytes": 2178620,
+        "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+      },
+      "session.json": {
+        "bytes": 5192,
+        "sha256": "e6f0ba9c5d783d0eae45ef5d5fb967897e952a4bd690c622a609f32bcebb4b2b"
+      },
+      "inputs.json": {
+        "bytes": 406,
+        "sha256": "bfe0345069c935c1a201e385c465491e8456e4e39cb9e353687fb49020a947e6"
+      }
+    },
+    "200ms": {
+      "capture.kvdat": {
+        "bytes": 64268199,
+        "sha256": "d1d98fdac9e5665796af55126477deaa94ba02ed56ff9ce502a9d2708ab4124b"
+      },
+      "firmware.elf": {
+        "bytes": 2178620,
+        "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+      },
+      "session.json": {
+        "bytes": 5195,
+        "sha256": "8e4bd1390b587dfb6b51beca0e7418bf5215079538d10a52dabce4334a1bf303"
+      },
+      "inputs.json": {
+        "bytes": 407,
+        "sha256": "c103171c484b315e53f76cfd0989a0196e170290093727c2a8af0c8d52add162"
+      }
+    },
+    "500ms": {
+      "capture.kvdat": {
+        "bytes": 160630669,
+        "sha256": "91972c92dac15032e6ebdaaa5242681b6c9db6a1a82db6d1440bf3a2d012604c"
+      },
+      "firmware.elf": {
+        "bytes": 2178620,
+        "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+      },
+      "session.json": {
+        "bytes": 5196,
+        "sha256": "8b3c4a007eabf0f145fc840913997dc6a49ddc07c6f2da9c9a600f6bd9624a46"
+      },
+      "inputs.json": {
+        "bytes": 408,
+        "sha256": "9f5fbd090309893c1b5db72690045256c22d47754fcc1675642ebce6b757e1c3"
+      }
+    },
+    "failure-ch0-filter": {
+      "capture.kvdat": {
+        "bytes": 3209339,
+        "sha256": "b997ccaa6bb260e15180c042d44b09e68ed2cc95d4c5f38f3645377aaee5f9d5"
+      },
+      "firmware.elf": {
+        "bytes": 2178620,
+        "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+      },
+      "session.json": {
+        "bytes": 3840,
+        "sha256": "17371a289c796c36706984f2b19a26fd1182d6136462eeaff452a28c19e02ea6"
+      }
+    },
+    "capture-262cf98377ab4365a51d8e1cf273fe05": {
+      "capture.kvdat": {
+        "bytes": 3217537,
+        "sha256": "5c4f8af68913da60663feb1b7af24f1ec4f47ed88312adf106f63c7054ac852a"
+      },
+      "firmware.elf": {
+        "bytes": 2178620,
+        "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+      },
+      "session.json": {
+        "bytes": 4805,
+        "sha256": "a318d97f8b78c2b017db8ffca7d50dff2c4cbfff6d5f39c8fc011581217ba6d8"
+      }
+    },
+    "capture-c0c7d432292f432a9b9c252bd1a352e1": {
+      "capture.kvdat": {
+        "bytes": 160662704,
+        "sha256": "ded46fef9b32b4003bcbd22bb20ba7522c8ff2eaeb596c3d8fd806d9dab902f8"
+      },
+      "firmware.elf": {
+        "bytes": 2178620,
+        "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+      },
+      "session.json": {
+        "bytes": 4915,
+        "sha256": "737b4a3da98c49c6b06e52bdb4b8692206f366fea1992a0e1e4cf03cc036719c"
+      }
+    }
+  },
+  "cleanup": {
+    "planSha256": "b9bd18f091ab9c2bd6313f359cc05c37e7d33d8350741012c6cade222913ec81",
+    "plannedGroups": [
+      {
+        "files": 83,
+        "scope": "compiler-output",
+        "bytes": 4176061.0
+      },
+      {
+        "files": 2,
+        "scope": "pages-staging",
+        "bytes": 103378600.0
+      },
+      {
+        "files": 32771,
+        "scope": "temporary",
+        "bytes": 6662867627.0
+      },
+      {
+        "files": 525,
+        "scope": "trace-retired-h743",
+        "bytes": 60979374613.0
+      },
+      {
+        "files": 77,
+        "scope": "trace-retired-h743-first-run",
+        "bytes": 1185711605.0
+      }
+    ],
+    "retiredCaptureIds": [
+      "capture-02918e03123749d18c2f7fd14a719b5d",
+      "capture-0a690b6919d04662860dc2ca9e5695aa",
+      "capture-123ef22315c54de6a7e7fe666a3f13db",
+      "capture-1e205091e5de48e29f9ff8e14c8be225",
+      "capture-2265bc6cfaa4455583764bd94e771ecd",
+      "capture-262cf98377ab4365a51d8e1cf273fe05",
+      "capture-27838c40af164bc5b0a4066fa740507e",
+      "capture-2b0c20fd26dc4923b2de75a00d59e2ac",
+      "capture-309212b6294f410fb904d3e51a08a6e5",
+      "capture-371ee48878cf4de58f6ae135108235f5",
+      "capture-3e3d7cf5f97e461f97599bb16257fde5",
+      "capture-400ff429aed14c9c8efe6f5f17f55fc1",
+      "capture-431d85f6d9094747bda8ceb21cc64bfe",
+      "capture-46f39f85c1bf4d958137c723d00708f3",
+      "capture-49f4ce81cffc4f1b8d89f9a3cf826c98",
+      "capture-546114d7dc504d57bb0ba24bfaaa515f",
+      "capture-54b83873803f45a4930409f819dd111b",
+      "capture-567e9135baef409982a58c08cc0f8feb",
+      "capture-59a13fe5faf84cb2891758ad96d2272e",
+      "capture-5e94e02328154e6dbc66f1933a6ad47d",
+      "capture-81d1a77a4c374211bed4cc7612a14480",
+      "capture-860638f39a9c4ffe89d6c3d9250c67c5",
+      "capture-8b6429cd78634ea69b163441b7fcfadf",
+      "capture-9188b52149d9469fa8ccafe93b525993",
+      "capture-9796efac7d7b4dd4af7fb060a31b0de7",
+      "capture-9e2c83661bd945fb9e36104c07a3de39",
+      "capture-a856e7f9fc84460a88b296f2bd74c2b7",
+      "capture-b674a642b3a44ee197d2a88fef8c745e",
+      "capture-c0c7d432292f432a9b9c252bd1a352e1",
+      "capture-c2e85f57cab049c1a9834e7822cb20a9",
+      "capture-ca13925b3cd4453ca5a097aa41554c18",
+      "capture-cf009a05b6454050b30d15b08862c226",
+      "capture-d5507183dbe24d368428cee3cd1fa920",
+      "capture-e367d88c18ce4476b66af281e3809deb",
+      "capture-e518d4054c7a4d26b319a10e4638ea98",
+      "capture-ea97a012ea7440aaa4a556ac7b304f3f",
+      "capture-f81356cb79794aef9f19eb69a9fc8804",
+      "capture-f91c4e49de19417eb5f708bb46633c03",
+      "capture-f934b14ebe7b45ce88f1d387df5aa19c",
+      "capture-fa64f5161cfa46f2b3a2ba4cd5baddc6",
+      "capture-fbb466b30ce042598f28acb6a9999987"
+    ],
+    "protectedPaths": [
+      "tmp/web-local-20261107",
+      "tmp/rp2350-wasm-hw-20261107/pico-sdk",
+      "tmp/openocd-jim-wasm-20261107/jimtcl",
+      "tmp/openocd-jim-wasm-20261107/emsdk",
+      "tmp/openocd-coverage-20261107/upstream",
+      "tmp/openocd-core-wasm-20261107/upstream-current",
+      "tmp/openocd-core-wasm-20261107/upstream",
+      "tmp/openocd-core-wasm-20261107/libusb",
+      "tmp/maintenance-release-20261108",
+      "tmp/h743-etm-auto-20261107",
+      "tmp/flame-release/compiler-runtime",
+      "tmp/base-etm"
+    ],
+    "freeBeforeApply": 102443028480,
+    "appliedFiles": 33440,
+    "logicalBytesRemoved": 68590133205,
+    "freeAfterApply": 169675862016,
+    "deferred": {
+      "etm/records/capture-262cf98377ab4365a51d8e1cf273fe05": {
+        "path": "etm/records/capture-262cf98377ab4365a51d8e1cf273fe05/store/generations/g-20261107T233501-5c3e9159/store.bin",
+        "windowsError": 32
+      },
+      "etm/records/capture-c0c7d432292f432a9b9c252bd1a352e1": {
+        "path": "etm/records/capture-c0c7d432292f432a9b9c252bd1a352e1/store/generations/g-20261107T233534-e2715b0f/store.bin",
+        "windowsError": 32
+      }
+    },
+    "retainedFingerprintsRechecked": true,
+    "duplicateOpenOcdCheckout": {
+      "path": "tmp/openocd-coverage-20261107/upstream",
+      "removed": false,
+      "executionReview": "blocked by policy"
+    }
+  },
+  "cliBrowser": {
+    "rp2350": {
+      "pages": {
+        "dbg": {
+          "arch": "arm",
+          "clockKhz": 1000,
+          "core": "rp2350.cm1",
+          "hasFlash": true,
+          "id": "cfg:96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2:rp2350.cm1",
+          "label": "CFG · rp2350.cm1",
+          "name": "rp2350.cfg",
+          "sha256": "96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2",
+          "transport": "swd"
+        },
+        "flash": {
+          "arch": "arm",
+          "clockKhz": 1000,
+          "core": "rp2350.cm1",
+          "hasFlash": true,
+          "id": "cfg:96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2:rp2350.cm1",
+          "label": "CFG · rp2350.cm1",
+          "name": "rp2350.cfg",
+          "sha256": "96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2",
+          "transport": "swd"
+        },
+        "rtt": {
+          "arch": "arm",
+          "clockKhz": 1000,
+          "core": "rp2350.cm1",
+          "hasFlash": true,
+          "id": "cfg:96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2:rp2350.cm1",
+          "label": "CFG · rp2350.cm1",
+          "name": "rp2350.cfg",
+          "sha256": "96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2",
+          "transport": "swd"
+        }
+      },
+      "shared": {
+        "arch": "arm",
+        "clockKhz": 1000,
+        "core": "rp2350.cm1",
+        "hasFlash": true,
+        "id": "cfg:96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2:rp2350.cm1",
+        "label": "CFG · rp2350.cm1",
+        "name": "rp2350.cfg",
+        "sha256": "96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2",
+        "transport": "swd"
+      }
+    },
+    "missingCoreRejected": true,
+    "hardwareAccessed": false
+  },
+  "package": {
+    "version": "1.1.0-web.6",
+    "platform": "windows-x64",
+    "file": "superlinkPRO-win64.zip",
+    "bytes": 103378160,
+    "sha256": "26eb754ff888f4274548ef4c2ec19b964a19d7765e1f09bfef8472801e8adf36",
+    "packageId": "ba7d6b7466e54c1cadc228d0c71b6d78f8558f4e992c7b2158f432507fe60204",
+    "sourceRevision": "bb435e6918cd9b3e6d5ce60527a641081958ff8d",
+    "sourceDirty": false,
+    "runtimeSourceRevision": "c1a565739231fb0a564ad9aedd35f77ec44dd284",
+    "frozenCheck": true,
+    "nativeDemoRedecode": true,
+    "traceQuery": true,
+    "traceExport": true,
+    "packageFilesVerified": 3436,
+    "exeSha256": "99e18c1769404cf994b2851b0206a0b2541b9f4e3d2f9dff893a8267fcc2fa69"
+  },
+  "flameRegression": {
+    "cases": [
+      {
+        "record": "tcp-initialization",
+        "instructionPathsChecked": 21078,
+        "sha256": "86218138d4dcfcd8f8239404bf889a1ad6e764ae3ac0ae7bb288362ce077ebb9"
+      },
+      {
+        "record": "tcp-two-flows",
+        "instructionPathsChecked": 3914,
+        "sha256": "52be14e1983d054fb664e585d9d04e9bd679dd302aaa176fa7fbbfaf88ee3689"
+      },
+      {
+        "record": "udp-initialization",
+        "instructionPathsChecked": 20380,
+        "sha256": "fc0270844e6fab201c0221ae29f4d5d2d3676e6844508463660efce5889ffab3"
+      },
+      {
+        "record": "udp-two-flows",
+        "instructionPathsChecked": 3019,
+        "sha256": "a34b34172aaec7abaac07ed818f65be023aa6f2fda5f5980143753ee1c64b87f"
+      }
+    ],
+    "duplicateGeneratedSvgRemoved": 2
+  }
+}

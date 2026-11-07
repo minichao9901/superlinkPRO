@@ -110,6 +110,6 @@
 python -X utf8 etm/tools/usb_init_reg_access.py \
   --source etm/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_dc_dwc2.c \
   --header etm/firmware/stm32h743_cdc_trace/cherryusb/port/dwc2/usb_dwc2_param.h \
-  --record etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5 \
+  --record etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5 \
   --out docs/usb-init-register-access.csv
 ```

@@ -1,9 +1,9 @@
 {
   "schema": "etm-perf-inputs/1",
-  "generatedAt": "2026-10-19T14:52:01.821328+00:00",
+  "generatedAt": "2026-11-07T17:22:05.109344+00:00",
   "generatedBy": "tools/perf/build_inputs.py",
   "root": "仓库根（路径均相对它解析）",
-  "note": "关键文件（capture.csv/kvdat、etm.bin、firmware.elf、native-config.txt、session.json、sources.json、tpiu.bin、capture.csv.la.json）含字节数与 SHA256；派生 GB 级文件只列大小。记录目录保持只读，基准脚本只复制/硬链接副本。",
+  "note": "关键文件（capture.csv/kvdat、etm.bin、firmware.elf、native-config.txt、session.json、sources.json、tpiu.bin、capture.csv.la.json）含字节数与 SHA256；派生 GB 级文件只列大小；可重建的 browse-v*.sqlite 索引及边车不参与输入绑定。记录目录保持只读，基准脚本只复制/硬链接副本。",
   "records": {
     "steady": {
       "path": "docs/validation/20261018-ds-review-bb2f8ee-6ff02745/data/records/capture-be1e78730b7f486a9e27d5911cd4a434",
@@ -95,9 +95,6 @@
         "browse-columns.tsv": {
           "bytes": 784496450
         },
-        "browse-v3.sqlite": {
-          "bytes": 1043554304
-        },
         "decoded.json": {
           "bytes": 11539
         },
@@ -130,9 +127,9 @@
         }
       },
       "directoryManifest": {
-        "files": 21,
-        "bytes": 4708549356,
-        "manifestSha256": "f4f1e72356a55b1574b3ff7d4fcc66aabf991dc53f46b978e2c7e407278d23fc"
+        "files": 20,
+        "bytes": 3664995052,
+        "manifestSha256": "50e1d8fe488b2ce52cb5cff19650b8e62d748b4f0f40144f36c0ebab34e34c2a"
       }
     },
     "boundary": {
@@ -225,9 +222,6 @@
         "browse-columns.tsv": {
           "bytes": 823953908
         },
-        "browse-v3.sqlite": {
-          "bytes": 1096007680
-        },
         "decoded.json": {
           "bytes": 14841
         },
@@ -260,13 +254,13 @@
         }
       },
       "directoryManifest": {
-        "files": 21,
-        "bytes": 4921268696,
-        "manifestSha256": "041a2f931989c17f0b4a8a0eff92c61559a82f6959243bb769f911422c77b4d5"
+        "files": 20,
+        "bytes": 3825261016,
+        "manifestSha256": "3bb35f1adbaaa198ef3d670f26d7061df475180cfa6c0352bc9e334841335287"
       }
     },
     "ds-rerun": {
-      "path": "etm/records/capture-de9b8e0ed24c41c68e5b374f3cb3c9c5",
+      "path": "etm/records/baselines/legacy-h743/capture-de9b8e0ed24c41c68e5b374f3cb3c9c5",
       "role": "DS 复跑样本：H743 200 ms（3,675,477 条指令）",
       "notes": "《etm-kvdat-fastpath-rerun-2026-10-19》使用的样本；有条件加入，不替换前两者。",
       "load": {
@@ -352,9 +346,6 @@
         }
       },
       "derivedFiles": {
-        "browse-v3.sqlite": {
-          "bytes": 2899783680
-        },
         "decoded.json": {
           "bytes": 14905
         },
@@ -387,13 +378,13 @@
         }
       },
       "directoryManifest": {
-        "files": 20,
-        "bytes": 5780911712,
-        "manifestSha256": "20b9c5c918bbc7ce2e098a79ee6c8a425a61c15c56a1162db30b8196caae524f"
+        "files": 19,
+        "bytes": 2881128032,
+        "manifestSha256": "fd866d0a8639636049dd2364bb3be5f7cf3c6a22173682d20bdfc1e1191e0e0f"
       }
     },
     "usb-init-10ms": {
-      "path": "etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5",
+      "path": "etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5",
       "role": "快速 sanity 样本：H743 10 ms USB 初始化（210,706 条指令）",
       "notes": "用于校验基准工具本身可用（全链路小样本），不计入最终性能结论；也是 USB 初始化寄存器扫描的业务语义/顺序核对样本。",
       "load": {
@@ -479,9 +470,6 @@
         }
       },
       "derivedFiles": {
-        "browse-v3.sqlite": {
-          "bytes": 166215680
-        },
         "decoded.json": {
           "bytes": 119194139
         },
@@ -502,9 +490,9 @@
         }
       },
       "directoryManifest": {
-        "files": 16,
-        "bytes": 335438657,
-        "manifestSha256": "fabf1b7b6e4a200b04a1263ebcb21cfa3fc21a92a933154e3d046f5b871b600a"
+        "files": 15,
+        "bytes": 169222977,
+        "manifestSha256": "74ead4b9478489a05faca236f88ae29ef5e0cba12640824323ee71128867724a"
       }
     },
     "etm-v3-10ms": {
@@ -588,9 +576,6 @@
         }
       },
       "derivedFiles": {
-        "browse-v3.sqlite": {
-          "bytes": 156139520
-        },
         "decoded.json": {
           "bytes": 143031514
         },
@@ -611,9 +596,9 @@
         }
       },
       "directoryManifest": {
-        "files": 16,
-        "bytes": 385505931,
-        "manifestSha256": "2e1b07b64550776e17a1e3b5f8fb58113b41a1f40d4743df70bb3a4ff9c1aa57"
+        "files": 15,
+        "bytes": 229366411,
+        "manifestSha256": "64d0b312368c8c92e2a937427afcafa2e82804d8e7237875ad63ea4b19085598"
       }
     }
   }

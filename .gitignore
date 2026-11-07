@@ -55,6 +55,7 @@ __pycache__/
 /docs/maintenance/*.json
 /docs/maintenance/*.jsonl
 /docs/maintenance/*.sha256
+/.formal-trace-20261024/
 
 # 团队状态目录（superlinkpro-merge 的任务状态；**绝不入库**）
 .agent-teams/

@@ -35,7 +35,7 @@ SWD 探针、烧录、目标复位、Kingst 采集由 Codex 独占验收，另�
 
 - ETM 主线采用 H743 CDC echo 的 10/200/500/1000 ms 四档，规则见根目录
   `docs/etm-cdc-acceptance.md`；ETMv3、IT未知和异常/损坏负例另作兼容性回归。
-- 基准原始记录放 `etm/records/baselines/`，每档绑定匹配ELF、源码、实际深度及质量证据；
+- 当前主线长期保留两档原始记录，其它四档验收数据保留摘要与指纹。原始记录绑定匹配 ELF、源码、实际深度及质量证据；
   未采集或未录满的档位明确标为待验证。合成放大不作为真机1s证明。
 - `docs/validation` 只保留精简报告、脚本、指纹和统计；完整运行包、重复解码/导出、
   源码副本放临时run目录并在交付后按 `docs/storage-maintenance.md` 规则清理。

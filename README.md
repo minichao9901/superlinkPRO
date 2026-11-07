@@ -171,9 +171,10 @@ RTT 转发、J-Scope 等高速功能由探针固件提供；RP2350 当前已验�
 
 ### 3. 烧探针固件（可选）
 
-```bash
-cd firmware/application_5301 && build_dfu_evklite.bat      # 构建
-py script_test/hpm6800_flash_probe.py --no-build            # 经 HID 进 DFU 后写入
+```powershell
+Push-Location firmware/application_5301
+try { .\build_dfu_evklite.bat } finally { Pop-Location }
+python script_test/hpm6800_flash_probe.py --no-build # 经 HID 进 DFU 后写入
 ```
 
 > 烧录前先关掉占用探针的浏览器页签，否则 HID 会被独占。

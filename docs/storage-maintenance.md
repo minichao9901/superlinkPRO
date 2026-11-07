@@ -1,6 +1,15 @@
 # 工程存储与验收资产维护
 
-## 2026-10-24 盘点与执行状态
+## 当前保留位置
+
+长期保留记录和临时结果分开管理。2026-11-08 整理的清单、保留记录指纹和验证结果见 [本轮整理报告](validation/repository-maintenance-20261108.md)。
+
+- H743 当前保留两份通过严格验证的工作台实录：200 ms 与完整 1 s。F103ZE 保留唯一找到的有效 ETMv3.4 记录；H7B0 保留 1 ms 复验与 10 ms SPI 封存包。旧 H743 四档报告继续保留，原始记录按轮换策略处理。
+- `etm/records/baselines/legacy-h743/` 保留两个仍被固定性能或离线测试引用的旧输入（10 ms USB 初始化、200 ms DS 复跑）；`etm/records/baselines/regression/` 放置三段合成物理输入与独立 Python 对照 Store。这些是测试夹具，不进入当前工作台采集结果列表。
+- 保留两份旧 steady/boundary 参考、绑定探针、`.formal-trace-20261024/` 四份火焰图验收原件、`dist/superlinkPRO/data/` 以及已有固件输出改动。已跟踪的历史回归证据保留；历史绝对路径只说明当时的运行环境。
+- Windows 中间编译目录、验收解压副本和可重建的缓存按清单清理。活跃服务运行目录、真正的依赖 checkout 和已核对的编译工具仍保留。测试目标的 C 源码、链接脚本和冻结测试输入不按编译缓存处理。
+
+## 2026-10-24 历史盘点与执行状态
 
 本轮只读盘点发现：
 
@@ -87,8 +96,8 @@ python -X utf8 -m unittest discover -s tools/maintenance -p test_artifact_retent
 - `etm/records/baselines/`：独立基准输入及compact Store，避免为每次优化重复存一套波形、JSONL和完整包。
 - 正式完整包保留当前发布的一份；源码历史由Git管理，旧包需要时从明确的历史发布恢复。
 
-ETM主线验收改用 [CDC四档规范](etm-cdc-acceptance.md)，10/200/500/1000ms各有一组可溯源基线。
-异常、IT未知、ETMv3、损坏拒绝等小型兼容/负例单独保留。
+ETM 主线仍按 [CDC 四档规范](etm-cdc-acceptance.md) 验收。常驻保留 200 ms 和 1 s 实录，四档报告及指纹保留；
+异常、IT 未知、ETMv3、损坏拒绝等小型兼容/负例按回归依赖单独保留。
 
 ## 关键文档入口
 

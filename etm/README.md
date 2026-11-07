@@ -172,10 +172,8 @@ ELF 静态检查需要 `pyelftools`；采集与物理波形分析只使用 Pytho
 
 IT 条件指令有 554 条状态未知，启动入口暂停尚未通过本板验收；页面明确显示这些限制。火焰图按路径记录数加权，不是耗时图。
 
-- [SPI 固件说明](firmware/stm32h7b0_spi_trace/README.md)
 - [实测、频率与配置分工](docs/SPI例程Trace验收与频率边界.md)
-- [自包含实测记录](docs/validation/spi-280-35.etmrecord)
-- [源码执行流](docs/validation/spi-280-35.execution.c)
+- 早期 `spi-280-35.etmrecord` 与源码流属于历史工作输出。仓库中的可导入包见 [70/35 MHz 稳定基准](baselines/spi-70-35-v1/README.md)。
 
 最新：见 [断点流程与芯片预置第四版](docs/断点流程与芯片预置第四版.md)。调试→时钟→采集→文件；函数＋与源码行硬件断点；F1/F4/H7 型号组和 RCC 识别。完整 trace 保持 H7B0 70/35 MHz 实测范围。
 

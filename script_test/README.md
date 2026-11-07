@@ -2,6 +2,7 @@
 
 akaLinkPro (HPM5301) 固件测试脚本集合。这些脚本用于验证 **UART ↔ CDC 串口桥**、
 **DAP 模式切换**（SWD/空闲 = UART，JTAG = FGPIO）以及设备枚举状态。
+目标侧夹具另有 [RP2350 工作台验收工程](rp2350_workbench/README.md)，用于断点、单步、RTT 回显和 SRAM 读写。
 
 ## 回环接线（两台板子不同！）
 

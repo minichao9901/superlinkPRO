@@ -1,7 +1,7 @@
 """TraceStore 适配器契约测试：与旧 `RecordStore` 逐接口 JSON 对照。
 
 数据来源（既有只读记录，缺失则跳过）：
-* `etm/records/capture-4395612c…`（ETMv4 10 ms，210,731 事件）——参考写入器从
+* `etm/records/baselines/legacy-h743/capture-4395612c…`（ETMv4 10 ms，210,731 事件）——参考写入器从
   decoded.json 内联事件生成 store，overview 只有 `traceStore` 一个白名单差异；
 * `docs/validation/20261018-ds-review…/capture-be1e78730b…`（200 ms steady，
   3,675,818 事件）——融合写出器生成 store，overview 另有 P3 W-P3-1（streamed
@@ -43,7 +43,7 @@ atexit.register(shutil.rmtree, TMP_ROOT, True)
 CACHE_ROOT = ETM_ROOT / 'records' / '.p4_test_cache'
 CACHE_VERSION = 4
 SAMPLES = {
-    'etm4-10ms': ETM_ROOT / 'records/capture-4395612c313f47ce97af1e1c17e0a0d5',
+    'etm4-10ms': ETM_ROOT / 'records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5',
     'steady': REPO_ROOT / 'docs/validation/20261018-ds-review-bb2f8ee-6ff02745/data/records/'
                            'capture-be1e78730b7f486a9e27d5911cd4a434',
 }

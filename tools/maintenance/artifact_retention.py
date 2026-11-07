@@ -13,7 +13,7 @@ PROTECTED=(
     'docs/validation/20261018-ds-recheck-0cd4229-a7b4f912/live-data/records/capture-36431f7c7567446e8bcd6229094d1b28',
     'docs/validation/20261020-codex-ds-next-1685c01-6e93c42a/binding-probe/native.bin',
     'tmp/perf-baseline',
-    'tmp/r2-bench/runs/1s/ref1/store',
+    'etm/records/baselines',
 )
 SCRIPTS={'.py','.ps1','.js','.mjs','.cjs','.sh','.bat','.cmd','.tcl','.cmake'}
 CLONES={'runtime','node_modules','vendor','compiler-runtime','toolbox','backend','opt3-code','opt4-code',

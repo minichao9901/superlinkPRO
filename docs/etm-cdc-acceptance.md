@@ -57,9 +57,9 @@ python -X utf8 etm/trace.py verify --record E:/trace-results/cdc-200ms-001 --req
 
 ## 保留与轮换
 
-每个固件/时钟配置保留一组完整、通过验收的10/200/500/1000ms原始记录和一个故障边界样本，
-加上匹配ELF、源码/采集配置、指纹清单、compact Store与摘要报告。正式包只留当前交付的一份。
-记录放 `etm/records/baselines/h743-cdc/<配置ID>/<窗口>/`（默认不入Git），不要再放进 docs 或 tmp。
+一轮验收仍须完成 10/200/500/1000 ms。验收时在独立目录保留原始波形、匹配 ELF、源码和采集配置、指纹、compact Store，直到四档验证及报告齐全。
+轮换后长期保留最有价值的 200 ms 和完整 1 s 实录；其它档只留验收摘要和指纹。负例、旧格式和独立差分输入有各自保留规则，见 [存储维护](storage-maintenance.md)。
+长期记录位于 `etm/records/`（默认不入 Git），不要再在 docs 或 tmp 复制一套。正式包只留当前交付的一份。
 没有合格500ms/1s样本时明确标为待采集，不复制10ms数据伪造。
 
 CDC是主线基准，但仍保留小型ETMv3/F103、未知IT、异常/尾部包、损坏拒绝和合成边界测试。

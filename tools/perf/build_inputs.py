@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -20,6 +21,10 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 import _common as perf  # noqa: E402
+
+
+def is_browse_cache(path):
+    return re.fullmatch(r'browse-v\d+\.sqlite(?:-(?:shm|wal|journal))?', path.name) is not None
 
 # 方案 §9.1 固定输入（路径相对仓库根）。
 RECORDS = {
@@ -36,12 +41,12 @@ RECORDS = {
         'notes': '原 CSV 与 KVDAT 都在；窗口/导航/未知条件的边界样本。',
     },
     'ds-rerun': {
-        'path': 'etm/records/capture-de9b8e0ed24c41c68e5b374f3cb3c9c5',
+        'path': 'etm/records/baselines/legacy-h743/capture-de9b8e0ed24c41c68e5b374f3cb3c9c5',
         'role': 'DS 复跑样本：H743 200 ms（3,675,477 条指令）',
         'notes': '《etm-kvdat-fastpath-rerun-2026-10-19》使用的样本；有条件加入，不替换前两者。',
     },
     'usb-init-10ms': {
-        'path': 'etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5',
+        'path': 'etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5',
         'role': '快速 sanity 样本：H743 10 ms USB 初始化（210,706 条指令）',
         'notes': '用于校验基准工具本身可用（全链路小样本），不计入最终性能结论；'
                  '也是 USB 初始化寄存器扫描的业务语义/顺序核对样本。',
@@ -93,7 +98,7 @@ def build(root: Path) -> dict:
         files = {}
         derived = {}
         for path in sorted(folder.iterdir()):
-            if not path.is_file():
+            if not path.is_file() or is_browse_cache(path):
                 continue
             entry = {'bytes': path.stat().st_size}
             if path.name in perf.KEY_RECORD_FILES:
@@ -108,7 +113,7 @@ def build(root: Path) -> dict:
             'load': _session_load(folder),
             'files': files,
             'derivedFiles': derived,
-            'directoryManifest': perf.directory_manifest(folder),
+            'directoryManifest': perf.directory_manifest(folder, exclude=is_browse_cache),
         }
     return {
         'schema': perf.SCHEMA_INPUTS,
@@ -117,7 +122,8 @@ def build(root: Path) -> dict:
         'root': '仓库根（路径均相对它解析）',
         'note': '关键文件（capture.csv/kvdat、etm.bin、firmware.elf、native-config.txt、session.json、'
                 'sources.json、tpiu.bin、capture.csv.la.json）含字节数与 SHA256；'
-                '派生 GB 级文件只列大小。记录目录保持只读，基准脚本只复制/硬链接副本。',
+                '派生 GB 级文件只列大小；可重建的 browse-v*.sqlite 索引及边车不参与输入绑定。'
+                '记录目录保持只读，基准脚本只复制/硬链接副本。',
         'records': records,
     }
 
@@ -136,9 +142,9 @@ def check(root: Path, path: Path) -> int:
             continue
         if old.get('path') != entry['path']:
             failures.append(f'{key}: 路径变化 {old.get("path")} -> {entry["path"]}')
-        for name, item in entry['files'].items():
-            old_item = (old.get('files') or {}).get(name)
-            if old_item != item:
+        old_files = old.get('files') or {}
+        for name in sorted(set(old_files) | set(entry['files'])):
+            if old_files.get(name) != entry['files'].get(name):
                 failures.append(f'{key}/{name}: 字节数或 SHA256 与清单不一致')
         if (old.get('directoryManifest') or {}).get('manifestSha256') != entry['directoryManifest']['manifestSha256']:
             failures.append(f'{key}: 目录清单摘要变化（可能增删文件）')

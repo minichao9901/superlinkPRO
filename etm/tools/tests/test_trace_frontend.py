@@ -299,7 +299,7 @@ class DemuxChunkTests(unittest.TestCase):
         self.assertEqual(str(actual.exception), str(expected.exception))
 
     def test_record_tpiu_stream_chunk_equivalence(self):
-        path = record_dir() / 'capture-4395612c313f47ce97af1e1c17e0a0d5' / 'tpiu.bin'
+        path = record_dir() / 'baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5' / 'tpiu.bin'
         if not path.exists():
             self.skipTest('缺少 10 ms 记录的 tpiu.bin')
         raw = path.read_bytes()
@@ -623,7 +623,7 @@ class RejectionTests(unittest.TestCase):
 
 
 class RecordEquivalenceTests(unittest.TestCase):
-    RECORD = record_dir() / 'capture-4395612c313f47ce97af1e1c17e0a0d5'
+    RECORD = record_dir() / 'baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5'
 
     def setUp(self):
         if not (self.RECORD / 'capture.kvdat').exists():

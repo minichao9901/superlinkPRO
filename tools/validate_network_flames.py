@@ -49,6 +49,7 @@ def run(args):
                 with contextlib.redirect_stdout(output):
                     code=cli(['export','--record',str(folder),'--format','flame-svg','--from-seq',str(low),'--to-seq',str(high),'--out',str(target)])
                 if code:raise RuntimeError(output.getvalue())
+                before_exports=set(folder.glob('export-*.svg'))
                 with client.get('/api/download/'+name+'/flame-svg?fromSeq='+str(low)+'&toSeq='+str(high),buffered=True) as response:
                     assert response.status_code==200,response.data
                     assert response.mimetype=='image/svg+xml'
@@ -77,7 +78,7 @@ def run(args):
                 # Confirm query validation and useful failure, with no leftover temp download.
                 with client.get('/api/download/'+name+'/flame-svg?fromSeq='+str(low)) as bad:
                     assert bad.status_code==400 and bad.json.get('error')
-                assert not list(folder.glob('export-*.svg'))
+                assert set(folder.glob('export-*.svg'))==before_exports
                 item=dict(record=name,phase=phase,fromSeq=low,toSeq=high,depth=depth,frames=len(frames),
                           instructionPathsChecked=counts['instructions'],sha256=hashlib.sha256(web).hexdigest(),
                           webCliBytesEqual=True,referenceGeometryEqual=True,xmlPathsIndependentlyChecked=checked,allNamesFit=True,boundary=boundary)

@@ -12,12 +12,12 @@ store 构建、查询与吞吐的规模化压力测试，不能用于 1 s 硬件
 ----
   # 物理 1 s：10 ms KVDAT 记录 × 100 段（0.01 s × 100 = 1 s）
   python -X utf8 tools/synthetic/build_synthetic.py --mode physical \\
-      --record etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5 \\
+      --record etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5 \\
       --kind kvdat --segments 100 --out tmp/p6a-1s --verify all
 
   # 1 s 规模事件流：同一条 10 ms 记录 × 100 段（≈2,107 万条指令），落 events.jsonl
   python -X utf8 tools/synthetic/build_synthetic.py --mode events \\
-      --record etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5 \\
+      --record etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5 \\
       --segments 100 --out tmp/p6a-1s --event-sink jsonl --verify all
 
   # 按 synthetic.json 把合成物理输入切成逐段文件（供分块前端跨块等价验证）

@@ -607,7 +607,7 @@ $V='docs\validation\20261020-ds-etm-r2-design-1891916'
 & "$V\prescan.exe" tmp\r2-native-probe\native-1s.bin --ranges "$V\ranges-1s.bin" --json "$V\prescan-1s.json"
 # 3) 静态字典 + 与参考 store 对照
 python -X utf8 "$V\prepare_static.py" "$V\ranges-200ms.bin" `
-    etm\records\capture-de9b8e0ed24c41c68e5b374f3cb3c9c5\firmware.elf "$V\out-200ms" `
+    etm\records\baselines\legacy-h743\capture-de9b8e0ed24c41c68e5b374f3cb3c9c5\firmware.elf "$V\out-200ms" `
     --reference-store tmp\p3-audit\stores\cli-full-1
 python -X utf8 "$V\prepare_static.py" "$V\ranges-1s.bin" `
     tmp\p6b-scale\record-1s\firmware.elf "$V\out-1s" --reference-store tmp\p6b-scale\record-1s\store

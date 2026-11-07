@@ -38,7 +38,7 @@ SPI/QSPI、I2C 和高速 ADC 当前面向 **HPM5301EVKLite** 板型。HPM5301 �
 
 工作台另提供 [ARM / RV32 异常诊断与 J-Scope / RTT 采集质量报告](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/diagnostics.md)：区分目标读错、探针跳拍、USB 缓冲丢样与网页显示／落盘状态。此功能复用现有探针接口，本轮无需升级探针固件。
 
-[H743 真机验收](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/validation/2026-10-08-h743-diagnostics.md)覆盖 8 个故障场景及正常调试、J-Scope、RTT 性能对照；同档位未观察到明显吞吐下降。可复现的[异常测试固件及 ELF](script_test/stm32h743_fault/README.md)随仓库保存。
+[H743 真机验收](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/validation/2026-10-08-h743-diagnostics.md)覆盖 8 个故障场景及正常调试、J-Scope、RTT 性能对照；同档位未观察到明显吞吐下降。可复现的[异常测试固件及 ELF](../script_test/stm32h743_fault/README.md)随仓库保存。
 
 ## SWO 高速接收与源码分析
 
@@ -50,7 +50,7 @@ EVKLite 将 **目标 SWO 接到 PB09 / J3[3]（VCOM RX）**，另接 SWD 和 GND
 
 F103CB 已完成实机验收；Web 还提供 F407/F405、H743 与 H7B0 型号组适配，目前这些适配的验证为寄存器模拟与恢复测试。目标主频由目标程序管理，外部晶振需按板子提供。PC 是离散采样落点，不能恢复每条指令、完整分支和调用栈。
 
-240 MHz UART 是当前实验默认配置，超过此前核查的 UART 100 MHz 额定输入；30 Mbaud 的有限实测不代表所有板子和波特率组合均可可靠接收。接线、时钟恢复和验收条件见 [SWO 接收时钟说明](docs/swo-clock-lease.md)，页面操作与示例见 [Web SWO 使用说明](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/SWO-PC-SAMPLING.md)及[固定主频实机验收](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/validation/2026-10-09-swo-ports-calculator.md)。
+240 MHz UART 是当前实验默认配置，超过此前核查的 UART 100 MHz 额定输入；30 Mbaud 的有限实测不代表所有板子和波特率组合均可可靠接收。接线、时钟恢复和验收条件见 [SWO 接收时钟说明](../docs/swo-clock-lease.md)，页面操作与示例见 [Web SWO 使用说明](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/SWO-PC-SAMPLING.md)及[固定主频实机验收](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/validation/2026-10-09-swo-ports-calculator.md)。
 
 ## 实测性能
 
@@ -58,15 +58,15 @@ F103CB 已完成实机验收；Web 还提供 F407/F405、H743 与 H7B0 型号组
 
 | 通路 | 条件与结果 | 证据 |
 | --- | --- | --- |
-| ARM SRAM 传输 | F103ZE，SWD 60 MHz 档；OpenOCD 纯传输写 **3384 KiB/s**、读 **2928 KiB/s** | [SWD 历史基线](docs/development-history.md#最新进展2026-09-30) |
-| RTT→CDC | F103ZE，SWD 60 MHz 档；探针侧交付约 **2954 KiB/s** | [RTT 实测记录](docs/development-history.md#最新进展2026-09-30) |
-| RISC-V SRAM / RTT | HPM6800EVK：SRAM 读/写约 **1504 / 1512 KiB/s**；RTT 约 **1385 KiB/s** | [JTAG 验证](docs/hpm6800evk-jtag.md) |
+| ARM SRAM 传输 | F103ZE，SWD 60 MHz 档；OpenOCD 纯传输写 **3384 KiB/s**、读 **2928 KiB/s** | [SWD 历史基线](../docs/development-history.md#最新进展2026-09-30) |
+| RTT→CDC | F103ZE，SWD 60 MHz 档；探针侧交付约 **2954 KiB/s** | [RTT 实测记录](../docs/development-history.md#最新进展2026-09-30) |
+| RISC-V SRAM / RTT | HPM6800EVK：SRAM 读/写约 **1504 / 1512 KiB/s**；RTT 约 **1385 KiB/s** | [JTAG 验证](../docs/hpm6800evk-jtag.md) |
 | HSS 单变量 / SWD | F103CB @72 MHz、SWD 60 MHz：名义 400 kHz 实得约 **399.97 kHz**，调度跳拍约 **0.008%**；500 kHz 档实得约 **496 kHz**，跳拍约 **0.8%** | [采样优化与边界](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/validation/2026-10-07-f103cb-hss-optimization.md) |
-| HSS / RISC-V | HPM6800EVK：单 u32 名义 200 kHz 实得约 **200 kHz**、跳拍约 **0.00275%**；8 个连续 u32 在 **25 kHz** 窗口内跳拍与 USB 丢样均为 0 | [HPM HSS 复测](docs/validation/2026-10-07-hpm6800-hss-rate.md) |
+| HSS / RISC-V | HPM6800EVK：单 u32 名义 200 kHz 实得约 **200 kHz**、跳拍约 **0.00275%**；8 个连续 u32 在 **25 kHz** 窗口内跳拍与 USB 丢样均为 0 | [HPM HSS 复测](../docs/validation/2026-10-07-hpm6800-hss-rate.md) |
 | SWO→VCOM→Web | F103CB @72 MHz，256 周期、纯 PC、实际 18 Mbaud；1 秒收到 **252,198 PC**，236 个不同 PC 的函数 / 文件 / 行号与 GNU 定位全部一致，SWO 溢出及已检测 UART 错误为 0 | [固定主频验收](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/validation/2026-10-09-swo-ports-calculator.md) |
-| SPI / QSPI 发图 | 实际 SCK 60 MHz、32 KiB 批次：单线 SPI **6.29 MB/s**，四线 QSPI **16.77 MB/s** | [固定 240 MHz 实测](docs/validation/2026-10-08-spi-fixed240.md) |
-| SPI转发→CDC | H743 标称 SCK 67 MHz，原生 CDC 接收 **8.41 MB/s**；15 秒稳定窗口完整性检查通过 | [转发与 Web 缓冲对照](docs/validation/2026-10-08-spi-fixed240.md) |
-| ADC 采集 | EVKLite，8/10/12/16 位在 **1 / 2 MSa/s** 各测 30 秒，计数一致、无溢出 | [采集实现与验收入口](docs/adc-bulk-stream.md) |
+| SPI / QSPI 发图 | 实际 SCK 60 MHz、32 KiB 批次：单线 SPI **6.29 MB/s**，四线 QSPI **16.77 MB/s** | [固定 240 MHz 实测](../docs/validation/2026-10-08-spi-fixed240.md) |
+| SPI转发→CDC | H743 标称 SCK 67 MHz，原生 CDC 接收 **8.41 MB/s**；15 秒稳定窗口完整性检查通过 | [转发与 Web 缓冲对照](../docs/validation/2026-10-08-spi-fixed240.md) |
+| ADC 采集 | EVKLite，8/10/12/16 位在 **1 / 2 MSa/s** 各测 30 秒，计数一致、无溢出 | [采集实现与验收入口](../docs/adc-bulk-stream.md) |
 
 性能口径：KiB/s 按 2¹⁰ B/s（历史脚本标作 KB/s），MB/s 按 10⁶ B/s。SPI/QSPI 数字为像素有效载荷的传输速率，测试未接屏，不代表实屏帧率；ADC 结果验证时基、传输和计数，不代表模拟精度或 ENOB。SPI转发在 Web 默认 4 KiB 接收缓冲下，高速档仍可能出现背压丢字节；原生 CDC 峰值不能直接当作网页无损保证。
 
@@ -76,7 +76,7 @@ F103CB 已完成实机验收；Web 还提供 F407/F405、H743 与 H7B0 型号组
 
 ### 使用探针
 
-1. 准备 akaLinkPro 或已烧入对应固件的 HPM5301EVKLite，按 [板级接线说明](docs/HPM5301EVKLite_port.md) 连接目标。
+1. 准备 akaLinkPro 或已烧入对应固件的 HPM5301EVKLite，按 [板级接线说明](../docs/HPM5301EVKLite_port.md) 连接目标。
 2. 用 USB 连接电脑，使用桌面版 Chrome / Edge 打开 [在线工作台](https://minichao9901.github.io/superlinkPRO/)。
 3. 选择调试器、RTT、J-Scope 或总线页面，在浏览器设备选择框中授权相应 HID / USB / 串口接口。
 4. 调试或变量采样时载入与板上固件匹配的 ELF。**载入 ELF 只提供符号和地址，不会更新目标固件。**
@@ -97,12 +97,12 @@ make test-host    # 无硬件的固件逻辑回归
 
 | 产物 | 路径 |
 | --- | --- |
-| APP ELF / 调试符号 | [`akaLinkPro_App.elf`](firmware/application_5301/build_dfu_evklite/output/akaLinkPro_App.elf) |
+| APP ELF / 调试符号 | [`akaLinkPro_App.elf`](application_5301/build_dfu_evklite/output/akaLinkPro_App.elf) |
 | DFU 升级包 | `firmware/application_5301/build_dfu_evklite/output/akaLinkPro_App_pack.bin` |
-| 应用源码 | [`firmware/application_5301/`](firmware/application_5301) |
-| Bootloader 源码 | [`firmware/bootloader_dfu/`](firmware/bootloader_dfu) |
+| 应用源码 | [`firmware/application_5301/`](application_5301) |
+| Bootloader 源码 | [`firmware/bootloader_dfu/`](bootloader_dfu) |
 
-详细烧录、救砖和目标侧接线见 [EVKLite 移植说明](docs/HPM5301EVKLite_port.md)。
+详细烧录、救砖和目标侧接线见 [EVKLite 移植说明](../docs/HPM5301EVKLite_port.md)。
 
 ## 硬件与兼容性
 
@@ -128,22 +128,22 @@ make test-host    # 无硬件的固件逻辑回归
 | 2026-10-08 | 异常诊断与采集质量开发前建立双仓库基线标签 [`milestone-2026-10-08-pre-diagnostics`](https://github.com/minichao9901/5301evk_akaLinkPro/tree/milestone-2026-10-08-pre-diagnostics) |
 | 2026-10-09 | 默认 UART 240 MHz / 最高请求 30 Mbaud、可恢复 SWO 接收时钟会话合入主线，配套 Web 完成 F103CB 录制与源码分析验收 |
 
-完整研发过程、历史测量与问题定因见 [开发与调试记录](docs/development-history.md)。里程碑表示阶段成果，具体测试条件与未覆盖场景保留在验收文档中。
+完整研发过程、历史测量与问题定因见 [开发与调试记录](../docs/development-history.md)。里程碑表示阶段成果，具体测试条件与未覆盖场景保留在验收文档中。
 
 ## 文档与开发入口
 
 | 入口 | 内容 |
 | --- | --- |
 | [Web 工程](https://github.com/minichao9901/web-serial-rtt-tools) | 页面功能、设备授权、本地运行和兼容性 |
-| [EVKLite 板级文档](docs/HPM5301EVKLite_port.md) | 引脚、构建、升级和自调试 |
-| [SWO 接收时钟](docs/swo-clock-lease.md) / [Web 录制与分析](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/SWO-PC-SAMPLING.md) | VCOM 接线、波特率匹配、时钟恢复、源码回放与完整导出 |
-| [SPI/QSPI 接线](docs/spi-bridge-wiring.md) / [SPI转发](docs/spi-cdc.md) | 外设与高速接收使用说明 |
-| [I2C 协议与接线](docs/web-handoff-i2c-bridge.md) | I2C 控制与事务约定 |
-| [ADC 数据流](docs/adc-bulk-stream.md) | 硬件触发、采集流程和性能范围 |
-| [自定义 HID 协议](firmware/application_5301/Custom%20HID%20Protocol.md) | 探针扩展功能的控制接口 |
-| [测试脚本](script_test) / [Makefile](Makefile) | 模型回归、目标夹具和板上复现 |
-| [历史调试记录](docs/development-history.md) | 原 README 完整归档、优化过程与排障证据 |
+| [EVKLite 板级文档](../docs/HPM5301EVKLite_port.md) | 引脚、构建、升级和自调试 |
+| [SWO 接收时钟](../docs/swo-clock-lease.md) / [Web 录制与分析](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/SWO-PC-SAMPLING.md) | VCOM 接线、波特率匹配、时钟恢复、源码回放与完整导出 |
+| [SPI/QSPI 接线](../docs/spi-bridge-wiring.md) / [SPI转发](../docs/spi-cdc.md) | 外设与高速接收使用说明 |
+| [I2C 协议与接线](../docs/web-handoff-i2c-bridge.md) | I2C 控制与事务约定 |
+| [ADC 数据流](../docs/adc-bulk-stream.md) | 硬件触发、采集流程和性能范围 |
+| [自定义 HID 协议](application_5301/Custom%20HID%20Protocol.md) | 探针扩展功能的控制接口 |
+| [测试脚本](../script_test) / [Makefile](../Makefile) | 模型回归、目标夹具和板上复现 |
+| [历史调试记录](../docs/development-history.md) | 原 README 完整归档、优化过程与排障证据 |
 
 ## 许可证
 
-本项目自有代码使用 [Apache License 2.0](LICENSE)。HPM SDK、CMSIS-DAP、CherryUSB、CherryRB、EasyFlash 等第三方组件遵循各自许可证；再分发时保留对应版权声明，组件清单见 [历史文档](docs/development-history.md#第三方组件)。
+本项目自有代码使用 [Apache License 2.0](../LICENSE)。HPM SDK、CMSIS-DAP、CherryUSB、CherryRB、EasyFlash 等第三方组件遵循各自许可证；再分发时保留对应版权声明，组件清单见 [历史文档](../docs/development-history.md#第三方组件)。

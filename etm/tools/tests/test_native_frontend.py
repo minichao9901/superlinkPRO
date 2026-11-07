@@ -25,12 +25,13 @@ import native_frontend as nf
 
 ETM_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = Path(__file__).resolve().parents[3]
-RECORD_10MS = ETM_ROOT / 'records' / 'capture-4395612c313f47ce97af1e1c17e0a0d5'
+RECORD_10MS = ETM_ROOT / 'records' / 'baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5'
 RECORD_STEADY = (REPO_ROOT / 'docs/validation/20261018-ds-review-bb2f8ee-6ff02745/data/records'
                  / 'capture-be1e78730b7f486a9e27d5911cd4a434')
 RECORD_BOUNDARY = (REPO_ROOT / 'docs/validation/20261018-ds-recheck-0cd4229-a7b4f912/live-data/records'
                    / 'capture-36431f7c7567446e8bcd6229094d1b28')
-SYNTHETIC_DIR = REPO_ROOT / 'tmp' / 'p6a-1s' / 'physical'
+SYNTHETIC_DIR = ETM_ROOT / 'records' / 'baselines' / 'regression' / 'synthetic-physical'
+SYNTHETIC_BUILD_DIR = REPO_ROOT / 'tmp' / 'p6a-1s' / 'physical'
 
 CONFIG_10MS = dict(clock=0, data=[1, 2, 3, 4], fraction=0.25, glitch_ns=0.0, traceid=2)
 CONFIG_200MS = dict(clock=0, data=[1, 2, 3, 4], fraction=0.25, glitch_ns=4.0, traceid=2)
@@ -131,10 +132,10 @@ class RecordEquivalenceTests(unittest.TestCase):
         self._check(path, CONFIG_200MS, chunks=[13, 8191, (1 << 20) + 1])
 
     def test_synthetic_1s_segments(self):
-        segment_dir = SYNTHETIC_DIR / 'segments'
+        segment_dir = SYNTHETIC_DIR if SYNTHETIC_DIR.is_dir() else SYNTHETIC_BUILD_DIR / 'segments'
         files = sorted(segment_dir.glob('segment-*.kvdat')) if segment_dir.exists() else []
         if not files:
-            self.skipTest('缺少 t3 合成 1 s 段文件（tmp/p6a-1s/physical/segments）')
+            self.skipTest('缺少合成 1 s 段文件（etm/records/baselines/regression/synthetic-physical）')
         config = dict(CONFIG_10MS)
         for path in (files[0], files[len(files) // 2], files[-1]):
             reference = nf.run_reference(path, config, chunk_bytes=1 << 20)
@@ -146,7 +147,7 @@ class RecordEquivalenceTests(unittest.TestCase):
                                 f'{json.dumps(report["detail"], ensure_ascii=False)[:600]}')
 
     def test_whole_synthetic_1s_is_rejected(self):
-        whole = SYNTHETIC_DIR / 'capture-synthetic-1s.kvdat'
+        whole = SYNTHETIC_BUILD_DIR / 'capture-synthetic-1s.kvdat'
         if not whole.exists():
             self.skipTest('缺少 t3 合成 1 s 整段文件')
         from trace_frontend import PhaseSelectionError

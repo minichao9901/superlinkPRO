@@ -171,17 +171,17 @@ CSV 段文件回卷时间轴后与来源段逐行同值，因此现前端 `trace
 ```powershell
 # 物理 1 s（10 ms KVDAT × 100 段）
 python -X utf8 tools/synthetic/build_synthetic.py --mode physical `
-  --record etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5 `
+  --record etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5 `
   --kind kvdat --segments 100 --out tmp/p6a-1s --verify all
 
 # 1 s 规模事件流（同一条记录 × 100 段，≈2,107 万条指令）
 python -X utf8 tools/synthetic/build_synthetic.py --mode events `
-  --record etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5 `
+  --record etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5 `
   --segments 100 --out tmp/p6a-1s --event-sink jsonl --verify all --force
 
 # CSV 兼容（10 ms CSV × N 段；1 s 的 CSV 约 3 GB，按需运行）
 python -X utf8 tools/synthetic/build_synthetic.py --mode physical --kind csv `
-  --record etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5 `
+  --record etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5 `
   --segments 10 --out tmp/p6a-csv --verify all --verify-segments 3
 
 # 按 synthetic.json 切逐段文件（给分块前端做跨块等价）

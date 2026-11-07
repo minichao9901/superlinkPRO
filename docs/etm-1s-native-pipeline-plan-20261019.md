@@ -311,8 +311,8 @@ USB 扫描执行状态遗漏作为独立小提交修复并测试，不能混入�
 
 - steady：`E:/superlinkPRO/docs/validation/20261018-ds-review-bb2f8ee-6ff02745/data/records/capture-be1e78730b7f486a9e27d5911cd4a434`。
 - boundary：`E:/superlinkPRO/docs/validation/20261018-ds-recheck-0cd4229-a7b4f912/live-data/records/capture-36431f7c7567446e8bcd6229094d1b28`。
-- DS 复跑：`etm/records/capture-de9b8e0ed24c41c68e5b374f3cb3c9c5`，有条件加入，不替换前两者。
-- 10 ms USB 初始化：`etm/records/capture-4395612c313f47ce97af1e1c17e0a0d5`，用于具体业务语义及顺序核对。
+- DS 复跑：`etm/records/baselines/legacy-h743/capture-de9b8e0ed24c41c68e5b374f3cb3c9c5`，有条件加入，不替换前两者。
+- 10 ms USB 初始化：`etm/records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5`，用于具体业务语义及顺序核对。
 - 项目可获得的 ETMv3、异常/周期/返回栈/分支广播样本；缺失则列未覆盖，不能把跳过当通过。
 - 后续真实 H743 500 ms/1 s，及一份更高分支/中断密度负载，说明不是通用吞吐上界。
 
