@@ -38,6 +38,7 @@
 
 /* Authoritative service flags: cold gate reads words, producers write bytes. */
 service_gate_t scope_sampler_gate;
+#define s_stopping (scope_sampler_gate.flag[4])
 #define s_bench_req (scope_sampler_gate.flag[3])
 #define s_usb_reset_req (scope_sampler_gate.flag[2])
 #define s_start_req (scope_sampler_gate.flag[1])
@@ -126,7 +127,7 @@ static uint8_t  s_inflight[SCOPE_TX_BUFS];    /* 发送队列（FIFO）：回调
 static uint8_t  s_if_head, s_if_count;
 static uint8_t  s_tx_zlp;                     /* STOP fence, not a protocol packet */
 enum { SCOPE_STOP_CANCEL_START = 1, SCOPE_STOP_FLUSH_TAIL = 2 };
-static volatile uint8_t s_starting, s_stopping, s_stop_req;
+static volatile uint8_t s_starting, s_stop_req;
 static volatile uint8_t s_stop_zlps, s_stop_aborted, s_stop_tail_done;
 static uint32_t s_invalid_samples;            /* posted reads that could not be finalized */
 static uint8_t  s_tx_active;                  /* 端点上有 1 笔在飞（DWC2 只认一笔，见 scope_tx_kick） */

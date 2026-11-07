@@ -164,6 +164,7 @@ int main(void)
     test_stop_call = 3; test_clock = s_next_tick; scope_sampler_poll();
     assert(s_stopping && s_stop_req && test_calls == 3 && s_fill_n == 3);
     assert(scope_sampler_is_running() && !s_running);
+    assert(scope_sampler_needs_service()); /* production main loop must service STOP */
     scope_sampler_status(status_words, 12);
     assert((status_words[0] & 0xe1) == 0x60);
     scope_sampler_request_start();
@@ -182,6 +183,7 @@ int main(void)
     assert(test_cdc && !scope_sampler_is_running() && s_tx_done == done_before + 1);
     scope_sampler_stop(1); scope_sampler_poll(); assert(test_zlp_count == 1);
     assert(scope_sampler_retire_reads(33) == -6 && scope_sampler_retire_reads(2) == 0);
+    assert(scope_sampler_needs_service()); /* also wake for EOF's outstanding reads */
     scope_sampler_poll();
     assert(test_zlp_count == 2 && s_stopping && s_tx_zlp);
     scope_sampler_tx_complete();
