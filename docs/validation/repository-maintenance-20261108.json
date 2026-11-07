@@ -339,6 +339,41 @@
       "executionReview": "blocked by policy"
     }
   },
+  "followUpCleanup": {
+    "etmService": {
+      "port": 8911,
+      "pid": 28660,
+      "exit": "Ctrl+C",
+      "state": "stopped",
+      "listenerGone": true,
+      "otherListenerPort": 8899
+    },
+    "retiredTraceAndTemporary": {
+      "files": 52,
+      "directories": 302,
+      "logicalBytes": 350588383,
+      "planSha256": "00c81e53513755cb280a81e360543c6d94a0f25a0e5472b76abe597a6b8b8bb1",
+      "localEvidenceFileCount": 19,
+      "localEvidenceSha256": "5b6bff307fb9a8adeface4c7ba4ec167740c02eb00b805b87132b4b0645a1f15"
+    },
+    "staleBrowseIndexes": {
+      "files": 4,
+      "logicalBytes": 5205561344,
+      "planSha256": "29bf59648029e806bad1f470798a3b749dd25bcc11d842c4bb86e4c6c9be23b2",
+      "rebuiltAndQueried": [
+        {"record": "steady", "seconds": 56.26, "rebuiltIndexBytes": 219480064},
+        {"record": "usb-init-10ms", "seconds": 6.38, "rebuiltIndexBytes": 107151360}
+      ]
+    },
+    "afterLogicalBytes": {
+      "workspace": 18569268404,
+      "docs": 7768021769,
+      "etmRecords": 4568058197
+    },
+    "fixedInputsVerified": 5,
+    "retainedFingerprintsVerified": 5,
+    "journalsMatched": true
+  },
   "cliBrowser": {
     "rp2350": {
       "pages": {

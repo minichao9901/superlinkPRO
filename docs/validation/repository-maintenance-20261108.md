@@ -32,6 +32,14 @@ Web 与 CLI 定向回归通过（Node 40 项、Python CLI/打包 12 项），Web
 
 续查时，两份 Store 的删除权限探测均返回 Windows 错误 32。Restart Manager 将两处占用都归到监听本机 8911 端口的 Python 工作台，ETM 健康检查返回 HTTP 200。待该会话退出后，可以复核并删除两个遗留项。另已核对本轮验收目录下的生成文件全部清空，删除剩余空目录的命令也被执行工具以 `blocked by policy` 拒绝。
 
+用户随后授权关闭 8911。退出前，CLI 执行页已断开，8911 只剩监听连接，服务没有解码子进程，记录目录没有解码标记。验收日志中五次采集均已保存。在独立控制台发送 Ctrl+C，进程正常退出，运行状态写为 `stopped`，8911 监听消失。另一处 8899 工作台仍在监听。
+
+退出后，两份待清理 H743 记录的剩余 18 个文件与原清单逐项一致。删除这两份记录、已停止的 H743 验收运行目录及发布验收残留空目录，共核对 52 个文件和 302 个目录，文件逻辑体积 350,588,383 字节。19 项复现脚本、Kingst 配置备份和精简验收数据归档在本机 `docs/maintenance/h743-20261107-local-evidence.json`，每项都有 SHA-256。采集根目录中的 H743 记录复查只剩 200 ms 和完整 1 s。
+
+针对 `docs/` 和 `etm/records/` 再次盘点，找到四份签名已失效的 `browse-v3.sqlite`。当前代码已判定它们需要重建。用无旧索引的隔离副本跑 `toolbox.py trace query --view summary`，200 ms steady 流式记录与 10 ms USB 初始化内联记录分别在 56.26 s 和 6.38 s 内完成查询和索引重建。逐项预检后只删除这四个索引，逻辑体积 5,205,561,344 字节。复核五份固定输入清单、五份长期保留结果的文件指纹和全部删除日志均通过。
+
+该轮合计移除约 5.17 GiB 的文件。清理后按文件逻辑大小盘点，整个工作区约 17.29 GiB，`docs/` 约 7.23 GiB，`etm/records/` 约 4.25 GiB。主要剩余资产是固定回归输入的原始 CSV、KVDAT、匹配 ELF、旧版事件流与查询加速边车，以及当前保留的 TraceStore。精确对照仍会读这些数据。原先因政策保留的重复 OpenOCD checkout 仍在。
+
 ## 发布
 
 发布提交 `ef1227606b8a6b7bedc00be517e1a464920bac8a` 推送时一并删除了远程已合入的 `codex/hss-stop-offline`，远端分支只剩 `main`。[Pages 工作流 42397232085](https://github.com/minichao9901/superlinkPRO/actions/runs/42397232085) 部署成功。[线上工作台](https://minichao9901.github.io/superlinkPRO/)在 Edge 启动后有 15 个工具页，调试、烧录和 RTT Viewer 的共享目标入口均在。线上页面入口、合并脚本、CLI 模块、Wasm 和 ETM 页面副本与本地发布文件一致；[线上 Windows ZIP](https://minichao9901.github.io/superlinkPRO/downloads/superlinkPRO-win64.zip)完整读取后，大小和 SHA-256 与发布清单一致。

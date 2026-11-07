@@ -8,6 +8,7 @@
 - `etm/records/baselines/legacy-h743/` 保留两个仍被固定性能或离线测试引用的旧输入（10 ms USB 初始化、200 ms DS 复跑）；`etm/records/baselines/regression/` 放置三段合成物理输入与独立 Python 对照 Store。这些是测试夹具，不进入当前工作台采集结果列表。
 - 保留两份旧 steady/boundary 参考、绑定探针、`.formal-trace-20261024/` 四份火焰图验收原件、`dist/superlinkPRO/data/` 以及已有固件输出改动。已跟踪的历史回归证据保留；历史绝对路径只说明当时的运行环境。
 - Windows 中间编译目录、验收解压副本和可重建的缓存按清单清理。活跃服务运行目录、真正的依赖 checkout 和已核对的编译工具仍保留。测试目标的 C 源码、链接脚本和冻结测试输入不按编译缓存处理。
+- 旧 RecordStore 的 `browse-v3.sqlite` 可从相应记录重建。已确认失效的索引在隔离副本通过重建和查询后，可以按逐文件清单清理。保留原始输入、事件流及固定输入清单要求的 `browse-columns.tsv`，清理后执行 `python -X utf8 tools/perf/build_inputs.py --check`。
 
 ## 2026-10-24 历史盘点与执行状态
 
