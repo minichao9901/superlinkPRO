@@ -1,0 +1,656 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "sourceDirty": true,
+  "bundleSha256": "188b7d7172c0a682df8f992aece35791bb1ea5a8c8f055b173703c1157ad17c4",
+  "openocdCorpus": {
+    "version": "v0.12.0",
+    "commit": "9ea7f3d647c8ecf6b0f1424002dfc3f4504a162c",
+    "scripts": 886,
+    "groups": {
+      "board": {
+        "entries": 379,
+        "single": 11,
+        "directory": 29,
+        "directoryByArch": {
+          "arm": 28,
+          "riscv": 1
+        },
+        "directoryOnly": [
+          {
+            "path": "board/atmel_sam3s_ek.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3sXX.cfg",
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "board/atmel_sam4e_ek.cfg",
+            "arch": "arm",
+            "target": "SAM4E16E.cpu",
+            "sourced": [
+              "target/at91sam4sXX.cfg",
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "board/atmel_sam4s_ek.cfg",
+            "arch": "arm",
+            "target": "sam4.cpu",
+            "sourced": [
+              "target/at91sam4sXX.cfg",
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "board/atmel_sam4s_xplained_pro.cfg",
+            "arch": "arm",
+            "target": "ATSAM4SD32C.cpu",
+            "sourced": [
+              "target/at91sam4sd32x.cfg",
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "board/atmel_samg53_xplained_pro.cfg",
+            "arch": "arm",
+            "target": "ATSAMG53N19.cpu",
+            "sourced": [
+              "target/at91samg5x.cfg",
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "board/atmel_samg55_xplained_pro.cfg",
+            "arch": "arm",
+            "target": "ATSAMG55J19.cpu",
+            "sourced": [
+              "target/at91samg5x.cfg",
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "board/efm32.cfg",
+            "arch": "arm",
+            "target": "efm32.cpu",
+            "sourced": [
+              "target/efm32.cfg"
+            ]
+          },
+          {
+            "path": "board/lpc1850_spifi_generic.cfg",
+            "arch": "arm",
+            "target": "lpc1850.m3",
+            "sourced": [
+              "target/lpc1850.cfg"
+            ]
+          },
+          {
+            "path": "board/microchip_saml11_xplained_pro.cfg",
+            "arch": "arm",
+            "target": "saml11.cpu",
+            "sourced": [
+              "target/atsaml1x.cfg"
+            ]
+          },
+          {
+            "path": "board/nds32_xc7.cfg",
+            "arch": "riscv",
+            "target": "nds.cpu",
+            "sourced": [
+              "target/nds32v5.cfg"
+            ]
+          },
+          {
+            "path": "board/renesas_dk-s7g2.cfg",
+            "arch": "arm",
+            "target": "s7g2.cpu",
+            "sourced": [
+              "target/renesas_s7g2.cfg"
+            ]
+          },
+          {
+            "path": "board/xmc4200-application-kit-actuator.cfg",
+            "arch": "arm",
+            "target": "xmc4200.cpu",
+            "sourced": [
+              "target/xmc4xxx.cfg"
+            ]
+          },
+          {
+            "path": "board/xmc4300-relax.cfg",
+            "arch": "arm",
+            "target": "xmc4300.cpu",
+            "sourced": [
+              "target/xmc4xxx.cfg"
+            ]
+          },
+          {
+            "path": "board/xmc4500-application-kit-sdram.cfg",
+            "arch": "arm",
+            "target": "xmc4500.cpu",
+            "sourced": [
+              "target/xmc4xxx.cfg"
+            ]
+          },
+          {
+            "path": "board/xmc4500-relax.cfg",
+            "arch": "arm",
+            "target": "xmc4500.cpu",
+            "sourced": [
+              "target/xmc4xxx.cfg"
+            ]
+          },
+          {
+            "path": "board/xmc4700-relax.cfg",
+            "arch": "arm",
+            "target": "xmc4700.cpu",
+            "sourced": [
+              "target/xmc4xxx.cfg"
+            ]
+          },
+          {
+            "path": "board/xmc4800-relax.cfg",
+            "arch": "arm",
+            "target": "xmc4800.cpu",
+            "sourced": [
+              "target/xmc4xxx.cfg"
+            ]
+          },
+          {
+            "path": "board/xmos_xk-xac-xa8_arm.cfg",
+            "arch": "arm",
+            "target": "xcorexa.cpu",
+            "sourced": [
+              "target/xmos_xs1-xau8a-10_arm.cfg",
+              "target/efm32.cfg"
+            ]
+          }
+        ],
+        "singleOnly": [],
+        "failures": {
+          "不支持的 CFG 指令": {
+            "count": 294,
+            "example": {
+              "path": "board/8devices-lima.cfg",
+              "message": "target/qualcomm_qca4531.cfg：不支持的 CFG 指令 reset_config none srst_pulls_trst"
+            }
+          },
+          "不支持的 CFG 值": {
+            "count": 9,
+            "example": {
+              "path": "board/ampere_qs_mq_2s.cfg",
+              "message": "board/ampere_qs_mq_2s.cfg：不支持的 CFG 值 target smp"
+            }
+          },
+          "不支持的 CFG 条件": {
+            "count": 14,
+            "example": {
+              "path": "board/at91rm9200-dk.cfg",
+              "message": "target/at91rm9200.cfg：不支持的 CFG 条件 { $_CPUTAPID == 0x15b0203f }"
+            }
+          },
+          "不支持的 CFG 目标事件": {
+            "count": 15,
+            "example": {
+              "path": "board/atmel_sam4l8_xplained_pro.cfg",
+              "message": "target/at91sam4lXX.cfg：不支持的 CFG 目标事件 reset-deassert-post"
+            }
+          },
+          "CFG 只支持单个 DAP": {
+            "count": 9,
+            "example": {
+              "path": "board/icnova_imx53_sodimm.cfg",
+              "message": "target/imx53.cfg：CFG 只支持单个 DAP 或 JTAG TAP"
+            }
+          },
+          "不支持的 CFG 参数": {
+            "count": 7,
+            "example": {
+              "path": "board/linksys_nslu2.cfg",
+              "message": "target/ixp42x.cfg：不支持的 CFG 参数 -expected-id"
+            }
+          },
+          "CFG 仅支持有限的 if/else": {
+            "count": 2,
+            "example": {
+              "path": "board/spansion_sk-fm4-176l-s6e2cc.cfg",
+              "message": "target/fm4.cfg：CFG 仅支持有限的 if/else 语法"
+            }
+          }
+        }
+      },
+      "target": {
+        "entries": 306,
+        "single": 21,
+        "directory": 38,
+        "directoryByArch": {
+          "arm": 36,
+          "riscv": 2
+        },
+        "directoryOnly": [
+          {
+            "path": "target/at91sam3ax_4x.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3ax_xx.cfg",
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3ax_8x.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3ax_xx.cfg",
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3ax_xx.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3sXX.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3u1c.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3uxx.cfg",
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3u1e.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3uxx.cfg",
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3u2c.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3uxx.cfg",
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3u2e.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3uxx.cfg",
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3u4c.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3uxx.cfg",
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3u4e.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3uxx.cfg",
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam3uxx.cfg",
+            "arch": "arm",
+            "target": "sam3.cpu",
+            "sourced": [
+              "target/at91sam3XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam4c32x.cfg",
+            "arch": "arm",
+            "target": "sam4.cpu",
+            "sourced": [
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam4cXXX.cfg",
+            "arch": "arm",
+            "target": "sam4.cpu",
+            "sourced": [
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam4sXX.cfg",
+            "arch": "arm",
+            "target": "sam4.cpu",
+            "sourced": [
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91sam4sd32x.cfg",
+            "arch": "arm",
+            "target": "sam4.cpu",
+            "sourced": [
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/at91samg5x.cfg",
+            "arch": "arm",
+            "target": "sam4.cpu",
+            "sourced": [
+              "target/at91sam4XXX.cfg"
+            ]
+          },
+          {
+            "path": "target/xmos_xs1-xau8a-10_arm.cfg",
+            "arch": "arm",
+            "target": "xcorexa.cpu",
+            "sourced": [
+              "target/efm32.cfg"
+            ]
+          }
+        ],
+        "singleOnly": [],
+        "failures": {
+          "不支持的 CFG 值": {
+            "count": 14,
+            "example": {
+              "path": "target/1986ве1т.cfg",
+              "message": "target/1986ве1т.cfg：不支持的 CFG 值 1986ве1т"
+            }
+          },
+          "不支持的 CFG 指令": {
+            "count": 197,
+            "example": {
+              "path": "target/adsp-sc58x.cfg",
+              "message": "target/adsp-sc58x.cfg：不支持的 CFG 指令 target create ap0.mem"
+            }
+          },
+          "CFG 只支持单个 DAP": {
+            "count": 12,
+            "example": {
+              "path": "target/altera_fpgasoc.cfg",
+              "message": "target/altera_fpgasoc.cfg：CFG 只支持单个 DAP 或 JTAG TAP"
+            }
+          },
+          "CFG 仅支持行续接反斜杠": {
+            "count": 1,
+            "example": {
+              "path": "target/amdm37x.cfg",
+              "message": "target/amdm37x.cfg：CFG 仅支持行续接反斜杠"
+            }
+          },
+          "CFG 未定义受支持的 Cortex-M": {
+            "count": 2,
+            "example": {
+              "path": "target/at32ap7000.cfg",
+              "message": "CFG 未定义受支持的 Cortex-M 或 RISC-V 目标"
+            }
+          },
+          "不支持的 CFG 条件": {
+            "count": 15,
+            "example": {
+              "path": "target/at91rm9200.cfg",
+              "message": "target/at91rm9200.cfg：不支持的 CFG 条件 { $_CPUTAPID == 0x15b0203f }"
+            }
+          },
+          "不支持的 CFG 目标事件": {
+            "count": 10,
+            "example": {
+              "path": "target/at91sam4lXX.cfg",
+              "message": "target/at91sam4lXX.cfg：不支持的 CFG 目标事件 reset-deassert-post"
+            }
+          },
+          "不支持的 CFG 参数": {
+            "count": 10,
+            "example": {
+              "path": "target/bluenrg-x.cfg",
+              "message": "target/bluenrg-x.cfg：不支持的 CFG 参数 -expected-id"
+            }
+          },
+          "CFG 仅支持有限的 if/else": {
+            "count": 3,
+            "example": {
+              "path": "target/fm4.cfg",
+              "message": "target/fm4.cfg：CFG 仅支持有限的 if/else 语法"
+            }
+          },
+          "CFG 变量 _CHIPNAME": {
+            "count": 4,
+            "example": {
+              "path": "target/nds32v2.cfg",
+              "message": "target/nds32v2.cfg：CFG 变量 _CHIPNAME 尚未定义"
+            }
+          }
+        }
+      }
+    }
+  },
+  "browserSource": {
+    "atmel": {
+      "kind": "board",
+      "family": "cortex-m",
+      "target": "SAM4E16E.cpu",
+      "clockKhz": 500,
+      "workAreaBase": 536870912,
+      "workAreaSize": 16384,
+      "ignored": [
+        "SRST 引脚延时",
+        "Flash bank"
+      ],
+      "sourced": [
+        "target/at91sam4sXX.cfg",
+        "target/at91sam4XXX.cfg"
+      ],
+      "arch": "arm",
+      "dpidr": 1268778103,
+      "name": "board/atmel_sam4e_ek.cfg"
+    },
+    "nordic": {
+      "kind": "target",
+      "family": "nrf52",
+      "target": "nrf52.cpu",
+      "clockKhz": 1000,
+      "workAreaBase": 536870912,
+      "workAreaSize": 16384,
+      "ignored": [
+        "nRF52 AP 锁检测及擦除解锁命令",
+        "Flash bank"
+      ],
+      "arch": "arm",
+      "dpidr": 731911287,
+      "name": "nrf52.cfg"
+    },
+    "nordicBoard": {
+      "kind": "board",
+      "family": "nrf52",
+      "target": "nrf52.cpu",
+      "clockKhz": 1000,
+      "workAreaBase": 536870912,
+      "workAreaSize": 16384,
+      "ignored": [
+        "板载 J-Link 接口（使用 WebUSB CMSIS-DAP）",
+        "Flash bank",
+        "nRF52 AP 锁检测及擦除解锁命令"
+      ],
+      "arch": "arm",
+      "dpidr": 731911287,
+      "name": "nordic_nrf52_dk.cfg"
+    },
+    "stm32": {
+      "selected": "stm32h7",
+      "stm32Options": 19,
+      "activeCfg": null,
+      "keptCfg": "nordic_nrf52_dk.cfg",
+      "manualClockVisible": true,
+      "selectedTarget": "stm32h7"
+    },
+    "gd32": {
+      "kind": "target",
+      "family": "riscv",
+      "target": "gd32vf103.cpu",
+      "clockKhz": 1000,
+      "workAreaBase": 536870912,
+      "workAreaSize": 6144,
+      "ignored": [
+        "Flash bank",
+        "GD32VF103 调试冻结事件"
+      ],
+      "arch": "riscv",
+      "tapIdcode": 268457533,
+      "irLength": 5,
+      "hart": 0,
+      "name": "gd32vf103.cfg"
+    },
+    "generic": {
+      "kind": "target",
+      "family": "riscv",
+      "target": "test.cpu",
+      "clockKhz": 1500,
+      "ignored": [],
+      "sourced": [
+        "rv_sim.cfg"
+      ],
+      "arch": "riscv",
+      "tapIdcode": 305419897,
+      "irLength": 6,
+      "hart": 2,
+      "name": "rv_board.cfg"
+    },
+    "connected": {
+      "tap": 305419897,
+      "ir": 6,
+      "hart": 2,
+      "dmiBits": 40,
+      "tck": 1500000,
+      "halted": true
+    },
+    "main": {
+      "pc": 536871168,
+      "loc": 7,
+      "a0": 0,
+      "halted": true,
+      "highlight": 7,
+      "source": true
+    },
+    "steps": [
+      {
+        "pc": 536871172,
+        "loc": 9,
+        "a0": 1,
+        "halted": true,
+        "highlight": 9,
+        "source": true
+      },
+      {
+        "pc": 536871176,
+        "loc": 11,
+        "a0": 2,
+        "halted": true,
+        "highlight": 11,
+        "source": true
+      }
+    ],
+    "memory": {
+      "code": [
+        19,
+        5,
+        21,
+        0,
+        19,
+        5,
+        21,
+        0,
+        111,
+        0,
+        0,
+        0
+      ],
+      "sbaWrites": 3,
+      "flashPristine": true,
+      "targetResets": false
+    },
+    "passed": true
+  },
+  "browserBundle": [
+    {
+      "cfg": {
+        "kind": "board",
+        "family": "stm32f1",
+        "target": "stm32f1x.cpu",
+        "clockKhz": 1000,
+        "workAreaBase": 536870912,
+        "workAreaSize": 32768,
+        "ignored": [
+          "Flash bank",
+          "SRST 引脚延时",
+          "STM32F1 调试冻结事件",
+          "TPIU / trace 设置",
+          "板卡外部 FSMC 初始化"
+        ],
+        "sourced": [
+          "target/stm32f1x.cfg"
+        ],
+        "arch": "arm",
+        "dpidr": 463475831,
+        "name": "board/stm3210e_eval.cfg"
+      },
+      "connected": false,
+      "bundle": true
+    },
+    {
+      "cfg": {
+        "kind": "board",
+        "family": "cortex-m",
+        "target": "SAM4E16E.cpu",
+        "clockKhz": 500,
+        "workAreaBase": 536870912,
+        "workAreaSize": 16384,
+        "ignored": [
+          "SRST 引脚延时",
+          "Flash bank"
+        ],
+        "sourced": [
+          "target/at91sam4sXX.cfg",
+          "target/at91sam4XXX.cfg"
+        ],
+        "arch": "arm",
+        "dpidr": 1268778103,
+        "name": "board/atmel_sam4e_ek.cfg"
+      },
+      "connected": false,
+      "bundle": true
+    }
+  ],
+  "offline": {
+    "webTestsPassed": 271,
+    "cliTestsPassed": 9
+  },
+  "hardwareAccessed": false
+}

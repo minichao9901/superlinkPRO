@@ -1,0 +1,86 @@
+{
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "openocd": "9f2d8762b3a75b4d7b2155affcf3d8bb8eb8849a",
+  "sdk": "1.11.0",
+  "board": "HPM6800EVK",
+  "probe": "akaLinkPro, CMSIS-DAP v2 FW 2.1.2",
+  "transport": "OpenOCD Wasm / WebUSB CMSIS-DAP v2, JTAG 8000 kHz",
+  "nativeOpenOcdUsed": false,
+  "cfg": "hpm6800_all_in_one.cfg · hpm6880.cpu0 · JTAG 8000 kHz · TAP 0x1000563d · IR 5 · hart 0",
+  "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+  "wasmSha256": "257f4ffc396ce941e55331eb689be18a7b84a7a0dd10e12ede22fabe37a3f16e",
+  "program": {
+    "entry": 2147495936,
+    "main": 2147507066,
+    "sectorSize": 4096,
+    "size": 16777216,
+    "verified": [
+      {
+        "bytes": 8192,
+        "first": 0,
+        "last": 1,
+        "offset": 0,
+        "sha256": "0d7d74cd70ae0078563ebcdaf12472d28a4620285a2d4f2cc06bbb8af08a94a7"
+      },
+      {
+        "bytes": 45056,
+        "first": 3,
+        "last": 13,
+        "offset": 12288,
+        "sha256": "a907f5ce642401165e5700b0c542bf1eb8a5f00ff994a06b818b4f448fd0d2d3"
+      }
+    ]
+  },
+  "firstReset": {
+    "commandError": "OpenOCD 操作超时：Info : [hpm6880.cpu0] Discarding values of dirty registers.",
+    "reconnected": true,
+    "samples": [
+      {
+        "pc": 2147506974,
+        "magic": 1396920144,
+        "tick": 882306
+      },
+      {
+        "pc": 2147507254,
+        "magic": 1396920144,
+        "tick": 885416
+      }
+    ]
+  },
+  "secondReset": {
+    "reverified": {
+      "bytes": 47856,
+      "entry": 2147495936,
+      "main": 2147507066
+    },
+    "commandError": "Info : [hpm6880.cpu0] Hart unexpectedly reset!\nError: [hpm6880.cpu0] Register ra is dirty!\nError: [hpm6880.cpu0] Register fp is dirty!\nError: [hpm6880.cpu0] Register s1 is dirty!\nError: [hpm6880.cpu0] Register a0 is dirty!\nError: [hpm6880.cpu0] Register a1 is dirty!\nInfo : [hpm6880.cpu0] BUG: Registers should not be dirty while the target is not halted!\nError: [hpm6880.cpu0] No harts were prepped!\nhpm6880.cpu0 halted due to breakpoint.\n",
+    "disconnected": true
+  },
+  "verifiedReset": {
+    "reverified": {
+      "bytes": 47856,
+      "entry": 2147495936,
+      "main": 2147507066
+    },
+    "boot": {
+      "dmcontrol": 1,
+      "dmstatus": 5180578,
+      "running": true
+    },
+    "application": [
+      {
+        "pc": 2147506974,
+        "magic": 1396920144,
+        "tick": 8265
+      },
+      {
+        "pc": 2147506974,
+        "magic": 1396920144,
+        "tick": 19244
+      }
+    ],
+    "disconnected": true,
+    "passed": true
+  },
+  "passed": true
+}

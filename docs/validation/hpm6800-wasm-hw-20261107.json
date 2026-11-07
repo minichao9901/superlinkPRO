@@ -1,0 +1,71 @@
+{
+  "elfSha256": "7a4113350766f453f475e731b3ec7d24a3be08776983793e169dece85cac26f4",
+  "ilmRange": [
+    98304,
+    98324
+  ],
+  "wasmSha256": "257f4ffc396ce941e55331eb689be18a7b84a7a0dd10e12ede22fabe37a3f16e",
+  "connected": {
+    "backend": "OpenOCD Wasm / WebUSB",
+    "bpCap": 8,
+    "bps": [],
+    "clockKhz": 8000,
+    "connected": true,
+    "elf": null,
+    "halted": false,
+    "lastStepMode": null,
+    "lastStepOk": null,
+    "memAddr": "0x00000000",
+    "memLen": 0,
+    "outLines": 36,
+    "pc": 0,
+    "regs": 0,
+    "rtt": null,
+    "src": {
+      "cur": null,
+      "files": 6,
+      "ready": true,
+      "shown": 0
+    },
+    "symRows": 0,
+    "watch": [],
+    "watching": true
+  },
+  "ilmReadback": "130500006f00400013051500130515006f000000",
+  "misa": 1083445549,
+  "main": {
+    "pc": 98312,
+    "line": 14,
+    "a0": 0,
+    "source": "hpm6800_ram.S"
+  },
+  "steps": [
+    {
+      "pc": 98316,
+      "line": 16,
+      "a0": 1,
+      "source": "hpm6800_ram.S"
+    },
+    {
+      "pc": 98320,
+      "line": 18,
+      "a0": 2,
+      "source": "hpm6800_ram.S"
+    }
+  ],
+  "disconnected": true,
+  "passed": true,
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "openocd": "9f2d8762b3a75b4d7b2155affcf3d8bb8eb8849a",
+  "browser": "Chrome 156.0.8078.48",
+  "probe": "akaLinkPro, CMSIS-DAP v2 FW 2.1.2",
+  "board": "HPM6800EVK",
+  "sdk": "1.11.0",
+  "cfg": "boards/openocd/hpm6800_all_in_one.cfg",
+  "tap": "0x1000563d",
+  "jtagKhz": 8000,
+  "target": "hpm6880.cpu0",
+  "nativeOpenOcdUsed": false,
+  "flashWrites": false,
+  "restoredOriginalRamOrRegisters": false
+}

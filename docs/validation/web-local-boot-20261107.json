@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "hardware": "not connected",
+  "file": {
+    "prompt": "请通过本地工作台打开",
+    "localLink": "http://127.0.0.1:8899/",
+    "noModulePreload": true,
+    "noModuleError": true,
+    "entry": null,
+    "readyMs": 183,
+    "mainRequests": 0
+  },
+  "localhost": [
+    {
+      "entry": "source",
+      "active": "tab-dbg",
+      "secure": true,
+      "webusb": true,
+      "cfg": "导入 OpenOCD CFG…",
+      "ram": "下载到 RAM 并调试",
+      "connected": false,
+      "error": null
+    },
+    {
+      "entry": "bundle",
+      "active": "tab-dbg",
+      "secure": true,
+      "webusb": true,
+      "cfg": "导入 OpenOCD CFG…",
+      "ram": "下载到 RAM 并调试",
+      "connected": false,
+      "error": null
+    }
+  ],
+  "httpErrorFallback": true,
+  "indexSha256": "6f4a3df9873a1ea4c3c73d9554ac6c525b9da3ddf456ce050d5f6c4b8c573bae",
+  "bundleSha256": "4cf1785d6f56d10b175f6bebb9508378367bb79d69211dca16c005d94f76a1ba"
+}

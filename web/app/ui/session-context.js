@@ -2,6 +2,7 @@ import {SessionContext,sessionContextBusy} from '../core/session-context.js';
 import {store} from '../core/store.js';
 import {hpmBoard} from '../targets/hpm/porting.js';
 import {rememberHpmBoard} from '../targets/hpm/select.js';
+import {HPM_WASM_BOARD} from '../core/openocd-hpm-profile.js';
 
 /** Explicit reuse of local configuration. No synthetic change events or probe calls. */
 export function initSessionContext(tools){
@@ -15,20 +16,31 @@ export function initSessionContext(tools){
     if(page==='rtt'){const id=$('r-chip').value;return {id,arch:$('r-target').value==='riscv'?'riscv':'arm',label:option('r-chip')};}
     if(page==='dbg'){
       if($('d-backend').value==='mock')return null;
-      return $('d-backend').value==='riscv'?{id:$('d-hpm-target').value,arch:'riscv',label:option('d-hpm-target')}:generic(page,'arm');
+      if($('d-backend').value==='openocd')return {id:HPM_WASM_BOARD,arch:'riscv',label:hpmBoard(HPM_WASM_BOARD).name};
+      const cfg=tools.dbg._activeCfg?.();
+      if(cfg)return {id:`cfg:${cfg.name}:${cfg.target}:${cfg.dpidr??cfg.tapIdcode}:${cfg.hart??''}`,arch:cfg.arch,label:`CFG · ${cfg.target}`};
+      if($('d-backend').value==='riscv')return {id:$('d-hpm-target').value,arch:'riscv',label:option('d-hpm-target')};
+      const id=$('d-arm-target')?.value;
+      return id&&id!=='arm'?{id,arch:'arm',label:option('d-arm-target')}:{id:'arm',arch:'arm',label:'ARM / SWD（未绑定板型）'};
     }
     return generic(page,$('sc-target').value==='riscv'?'riscv':'arm');
   };
   const busy=()=>applying||sessionContextBusy(tools);
-  const publishTarget=selected=>{
+  const publishTarget=(selected,previous)=>{
     // A generic architecture selection cannot erase a more precise session
     // board. The page itself remains explicitly unbound until adoption.
-    if(selected.id===selected.arch&&context.target?.arch===selected.arch&&context.target.id!==selected.id)return;
+    const clearsCfg=previous?.id.startsWith('cfg:')&&context.target?.id===previous.id;
+    if(!clearsCfg&&selected.id===selected.arch&&context.target?.arch===selected.arch&&context.target.id!==selected.id)return;
     context.setTarget(selected);
   };
-  const supports=(page,target)=>page==='flash'||page==='rtt'
-    ? [...$(prefix[page]+'-chip').options].some(o=>o.value===target.id)
-    : page!=='dbg'||target.arch==='arm'||[...$('d-hpm-target').options].some(o=>o.value===target.id);
+  const supports=(page,target)=>{
+    if(target.id.startsWith('cfg:'))return false;
+    if(page==='flash'||page==='rtt')return [...$(prefix[page]+'-chip').options].some(o=>o.value===target.id);
+    if(page!=='dbg')return true;
+    if(target.id===HPM_WASM_BOARD)return true;
+    const id=target.arch==='arm'?'d-arm-target':'d-hpm-target';
+    return [...($(id)?.options||[])].some(o=>o.value===target.id);
+  };
   const sameTarget=(page,target)=>{
     const local=readTarget(page);
     return local?.arch===target.arch&&local.id===target.id;
@@ -44,6 +56,7 @@ export function initSessionContext(tools){
     if(page==='dbg'){
       view.sym=null;view.session.sym=null;view.elfName='';view.session.bps=[];view.session.bpNotes.clear();
       view.session.regs=[];view.faultPanel?.invalidate('目标配置已变更');
+      view._memAddrStale=true;view.mem=new Uint8Array(0);view.renderMem?.();
       view.watch.items=[];view.renderElfInfo();view.renderBps();view.renderWatch();
     }
     if(page==='flash'){view.file=null;view._fileInfo();view.inspector?.clear();}
@@ -57,8 +70,11 @@ export function initSessionContext(tools){
       store.set(target.arch==='riscv'?'rtt.rvChip':'rtt.armChip',target.id);tools.rtt._applyTargetUi();
     }
     if(page==='dbg'){
-      $('d-backend').value=target.arch==='riscv'?'riscv':'webusb';store.set('dbg.backend',$('d-backend').value);
-      if(target.arch==='riscv'){$('d-hpm-target').value=target.id;store.set('dbg.rvTarget',target.id);}
+      $('d-backend').value=target.id===HPM_WASM_BOARD?'openocd':target.arch==='riscv'?'riscv':'webusb';store.set('dbg.backend',$('d-backend').value);
+      if(target.arch==='riscv'){
+        if(target.id!==HPM_WASM_BOARD){$('d-hpm-target').value=target.id;store.set('dbg.rvTarget',target.id);}
+      }
+      else if($('d-arm-target')){$('d-arm-target').value=target.id;store.set('dbg.armTarget',target.id);}
       await tools.dbg._syncBackend();
     }
     if(page==='scope'){
@@ -134,14 +150,17 @@ export function initSessionContext(tools){
       context.publishElf(bytes,name,page,selected).then(elf=>{if(elf){view.sharedElfSha=elf.sha256;elfBindings.set(page,{...elf,targetId:readTarget(page)?.id});render();}})
         .catch(error=>{note.textContent='共享 ELF：'+error.message;});
     };
-    const ids={flash:['f-chip'],dbg:['d-backend','d-hpm-target'],rtt:['r-target','r-chip'],scope:['sc-target']}[page];
-    for(const id of ids)$(id).addEventListener('change',()=>{
+    const ids={flash:['f-chip'],dbg:['d-backend','d-arm-target','d-hpm-target'],rtt:['r-target','r-chip'],scope:['sc-target']}[page];
+    const targetChanged=()=>{
       const previous=localTargets.get(page),selected=readTarget(page);
       if(selected){
         if(!busy()&&(previous?.id!==selected.id||previous?.arch!==selected.arch))invalidate(page);
-        localTargets.set(page,{...selected});publishTarget(selected);
+        localTargets.set(page,{...selected});publishTarget(selected,previous);
       }
-    });
+      render();
+    };
+    for(const id of ids)$(id)?.addEventListener('change',targetChanged);
+    if(page==='dbg')view.onTargetConfigChanged=targetChanged;
   }
   context.subscribe(render);context.setTarget(readTarget('flash'));
   const timer=setInterval(render,750);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});

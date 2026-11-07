@@ -1664,219 +1664,219 @@
       "methodSourceHints": [
         {
           "name": "onShow",
-          "line": 267
+          "line": 268
         },
         {
           "name": "zoomToPoints",
-          "line": 302
+          "line": 303
         },
         {
           "name": "connectHid",
-          "line": 314
+          "line": 315
         },
         {
           "name": "connectUsb",
-          "line": 390
+          "line": 391
         },
         {
           "name": "releaseProbe",
-          "line": 443
+          "line": 444
         },
         {
           "name": "disconnect",
-          "line": 482
+          "line": 483
         },
         {
           "name": "setMock",
-          "line": 496
+          "line": 497
         },
         {
           "name": "loadElfFile",
-          "line": 523
+          "line": 524
         },
         {
           "name": "addArrayElement",
-          "line": 564
+          "line": 565
         },
         {
           "name": "renderVars",
-          "line": 589
+          "line": 590
         },
         {
           "name": "toggleVar",
-          "line": 627
+          "line": 628
         },
         {
           "name": "updatePlan",
-          "line": 638
+          "line": 639
         },
         {
           "name": "mockVars",
-          "line": 728
+          "line": 729
         },
         {
           "name": "periodUs",
-          "line": 733
-        },
-        {
-          "name": "rateAdvice",
           "line": 734
         },
         {
+          "name": "rateAdvice",
+          "line": 735
+        },
+        {
           "name": "rateWarning",
-          "line": 738
+          "line": 739
         },
         {
           "name": "seconds",
-          "line": 745
+          "line": 746
         },
         {
           "name": "start",
-          "line": 748
+          "line": 749
         },
         {
           "name": "confirmTargetArchitecture",
-          "line": 779
+          "line": 780
         },
         {
           "name": "applyCaptureClock",
-          "line": 786
+          "line": 787
         },
         {
           "name": "stop",
-          "line": 1084
+          "line": 1123
         },
         {
           "name": "applyTargetType",
-          "line": 1139
+          "line": 1181
         },
         {
           "name": "setBackend",
-          "line": 1196
+          "line": 1239
         },
         {
           "name": "benchKeyOf",
-          "line": 1257
+          "line": 1300
         },
         {
           "name": "benchFresh",
-          "line": 1274
+          "line": 1317
         },
         {
           "name": "benchKeyWhy",
-          "line": 1283
+          "line": 1326
         },
         {
           "name": "uiBackend",
-          "line": 1308
+          "line": 1351
         },
         {
           "name": "fastWordUs",
-          "line": 1322
+          "line": 1365
         },
         {
           "name": "planClockMhz",
-          "line": 1328
+          "line": 1371
         },
         {
           "name": "planEstimateUs",
-          "line": 1333
+          "line": 1376
         },
         {
           "name": "recPeriodUsFor",
-          "line": 1338
+          "line": 1381
         },
         {
           "name": "bench",
-          "line": 1354
+          "line": 1397
         },
         {
           "name": "applyRecPeriod",
-          "line": 1431
+          "line": 1474
         },
         {
           "name": "isReal",
-          "line": 1446
+          "line": 1489
         },
         {
           "name": "signed",
-          "line": 1447
+          "line": 1490
         },
         {
           "name": "hidXfer",
-          "line": 1448
+          "line": 1491
         },
         {
           "name": "configureScope",
-          "line": 1454
+          "line": 1497
         },
         {
           "name": "readScopeMetrics",
-          "line": 1465
+          "line": 1508
         },
         {
           "name": "onChunk",
-          "line": 1488
+          "line": 1533
         },
         {
           "name": "clear",
-          "line": 1639
+          "line": 1680
         },
         {
           "name": "trigCfg",
-          "line": 1658
+          "line": 1699
         },
         {
           "name": "applyTrigger",
-          "line": 1669
-        },
-        {
-          "name": "findNextTrigger",
-          "line": 1694
-        },
-        {
-          "name": "clearTrigger",
           "line": 1710
         },
         {
+          "name": "findNextTrigger",
+          "line": 1735
+        },
+        {
+          "name": "clearTrigger",
+          "line": 1751
+        },
+        {
           "name": "exportCsv",
-          "line": 1718
+          "line": 1759
         },
         {
           "name": "saveRaw",
-          "line": 1737
+          "line": 1778
         },
         {
           "name": "replayFile",
-          "line": 1745
+          "line": 1786
         },
         {
           "name": "setStatusText",
-          "line": 1784
+          "line": 1825
         },
         {
           "name": "syncButtons",
-          "line": 1791
+          "line": 1832
         },
         {
           "name": "drawFrame",
-          "line": 1818
+          "line": 1859
         },
         {
           "name": "renderLegend",
-          "line": 1875
+          "line": 1916
         },
         {
           "name": "summary",
-          "line": 1898
+          "line": 1939
         },
         {
           "name": "if",
-          "line": 1944
+          "line": 1985
         },
         {
           "name": "if",
-          "line": 1945
+          "line": 1986
         }
       ]
     },
@@ -1931,12 +1931,28 @@
               "label": "SWD / ARM"
             },
             {
+              "value": "openocd",
+              "label": "HPM6800EVK · OpenOCD Wasm / WebUSB"
+            },
+            {
               "value": "riscv",
-              "label": "JTAG / RISC-V"
+              "label": "其它 RISC-V / JTAG"
             },
             {
               "value": "mock",
               "label": "模拟目标"
+            }
+          ]
+        },
+        {
+          "id": "d-arm-target",
+          "tag": "select",
+          "type": null,
+          "label": "选择内置 STM32 预设、通用 Cortex-M，或已导入的 CFG",
+          "options": [
+            {
+              "value": "arm",
+              "label": "通用 ARM / SWD"
             }
           ]
         },
@@ -1984,6 +2000,43 @@
           ]
         },
         {
+          "id": "d-cfg-pick",
+          "tag": "button",
+          "type": null,
+          "label": "导入 Cortex-M/SWD 或 RISC-V/JTAG 的 target/board CFG"
+        },
+        {
+          "id": "d-cfg-clear",
+          "tag": "button",
+          "type": null,
+          "label": "清除 CFG"
+        },
+        {
+          "id": "d-cfg-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "d-cfg-dir-pick",
+          "tag": "button",
+          "type": null,
+          "label": "选择包含 board、target 等依赖文件的 OpenOCD 脚本目录"
+        },
+        {
+          "id": "d-cfg-dir",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "d-cfg-entry",
+          "tag": "select",
+          "type": null,
+          "label": "入口 CFG",
+          "options": []
+        },
+        {
           "id": "d-connect",
           "tag": "button",
           "type": null,
@@ -2003,6 +2056,18 @@
         },
         {
           "id": "d-elf-file",
+          "tag": "input",
+          "type": "file",
+          "label": ""
+        },
+        {
+          "id": "d-ram-debug",
+          "tag": "button",
+          "type": null,
+          "label": "将 RAM 版 ELF 下载到已验证的片上 SRAM，并停在 main"
+        },
+        {
+          "id": "d-ram-elf",
           "tag": "input",
           "type": "file",
           "label": ""
@@ -2435,187 +2500,187 @@
       "methodSourceHints": [
         {
           "name": "initSidebar",
-          "line": 301
+          "line": 362
         },
         {
           "name": "selectSidebar",
-          "line": 315
+          "line": 376
         },
         {
           "name": "renderElfInfo",
-          "line": 321
+          "line": 382
         },
         {
           "name": "onShow",
-          "line": 330
+          "line": 391
         },
         {
           "name": "connect",
-          "line": 496
+          "line": 695
         },
         {
           "name": "disconnect",
-          "line": 560
-        },
-        {
-          "name": "refreshAll",
-          "line": 620
-        },
-        {
-          "name": "afterStop",
-          "line": 634
-        },
-        {
-          "name": "renderRegs",
-          "line": 678
-        },
-        {
-          "name": "presentBacktrace",
           "line": 780
         },
         {
+          "name": "refreshAll",
+          "line": 841
+        },
+        {
+          "name": "afterStop",
+          "line": 855
+        },
+        {
+          "name": "renderRegs",
+          "line": 899
+        },
+        {
+          "name": "presentBacktrace",
+          "line": 1001
+        },
+        {
           "name": "presentSelectedFrame",
-          "line": 799
+          "line": 1020
         },
         {
           "name": "presentLocals",
-          "line": 805
+          "line": 1026
         },
         {
           "name": "renderDwt",
-          "line": 819
+          "line": 1040
         },
         {
           "name": "renderBps",
-          "line": 832
+          "line": 1053
         },
         {
           "name": "readMem",
-          "line": 866
+          "line": 1087
         },
         {
           "name": "renderMem",
-          "line": 900
+          "line": 1121
         },
         {
           "name": "writeMemEdit",
-          "line": 958
+          "line": 1179
         },
         {
           "name": "pickImageDirectory",
-          "line": 1090
+          "line": 1311
         },
         {
           "name": "runLine",
-          "line": 1101
+          "line": 1322
         },
         {
           "name": "loadElfBuffer",
-          "line": 1243
+          "line": 1483
         },
         {
           "name": "loadBundledSvd",
-          "line": 1317
+          "line": 1560
         },
         {
           "name": "loadSvdText",
-          "line": 1343
+          "line": 1586
         },
         {
           "name": "renderSyms",
-          "line": 1497
+          "line": 1740
         },
         {
           "name": "addWatch",
-          "line": 1568
+          "line": 1811
         },
         {
           "name": "delWatch",
-          "line": 1589
+          "line": 1832
         },
         {
           "name": "watchItems",
-          "line": 1596
+          "line": 1839
         },
         {
           "name": "clearWatch",
-          "line": 1600
+          "line": 1843
         },
         {
           "name": "refreshWatch",
-          "line": 1608
+          "line": 1851
         },
         {
           "name": "renderWatch",
-          "line": 1658
+          "line": 1901
         },
         {
           "name": "pickSourceDir",
-          "line": 1764
+          "line": 2007
         },
         {
           "name": "renderSource",
-          "line": 1831
+          "line": 2074
         },
         {
           "name": "toggleSourceBp",
-          "line": 1924
+          "line": 2167
         },
         {
           "name": "runToLine",
-          "line": 1942
+          "line": 2185
         },
         {
           "name": "stepOver",
-          "line": 1979
+          "line": 2222
         },
         {
           "name": "stepInto",
-          "line": 1981
+          "line": 2224
         },
         {
           "name": "stepOut",
-          "line": 1983
+          "line": 2226
         },
         {
           "name": "showSource",
-          "line": 1992
+          "line": 2235
         },
         {
           "name": "rttStart",
-          "line": 2032
+          "line": 2275
         },
         {
           "name": "rttStop",
-          "line": 2077
+          "line": 2320
         },
         {
           "name": "rttClear",
-          "line": 2084
+          "line": 2327
         },
         {
           "name": "summary",
-          "line": 2104
+          "line": 2347
         },
         {
           "name": "for",
-          "line": 2137
+          "line": 2380
         },
         {
           "name": "if",
-          "line": 2143
+          "line": 2386
         },
         {
           "name": "if",
-          "line": 2144
+          "line": 2387
         },
         {
           "name": "if",
-          "line": 2145
+          "line": 2388
         },
         {
           "name": "if",
-          "line": 2146
+          "line": 2389
         }
       ]
     },
@@ -7331,16 +7396,24 @@
       ],
       "methodSourceHints": [
         {
+          "name": "if",
+          "line": 4
+        },
+        {
+          "name": "if",
+          "line": 9
+        },
+        {
           "name": "onShow",
-          "line": 5
+          "line": 15
         },
         {
           "name": "refresh",
-          "line": 6
+          "line": 16
         },
         {
           "name": "summary",
-          "line": 30
+          "line": 39
         }
       ]
     }

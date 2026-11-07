@@ -1,0 +1,312 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "sourceDirty": true,
+  "bundleSha256": "747c1dc583473b9863aa284ab451e2f22515bc6d2e1417191707177a51a8c2f0",
+  "rvElfSha256": "e51cf9ece0140a082e690e2cb53ceca7c3ddc59447d4944358b44cac40920baa",
+  "cfgInputs": [
+    {
+      "url": "https://raw.githubusercontent.com/openocd-org/openocd/v0.12.0/tcl/target/nrf52.cfg",
+      "sha256": "c8b7c25e121061908541529c55ff5e2fccee0ebc2614f7ab2e30400fb15e37dd"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/openocd-org/openocd/v0.12.0/tcl/board/nordic_nrf52_dk.cfg",
+      "sha256": "900aba890d19238402068d93e5cd0203e735e8871e12901265d022ce6d7091bf"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/openocd-org/openocd/v0.12.0/tcl/target/gd32vf103.cfg",
+      "sha256": "ad3058974e15e3f99c3b82bbd6391073865d7080091f5fc45592218998281b04"
+    }
+  ],
+  "browserWithSimulatedProbeAndTarget": {
+    "nordic": {
+      "kind": "target",
+      "family": "nrf52",
+      "target": "nrf52.cpu",
+      "clockKhz": 1000,
+      "workAreaBase": 536870912,
+      "workAreaSize": 16384,
+      "ignored": [
+        "nRF52 AP 锁检测及擦除解锁命令",
+        "Flash bank"
+      ],
+      "arch": "arm",
+      "dpidr": 731911287,
+      "name": "nrf52.cfg"
+    },
+    "nordicBoard": {
+      "kind": "board",
+      "family": "nrf52",
+      "target": "nrf52.cpu",
+      "clockKhz": 1000,
+      "workAreaBase": 536870912,
+      "workAreaSize": 16384,
+      "ignored": [
+        "板载 J-Link 接口（使用 WebUSB CMSIS-DAP）",
+        "Flash bank",
+        "nRF52 AP 锁检测及擦除解锁命令"
+      ],
+      "arch": "arm",
+      "dpidr": 731911287,
+      "name": "nordic_nrf52_dk.cfg"
+    },
+    "stm32": {
+      "selected": "stm32h7",
+      "stm32Options": 19,
+      "activeCfg": null,
+      "keptCfg": "nordic_nrf52_dk.cfg",
+      "manualClockVisible": true,
+      "selectedTarget": "stm32h7"
+    },
+    "gd32": {
+      "kind": "target",
+      "family": "riscv",
+      "target": "gd32vf103.cpu",
+      "clockKhz": 1000,
+      "workAreaBase": 536870912,
+      "workAreaSize": 6144,
+      "ignored": [
+        "Flash bank",
+        "GD32VF103 调试冻结事件"
+      ],
+      "arch": "riscv",
+      "tapIdcode": 268457533,
+      "irLength": 5,
+      "hart": 0,
+      "name": "gd32vf103.cfg"
+    },
+    "generic": {
+      "kind": "target",
+      "family": "riscv",
+      "target": "test.cpu",
+      "clockKhz": 1500,
+      "ignored": [],
+      "arch": "riscv",
+      "tapIdcode": 305419897,
+      "irLength": 6,
+      "hart": 2,
+      "name": "rv_sim.cfg"
+    },
+    "connected": {
+      "tap": 305419897,
+      "ir": 6,
+      "hart": 2,
+      "dmiBits": 40,
+      "tck": 1500000,
+      "halted": true
+    },
+    "main": {
+      "pc": 536871168,
+      "loc": 7,
+      "a0": 0,
+      "halted": true,
+      "highlight": 7,
+      "source": true
+    },
+    "steps": [
+      {
+        "pc": 536871172,
+        "loc": 9,
+        "a0": 1,
+        "halted": true,
+        "highlight": 9,
+        "source": true
+      },
+      {
+        "pc": 536871176,
+        "loc": 11,
+        "a0": 2,
+        "halted": true,
+        "highlight": 11,
+        "source": true
+      }
+    ],
+    "memory": {
+      "code": [
+        19,
+        5,
+        21,
+        0,
+        19,
+        5,
+        21,
+        0,
+        111,
+        0,
+        0,
+        0
+      ],
+      "sbaWrites": 3,
+      "flashPristine": true,
+      "targetResets": false
+    },
+    "passed": true
+  },
+  "f103zeHardware": {
+    "builtInPreset": {
+      "bundle": true,
+      "before": {
+        "id": {
+          "dp": 463475831,
+          "cpuid": 1092600369,
+          "dev": 1044,
+          "flashKiB": 512
+        },
+        "clockHz": 1000000,
+        "fpb": {
+          "raw": 609,
+          "rev": 1,
+          "numCode": 6,
+          "numLit": 4,
+          "enabled": true
+        },
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "ramSha256": "0e6051dd0d740cbb635f6d68aa4734b7229d01183cc74144341f56b2cfcbc167"
+      },
+      "flashElfRejected": true,
+      "main": {
+        "pc": 536871264,
+        "main": 536871264,
+        "halted": true,
+        "line": 20,
+        "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+        "source": "ram_debug.c:20  main+0x0",
+        "sourceLoaded": true,
+        "highlightedLine": 20,
+        "marker": 0,
+        "originalInstruction": true
+      },
+      "steps": [
+        {
+          "pc": 536871286,
+          "main": 536871264,
+          "halted": true,
+          "line": 21,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:21  main+0x16",
+          "sourceLoaded": true,
+          "highlightedLine": 21,
+          "marker": 41,
+          "originalInstruction": true
+        },
+        {
+          "pc": 536871292,
+          "main": 536871264,
+          "halted": true,
+          "line": 22,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:22  main+0x1c",
+          "sourceLoaded": true,
+          "highlightedLine": 22,
+          "marker": 42,
+          "originalInstruction": true
+        }
+      ],
+      "cleanup": {
+        "sramRestored": true,
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "flashUnchanged": true,
+        "running": true
+      },
+      "passed": true
+    },
+    "officialCfg": {
+      "bundle": true,
+      "wrongDpidrRejected": true,
+      "cfg": {
+        "kind": "target",
+        "family": "stm32f1",
+        "target": "stm32f1x.cpu",
+        "clockKhz": 1000,
+        "workAreaBase": 536870912,
+        "workAreaSize": 4096,
+        "ignored": [
+          "Flash bank",
+          "SRST 引脚延时",
+          "STM32F1 调试冻结事件",
+          "TPIU / trace 设置"
+        ],
+        "arch": "arm",
+        "dpidr": 463475831,
+        "name": "stm32f1x.cfg",
+        "info": "stm32f1x.cfg · stm32f1x.cpu · SWD 1000 kHz · DPIDR 0x1ba01477",
+        "manualClock": "10000",
+        "clockRowHidden": true,
+        "disconnected": true
+      },
+      "before": {
+        "id": {
+          "dp": 463475831,
+          "cpuid": 1092600369,
+          "dev": 1044,
+          "flashKiB": 512
+        },
+        "clockHz": 1000000,
+        "fpb": {
+          "raw": 609,
+          "rev": 1,
+          "numCode": 6,
+          "numLit": 4,
+          "enabled": true
+        },
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "ramSha256": "478f596d2fbdd37f86e077ea906528b4aa738ca8f3dffdb2fb86545b84982113"
+      },
+      "flashElfRejected": true,
+      "main": {
+        "pc": 536871264,
+        "main": 536871264,
+        "halted": true,
+        "line": 20,
+        "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+        "source": "ram_debug.c:20  main+0x0",
+        "sourceLoaded": true,
+        "highlightedLine": 20,
+        "marker": 0,
+        "originalInstruction": true
+      },
+      "steps": [
+        {
+          "pc": 536871286,
+          "main": 536871264,
+          "halted": true,
+          "line": 21,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:21  main+0x16",
+          "sourceLoaded": true,
+          "highlightedLine": 21,
+          "marker": 41,
+          "originalInstruction": true
+        },
+        {
+          "pc": 536871292,
+          "main": 536871264,
+          "halted": true,
+          "line": 22,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:22  main+0x1c",
+          "sourceLoaded": true,
+          "highlightedLine": 22,
+          "marker": 42,
+          "originalInstruction": true
+        }
+      ],
+      "cleanup": {
+        "sramRestored": true,
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "flashUnchanged": true,
+        "running": true
+      },
+      "passed": true
+    }
+  },
+  "offline": {
+    "webTestsPassed": 267,
+    "cliTestsPassed": 9
+  },
+  "notes": [
+    "RV32 and Nordic hardware pending",
+    "First RV32 browser attempt exposed stale PC and inherited memory address; retest fixed both.",
+    "A repeated browser run needed a distinct navigation URL; the final harness guarantees a fresh document."
+  ]
+}

@@ -125,9 +125,9 @@ export function bitsToUint(bytes, bitOffset, nbits){
 }
 
 // ---------------------------------------------------------------- DMI
-/** RISC-V DMI 请求的 41 位编码：op(2) | data(32) << 2 | addr(7) << 34 */
-export function dmiRequest(op, addr, data){
-  return (BigInt(op & 0x3)) | ((BigInt(data >>> 0)) << 2n) | ((BigInt(addr & 0x7f)) << 34n);
+/** RISC-V DMI 请求：op(2) | data(32) << 2 | addr(abits) << 34 */
+export function dmiRequest(op, addr, data, abits = 7){
+  return (BigInt(op & 0x3)) | ((BigInt(data >>> 0)) << 2n) | (BigInt(addr & ((1 << abits) - 1)) << 34n);
 }
 
 /** 解 41 位 DMI 响应 → { op, data } */

@@ -1,0 +1,487 @@
+{
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "board": "HPM6800EVK",
+  "fixture": {
+    "elfSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+    "cfg": "hpm6800_all_in_one.cfg · hpm6880.cpu0 · JTAG 8000 kHz · TAP 0x1000563d · IR 5 · hart 0",
+    "program": {
+      "entry": 2147495936,
+      "main": 2147505754,
+      "sectorSize": 4096,
+      "size": 16777216,
+      "verified": [
+        {
+          "bytes": 8192,
+          "first": 0,
+          "last": 1,
+          "offset": 0,
+          "sha256": "850097523422128e52c5a3c709a4316ea1ca04c542068f8a79dd7d17472c2da6"
+        },
+        {
+          "bytes": 45056,
+          "first": 3,
+          "last": 13,
+          "offset": 12288,
+          "sha256": "c549382d395c5e9802f7efb1ca0a4be999b7b20e32341bc68d50e44089acc624"
+        }
+      ]
+    },
+    "boot": {
+      "dmcontrol": 1,
+      "dmstatus": 5180578,
+      "running": true
+    },
+    "passed": true,
+    "disconnected": true
+  },
+  "native": {
+    "backend": "riscv",
+    "checks": {
+      "源码行断点与高亮": {
+        "passed": true,
+        "evidence": [
+          {
+            "pc": 2147506060,
+            "source": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/engine.c",
+              "line": 22
+            }
+          },
+          {
+            "pc": 2147508372,
+            "source": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/model.c",
+              "line": 123
+            }
+          }
+        ]
+      },
+      "四断点同时命中": {
+        "passed": true,
+        "evidence": [
+          2147506060,
+          2147506594,
+          2147506920,
+          2147508372,
+          2147506060,
+          2147506594,
+          2147506920,
+          2147508372
+        ]
+      },
+      "同一断点连续五次": {
+        "passed": true,
+        "evidence": {
+          "rounds": 5,
+          "pc": 2147506744
+        }
+      },
+      "19 步指令单步": {
+        "passed": true,
+        "evidence": [
+          2147506060,
+          2147506062,
+          2147506064,
+          2147506066,
+          2147506068,
+          2147506070,
+          2147506072,
+          2147506074,
+          2147506076,
+          2147506078,
+          2147506080,
+          2147506082,
+          2147506086,
+          2147506090,
+          2147506092,
+          2147506094,
+          2147506096,
+          2147506098,
+          2147506100,
+          2147506102
+        ]
+      },
+      "19 步源码跳过": {
+        "passed": true,
+        "evidence": [
+          2147506060,
+          2147506068,
+          2147506074,
+          2147506080,
+          2147506094,
+          2147506098,
+          2147506102,
+          2147506116,
+          2147506120,
+          2147506124,
+          2147506132,
+          2147506136,
+          2147506140,
+          2147506152,
+          2147506156,
+          2147506160,
+          2147506166,
+          2147506172,
+          2147506176,
+          2147506180
+        ]
+      },
+      "源码进入被调函数": {
+        "passed": true,
+        "evidence": [
+          2147506126,
+          2147506128,
+          2147506018
+        ]
+      },
+      "连续五次源码跳出": {
+        "passed": true,
+        "evidence": [
+          2147506454,
+          2147506496,
+          2147506532,
+          2147506572,
+          2147506604
+        ]
+      },
+      "复位并停后断点重命中": {
+        "passed": true,
+        "evidence": [
+          2147506060,
+          2147506060
+        ]
+      },
+      "复位并运行后断点命中": {
+        "passed": true,
+        "evidence": [
+          2147506060,
+          2147506060
+        ]
+      },
+      "RAM 结构体、位域和异常路径": {
+        "passed": true,
+        "evidence": [
+          "g_model @ 0x01240060  :  struct（352 字节，97 行）",
+          "g_model.flags.bits.level @ 0x0124006c  :  long unsigned int 位域[bit 1 · 3 位] = 3  (0x3)",
+          "g_model.flags.sbits.bias @ 0x01240074  :  long int 位域[bit 0 · 6 位] 有符号 = -3  (0x3d)",
+          "g_model.nodes[1].cell.scale @ 0x012400c8  :  double = 1.00000",
+          "g_model.word.halves.hi @ 0x0124007e  :  short unsigned int = 16256  (0x3f80)",
+          "g_model.tag @ 0x012401b6  :  array（8 字节，9 行）",
+          "「g_model.nodes[9]」：下标 [9] 越界（数组只有 4 项）",
+          "「g_model.nosuchmember」：没有成员「nosuchmember」（model_t 里有：magic · mode · flags · word · nodes · head · grid · matrix · label · blob · delta · tag）"
+        ]
+      },
+      "XIP 常量结构体": {
+        "passed": true,
+        "evidence": [
+          2147508372,
+          "g_model_const @ 0x8000d540  :  struct（352 字节，97 行）"
+        ]
+      },
+      "三类监视表达式": {
+        "passed": true,
+        "evidence": [
+          {
+            "addr": 19136608,
+            "error": null,
+            "expr": "g_model",
+            "value": "{magic=1297040453, mode=2, word=2445500261, on : 1=1  (0x1), …}"
+          },
+          {
+            "addr": 19136620,
+            "error": null,
+            "expr": "g_model.flags.bits.level",
+            "value": "2  (0x2)"
+          },
+          {
+            "addr": 19136752,
+            "error": null,
+            "expr": "g_model.nodes[2].cell.scale",
+            "value": "2.02062"
+          }
+        ]
+      },
+      "40 轮停走压力": {
+        "passed": true,
+        "evidence": {
+          "rounds": 40,
+          "pc": 2147506974
+        }
+      }
+    },
+    "session": "RISC-V/JTAG",
+    "clockKhz": 8000,
+    "trapCount": 0,
+    "pageErrors": [],
+    "disconnected": true
+  },
+  "wasmIsolated": {
+    "backend": "openocd",
+    "checks": {
+      "源码行断点与高亮": {
+        "passed": true,
+        "evidence": [
+          {
+            "pc": 2147506060,
+            "source": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/engine.c",
+              "line": 22
+            }
+          },
+          {
+            "pc": 2147508372,
+            "source": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/model.c",
+              "line": 123
+            }
+          }
+        ]
+      },
+      "四断点同时命中": {
+        "passed": true,
+        "evidence": [
+          2147506060,
+          2147506594,
+          2147506920,
+          2147508372,
+          2147506060,
+          2147506594,
+          2147506920,
+          2147508372
+        ]
+      },
+      "同一断点连续五次": {
+        "passed": true,
+        "evidence": {
+          "rounds": 5,
+          "pc": 2147506744
+        }
+      },
+      "19 步指令单步": {
+        "passed": true,
+        "evidence": [
+          2147506060,
+          2147506062,
+          2147506064,
+          2147506066,
+          2147506068,
+          2147506070,
+          2147506072,
+          2147506074,
+          2147506076,
+          2147506078,
+          2147506080,
+          2147506082,
+          2147506086,
+          2147506090,
+          2147506092,
+          2147506094,
+          2147506096,
+          2147506098,
+          2147506100,
+          2147506102
+        ]
+      },
+      "19 步源码跳过": {
+        "passed": false,
+        "error": "this.probe.writeMem is not a function"
+      },
+      "源码进入被调函数": {
+        "passed": true,
+        "evidence": [
+          2147506126,
+          2147506128,
+          2147506018
+        ]
+      },
+      "连续五次源码跳出": {
+        "passed": false,
+        "error": "this.probe.writeMem is not a function"
+      },
+      "复位并停后断点重命中": {
+        "passed": false,
+        "error": "OpenOCD Wasm RAM 会话禁用复位"
+      },
+      "复位并运行后断点命中": {
+        "passed": false,
+        "error": "OpenOCD Wasm RAM 会话禁用复位"
+      },
+      "RAM 结构体、位域和异常路径": {
+        "passed": true,
+        "evidence": [
+          "g_model @ 0x01240060  :  struct（352 字节，97 行）",
+          "g_model.flags.bits.level @ 0x0124006c  :  long unsigned int 位域[bit 1 · 3 位] = 5  (0x5)",
+          "g_model.flags.sbits.bias @ 0x01240074  :  long int 位域[bit 0 · 6 位] 有符号 = 14  (0xe)",
+          "g_model.nodes[1].cell.scale @ 0x012400c8  :  double = 1.08247",
+          "g_model.word.halves.hi @ 0x0124007e  :  short unsigned int = 4657  (0x1231)",
+          "g_model.tag @ 0x012401b6  :  array（8 字节，9 行）",
+          "「g_model.nodes[9]」：下标 [9] 越界（数组只有 4 项）",
+          "「g_model.nosuchmember」：没有成员「nosuchmember」（model_t 里有：magic · mode · flags · word · nodes · head · grid · matrix · label · blob · delta · tag）"
+        ]
+      },
+      "XIP 常量结构体": {
+        "passed": false,
+        "error": "OpenOCD RAM 会话不读取该地址范围"
+      },
+      "三类监视表达式": {
+        "passed": true,
+        "evidence": [
+          {
+            "addr": 19136608,
+            "error": null,
+            "expr": "g_model",
+            "value": "{magic=1297040453, mode=3, word=3721503960, on : 1=0  (0x0), …}"
+          },
+          {
+            "addr": 19136620,
+            "error": null,
+            "expr": "g_model.flags.bits.level",
+            "value": "4  (0x4)"
+          },
+          {
+            "addr": 19136752,
+            "error": null,
+            "expr": "g_model.nodes[2].cell.scale",
+            "value": "2.10309"
+          }
+        ]
+      },
+      "40 轮停走压力": {
+        "passed": true,
+        "evidence": {
+          "rounds": 40,
+          "pc": 2147506974
+        }
+      }
+    },
+    "session": "OpenOCD Wasm / WebUSB",
+    "clockKhz": 8000,
+    "trapCount": 0,
+    "pageErrors": [],
+    "disconnected": true
+  },
+  "wasmOriginalRun": {
+    "backend": "openocd",
+    "checks": {
+      "源码行断点与高亮": {
+        "passed": true,
+        "evidence": [
+          {
+            "pc": 2147506060,
+            "source": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/engine.c",
+              "line": 22
+            }
+          },
+          {
+            "pc": 2147508372,
+            "source": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/model.c",
+              "line": 123
+            }
+          }
+        ]
+      },
+      "四断点同时命中": {
+        "passed": true,
+        "evidence": [
+          2147506060,
+          2147506594,
+          2147506920,
+          2147508372,
+          2147506060,
+          2147506594,
+          2147506920,
+          2147508372
+        ]
+      },
+      "同一断点连续五次": {
+        "passed": true,
+        "evidence": {
+          "rounds": 5,
+          "pc": 2147506744
+        }
+      },
+      "19 步指令单步": {
+        "passed": true,
+        "evidence": [
+          2147506060,
+          2147506062,
+          2147506064,
+          2147506066,
+          2147506068,
+          2147506070,
+          2147506072,
+          2147506074,
+          2147506076,
+          2147506078,
+          2147506080,
+          2147506082,
+          2147506086,
+          2147506090,
+          2147506092,
+          2147506094,
+          2147506096,
+          2147506098,
+          2147506100,
+          2147506102
+        ]
+      },
+      "19 步源码跳过": {
+        "passed": false,
+        "error": "this.probe.writeMem is not a function"
+      },
+      "源码进入被调函数": {
+        "passed": true,
+        "evidence": [
+          2147506126,
+          2147506128,
+          2147506018
+        ]
+      },
+      "连续五次源码跳出": {
+        "passed": false,
+        "error": "this.probe.writeMem is not a function"
+      },
+      "复位并停后断点重命中": {
+        "passed": false,
+        "error": "Error: [hpm6880.cpu0] Duplicate Breakpoint address: 0x8000578c (BP 8)\n"
+      },
+      "复位并运行后断点命中": {
+        "passed": false,
+        "error": "Error: [hpm6880.cpu0] Duplicate Breakpoint address: 0x8000578c (BP 8)\n"
+      },
+      "RAM 结构体、位域和异常路径": {
+        "passed": true,
+        "evidence": [
+          "g_model @ 0x01240060  :  struct（352 字节，97 行）",
+          "g_model.flags.bits.level @ 0x0124006c  :  long unsigned int 位域[bit 1 · 3 位] = 2  (0x2)",
+          "g_model.flags.sbits.bias @ 0x01240074  :  long int 位域[bit 0 · 6 位] 有符号 = -20  (0x2c)",
+          "g_model.nodes[1].cell.scale @ 0x012400c8  :  double = 1.97938",
+          "g_model.word.halves.hi @ 0x0124007e  :  short unsigned int = 4657  (0x1231)",
+          "g_model.tag @ 0x012401b6  :  array（8 字节，9 行）",
+          "「g_model.nodes[9]」：下标 [9] 越界（数组只有 4 项）",
+          "「g_model.nosuchmember」：没有成员「nosuchmember」（model_t 里有：magic · mode · flags · word · nodes · head · grid · matrix · label · blob · delta · tag）"
+        ]
+      },
+      "XIP 常量结构体": {
+        "passed": false,
+        "error": "model_update: PC=0x8000578c, expected 0x80006094"
+      },
+      "三类监视表达式": {
+        "passed": false,
+        "error": "model_update: PC=0x800058d8, expected 0x80006094"
+      },
+      "40 轮停走压力": {
+        "passed": false,
+        "error": "第 2 轮落到 0x8000578c，期望 0x80005b1e"
+      }
+    },
+    "session": "OpenOCD Wasm / WebUSB",
+    "clockKhz": 8000,
+    "trapCount": 0,
+    "pageErrors": [],
+    "disconnected": true
+  },
+  "instructionStepSequenceMatch": true
+}

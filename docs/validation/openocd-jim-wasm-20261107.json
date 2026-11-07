@@ -1,0 +1,293 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "sourceDirty": true,
+  "openocdVersion": "v0.12.0",
+  "openocdRevision": "9ea7f3d647c8ecf6b0f1424002dfc3f4504a162c",
+  "jimTclRevision": "a77ef1a6218fad4c928ddbdc03c1aedc41007e70",
+  "emsdkVersion": "4.0.10",
+  "artifacts": {
+    "wasm": {
+      "bytes": 223625,
+      "sha256": "60a82d089f054f7c54904599318022031d0149eca39a8ec371181e4c891e4285"
+    },
+    "module": {
+      "bytes": 65062,
+      "sha256": "80e6bdf4649ba18497869de869fedfbd9723131045299fd73542fd4e3479d216"
+    }
+  },
+  "stm32h7": {
+    "code": 0,
+    "commands": 39,
+    "declarations": [
+      [
+        "swd",
+        "newdap",
+        "stm32h7x",
+        "cpu",
+        "-irlen",
+        "4",
+        "-ircapture",
+        "0x1",
+        "-irmask",
+        "0xf",
+        "-expected-id",
+        "0x6ba02477"
+      ],
+      [
+        "dap",
+        "create",
+        "stm32h7x.dap",
+        "-chain-position",
+        "stm32h7x.cpu"
+      ],
+      [
+        "target",
+        "create",
+        "stm32h7x.ap2",
+        "mem_ap",
+        "-dap",
+        "stm32h7x.dap",
+        "-ap-num",
+        "2"
+      ],
+      [
+        "target",
+        "create",
+        "stm32h7x.cpu0",
+        "cortex_m",
+        "-endian",
+        "little",
+        "-dap",
+        "stm32h7x.dap",
+        "-ap-num",
+        "0"
+      ],
+      [
+        "target",
+        "create",
+        "stm32h7x.cpu1",
+        "cortex_m",
+        "-endian",
+        "little",
+        "-dap",
+        "stm32h7x.dap",
+        "-ap-num",
+        "3"
+      ],
+      [
+        "adapter",
+        "speed",
+        "1800"
+      ],
+      [
+        "adapter",
+        "srst",
+        "delay",
+        "100"
+      ],
+      [
+        "cti",
+        "create",
+        "stm32h7x.cti0",
+        "-dap",
+        "stm32h7x.dap",
+        "-ap-num",
+        "0",
+        "-baseaddr",
+        "0xE0043000"
+      ],
+      [
+        "cti",
+        "create",
+        "stm32h7x.cti1",
+        "-dap",
+        "stm32h7x.dap",
+        "-ap-num",
+        "3",
+        "-baseaddr",
+        "0xE0043000"
+      ]
+    ],
+    "sourced": [
+      "/cfg/target/swj-dp.tcl",
+      "/cfg/mem_helper.tcl"
+    ],
+    "events": [
+      {
+        "target": "stm32h7x.cpu0",
+        "event": "examine-end",
+        "bodySha256": "4a78acc8f28d6adbb18ca9f1e603f427e8c1786c05c972f395fa1a71b0e4c2e2"
+      },
+      {
+        "target": "stm32h7x.cpu0",
+        "event": "reset-init",
+        "bodySha256": "713d0f284a1f9119931adc8df071f8bcbfa44ac401b887f2912ef4745d7deb35"
+      },
+      {
+        "target": "stm32h7x.cpu1",
+        "event": "examine-end",
+        "bodySha256": "18467ddd3ebb4ccbde94d6b09e647e9d23a9be821c9f3df5685c7a4c4ab0e0e2"
+      },
+      {
+        "target": "stm32h7x.cpu0",
+        "event": "halted",
+        "bodySha256": "97072ab5ce833a0d52d9f7bd89dd75f6e2c4729850b1f532c485088d1880aa5d"
+      },
+      {
+        "target": "stm32h7x.cpu1",
+        "event": "halted",
+        "bodySha256": "97072ab5ce833a0d52d9f7bd89dd75f6e2c4729850b1f532c485088d1880aa5d"
+      },
+      {
+        "target": "stm32h7x.cpu0",
+        "event": "debug-halted",
+        "bodySha256": "97072ab5ce833a0d52d9f7bd89dd75f6e2c4729850b1f532c485088d1880aa5d"
+      },
+      {
+        "target": "stm32h7x.cpu1",
+        "event": "debug-halted",
+        "bodySha256": "97072ab5ce833a0d52d9f7bd89dd75f6e2c4729850b1f532c485088d1880aa5d"
+      }
+    ],
+    "flashBanks": 4,
+    "inputs": {
+      "target/stm32h7x.cfg": {
+        "bytes": 9746,
+        "sha256": "11dce7a1ee8ce0ae1c62afab1204e220e4c249950331ba6ca86858817ec03b24"
+      },
+      "target/swj-dp.tcl": {
+        "bytes": 1185,
+        "sha256": "303ce306fca1396ec6107de2033094b74153a4fe0c184e9a0104340f71e2522b"
+      },
+      "mem_helper.tcl": {
+        "bytes": 1059,
+        "sha256": "c219ad655a80f1e1f2a347228842d4a9a06a92535f7038839bce36a5bd6523dc"
+      }
+    }
+  },
+  "hpm6800": {
+    "code": 0,
+    "commands": 69,
+    "declarations": [
+      [
+        "adapter",
+        "speed",
+        "8000"
+      ],
+      [
+        "adapter",
+        "srst",
+        "delay",
+        "500"
+      ],
+      [
+        "adapter",
+        "driver",
+        "cmsis-dap"
+      ],
+      [
+        "transport",
+        "select",
+        "jtag"
+      ],
+      [
+        "jtag",
+        "newtap",
+        "hpm6880",
+        "cpu",
+        "-irlen",
+        "5",
+        "-expected-id",
+        "0x1000563D"
+      ],
+      [
+        "target",
+        "create",
+        "hpm6880.cpu0",
+        "riscv",
+        "-chain-position",
+        "hpm6880.cpu",
+        "-coreid",
+        "0"
+      ]
+    ],
+    "sourced": [
+      "/cfg/boards/openocd/probes/cmsis_dap.cfg",
+      "/cfg/boards/openocd/interface/cmsis-dap.cfg",
+      "/cfg/boards/openocd/soc/hpm6880.cfg",
+      "/cfg/boards/openocd/soc/hpm_common.cfg",
+      "/cfg/boards/openocd/soc/hpm_reset.cfg",
+      "/cfg/boards/openocd/soc/hpm_common_csr.cfg",
+      "/cfg/boards/openocd/boards/hpm6800evk.cfg"
+    ],
+    "events": [
+      {
+        "target": "hpm6880.cpu0",
+        "event": "reset-deassert-pre",
+        "bodySha256": "66fbf7f146438abe816e8f9bc17c48bc07eb6c15975ad9796dc25947357b3f78"
+      },
+      {
+        "target": "hpm6880.cpu0",
+        "event": "reset-init",
+        "bodySha256": "5edff782c19f9a31c74740158f9bd5dcd29a3b98c4985d17d73d1341db3a24fb"
+      },
+      {
+        "target": "hpm6880.cpu0",
+        "event": "gdb-attach",
+        "bodySha256": "b238c860c78fbfcb63c18fef16a8f42ac25f92b6e31c00f21fc9656020ab4e0f"
+      }
+    ],
+    "flashBanks": 1,
+    "inputs": {
+      "hpm6800_all_in_one.cfg": {
+        "bytes": 1062,
+        "sha256": "edde81030558e1904ea9301f56c86c0d6b188891c9b3776c81c28d03f8e58ca1"
+      },
+      "probes/cmsis_dap.cfg": {
+        "bytes": 212,
+        "sha256": "5a5ff987ec864da0002b7771329df1cc5d91469981eb346dd21101bdba5d788c"
+      },
+      "soc/hpm6880.cfg": {
+        "bytes": 581,
+        "sha256": "675dc3c27f5d4ca4595b6084a1311e9141bd31921218b61dc5035a284a3085d2"
+      },
+      "soc/hpm_common.cfg": {
+        "bytes": 747,
+        "sha256": "1591620f7255149b4bc036bd362842ea45871efcf1b4b1b2705e90f0e653187b"
+      },
+      "soc/hpm_reset.cfg": {
+        "bytes": 184,
+        "sha256": "6ac20afdfa83259aaf30628d0c8546c2628fca018ed300368400563385da7d06"
+      },
+      "soc/hpm_common_csr.cfg": {
+        "bytes": 1808,
+        "sha256": "52f01daeca5d4586288823c0dcff4665f6bae291338f730466a656adb716c74f"
+      },
+      "boards/hpm6800evk.cfg": {
+        "bytes": 4581,
+        "sha256": "c79fd8f0d5ebfbc393483fdfe2bf600ca4629dea4a58e5079f683f3a20cabc76"
+      },
+      "interface/cmsis-dap.cfg": {
+        "bytes": 279,
+        "sha256": "22643e699400358f0db446cc9b414cbd8a9c93a70eb38a90f5323984c9a66449"
+      }
+    }
+  },
+  "rejected": {
+    "hostExec": "invalid command name \"exec\"",
+    "network": "invalid command name \"socket\"",
+    "outsideWorkspace": "CFG path outside workspace: /etc/hosts",
+    "sourceCycle": "CFG source cycle: /cfg/entry.cfg",
+    "flashWrite": "unsupported OpenOCD command in configuration capture: flash",
+    "hardwareWrite": "unsupported target command: t.cpu",
+    "reset": "invalid command name \"reset\""
+  },
+  "workerDeadlineVerified": true,
+  "probeAccessed": false,
+  "openocdTargetDriversLinked": false,
+  "recoveredFailures": [
+    "compiler could not write system TEMP; redirected compiler subprocess temp to its build folder",
+    "workbench intentionally returns 404 for /tmp/; tested from a separate loopback static directory"
+  ]
+}

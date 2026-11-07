@@ -57,3 +57,20 @@ test('generic page architecture does not downgrade the session board or silently
   assert.equal(context.target.id,'stm32f103');assert.equal(adopt('scope').disabled,false);
   assert.match(card('scope').children[3].textContent,/未绑定/);
 }));
+
+test('debug target adoption routes HPM6800EVK to Wasm and keeps other RISC-V boards on JTAG',()=>fixture(async({get,adopt})=>{
+  get('d-hpm-target').options = [{value:'hpm5301evklite'}];
+  get('d-arm-target').value = 'stm32f103';
+  get('f-chip').value = 'hpm6800evk';
+  get('f-chip').change();
+  assert.equal(adopt('dbg').disabled,false);
+  await adopt('dbg').onclick();
+  assert.equal(get('d-backend').value,'openocd');
+  assert.equal(get('d-arm-target').value,'stm32f103');
+  assert.equal(adopt('dbg').disabled,true);
+  get('f-chip').value = 'hpm5301evklite';
+  get('f-chip').change();
+  await adopt('dbg').onclick();
+  assert.equal(get('d-backend').value,'riscv');
+  assert.equal(get('d-hpm-target').value,'hpm5301evklite');
+}));

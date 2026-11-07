@@ -1,0 +1,203 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "sourceDirty": true,
+  "target": "STM32F103ZE",
+  "transport": "WebUSB/CMSIS-DAP",
+  "bundleSha256": "4cf1785d6f56d10b175f6bebb9508378367bb79d69211dca16c005d94f76a1ba",
+  "elfSha256": "bc08296b36340733705e517726087c0597c5caf0c345851306acbeb66a21f28a",
+  "cfgInputs": [
+    {
+      "url": "https://raw.githubusercontent.com/openocd-org/openocd/v0.12.0/tcl/target/stm32f1x.cfg",
+      "sha256": "fe44c3ade7395db34a751c57401ebc2a176ed1ca793c47081cc9f06a8618125e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/openocd-org/openocd/v0.12.0/tcl/board/stm3210e_eval.cfg",
+      "sha256": "dad467c4316082eed2786b823b122bd906df15a6a67af186e12ddd70ac8ccc92"
+    }
+  ],
+  "hardwareTrials": [
+    {
+      "bundle": false,
+      "wrongDpidrRejected": true,
+      "cfg": {
+        "kind": "target",
+        "target": "stm32f1x.cpu",
+        "clockKhz": 1000,
+        "dpidr": 463475831,
+        "workAreaSize": 4096,
+        "ignored": [
+          "Flash bank",
+          "SRST 引脚延时",
+          "STM32F1 调试冻结事件",
+          "TPIU / trace 设置"
+        ],
+        "name": "stm32f1x.cfg",
+        "info": "stm32f1x.cfg · stm32f1x.cpu · SWD 1000 kHz · DPIDR 0x1ba01477",
+        "manualClock": "10000",
+        "clockRowHidden": true,
+        "disconnected": true
+      },
+      "before": {
+        "id": {
+          "dp": 463475831,
+          "cpuid": 1092600369,
+          "dev": 1044,
+          "flashKiB": 512
+        },
+        "clockHz": 1000000,
+        "fpb": {
+          "raw": 609,
+          "rev": 1,
+          "numCode": 6,
+          "numLit": 4,
+          "enabled": true
+        },
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "ramSha256": "22370daf3e48f236beb98a4c9c8035ee28e4c7c5c0a0b4eed8e6a60875189e75"
+      },
+      "flashElfRejected": true,
+      "main": {
+        "pc": 536871264,
+        "main": 536871264,
+        "halted": true,
+        "line": 20,
+        "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+        "source": "ram_debug.c:20  main+0x0",
+        "sourceLoaded": true,
+        "highlightedLine": 20,
+        "marker": 0,
+        "originalInstruction": true
+      },
+      "steps": [
+        {
+          "pc": 536871286,
+          "main": 536871264,
+          "halted": true,
+          "line": 21,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:21  main+0x16",
+          "sourceLoaded": true,
+          "highlightedLine": 21,
+          "marker": 41,
+          "originalInstruction": true
+        },
+        {
+          "pc": 536871292,
+          "main": 536871264,
+          "halted": true,
+          "line": 22,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:22  main+0x1c",
+          "sourceLoaded": true,
+          "highlightedLine": 22,
+          "marker": 42,
+          "originalInstruction": true
+        }
+      ],
+      "cleanup": {
+        "sramRestored": true,
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "flashUnchanged": true,
+        "running": true
+      },
+      "passed": true
+    },
+    {
+      "bundle": true,
+      "cfg": {
+        "kind": "board",
+        "target": "stm32f1x.cpu",
+        "clockKhz": 1000,
+        "dpidr": 463475831,
+        "workAreaSize": 32768,
+        "ignored": [
+          "Flash bank",
+          "SRST 引脚延时",
+          "STM32F1 调试冻结事件",
+          "TPIU / trace 设置",
+          "板卡外部 FSMC 初始化"
+        ],
+        "name": "stm3210e_eval.cfg",
+        "info": "stm3210e_eval.cfg · stm32f1x.cpu · SWD 1000 kHz · DPIDR 0x1ba01477",
+        "manualClock": "10000",
+        "clockRowHidden": true,
+        "disconnected": true
+      },
+      "before": {
+        "id": {
+          "dp": 463475831,
+          "cpuid": 1092600369,
+          "dev": 1044,
+          "flashKiB": 512
+        },
+        "clockHz": 1000000,
+        "fpb": {
+          "raw": 609,
+          "rev": 1,
+          "numCode": 6,
+          "numLit": 4,
+          "enabled": true
+        },
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "ramSha256": "9029c9b158c3d30c1d279643cc0b1f73bbb1ba222fa4eae3d7c6a20bdccf6e64"
+      },
+      "flashElfRejected": true,
+      "main": {
+        "pc": 536871264,
+        "main": 536871264,
+        "halted": true,
+        "line": 20,
+        "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+        "source": "ram_debug.c:20  main+0x0",
+        "sourceLoaded": true,
+        "highlightedLine": 20,
+        "marker": 0,
+        "originalInstruction": true
+      },
+      "steps": [
+        {
+          "pc": 536871286,
+          "main": 536871264,
+          "halted": true,
+          "line": 21,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:21  main+0x16",
+          "sourceLoaded": true,
+          "highlightedLine": 21,
+          "marker": 41,
+          "originalInstruction": true
+        },
+        {
+          "pc": 536871292,
+          "main": 536871264,
+          "halted": true,
+          "line": 22,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:22  main+0x1c",
+          "sourceLoaded": true,
+          "highlightedLine": 22,
+          "marker": 42,
+          "originalInstruction": true
+        }
+      ],
+      "cleanup": {
+        "sramRestored": true,
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "flashUnchanged": true,
+        "running": true
+      },
+      "passed": true
+    }
+  ],
+  "offline": {
+    "webTestsPassed": 264,
+    "webTestsFailed": 0,
+    "cliTestsPassed": 9
+  },
+  "cliPage": {
+    "describeUploadReadClearPassed": true,
+    "accessedHardware": false,
+    "firstAttempt": "HTTP 409 after navigation changed the queue worker; retried with a fresh runtime"
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "date": "2026-11-07",
+  "workspaceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "openocd": {
+    "version": "0.12.0+dev",
+    "revision": "9f2d8762b3a75b4d7b2155affcf3d8bb8eb8849a",
+    "jimRevision": "d5243a25c488dfe751ef218828f13516e04ea2ba",
+    "bootstrapAdjustment": "Removed two continuation backslashes in AC_CONFIG_FILES in the temporary configure.ac for Autoconf 2.73."
+  },
+  "libusb": {
+    "version": "1.0.30",
+    "revision": "87a55632db62c9bdc58cd31d3ccfa673f1bb017f",
+    "backend": "Emscripten WebUSB",
+    "optimization": "-O2"
+  },
+  "build": {
+    "emscripten": "4.0.10",
+    "openocdOptimization": "-O1",
+    "linkOptimization": "-Oz",
+    "adapters": [
+      "dummy",
+      "CMSIS-DAP v2"
+    ],
+    "asyncify": true,
+    "sameOpenocdArchive": true,
+    "sameJimArchive": true,
+    "sameLibusbArchive": true
+  },
+  "compression": {
+    "node": "v24.13.1",
+    "brotli": "1.2.0",
+    "quality": 9,
+    "input": "openocd-core.wasm"
+  },
+  "browser": "Chrome/156.0.8078.48",
+  "hpmSdk": "1.11.0",
+  "hardware": false,
+  "targetTypes": [
+    "aarch64",
+    "arcv2",
+    "arm11",
+    "arm720t",
+    "arm7tdmi",
+    "arm920t",
+    "arm926ejs",
+    "arm946e",
+    "arm966e",
+    "arm9tdmi",
+    "armv8r",
+    "avr32_ap7k",
+    "avr",
+    "cortex_a",
+    "cortex_m",
+    "cortex_r4",
+    "dragonite",
+    "dsp563xx",
+    "dsp5680xx",
+    "esirisc",
+    "esp32s2",
+    "esp32s3",
+    "esp32",
+    "fa526",
+    "feroceon",
+    "hla_target",
+    "ls1_sap",
+    "mem_ap",
+    "mips_m4k",
+    "mips_mips64",
+    "or1k",
+    "quark_d20xx",
+    "quark_x10xx",
+    "riscv",
+    "stm8",
+    "testee",
+    "xscale",
+    "xtensa"
+  ],
+  "measurements": {
+    "full": {
+      "wasmBytes": 5618752,
+      "wasmSha256": "d1b6e7ba35cd1babe0a66fbe2af47b8a6596b9eb1b8a5a517cddd702d38d87a3",
+      "brotliBytes": 1480707,
+      "brotliSha256": "c6407705ef8a170ab1540b5c9bd3dc0349922696355d7364d70a3f97bbdbfeee",
+      "norDrivers": 83,
+      "nandControllers": 14,
+      "browser": {
+        "stm32FlashBanks": [
+          "#0 : stm32h7x.bank1.cpu0 (stm32h7x) at 0x08000000, size 0x00000000, buswidth 0, chipwidth 0",
+          "#1 : stm32h7x.bank2.cpu0 (stm32h7x) at 0x08100000, size 0x00000000, buswidth 0, chipwidth 0",
+          "#2 : stm32h7x.bank1.cpu1 (stm32h7x) at 0x08000000, size 0x00000000, buswidth 0, chipwidth 0",
+          "#3 : stm32h7x.bank2.cpu1 (stm32h7x) at 0x08100000, size 0x00000000, buswidth 0, chipwidth 0"
+        ],
+        "hpmFlashBanks": [
+          "#0 : xpi0 (hpm_xpi) at 0x80000000, size 0x02000000, buswidth 1, chipwidth 1"
+        ],
+        "nordicRamConfig": [
+          "OCD_SKIPPED_FLASH=nrf5",
+          "OCD_SKIPPED_FLASH=nrf5",
+          "OCD_TARGETS=nrf52.cpu"
+        ],
+        "nordicFlash": [
+          "#4 : nrf52_size_check (nrf5) at 0x00000000, size 0x00000000, buswidth 1, chipwidth 1"
+        ],
+        "usbEnumeration": [
+          "simulated WebUSB enumeration"
+        ]
+      }
+    },
+    "stm32-hpm-flash": {
+      "wasmBytes": 4475666,
+      "wasmSha256": "9241a8e867fb94aabb91ed979b02f8bf6ec019937749bcb9bff2862f8eeb82c7",
+      "brotliBytes": 1181952,
+      "brotliSha256": "b6e834338876971b5963deffbbdb3755e15c3699d87523c8253900a7bbdefed4",
+      "norDrivers": 9,
+      "nandControllers": 0,
+      "norDriverSymbols": [
+        "cfi_flash",
+        "hpm_xpi_flash",
+        "stm32f1x_flash",
+        "stm32f2x_flash",
+        "stm32h7x_flash",
+        "stm32l4x_flash",
+        "stm32lx_flash",
+        "stmqspi_flash",
+        "virtual_flash"
+      ],
+      "browser": {
+        "stm32FlashBanks": [
+          "#0 : stm32h7x.bank1.cpu0 (stm32h7x) at 0x08000000, size 0x00000000, buswidth 0, chipwidth 0",
+          "#1 : stm32h7x.bank2.cpu0 (stm32h7x) at 0x08100000, size 0x00000000, buswidth 0, chipwidth 0",
+          "#2 : stm32h7x.bank1.cpu1 (stm32h7x) at 0x08000000, size 0x00000000, buswidth 0, chipwidth 0",
+          "#3 : stm32h7x.bank2.cpu1 (stm32h7x) at 0x08100000, size 0x00000000, buswidth 0, chipwidth 0"
+        ],
+        "hpmFlashBanks": [
+          "#0 : xpi0 (hpm_xpi) at 0x80000000, size 0x02000000, buswidth 1, chipwidth 1"
+        ],
+        "nordicRamConfig": [
+          "OCD_SKIPPED_FLASH=nrf5",
+          "OCD_SKIPPED_FLASH=nrf5",
+          "OCD_TARGETS=nrf52.cpu"
+        ],
+        "nordicFlash": [
+          "Error: flash driver 'nrf5' not found"
+        ],
+        "usbEnumeration": [
+          "simulated WebUSB enumeration"
+        ]
+      }
+    }
+  },
+  "difference": {
+    "wasmBytes": 1143086,
+    "brotliBytes": 298755
+  }
+}

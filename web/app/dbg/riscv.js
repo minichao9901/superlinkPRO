@@ -27,7 +27,7 @@
  */
 import { DebugSession } from './session.js';
 import { RV_ARCH } from './rv.js';
-import { DMCONTROL, DMSTATUS_LAYOUT, REGNO, DCSR_EBREAK } from '../flash/hpm/jtag.js';
+import { DM, DMCONTROL, DMSTATUS_LAYOUT, REGNO, DCSR_EBREAK } from '../flash/hpm/jtag.js';
 import { RiscvTransport } from '../flash/hpm/riscv-dm.js';
 import { DapJtagTransport, setOutputModeData, PROBE_OUTPUT_MODE } from '../flash/hpm/dap-transport.js';
 import { AkaLinkHid } from '../hid/probe.js';
@@ -151,13 +151,34 @@ export class RiscvDebugSession extends DebugSession {
     this.probe.onLog = s => this._log('   [usb] ' + s, 'dim');
 
     // ③ JTAG → DMI → DM
-    if (Number(clockKhz) > 0){
-      try { await this.probe.setClock(Number(clockKhz) * 1000); } catch (e){ this._log('设 JTAG 时钟失败：' + (e?.message || e), 'warn'); }
+    const imported = this.port.id === 'riscv-cfg';
+    let info;
+    try {
+      if (imported && this.probe.device?.nativeService) throw new Error('导入的 CFG 仅用于浏览器 WebUSB');
+      if (Number(clockKhz) > 0){
+        try { await this.probe.setClock(Number(clockKhz) * 1000); }
+        catch (e){
+          if (imported) throw e;
+          this._log('设 JTAG 时钟失败：' + (e?.message || e), 'warn');
+        }
+      }
+      this.jtag = new DapJtagTransport(this.probe, { irLength: this.port.debug.irLength, log: s => this._log('   [jtag] ' + s, 'dim') });
+      this.dm = new RiscvTransport(this.jtag, { port: this.port, log: s => this._log('   [dm] ' + s, 'dim') });
+      info = await withTimeout(this.dm.init(), 20000, '初始化 RISC-V 调试模块');
+      assertHpmIdentity(this.port, info);
+      if (imported){
+        if (!(info.dmstatus & (1 << 7))) throw new Error('RISC-V 调试模块未通过硬件认证');
+        if (info.dmstatus & 0xf000) throw new Error(`CFG 选定的 hart ${this.port.debug.hart} 不存在或不可用`);
+        const sbcs = await this.dm.dmiRead(DM.SBCS);
+        if (!(sbcs & 4) || ((sbcs >>> 5) & 0x7f) < 32) throw new Error('CFG 目标缺少 32 位 SBA 系统总线访问');
+      }
+    } catch (e){
+      if (imported){
+        await this.probe.disconnect();
+        this.dm = null; this.jtag = null; this.probe = null;
+      }
+      throw e;
     }
-    this.jtag = new DapJtagTransport(this.probe, { irLength: this.port.debug.irLength, log: s => this._log('   [jtag] ' + s, 'dim') });
-    this.dm = new RiscvTransport(this.jtag, { port: this.port, log: s => this._log('   [dm] ' + s, 'dim') });
-    const info = await withTimeout(this.dm.init(), 20000, '初始化 RISC-V 调试模块');
-    assertHpmIdentity(this.port, info);
     this.clockHz = Number(clockKhz) > 0 ? Number(clockKhz) * 1000 : 0;
     this.idcode = info?.idcode >>> 0;
     this.name = `RISC-V/JTAG · DM v${((info?.dmstatus ?? 0) >>> 0).toString(16)}`;
@@ -308,7 +329,9 @@ export class RiscvDebugSession extends DebugSession {
     if (!this.halted) throw new Error('抽象命令要先停住目标（先「暂停」）');
     await this._ensureHalted('writeReg ' + name);
     await this.dm.writeReg(r.regno, value >>> 0);
-    return (await this.dm.readReg(r.regno)) >>> 0;
+    const actual = (await this.dm.readReg(r.regno)) >>> 0;
+    if (r.kind === 'pc') this.pc = actual;
+    return actual;
   }
 
   /**

@@ -306,4 +306,11 @@ etm/baselines/*/execution-simplified.c
 !/docs/validation/webusb-hardware-20261107/README.md
 !/docs/validation/webusb-hardware-20261107/summary.json
 !/docs/validation/webusb-hardware-20261107/release.json
+!/docs/validation/ram-debug-f103ze-20261107/
+/docs/validation/ram-debug-f103ze-20261107/*
+!/docs/validation/ram-debug-f103ze-20261107/README.md
+!/docs/validation/ram-debug-f103ze-20261107/summary.json
+!/docs/validation/ram-debug-f103ze-20261107/hardware.mjs
+!/docs/validation/ram-debug-f103ze-20261107/ram_debug.c
+!/docs/validation/ram-debug-f103ze-20261107/ram_debug.ld
 !/web/tools/fixtures/f103ze-acceptance/*.elf

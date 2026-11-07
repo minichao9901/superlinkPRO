@@ -30,6 +30,8 @@ python -X utf8 toolbox.py catalog
 python -X utf8 toolbox.py --runtime E:/trace-runs/toolbox-001 serve --port 8896
 ```
 
+从源码打开工作台时，先启动本地服务，再用 Chrome / Edge 访问启动输出中的 `url`。双击 `web/index.html` 会进入 `file://`，浏览器会阻止 JavaScript 模块加载。仅使用网页时可直接打开 `url`，通过 CLI 操作页面时请使用带授权的 `browserUrl`。
+
 `serve` 前台运行，复用现有完整工作台服务和 ETM 后端。运行时目录必须不存在；不要把
 `trace web start` 的原生运行时目录填到这里。启动输出一个 `browserUrl`，在 Chrome / Edge
 打开并保持此页面；它带一次本机会话令牌，不要复制到公共报告。初次连接 USB/HID/串口，
@@ -62,7 +64,7 @@ python -X utf8 toolbox.py --runtime E:/trace-runs/toolbox-001 page serial state
 | `rttcdc` | RTT 转发 | `view` 管 CDC 数据；`hid` 管目标/时钟、转发启停/状态；共享串口 `session` |
 | `spicdc` | SPI 转发 | `session` 管从机 SPI/DMA 配置与启停；`stream` 管接收显示/记录；`serial` 管 CDC |
 | `scope` | J-Scope | ELF/DWARF 变量、标量/数组/成员、1–8 通道、速率标定、采样、触发/游标、分道/缩放、CSV/原始包和质量报告 |
-| `dbg` | 调试器 | ARM/RISC-V、源码/指令断点、暂停/继续/单步、寄存器/内存、监视/局部变量、调用栈、SVD、异常诊断；Cortex-M 也可直接使用 `trace web command` |
+| `dbg` | 调试器 | STM32 和其它 RISC-V 内置预设、Cortex-M/SWD 和 RV32/JTAG CFG 导入、源码/指令断点、暂停/继续/单步、寄存器/内存、监视/局部变量、调用栈、SVD、异常诊断、STM32F103xE / nRF52832 RAM ELF 启动。HPM6800EVK 使用 [OpenOCD Wasm / WebUSB](validation/hpm6800-wasm-parity-20261107.md)。Cortex-M 也可直接使用 `trace web command` |
 | `flash` | 烧录器 | ELF/HEX/BIN、芯片/算法、基地址、擦除/编程/校验、复位、IDCODE |
 | `swo` | SWO PC 采样 | CPU/Trace 时钟、双端速率和带宽规划、起点/采样、`.swopc`、ELF/源码、离线分析、热点/区间/回放、CSV/C/HTML 等当前页面支持的导出 |
 | `etm` | ETM 执行轨迹 | 目标 ELF/断点/时钟、LA 采样、原始/记录包导入、解码、执行流/调用/火焰/热点/包/质量、源码、全部导出；批处理优先 `trace` |

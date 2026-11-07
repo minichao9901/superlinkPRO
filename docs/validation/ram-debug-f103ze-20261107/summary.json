@@ -1,0 +1,160 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "sourceDirty": true,
+  "bundleSha256": "3162cecfe3c7d57441d15e902596bc07431e3ba9850f8783c35521fb38016b7d",
+  "elfSha256": "bc08296b36340733705e517726087c0597c5caf0c345851306acbeb66a21f28a",
+  "transport": "WebUSB/CMSIS-DAP",
+  "target": "STM32F103ZE",
+  "firstAttempt": {
+    "sourceBodyVerified": false,
+    "reason": "CDP passed the files instead of the directory to the source directory input",
+    "mainAndTwoSourceStepsReached": [
+      20,
+      21,
+      22
+    ],
+    "flashUnchanged": true
+  },
+  "hardwareTrials": [
+    {
+      "bundle": false,
+      "before": {
+        "id": {
+          "dp": 463475831,
+          "cpuid": 1092600369,
+          "dev": 1044,
+          "flashKiB": 512
+        },
+        "clockHz": 1000000,
+        "fpb": {
+          "raw": 609,
+          "rev": 1,
+          "numCode": 6,
+          "numLit": 4,
+          "enabled": true
+        },
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "ramSha256": "a6f82cf6c17a6270e1e04767bc6f88c0b8fad4b7f7309552bcdc4fc42c153728"
+      },
+      "flashElfRejected": true,
+      "main": {
+        "pc": 536871264,
+        "main": 536871264,
+        "halted": true,
+        "line": 20,
+        "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+        "source": "ram_debug.c:20  main+0x0",
+        "sourceLoaded": true,
+        "highlightedLine": 20,
+        "marker": 0,
+        "originalInstruction": true
+      },
+      "steps": [
+        {
+          "pc": 536871286,
+          "main": 536871264,
+          "halted": true,
+          "line": 21,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:21  main+0x16",
+          "sourceLoaded": true,
+          "highlightedLine": 21,
+          "marker": 41,
+          "originalInstruction": true
+        },
+        {
+          "pc": 536871292,
+          "main": 536871264,
+          "halted": true,
+          "line": 22,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:22  main+0x1c",
+          "sourceLoaded": true,
+          "highlightedLine": 22,
+          "marker": 42,
+          "originalInstruction": true
+        }
+      ],
+      "cleanup": {
+        "sramRestored": true,
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "flashUnchanged": true,
+        "running": true
+      },
+      "passed": true
+    },
+    {
+      "bundle": true,
+      "before": {
+        "id": {
+          "dp": 463475831,
+          "cpuid": 1092600369,
+          "dev": 1044,
+          "flashKiB": 512
+        },
+        "clockHz": 10000000,
+        "fpb": {
+          "raw": 609,
+          "rev": 1,
+          "numCode": 6,
+          "numLit": 4,
+          "enabled": true
+        },
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "ramSha256": "63529906276ae9e05c2eeb6be884602cd9c796631d5867eb697f61b5caf59741"
+      },
+      "flashElfRejected": true,
+      "main": {
+        "pc": 536871264,
+        "main": 536871264,
+        "halted": true,
+        "line": 20,
+        "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+        "source": "ram_debug.c:20  main+0x0",
+        "sourceLoaded": true,
+        "highlightedLine": 20,
+        "marker": 0,
+        "originalInstruction": true
+      },
+      "steps": [
+        {
+          "pc": 536871286,
+          "main": 536871264,
+          "halted": true,
+          "line": 21,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:21  main+0x16",
+          "sourceLoaded": true,
+          "highlightedLine": 21,
+          "marker": 41,
+          "originalInstruction": true
+        },
+        {
+          "pc": 536871292,
+          "main": 536871264,
+          "halted": true,
+          "line": 22,
+          "file": "docs/validation/ram-debug-f103ze-20261107/ram_debug.c",
+          "source": "ram_debug.c:22  main+0x1c",
+          "sourceLoaded": true,
+          "highlightedLine": 22,
+          "marker": 42,
+          "originalInstruction": true
+        }
+      ],
+      "cleanup": {
+        "sramRestored": true,
+        "flashSha256": "48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499",
+        "flashUnchanged": true,
+        "running": true
+      },
+      "passed": true
+    }
+  ],
+  "offline": {
+    "webTestsPassed": 261,
+    "webTestsFailed": 0,
+    "cliTestsPassed": 9
+  }
+}

@@ -11,10 +11,11 @@
 <link rel="stylesheet" href="app/download.css">
 <script>
 (function(){
+  if (location.protocol === 'file:') return;
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=eeae117b5109a7ac';
+  window.__webBundleUrl = 'app/site/main.js?v=7b1dc541fca5ff3c';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -759,14 +760,20 @@
         <label class="row"><span>后端</span>
           <select id="d-backend" title="调试连接方式">
             <option value="webusb">SWD / ARM</option>
-            <option value="riscv">JTAG / RISC-V</option>
+            <option value="openocd">HPM6800EVK · OpenOCD Wasm / WebUSB</option>
+            <option value="riscv">其它 RISC-V / JTAG</option>
             <option value="mock">模拟目标</option>
+          </select>
+        </label>
+        <label class="row" id="d-arm-target-row"><span>芯片型号</span>
+          <select id="d-arm-target" title="选择内置 STM32 预设、通用 Cortex-M，或已导入的 CFG">
+            <option value="arm">通用 ARM / SWD</option>
           </select>
         </label>
         <label class="row" id="d-hpm-target-row" hidden style="display:none"><span>目标板卡</span>
           <select id="d-hpm-target" title="选择板卡以使用对应的内存与复位配置"></select>
         </label>
-        <label class="row"><span>SWD 时钟</span>
+        <label class="row" id="d-clock-row"><span>SWD 时钟</span>
           <select id="d-clock" title="连接后校验通信，必要时降频">
             <option value="10000">10 MHz（默认）</option>
             <option value="20000">20 MHz</option>
@@ -778,6 +785,19 @@
           </select>
         </label>
         <div class="row btnrow">
+          <button id="d-cfg-pick" title="导入 Cortex-M/SWD 或 RISC-V/JTAG 的 target/board CFG">导入 OpenOCD CFG…</button>
+          <button id="d-cfg-clear" hidden>清除 CFG</button>
+          <input type="file" id="d-cfg-file" accept=".cfg" hidden>
+        </div>
+        <div class="row btnrow">
+          <button id="d-cfg-dir-pick" title="选择包含 board、target 等依赖文件的 OpenOCD 脚本目录">选择 CFG 目录…</button>
+          <input type="file" id="d-cfg-dir" webkitdirectory directory multiple hidden>
+        </div>
+        <label class="row" id="d-cfg-entry-row" hidden><span>入口 CFG</span>
+          <select id="d-cfg-entry" aria-label="入口 CFG"></select>
+        </label>
+        <p id="d-cfg-info" class="hint" role="status" hidden></p>
+        <div class="row btnrow">
           <button id="d-connect" class="primary">连接</button>
           <button id="d-disconnect" disabled>断开</button>
         </div>
@@ -788,6 +808,10 @@
         <div class="row btnrow">
           <button id="d-elf-pick">载入 ELF…</button>
           <input type="file" id="d-elf-file" accept=".elf,.axf,.out,.bin" hidden>
+        </div>
+        <div class="row btnrow">
+          <button id="d-ram-debug" disabled title="将 RAM 版 ELF 下载到已验证的片上 SRAM，并停在 main">下载到 RAM 并调试</button>
+          <input type="file" id="d-ram-elf" accept=".elf,.axf,.out" hidden>
         </div>
         <p class="hint" id="d-elf-info">未载入 ELF</p>
       </fieldset>
@@ -2307,6 +2331,15 @@ probe baud = UART Hz ÷ OSR ÷ UART DIV
 <script>
 (function(){
   window.__bootGuardArmed = true;      // 自测断言用：证明这段兜底脚本真的装上了
+  if (location.protocol === 'file:'){
+    document.getElementById('boot-mask').innerHTML = '<div class="boot-box"><b>请通过本地工作台打开</b>'
+      + '<span>浏览器通过 file:// 打开页面时会阻止加载 JavaScript 模块。</span>'
+      + '<span>如果已解压 Windows 完整包，双击 <code>superlinkPRO.exe</code>。</span>'
+      + '<span>如果使用源码，在仓库根目录启动服务。运行时目录需为新路径。</span>'
+      + '<code>python -X utf8 toolbox.py --runtime tmp/web-local serve --port 8899</code>'
+      + '<span>启动后访问 <a href="http://127.0.0.1:8899/">http://127.0.0.1:8899/</a>。</span></div>';
+    return;
+  }
   var said = false;
   function firstError(){
     try { return window.__bootError || ''; } catch (e){ return ''; }
@@ -2334,12 +2367,14 @@ probe baud = UART Hz ÷ OSR ÷ UART DIV
 })();
 </script>
 <script type="module">
-document.documentElement.dataset.bootEntry = window.__useWebBundle ? 'bundle' : 'source';
-import(window.__useWebBundle ? './' + window.__webBundleUrl : './app/main.js').catch(function(error){
-  window.__bootError = error.message || String(error);
-  console.error('[boot]', error);
-  throw error;
-});
+if (location.protocol !== 'file:'){
+  document.documentElement.dataset.bootEntry = window.__useWebBundle ? 'bundle' : 'source';
+  import(window.__useWebBundle ? './' + window.__webBundleUrl : './app/main.js').catch(function(error){
+    window.__bootError = error.message || String(error);
+    console.error('[boot]', error);
+    throw error;
+  });
+}
 </script>
 </body>
 </html>

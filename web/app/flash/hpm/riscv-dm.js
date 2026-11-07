@@ -59,6 +59,8 @@ export class RiscvTransport {
     this.dap = dap;
     this.port = resolveHpmTarget(opts.port);
     this.hart = this.port.debug.hart;
+    this.irLength = this.port.debug.irLength;
+    this.dmiBits = DR_DMI_BITS;
     this.idle = opts.idle ?? this.port.debug.idle;              // DTM 要求的 RTI 拍（探针固件默认 8）
     this.log = opts.log || (() => {});
     this.open = false;
@@ -92,7 +94,7 @@ export class RiscvTransport {
     this._sbcsCfg = null; this._holdAddr = null; this.sbaFailed = false;
     await this.dap.connectJtag?.();
     await this.sequences(tapReset());
-    await this.sequences(tapLoadIR(IR_IDCODE));
+    await this.sequences(tapLoadIR(IR_IDCODE, this.irLength));
     this.idcode = Number((await this._scanDR(DR_IDCODE_BITS, 0n)) & 0xffffffffn) >>> 0;
     if (!this.idcode || this.idcode === 0xffffffff) {
       throw new Error('JTAG 链上没读到 IDCODE（0/全 1）——' +
@@ -103,12 +105,19 @@ export class RiscvTransport {
         '详见 app/flash/hpm/riscv-dm.js 里 resetHalt() 的注释');
     }
     assertHpmIdentity(this.port, { idcode: this.idcode });
-    await this.sequences(tapLoadIR(IR_DTMCS));
+    await this.sequences(tapLoadIR(IR_DTMCS, this.irLength));
     this.lastDtmcs = Number((await this._scanDR(DR_DTMCS_BITS, 0n)) & 0xffffffffn) >>> 0;
+    if (this.port.id === 'riscv-cfg'){
+      const abits = (this.lastDtmcs >>> 4) & 0x3f;
+      if ((this.lastDtmcs & 0xf) !== 1 || abits < 6 || abits > 30)
+        throw new Error('CFG 目标需要支持标准 JTAG DTM 和 6–30 位 DMI 地址');
+      this.dmiBits = 34 + abits;
+      this.idle = Math.max(this.idle, (this.lastDtmcs >>> 12) & 7);
+    }
 
     // ③ dtmcs/idcode 扫描之后必须回 Test-Logic-Reset，否则 DMI 不应答
     await this.sequences(tapReset());
-    await this.sequences(tapLoadIR(IR_DMI));
+    await this.sequences(tapLoadIR(IR_DMI, this.irLength));
     // ④ 排空 DMI 流水线
     await this.dmiPost(DMI_OP.NOP, 0, 0);
     await this.dmiPost(DMI_OP.NOP, 0, 0);
@@ -192,10 +201,10 @@ export class RiscvTransport {
     try {
       await this.sequences(tapReset());
       assertHpmIdentity(this.port, { idcode: this.idcode });
-    await this.sequences(tapLoadIR(IR_DTMCS));
+    await this.sequences(tapLoadIR(IR_DTMCS, this.irLength));
       await this._scanDR(DR_DTMCS_BITS, 1n << 17n);          // bit17 = dmihardreset
       await this.sequences(tapReset());
-      await this.sequences(tapLoadIR(IR_DMI));
+      await this.sequences(tapLoadIR(IR_DMI, this.irLength));
       await this.dmiPost(DMI_OP.NOP, 0, 0);
       await this.dmiPost(DMI_OP.NOP, 0, 0);
       await this.dmiWrite(DM.DMCONTROL, this._ctl(this.hart ?? 0));
@@ -257,7 +266,7 @@ export class RiscvTransport {
   /**
    * 发一条 DMI 请求，返回**上一次**请求的响应（流水线语义）*/
   async dmiPost(op, addr = 0, data = 0, deadline = Infinity){
-    const bits = await this._scanDR(DR_DMI_BITS, dmiRequest(op, addr, data), deadline,
+    const bits = await this._scanDR(this.dmiBits, dmiRequest(op, addr, data, this.dmiBits - 34), deadline,
       this.idle + this.dmiBusyDelay);
     return dmiResponse(bits);
   }
@@ -284,9 +293,9 @@ export class RiscvTransport {
 
   async _dmiReset(deadline){
     this.dmiResets = (this.dmiResets || 0) + 1;
-    await this.sequences(tapLoadIR(IR_DTMCS), { deadline });
+    await this.sequences(tapLoadIR(IR_DTMCS, this.irLength), { deadline });
     await this._scanDR(DR_DTMCS_BITS, 1n << 16n, deadline);
-    await this.sequences(tapLoadIR(IR_DMI), { deadline });
+    await this.sequences(tapLoadIR(IR_DMI, this.irLength), { deadline });
     await this.dmiPost(DMI_OP.NOP, 0, 0, deadline);
   }
 
@@ -335,7 +344,7 @@ export class RiscvTransport {
 
   _burstWords(kind = 'read'){
     const pkt = Math.min(this.dap?.probe?.pkt || this.dap?.pkt || 512, 512);
-    const seqs = drScan(DR_DMI_BITS, 0n, { idle: this._busIdle(kind) });
+    const seqs = drScan(this.dmiBits, 0n, { idle: this._busIdle(kind) });
     const beatBytes = seqs.reduce((n, s) => n + 1 + s.tdi.length, 0);
     const scans = Math.min(Math.floor((pkt - 2) / beatBytes), Math.floor(255 / seqs.length), Math.floor((pkt - 2) / 6));
     return Math.max(1, Math.floor(scans / 2) - 1); // Reserve READ SBCS + NOP.
@@ -773,7 +782,7 @@ export class RiscvTransport {
     const groups = [];
     const all = [];
     for (const rq of requests){
-      const seqs = drScan(DR_DMI_BITS, rq, { idle });
+      const seqs = drScan(this.dmiBits, rq, { idle });
       groups.push({ from: all.length, n: seqs.length });
       for (const s of seqs) all.push(s);
     }
@@ -782,12 +791,12 @@ export class RiscvTransport {
     let ci = 0;
     for (const g of groups){
       let v = 0n, bit = 0;
-      for (let k = 0; k < g.n && bit < DR_DMI_BITS; k++){
+      for (let k = 0; k < g.n && bit < this.dmiBits; k++){
         const s = all[g.from + k];
         if (!s.captureBytes) continue;
         const bytes = caps[ci++];
         const clocks = s.clocks >= 64 ? 64 : s.clocks;
-        for (let i = 0; i < clocks && bit < DR_DMI_BITS; i++, bit++){
+        for (let i = 0; i < clocks && bit < this.dmiBits; i++, bit++){
           if ((bytes[i >> 3] >> (i & 7)) & 1) v |= (1n << BigInt(bit));
         }
       }

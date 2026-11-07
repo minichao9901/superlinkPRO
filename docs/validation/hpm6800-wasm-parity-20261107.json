@@ -1,0 +1,288 @@
+{
+  "hardware": {
+    "elfSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+    "backends": [
+      {
+        "backend": "openocd",
+        "checks": {
+          "源码行断点与高亮": {
+            "passed": true,
+            "evidence": [
+              {
+                "pc": 2147506060,
+                "source": {
+                  "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/engine.c",
+                  "line": 22
+                }
+              },
+              {
+                "pc": 2147508372,
+                "source": {
+                  "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/model.c",
+                  "line": 123
+                }
+              }
+            ]
+          },
+          "四断点同时命中": {
+            "passed": true,
+            "evidence": [
+              2147506060,
+              2147506594,
+              2147506920,
+              2147508372,
+              2147506060,
+              2147506594,
+              2147506920,
+              2147508372
+            ]
+          },
+          "同一断点连续五次": {
+            "passed": true,
+            "evidence": {
+              "rounds": 5,
+              "pc": 2147506744
+            }
+          },
+          "19 步指令单步": {
+            "passed": true,
+            "evidence": [
+              2147506060,
+              2147506062,
+              2147506064,
+              2147506066,
+              2147506068,
+              2147506070,
+              2147506072,
+              2147506074,
+              2147506076,
+              2147506078,
+              2147506080,
+              2147506082,
+              2147506086,
+              2147506090,
+              2147506092,
+              2147506094,
+              2147506096,
+              2147506098,
+              2147506100,
+              2147506102
+            ]
+          },
+          "19 步源码跳过": {
+            "passed": true,
+            "evidence": [
+              2147506060,
+              2147506068,
+              2147506074,
+              2147506080,
+              2147506094,
+              2147506098,
+              2147506102,
+              2147506116,
+              2147506120,
+              2147506124,
+              2147506132,
+              2147506136,
+              2147506140,
+              2147506152,
+              2147506156,
+              2147506160,
+              2147506166,
+              2147506172,
+              2147506176,
+              2147506180
+            ]
+          },
+          "源码进入被调函数": {
+            "passed": true,
+            "evidence": [
+              2147506126,
+              2147506128,
+              2147506018
+            ]
+          },
+          "连续五次源码跳出": {
+            "passed": true,
+            "evidence": [
+              2147506454,
+              2147506496,
+              2147506532,
+              2147506572,
+              2147506604
+            ]
+          },
+          "40 轮停走压力": {
+            "passed": true,
+            "evidence": {
+              "rounds": 40,
+              "pc": 2147506974
+            }
+          },
+          "复位并停后断点重命中": {
+            "passed": true,
+            "evidence": [
+              2147506060,
+              2147506060
+            ]
+          },
+          "复位并运行后断点命中": {
+            "passed": true,
+            "evidence": [
+              2147506060,
+              2147506060
+            ]
+          },
+          "RAM 结构体、位域和异常路径": {
+            "passed": true,
+            "evidence": [
+              "g_model @ 0x01240060  :  struct（352 字节，97 行）",
+              "g_model.flags.bits.level @ 0x0124006c  :  long unsigned int 位域[bit 1 · 3 位] = 3  (0x3)",
+              "g_model.flags.sbits.bias @ 0x01240074  :  long int 位域[bit 0 · 6 位] 有符号 = -3  (0x3d)",
+              "g_model.nodes[1].cell.scale @ 0x012400c8  :  double = 1.00000",
+              "g_model.word.halves.hi @ 0x0124007e  :  short unsigned int = 16256  (0x3f80)",
+              "g_model.tag @ 0x012401b6  :  array（8 字节，9 行）",
+              "「g_model.nodes[9]」：下标 [9] 越界（数组只有 4 项）",
+              "「g_model.nosuchmember」：没有成员「nosuchmember」（model_t 里有：magic · mode · flags · word · nodes · head · grid · matrix · label · blob · delta · tag）"
+            ]
+          },
+          "XIP 常量结构体": {
+            "passed": true,
+            "evidence": [
+              2147508372,
+              "g_model_const @ 0x8000d540  :  struct（352 字节，97 行）"
+            ]
+          },
+          "三类监视表达式": {
+            "passed": true,
+            "evidence": [
+              {
+                "addr": 19136608,
+                "error": null,
+                "expr": "g_model",
+                "value": "{magic=1297040453, mode=2, word=2445500261, on : 1=1  (0x1), …}"
+              },
+              {
+                "addr": 19136620,
+                "error": null,
+                "expr": "g_model.flags.bits.level",
+                "value": "2  (0x2)"
+              },
+              {
+                "addr": 19136752,
+                "error": null,
+                "expr": "g_model.nodes[2].cell.scale",
+                "value": "2.02062"
+              }
+            ]
+          }
+        },
+        "reconnections": 0,
+        "session": "OpenOCD Wasm / WebUSB",
+        "clockKhz": 8000,
+        "trapCount": 0,
+        "pageErrors": [],
+        "disconnected": true
+      }
+    ]
+  },
+  "browser": "Chrome 156.0.8078.48",
+  "bundleSha256": "7b1dc541fca5ff3cc9bbae9796ca8dd12cb04d502ed03a94467e88d4caa0ff51",
+  "wasmSha256": "257f4ffc396ce941e55331eb689be18a7b84a7a0dd10e12ede22fabe37a3f16e",
+  "browserMigration": [
+    {
+      "board": "hpm6800evk",
+      "backend": "openocd",
+      "legacyHpm": false,
+      "flashHpm": true,
+      "rttHpm": true,
+      "resetButtons": true
+    },
+    {
+      "board": "hpm5301evklite",
+      "backend": "riscv",
+      "legacyHpm": false,
+      "flashHpm": true,
+      "rttHpm": true,
+      "resetButtons": true
+    }
+  ],
+  "startup": {
+    "currentPagesColdMs": [
+      1968.6,
+      558.5,
+      446.3
+    ],
+    "candidateWasmPagesHttpStatus": 404,
+    "controlledNominalMbps": 8,
+    "controlledLatencyMs": 150,
+    "beforeSwitch": {
+      "baseline": {
+        "ms": [
+          1124.5,
+          1076.5,
+          1029.1,
+          1087.4,
+          1087.1
+        ],
+        "startupWasmRequests": 0,
+        "medianMs": 1087.1
+      },
+      "candidate": {
+        "ms": [
+          1132.3,
+          1106.4,
+          1131.9,
+          1064.2,
+          1186
+        ],
+        "startupWasmRequests": 0,
+        "medianMs": 1131.9
+      }
+    },
+    "final": {
+      "baseline": {
+        "ms": [
+          1100.2,
+          1262,
+          1049.3,
+          1114.2,
+          1151.8
+        ],
+        "startupWasmRequests": 0,
+        "medianMs": 1114.2
+      },
+      "candidate": {
+        "ms": [
+          1145.5,
+          1087.3,
+          1111.4,
+          1156.4,
+          1090.3
+        ],
+        "startupWasmRequests": 0,
+        "medianMs": 1111.4
+      }
+    },
+    "workerStartup": {
+      "gzip": {
+        "ms": [
+          2326,
+          2188.4,
+          2178.6
+        ],
+        "medianMs": 2188.4,
+        "wasmBytes": 1802655
+      },
+      "raw": {
+        "ms": [
+          5977.6,
+          5985.4,
+          5978.1
+        ],
+        "medianMs": 5978.1,
+        "wasmBytes": 5615519
+      }
+    }
+  }
+}

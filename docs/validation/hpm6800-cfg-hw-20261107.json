@@ -1,0 +1,402 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "ee00aa3cce6ba02cdba4e12a360eba2dc0d34b3c",
+  "sourceDirty": true,
+  "bundleSha256": "78ceba310ad6af2853265800427272166b99f751bcd96fed5aa62e831bfd9a12",
+  "sdk": "HPM SDK v1.11.0",
+  "cfgSha256": {
+    "boards/hpm6800evk.cfg": "c79fd8f0d5ebfbc393483fdfe2bf600ca4629dea4a58e5079f683f3a20cabc76",
+    "soc/hpm6880.cfg": "675dc3c27f5d4ca4595b6084a1311e9141bd31921218b61dc5035a284a3085d2",
+    "probes/cmsis_dap.cfg": "5a5ff987ec864da0002b7771329df1cc5d91469981eb346dd21101bdba5d788c"
+  },
+  "elfSha256": "7a4113350766f453f475e731b3ec7d24a3be08776983793e169dece85cac26f4",
+  "initialProbe": {
+    "directIdcode": "0xffffffff",
+    "webSequence": [
+      {
+        "hz": 1000000,
+        "tap": "0x1000563d"
+      },
+      {
+        "hz": 8000000,
+        "tap": "0x1000563d"
+      }
+    ]
+  },
+  "browserImport": [
+    {
+      "modules": "source",
+      "profile": {
+        "kind": "board",
+        "family": "riscv",
+        "target": "hpm6880.cpu0",
+        "clockKhz": 8000,
+        "workAreaBase": 0,
+        "workAreaSize": 131072,
+        "ignored": [
+          "Flash bank",
+          "HPM6800EVK 时钟和 DDR 初始化",
+          "HPM6800EVK GDB 连接复位事件"
+        ],
+        "arch": "riscv",
+        "tapIdcode": 268457533,
+        "irLength": 5,
+        "hart": 0,
+        "boardId": "hpm6800evk",
+        "name": "hpm6800evk.cfg"
+      },
+      "backend": "riscv",
+      "selected": "openocd-cfg",
+      "info": "hpm6800evk.cfg · hpm6880.cpu0 · JTAG 8000 kHz · TAP 0x1000563d · IR 5 · hart 0",
+      "connected": false
+    },
+    {
+      "modules": "bundle",
+      "profile": {
+        "kind": "board",
+        "family": "riscv",
+        "target": "hpm6880.cpu0",
+        "clockKhz": 8000,
+        "workAreaBase": 0,
+        "workAreaSize": 131072,
+        "ignored": [
+          "Flash bank",
+          "HPM6800EVK 时钟和 DDR 初始化",
+          "HPM6800EVK GDB 连接复位事件"
+        ],
+        "arch": "riscv",
+        "tapIdcode": 268457533,
+        "irLength": 5,
+        "hart": 0,
+        "boardId": "hpm6800evk",
+        "name": "hpm6800evk.cfg"
+      },
+      "backend": "riscv",
+      "selected": "openocd-cfg",
+      "info": "hpm6800evk.cfg · hpm6880.cpu0 · JTAG 8000 kHz · TAP 0x1000563d · IR 5 · hart 0",
+      "connected": false
+    }
+  ],
+  "firstRunRestoration": {
+    "initialError": "页面异常：Error: Register restoration mismatch: dcsr",
+    "verifiedAfterApplyingDcsrCauseMask": {
+      "actual": {
+        "pc": 2147513898,
+        "a0": 19169447,
+        "dcsr": 1073743491
+      },
+      "dcsrCauseBefore": 3,
+      "dcsrCauseAfter": 2,
+      "ramRestored": true,
+      "writes": [
+        {
+          "addr": 98304,
+          "length": 20
+        },
+        {
+          "addr": 98304,
+          "length": 20
+        }
+      ],
+      "restoredHaltState": true,
+      "disconnected": true
+    }
+  },
+  "finalHardware": {
+    "normalConnection": {
+      "bundle": true,
+      "writesRestrictedToIlm": [
+        98304,
+        98324
+      ],
+      "cfg": {
+        "kind": "board",
+        "family": "riscv",
+        "target": "hpm6880.cpu0",
+        "clockKhz": 8000,
+        "workAreaBase": 0,
+        "workAreaSize": 131072,
+        "ignored": [
+          "Flash bank",
+          "HPM6800EVK 时钟和 DDR 初始化",
+          "HPM6800EVK GDB 连接复位事件"
+        ],
+        "arch": "riscv",
+        "tapIdcode": 268457533,
+        "irLength": 5,
+        "hart": 0,
+        "boardId": "hpm6800evk",
+        "name": "hpm6800evk.cfg"
+      },
+      "backup": {
+        "wasHalted": false,
+        "regs": {
+          "pc": 2147513926,
+          "a0": 19169447,
+          "dcsr": 1073743555
+        },
+        "ram": [
+          6,
+          16,
+          150,
+          227,
+          175,
+          146,
+          111,
+          255,
+          103,
+          223,
+          143,
+          5,
+          129,
+          7,
+          1,
+          48,
+          19,
+          160,
+          50,
+          199
+        ],
+        "tap": 268457533,
+        "dtmcs": 28785,
+        "dmstatus": 4391842,
+        "sbcs": 538248199,
+        "misa": 1083445549,
+        "mvendorid": 798,
+        "marchid": 2147483717,
+        "mimpid": 3328,
+        "clockHz": 8000000,
+        "sbaFences": [
+          {
+            "start": 2147483648,
+            "end": 2415919104
+          }
+        ]
+      },
+      "download": {
+        "bytes": [
+          19,
+          5,
+          0,
+          0,
+          111,
+          0,
+          64,
+          0,
+          19,
+          5,
+          21,
+          0,
+          19,
+          5,
+          21,
+          0,
+          111,
+          0,
+          0,
+          0
+        ],
+        "lines": [
+          "20 bytes written at address 0x00018000",
+          "downloaded 20 bytes in 0.007300s (2.676 KiB/s)"
+        ]
+      },
+      "main": {
+        "pc": 98312,
+        "a0": 0,
+        "halted": true,
+        "source": "hpm6800_ram.S:14  main+0x0",
+        "highlight": 14,
+        "sourceText": true
+      },
+      "steps": [
+        {
+          "pc": 98316,
+          "a0": 1,
+          "halted": true,
+          "source": "hpm6800_ram.S:16  main+0x4",
+          "highlight": 16,
+          "sourceText": true
+        },
+        {
+          "pc": 98320,
+          "a0": 2,
+          "halted": true,
+          "source": "hpm6800_ram.S:18  main+0x8",
+          "highlight": 18,
+          "sourceText": true
+        }
+      ],
+      "passed": true,
+      "cleanup": {
+        "wasHalted": false,
+        "dcsrCauseBefore": 3,
+        "dcsrCauseAfter": 2,
+        "registersRestored": true,
+        "ramRestored": true,
+        "writes": [
+          {
+            "addr": 98304,
+            "length": 20
+          },
+          {
+            "addr": 98304,
+            "length": 20
+          }
+        ],
+        "restoredHaltState": true,
+        "disconnected": true
+      }
+    },
+    "webHidUnavailable": {
+      "bundle": true,
+      "writesRestrictedToIlm": [
+        98304,
+        98324
+      ],
+      "webHidUnavailable": true,
+      "cfg": {
+        "kind": "board",
+        "family": "riscv",
+        "target": "hpm6880.cpu0",
+        "clockKhz": 8000,
+        "workAreaBase": 0,
+        "workAreaSize": 131072,
+        "ignored": [
+          "Flash bank",
+          "HPM6800EVK 时钟和 DDR 初始化",
+          "HPM6800EVK GDB 连接复位事件"
+        ],
+        "arch": "riscv",
+        "tapIdcode": 268457533,
+        "irLength": 5,
+        "hart": 0,
+        "boardId": "hpm6800evk",
+        "name": "hpm6800evk.cfg"
+      },
+      "backup": {
+        "wasHalted": false,
+        "regs": {
+          "pc": 2147513934,
+          "a0": 19169447,
+          "dcsr": 1073743555
+        },
+        "ram": [
+          6,
+          16,
+          150,
+          227,
+          175,
+          146,
+          111,
+          255,
+          103,
+          223,
+          143,
+          5,
+          129,
+          7,
+          1,
+          48,
+          19,
+          160,
+          50,
+          199
+        ],
+        "tap": 268457533,
+        "dtmcs": 28785,
+        "dmstatus": 4391842,
+        "sbcs": 538248199,
+        "misa": 1083445549,
+        "mvendorid": 798,
+        "marchid": 2147483717,
+        "mimpid": 3328,
+        "clockHz": 8000000,
+        "sbaFences": [
+          {
+            "start": 2147483648,
+            "end": 2415919104
+          }
+        ]
+      },
+      "download": {
+        "bytes": [
+          19,
+          5,
+          0,
+          0,
+          111,
+          0,
+          64,
+          0,
+          19,
+          5,
+          21,
+          0,
+          19,
+          5,
+          21,
+          0,
+          111,
+          0,
+          0,
+          0
+        ],
+        "lines": [
+          "20 bytes written at address 0x00018000",
+          "downloaded 20 bytes in 0.007000s (2.790 KiB/s)"
+        ]
+      },
+      "main": {
+        "pc": 98312,
+        "a0": 0,
+        "halted": true,
+        "source": "hpm6800_ram.S:14  main+0x0",
+        "highlight": 14,
+        "sourceText": true
+      },
+      "steps": [
+        {
+          "pc": 98316,
+          "a0": 1,
+          "halted": true,
+          "source": "hpm6800_ram.S:16  main+0x4",
+          "highlight": 16,
+          "sourceText": true
+        },
+        {
+          "pc": 98320,
+          "a0": 2,
+          "halted": true,
+          "source": "hpm6800_ram.S:18  main+0x8",
+          "highlight": 18,
+          "sourceText": true
+        }
+      ],
+      "passed": true,
+      "cleanup": {
+        "wasHalted": false,
+        "dcsrCauseBefore": 3,
+        "dcsrCauseAfter": 2,
+        "registersRestored": true,
+        "ramRestored": true,
+        "writes": [
+          {
+            "addr": 98304,
+            "length": 20
+          },
+          {
+            "addr": 98304,
+            "length": 20
+          }
+        ],
+        "restoredHaltState": true,
+        "disconnected": true
+      }
+    }
+  },
+  "offline": {
+    "nodeTestsPassed": 12,
+    "toolboxCliTestsPassed": 9
+  }
+}

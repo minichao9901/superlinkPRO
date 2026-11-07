@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {DebugSession} from '../../app/dbg/session.js';
 import {RiscvDebugSession} from '../../app/dbg/riscv.js';
+import {OpenOcdDebugSession} from '../../app/dbg/openocd-session.js';
 import {DbgView} from '../../app/dbg/view.js';
 import {ProbeManager} from '../../app/core/probe-manager.js';
 import {SvdValueState} from '../../app/dbg/svd-state.js';
@@ -10,10 +11,16 @@ globalThis.document={getElementById:()=>null};
 const v=Object.create(DbgView.prototype),s=new DebugSession(),held=gate();let closed=false;
 v.svdValues=new SvdValueState();v._svdRevision=0;
 s.probe={disconnect:async()=>{closed=true;}};Object.assign(v,{session:s,_stopWatch(){},rttStop(){},renderRegs(){},renderMem(){},renderBps(){},_syncButtons(){},_bindSessionLog(){}});
-const operation=s.exclusive(()=>held.promise),switching=v._ensureSession(true);await tick();assert.equal(v.session,s);assert.equal(closed,false);
+const operation=s.exclusive(()=>held.promise),switching=v._ensureSession('riscv');await tick();assert.equal(v.session,s);assert.equal(closed,false);
 held.resolve();await Promise.all([operation,switching]);assert.equal(closed,true);assert.ok(v.session instanceof RiscvDebugSession);
-await v._ensureSession(false);assert.ok(v.session instanceof DebugSession);assert.ok(!(v.session instanceof RiscvDebugSession));
-console.log('dbg-backend-lifecycle: ARM/RISC-V switch waits for old actions and disconnect before replacing session PASS');
+await v._ensureSession('openocd');assert.ok(v.session instanceof OpenOcdDebugSession);
+const wasm=v.session, wasmHeld=gate();let wasmClosed=false;
+wasm.link={close:async()=>{wasmClosed=true;}};wasm.probe={};
+const wasmOperation=wasm.exclusive(()=>wasmHeld.promise),switchingBack=v._ensureSession('webusb');
+await tick();assert.equal(v.session,wasm);assert.equal(wasmClosed,false);
+wasmHeld.resolve();await Promise.all([wasmOperation,switchingBack]);assert.equal(wasmClosed,true);
+assert.equal(v.session.constructor,DebugSession);
+console.log('dbg-backend-lifecycle: ARM, RISC-V and Wasm switches wait for old actions and disconnect PASS');
 
 for (const Backend of [DebugSession, RiscvDebugSession]){
   const session = new Backend(), manager = new ProbeManager({ locks: null });
