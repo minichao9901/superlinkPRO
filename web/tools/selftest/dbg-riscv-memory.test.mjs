@@ -65,16 +65,6 @@ for(const state of [0x400000,0x200000,0x2000,0x600000]){
   await assert.rejects(session.memRead(0x4000b600,60),/15 秒/);assert.equal(attempts,1);
   assert.ok(log.some(t=>/未自动复位/.test(t)));
 }
-// RTT failures also cannot reset DM or retry an uncertain bus access.
-{
-  const {RiscvMem}=await import('../../app/rtt/riscv-mem.js');
-  let reads=0,resets=0;
-  const mem=new RiscvMem({dm:{async readMem(){reads++;throw Error('SBA failed');},
-    async init(){resets++;}},log(){}});
-  await assert.rejects(mem.readMem(0x400,4),/SBA failed/);
-  assert.equal(reads,1);assert.equal(resets,0);
-}
-
 // Transport fences the complete aligned span before any hardware command.
 const t=Object.create(RiscvTransport.prototype);let touched=0;
 t.sbaConfig=async()=>{touched++;throw Error('allowed SBA path');};

@@ -148,7 +148,7 @@ await test('DDR readiness applies only to HPM6880; other models never read its S
     }
   }
 });
-await test('custom chip memory readiness and reset hooks reach debug/RTT callers', async () => {
+await test('custom chip memory readiness and reset hooks reach the debug session', async () => {
   const calls=[];
   const port=createHpmTarget(HPM_CHIPS.hpm6750,{...custom,debug:{hart:3},hooks:{checkMemoryReady:async(_ctx,a,n)=>{calls.push(['ready',a,n]);}},
     reset:{halt:async(_dm,h)=>{calls.push(['halt',h]);},haltForRun:async(_dm,h)=>{calls.push(['resetRun',h]);}}});
@@ -157,9 +157,6 @@ await test('custom chip memory readiness and reset hooks reach debug/RTT callers
     _pollHalted:async()=>true,_rearmBpsAfterReset:async()=>calls.push(['bps']),refresh:async()=>{},refreshRegs:async()=>{},run:async()=>calls.push(['run'])});
   await session.memRead(0x4000,4);await session.resetHalt();await session.resetRun();
   assert.deepEqual(calls,[['ready',0x4000,4],['halt',3],['bps'],['resetRun',3],['bps'],['run']]);
-  const {RiscvMem}=await import('../../app/rtt/riscv-mem.js');
-  const mem=new RiscvMem({dm:session.dm,target:port});await mem.readMem(0x800,8);
-  assert.deepEqual(calls.at(-1),['ready',0x800,8]);
 });
 await test('custom SBA fence catches crossing and aligned spans before the wire', async () => {
   const port=createHpmTarget(HPM_CHIPS.hpm5301,{...HPM_BOARDS[1],memory:{sbaReadForbidden:[{start:0x90000000,end:0xa0000000}]}});

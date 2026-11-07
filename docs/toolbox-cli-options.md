@@ -18,7 +18,7 @@ Unified AI entry: python -X utf8 toolbox.py --help. See docs/toolbox-cli-ai.md.
 
 ```text
 usage: toolbox.py [-h] [--runtime RUNTIME] [--timeout TIMEOUT] [--out OUT]
-                  {catalog,serve,ping,status,job,ack,request,batch,page,trace,bridge-build} ...
+                  {catalog,serve,ping,status,job,ack,request,batch,page,target,trace,bridge-build} ...
 ```
 
 | 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
@@ -339,6 +339,58 @@ usage: toolbox.py page <page> invoke [-h] [--target TARGET] [--args ARGS]
 | --target | 以describe返回的targets为准 | str | 否 | view | — |
 | --args | JSON位置参数数组；大参数可用--args-file | str | 否 | [] | — |
 | --args-file | UTF-8 JSON 位置参数数组文件；参数内支持 $file 引用，规则见总指南。 | str | 否 | 未指定 | — |
+
+## toolbox.py target
+
+检查、导入和沿用共享 OpenOCD 目标配置；不访问硬件
+
+```text
+usage: toolbox.py target [-h] {info,import,use} ...
+```
+
+| 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
+|---|---|---|---|---|---|
+| -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+
+## toolbox.py target info
+
+读取当前会话与调试、烧录、RTT Viewer 各页已选目标
+
+```text
+usage: toolbox.py target info [-h]
+```
+
+| 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
+|---|---|---|---|---|---|
+| -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+
+## toolbox.py target import
+
+等待 CFG 导入完成，可选择核心；不连接目标
+
+```text
+usage: toolbox.py target import [-h] [--entry ENTRY] [--core CORE] path
+```
+
+| 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
+|---|---|---|---|---|---|
+| -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+| path | 单个 .cfg 文件或其 CFG/Tcl 脚本目录 | Path | 是 | 未指定 | — |
+| --entry | 目录入口的相对路径，以 / 分隔 | str | 否 | 未指定 | — |
+| --core | 要选择的 OpenOCD 核名；省略则采用默认核心 | str | 否 | 未指定 | — |
+
+## toolbox.py target use
+
+沿用会话目标并返回应用结果；目标变更会清除本页旧文件及地址
+
+```text
+usage: toolbox.py target use [-h] {flash,rtt}
+```
+
+| 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
+|---|---|---|---|---|---|
+| -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+| page | 网页功能分类，取下面 choices 中的值；先 describe 再操作。 | str | 是 | 未指定 | ['flash', 'rtt'] |
 
 ## toolbox.py bridge-build
 
@@ -1139,4 +1191,4 @@ usage: toolbox.py trace record sources [-h] --record RECORD
 | --sources-json | 路径→正文的源码字典 | Path | 否 | 未指定 | — |
 | --source-root | 只读取此目录内、ELF记录的实际源码路径；不猜basename | Path | 否 | 未指定 | — |
 
-共覆盖 **64 个命令/分类节点**。
+共覆盖 **68 个命令/分类节点**。

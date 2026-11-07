@@ -24,7 +24,7 @@ class EntryTests(unittest.TestCase):
         reference = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(reference)
         text, count = reference.render()
-        self.assertEqual(count, 64)
+        self.assertEqual(count, 68)
         self.assertEqual(text, (ROOT / 'docs/toolbox-cli-options.md').read_text(encoding='utf-8'))
         self.assertIn('必须且只能选一项', text)
 
@@ -84,6 +84,24 @@ class EntryTests(unittest.TestCase):
             Path(folder, 'toolbox-runtime.json').write_text(json.dumps({'url': 'https://example.com'}))
             with self.assertRaisesRegex(ValueError, '本机'):
                 cli.Client(folder)
+
+    def test_target_import_collects_only_cfg_dependencies_and_requires_a_real_entry(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'board').mkdir()
+            (root / 'board/test.cfg').write_text('source [find helper.tcl]')
+            (root / 'helper.tcl').write_text('set x 1')
+            (root / 'private.txt').write_text('unrelated')
+            parser = cli.parser()
+            args = parser.parse_args(['target', 'import', folder, '--entry', 'board/test.cfg', '--core', 'chip.cm1'])
+            request = cli.target_request(args)
+            self.assertEqual((request['page'], request['op'], request['entry'], request['core']),
+                             ('dbg', 'target-import', 'board/test.cfg', 'chip.cm1'))
+            self.assertEqual({f['relativePath'] for f in request['files']}, {'cfg/board/test.cfg', 'cfg/helper.tcl'})
+            for bad in ('../test.cfg', 'board/missing.cfg', 'helper.tcl'):
+                args.entry = bad
+                with self.assertRaises(ValueError):
+                    cli.target_request(args)
 
 
 class TransportTests(unittest.TestCase):

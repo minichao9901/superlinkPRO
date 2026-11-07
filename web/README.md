@@ -2,11 +2,11 @@
 
 **面向嵌入式开发的浏览器工作台：调试、烧录、SWO 采样、日志、波形与总线测试。**
 
-[打开在线工作台](https://minichao9901.github.io/web-serial-rtt-tools/) · [akaLinkPro 探针](https://github.com/minichao9901/5301evk_akaLinkPro) · [快速开始](#快速开始) · [实测性能](#实测性能) · [Apache-2.0](LICENSE)
+[打开在线工作台](https://minichao9901.github.io/superlinkPRO/) · [akaLinkPro 探针](../firmware/README.md) · [快速开始](#快速开始) · [实测性能](#实测性能) · [Apache-2.0](../LICENSE)
 
 把串口终端、RTT、源码调试器、SWO 执行轨迹、变量示波器和外设调试工具放到一个网页里。使用桌面版 Chrome / Edge，通过 Web Serial、WebHID 和 WebUSB 直接连接设备；零安装通路无需启动本地调试服务。
 
-本仓库是 **Web 上位机**。通用串口和 CMSIS-DAP 基础功能可配合兼容设备使用；探针端 RTT 转发、HSS、SPI/QSPI、I2C 和高速 ADC 等扩展由 [akaLinkPro 固件](https://github.com/minichao9901/5301evk_akaLinkPro) 提供。
+本目录是 superlinkPRO 的 **Web 上位机**。通用串口和 CMSIS-DAP 基础功能可配合兼容设备使用；探针端 RTT 转发、HSS、SPI/QSPI、I2C 和高速 ADC 等扩展由 [akaLinkPro 固件](../firmware/README.md) 提供。
 
 ## 为嵌入式开发准备的一套工作流
 
@@ -15,7 +15,7 @@
 - **记录后回看程序执行落点。** SWO PC 采样配合 ELF / 源码定位，查看函数热点、逐样本回放，并导出完整或简化 `.c`。
 - **把外设协议变成可操作工具。** SPI/QSPI、I2C 提供命令表、寄存器编辑、脚本和实时值；屏幕初始化、发图及 NOR Flash 测试共用同一通路。
 - **采集与显示分开。** 高流量时限制渲染开销，接收计数与已开启的记录继续；采样同时显示跳拍、USB 丢样和读取错误。
-- **静态部署，开放扩展。** 无需前端打包即可运行，可部署到 HTTPS 静态站点，也可本地启动；附带演示目标和自动验收入口。
+- **静态部署，开放扩展。** 线上入口使用已生成的合并脚本，源码模式可由本机服务加载；附带演示目标和自动验收入口。
 
 ## 工作台功能
 
@@ -23,11 +23,11 @@
 | --- | --- |
 | 串口助手 | ASCII / HEX / ANSI 收发、时间戳、定时与快捷发送、文件记录 |
 | 终端 | xterm.js 交互终端、ANSI 显示、本地回显、按键映射和粘贴发送 |
-| RTT Viewer | RTT 通道查看与下行输入；CMSIS-DAP WebUSB、模拟目标、日志检索和 ELF 显式复用 |
+| RTT Viewer | OpenOCD Wasm / WebUSB，RTT 通道查看与下行输入、共享目标、匹配 ELF、日志检索 |
 | RTT 转发 | 探针读取目标 RTT 并转成 CDC 字节流；高速接收、显示保护与采集质量报告 |
 | SPI转发 | 外部 SPI 主机数据经探针从机 DMA 转为 CDC；附引脚分配图 |
 | J-Scope 波形 | 1–8 通道变量采集、速率标定、触发、游标、CSV / 原始包与分项质量报告 |
-| 烧录器 | ELF / HEX / BIN 的擦除、编程、校验和复位；按支持的目标算法工作 |
+| 烧录器 | OpenOCD Wasm 的 ELF / HEX / BIN 擦写、读回和复位；支持有 Flash bank 的共享 CFG |
 | SWO PC 采样 | SWO→VCOM 录制、CPU / Trace 时钟识别与收发匹配、带宽计算器；ELF / 源码离线分析、热点、逐样本回放与完整导出 |
 | ETM 执行轨迹 | 更多功能中的完整内嵌页面；断点起点、Kingst联动采集、OpenCSD指令解码、Timeline/火焰图与源码对照；需要本地服务 |
 | 调试器 | 源码断点、单步、变量、调用栈与 RTT；ARM / RV32 异常诊断及现场报告 |
@@ -37,7 +37,7 @@
 | USB→ADC / DAC | ADC 示波器、时间 / 电压游标与自动测量；DAC 波形预览和导出 |
 | 工程下载 | Windows 完整工作台、版本、SHA-256 和启动说明；开发包在 `dist/superlinkPRO/` |
 
-## SWO：记录、离线分析与源码回放
+## ETM：Kingst 采集和离线分析
 
 ETM使用 [完整便携桥包与说明](docs/etm-integration.md)：在“工程下载”下载完整 Windows 64 位包，解压后双击 `superlinkPRO.exe`，打开 `http://127.0.0.1:8878/#etm`。包已包含运行环境与解码器，只需另行准备 KingstVIS；无需配置两个工程目录。
 
@@ -58,7 +58,9 @@ ETM使用 [完整便携桥包与说明](docs/etm-integration.md)：在“工程�
   `runtime/backend/firmware/stm32f103_cdc_trace/fw-ze.elf`。
 
 
-打开 [SWO 执行轨迹](https://minichao9901.github.io/web-serial-rtt-tools/#swo)，录制一段目标的 DWT PC 采样数据，停止后用匹配的 ELF 和源码分析。也可直接载入 [F103CB 实测示例](samples/swo/README.md)，无需连接硬件。
+## SWO：记录、离线分析与源码回放
+
+打开 [SWO 执行轨迹](https://minichao9901.github.io/superlinkPRO/#swo)，录制一段目标的 DWT PC 采样数据，停止后用匹配的 ELF 和源码分析。也可直接载入 [F103CB 实测示例](samples/swo/README.md)，无需连接硬件。
 
 - **配置与计算。** 识别内核及已适配芯片的 CPU / Trace 时钟，选择 PC 间隔（含 64 / 128 周期）、时间戳、异常与 ITM 事件。独立计算器展示 PC/s、带宽预算、SWO 波特率和探针接收分频；支持自动匹配及手动输入最高 30 Mbaud 的请求值，以双端实际回读为准。
 - **回放与定位。** 函数热点、样本区间和函数筛选、逐样本源码回放；溢出与已知传输缺口显式分段，时间戳质量单独标明。
@@ -145,7 +147,7 @@ SPI转发原生 CDC 曾在 H743 标称 67 MHz 达到约 8.41 MB/s，但 Web 默�
 
 ### 在线使用
 
-1. 用桌面版 **Chrome / Edge** 打开 [在线工作台](https://minichao9901.github.io/web-serial-rtt-tools/)。
+1. 用桌面版 **Chrome / Edge** 打开 [在线工作台](https://minichao9901.github.io/superlinkPRO/)。
 2. 插入串口设备或调试探针，连接目标并确认供电与共地。
 3. 在所需页面点击连接，由浏览器弹框选择设备。串口、HID 和 USB 是不同授权入口，首次使用对应通路需分别选择。
 4. 调试或变量采样时载入与目标固件匹配的 ELF；总线与 ADC 页面可直接打开「引脚分配图」查看接线。
@@ -162,7 +164,7 @@ node tools/dev/serve-nocache.mjs 8899
 
 浏览器打开 `http://127.0.0.1:8899/`。HTTPS 与 localhost 提供硬件 API 所需的安全上下文；建议通过 HTTP 服务运行，不以直接双击 HTML 文件作为使用入口。
 
-尚未连接硬件时，可使用 [演示串口](https://minichao9901.github.io/web-serial-rtt-tools/?demo=serial) 或页面内置模拟目标了解界面。模拟结果不用于真实性能判断。
+尚未连接硬件时，可使用 [演示串口](https://minichao9901.github.io/superlinkPRO/?demo=serial) 或页面内置模拟目标了解界面。模拟结果不用于真实性能判断。
 
 线上静态站使用合并脚本，减少首屏模块请求；本地仍直接加载源码，修改后刷新即可。维护者更新应用源码后运行 `npm ci`、`npm run build:web`，将生成的 `app/site/` 与源码一起提交；`make check` 会检查发布脚本是否与源码一致。需要本地验证线上模式时，地址附加 `?modules=bundle`。
 
@@ -219,6 +221,6 @@ node tools/dev/serve-nocache.mjs 8899
 
 ## 2026-11 工作台重构
 
-调试仅保留 WebUSB / CMSIS-DAP，工程生成和 OpenOCD/J-Link 桥已移除。串口、终端、RTT、RTT转发及烧录器新增设置收起；串口/RTT日志支持最近128KiB查找过滤。烧录、调试、RTT和波形之间可显式复用目标与SHA-256绑定的ELF，烧录器可只读查看字节和ELF结构。ETM页面与Kingst采集保持原版本，其他外设工具继续保留。
+调试、烧录和 RTT Viewer 使用内置的 OpenOCD Wasm 与 CMSIS-DAP / WebUSB。预设生成配置，受支持的原版 CFG 可从调试器导入、选核并在其它页面沿用。见 [CFG 手册](docs/dbg-page.md#内置芯片与-openocd-cfg)和 [统一 CLI](../docs/toolbox-cli-ai.md#openocd-目标与-cfg)。RTT 转发和 J-Scope 仍是探针固件高速功能；ETM 使用 Kingst 联动采集，网页保存后自动解码默认生成原生紧凑 TraceStore。
 
 构建：`python -X utf8 toolbox.py bridge-build`。产物：`dist/superlinkPRO/superlinkPRO.exe`（仓库根目录）。完整ZIP和清单同在根`dist/`。本地生成的包不自动推送或替换历史正式下载。

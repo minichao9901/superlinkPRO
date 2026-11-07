@@ -2,11 +2,11 @@
 
 **开源 USB 高速调试探针 · ARM / RISC-V · SWO PC 采样 · 浏览器工作台**
 
-[在线工作台](https://minichao9901.github.io/web-serial-rtt-tools/) · [Web 源码](https://github.com/minichao9901/web-serial-rtt-tools) · [快速开始](#快速开始) · [实测性能](#实测性能) · [Apache-2.0](LICENSE)
+[在线工作台](https://minichao9901.github.io/superlinkPRO/) · [Web 源码](../web/README.md) · [快速开始](#快速开始) · [实测性能](#实测性能) · [Apache-2.0](../LICENSE)
 
 akaLinkPro 基于 HPM5301，将目标调试、固件烧录、串口、RTT、SWO PC 采样、变量采样和常用总线测试集成到一条 USB 连接。既可作为 CMSIS-DAP 探针配合 OpenOCD 等桌面工具，也可搭配纯静态 Web 工作台，在浏览器中完成日常嵌入式开发。
 
-本仓库包含探针应用固件、DFU Bootloader、板级适配与测试夹具。完整产品由本仓库和 [web-serial-rtt-tools](https://github.com/minichao9901/web-serial-rtt-tools) 共同组成。
+本目录包含探针应用固件、DFU Bootloader 和板级适配；[测试夹具](../script_test/README.md)与 [Web 工作台](../web/README.md)位于同一仓库。
 
 ## 为什么选择 akaLinkPro
 
@@ -22,7 +22,7 @@ akaLinkPro 基于 HPM5301，将目标调试、固件烧录、串口、RTT、SWO 
 | 能力 | 典型用途 |
 | --- | --- |
 | CMSIS-DAP 调试 | ARM / RISC-V 目标连接、寄存器与内存访问；配合 Web 进行源码调试、断点、单步与回溯 |
-| 固件烧录 | 配合 Web flashloader 完成擦除、写入、校验和复位；也可使用桌面调试工具 |
+| 固件烧录 | 配合工作台 OpenOCD Wasm 完成擦写、读回和复位；也可使用桌面调试工具 |
 | 串口与 RTT | USB CDC 串口；探针端 RTT→CDC 转发，减少主机逐次读内存的开销 |
 | J-Scope / HSS | 从目标 RAM 周期读取 1–8 个变量，支持不同宽度、结构体成员及数组元素，无需加入采样协议代码 |
 | SWO PC 采样 | UART 接收 NRZ SWO 并转为 CDC；双端波特率匹配、可恢复接收时钟会话，配合 Web 录制和 ELF / 源码离线分析 |
@@ -34,7 +34,7 @@ akaLinkPro 基于 HPM5301，将目标调试、固件烧录、串口、RTT、SWO 
 
 SPI/QSPI、I2C 和高速 ADC 当前面向 **HPM5301EVKLite** 板型。HPM5301 无物理 DAC；Web 的 DAC 页提供波形预览、数据导出和未来硬件接口，当前不输出模拟信号。
 
-**查看工作台界面：** [J-Scope、烧录器、RTT 转发、源码调试器、SPI/QSPI 发图与 ADC 示波器](https://github.com/minichao9901/web-serial-rtt-tools#界面预览)。Web 主页提供当前页面截图，并标明模拟目标、虚拟信号和烧录准备场景；下方性能表引用独立板上验收结果。
+**查看工作台界面：** [J-Scope、烧录器、RTT 转发、源码调试器、SPI/QSPI 发图与 ADC 示波器](../web/README.md#界面预览)。截图区分模拟、虚拟信号和烧录准备场景；下方性能表引用板上验收结果。
 
 工作台另提供 [ARM / RV32 异常诊断与 J-Scope / RTT 采集质量报告](https://github.com/minichao9901/web-serial-rtt-tools/blob/main/docs/diagnostics.md)：区分目标读错、探针跳拍、USB 缓冲丢样与网页显示／落盘状态。此功能复用现有探针接口，本轮无需升级探针固件。
 
@@ -77,7 +77,7 @@ F103CB 已完成实机验收；Web 还提供 F407/F405、H743 与 H7B0 型号组
 ### 使用探针
 
 1. 准备 akaLinkPro 或已烧入对应固件的 HPM5301EVKLite，按 [板级接线说明](docs/HPM5301EVKLite_port.md) 连接目标。
-2. 用 USB 连接电脑，打开 [在线工作台](https://minichao9901.github.io/web-serial-rtt-tools/)，使用桌面版 Chrome / Edge。
+2. 用 USB 连接电脑，使用桌面版 Chrome / Edge 打开 [在线工作台](https://minichao9901.github.io/superlinkPRO/)。
 3. 选择调试器、RTT、J-Scope 或总线页面，在浏览器设备选择框中授权相应 HID / USB / 串口接口。
 4. 调试或变量采样时载入与板上固件匹配的 ELF。**载入 ELF 只提供符号和地址，不会更新目标固件。**
 

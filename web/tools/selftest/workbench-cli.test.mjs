@@ -89,6 +89,25 @@ test('file inputs attached outside their page remain discoverable and uploadable
   await r.a.dispatch(request('upload',{selector:'@file:view._fileInput',files:[{$base64:'YQ==',name:'a.bin'}]}));
   assert.equal(await file.files[0].text(),'a');
 });
+test('target import waits for directory CFG and selected core and reports a rejected import',async()=>{
+  const r=rig();
+  const section=r.document.createElement('section');section.id='tab-dbg';r.document.body.append(section);
+  r.tools.sessionTarget={info:()=>({shared:{id:'cfg:abc:board.cm1'}})};
+  r.tools.dbg={async _importCfg(entry,scripts,{core,strict}){
+    assert.equal(strict,true);
+    assert.equal(entry,'board/main.cfg');
+    assert.equal(scripts.get('target/common.tcl'),'set x 1');
+    await Promise.resolve();
+    if(core!=='board.cm1')throw Error('missing core');
+    return {name:entry,target:core,arch:'arm',cores:[{target:'board.cm0'},{target:core}],hash:'abc',hasFlash:true};
+  }};
+  const pack=(relativePath,body)=>({name:relativePath.split('/').at(-1),relativePath,$base64:Buffer.from(body).toString('base64')});
+  const m={page:'dbg',op:'target-import',entry:'board/main.cfg',core:'board.cm1',
+    files:[pack('cfg/board/main.cfg','source [find target/common.tcl]'),pack('cfg/target/common.tcl','set x 1')]};
+  const result=await r.a.dispatch(m);
+  assert.equal(result.core,'board.cm1');assert.equal(result.hasFlash,true);assert.equal(result.hardwareAccessed,false);
+  await assert.rejects(r.a.dispatch({...m,core:'board.cm2'}),/missing core/);
+});
 test('Blob exports survive URL revocation and chunked download is byte exact',async()=>{
   const r=rig();await r.a.dispatch(request('invoke',{method:'save'}));
   const list=await r.a.dispatch(request('downloads'));assert.equal(list.length,1);assert.equal(list[0].name,'hello.txt');

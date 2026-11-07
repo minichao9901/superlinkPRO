@@ -19,12 +19,12 @@ ROOT = Path(__file__).resolve().parent
 PAGES = {
     'serial': ('串口助手', 'serial/assistant.js', 'ASCII/HEX/ANSI、端口、定时/快捷发送、记录、DTR/RTS'),
     'terminal': ('终端', 'serial/terminal.js', '交互终端、回显、按键/粘贴、保存'),
-    'rtt': ('RTT Viewer', 'rtt/view.js', 'WebUSB、通道、上下行、ELF复用、日志检索与记录'),
+    'rtt': ('RTT Viewer', 'rtt/view.js', 'OpenOCD Wasm / WebUSB、共享目标、通道、上下行、ELF复用与记录'),
     'rttcdc': ('RTT 转发', 'hid/stream.js', 'RTT→CDC、HID配置、接收/记录、质量报告'),
     'spicdc': ('SPI 转发', 'spi-cdc/view.js', 'SPI从机→CDC、DMA、接收/记录、状态'),
     'scope': ('J-Scope', 'scope/view.js', 'ELF变量、1–8通道、采样、触发/游标、CSV/原始数据、质量'),
-    'dbg': ('调试器', 'dbg/view.js', 'ARM/RISC-V、断点/单步、寄存器/内存/变量/调用栈、异常、SVD'),
-    'flash': ('烧录器', 'flash/view.js', 'ELF/HEX/BIN、目标算法、擦除/编程/校验、复位'),
+    'dbg': ('调试器', 'dbg/view.js', 'OpenOCD Wasm、CFG导入/选核、断点/单步、寄存器/内存/变量/调用栈'),
+    'flash': ('烧录器', 'flash/view.js', 'OpenOCD Wasm、共享目标、ELF/HEX/BIN、擦除/编程/校验、复位'),
     'swo': ('SWO PC 采样', 'swo/view.js', '时钟/带宽规划、采集、swopc/ELF/源码、热点/回放/导出'),
     'etm': ('ETM 执行轨迹', 'etm/view.js', '目标/时钟、LA采集、导入/解码、全部查询/阅读/导出；另有 trace 原生CLI'),
     'spi': ('USB SPI/QSPI', 'spi/bus-view.js', '总线配置、帧/命令表、寄存器、DSL、实时值、NOR/回环'),
@@ -53,6 +53,8 @@ def catalog():
             'pages': [{'id': key, 'label': value[0], 'source': 'web/app/' + value[1],
                        'features': value[2], 'commands': ['describe', 'state', 'show', 'read', 'set', 'click', 'interrupt', 'upload', 'invoke', 'wait', 'event', 'downloads', 'download', 'discard']}
                       for key, value in PAGES.items()],
+            'target': {'commands': ['info', 'import', 'use'], 'pages': ['dbg', 'flash', 'rtt'],
+                       'scope': '配置操作；不连接、复位或烧录目标'},
             'trace': 'toolbox.py trace <existing trace CLI arguments>',
             'browserRequired': True, 'hardwareValidatedThisChange': False,
             'completion': '事件投递不代表业务完成；读取状态/质量/日志验证。invoke等待原方法返回，原方法可能自行捕获错误。'}
@@ -132,6 +134,43 @@ def expand_arguments(value):
             return {**pack_file(value['$file']), 'kind': kind}
         return {k: expand_arguments(v) for k, v in value.items()}
     return value
+
+
+def target_request(args):
+    payload = {'action': 'workbench', 'op': 'target-' + args.target_op,
+               'page': getattr(args, 'page', 'dbg')}
+    if args.target_op != 'import':
+        return payload
+    path = args.path.absolute()
+    def linked(item):
+        return item.is_symlink() or getattr(item, 'is_junction', lambda: False)()
+    if linked(path):
+        raise ValueError('CFG 输入不能是文件链接或目录联接')
+    payload['core'] = args.core
+    if path.is_dir():
+        entry = args.entry
+        if (not entry or '\\' in entry or any(part in ('', '.', '..') for part in entry.split('/'))
+                or Path(entry).suffix.lower() != '.cfg'):
+            raise ValueError('目录导入须用 --entry 指定相对于该目录的 CFG 路径，以 / 分隔')
+        files, size = [], 0
+        for folder, dirs, names in os.walk(path, followlinks=False):
+            dirs[:] = sorted(d for d in dirs if not linked(Path(folder) / d))
+            for name in sorted(names):
+                source = Path(folder) / name
+                if source.suffix.lower() not in ('.cfg', '.tcl') or source.is_symlink() or not source.is_file():
+                    continue
+                size += source.stat().st_size
+                if len(files) >= 4096 or size > 8 << 20:
+                    raise ValueError('CFG 目录最多支持 4096 个脚本和 8 MiB 文件内容')
+                files.append((source, source.relative_to(path).as_posix()))
+        if not any(relative == entry for _, relative in files):
+            raise ValueError('所选目录没有入口 CFG：' + entry)
+        payload.update(entry=entry, files=[pack_file(source, 'cfg/' + relative) for source, relative in files])
+    else:
+        if args.entry or path.suffix.lower() != '.cfg' or not path.is_file() or path.stat().st_size > 65536:
+            raise ValueError('请选择不超过 64 KiB 的 CFG 文件；--entry 仅用于目录')
+        payload['files'] = [pack_file(path)]
+    return payload
 
 
 def serve(args):
@@ -215,6 +254,15 @@ def parser():
     c.add_argument('--target', default='view', help='以describe返回的targets为准')
     c.add_argument('--args', default='[]', help='JSON位置参数数组；大参数可用--args-file')
     c.add_argument('--args-file')
+    t = sub.add_parser('target', help='检查、导入和沿用共享 OpenOCD 目标配置；不访问硬件')
+    targets = t.add_subparsers(dest='target_op', required=True)
+    targets.add_parser('info', help='读取当前会话与调试、烧录、RTT Viewer 各页已选目标')
+    c = targets.add_parser('import', help='等待 CFG 导入完成，可选择核心；不连接目标')
+    c.add_argument('path', type=Path, help='单个 .cfg 文件或其 CFG/Tcl 脚本目录')
+    c.add_argument('--entry', help='目录入口的相对路径，以 / 分隔')
+    c.add_argument('--core', help='要选择的 OpenOCD 核名；省略则采用默认核心')
+    c = targets.add_parser('use', help='沿用会话目标并返回应用结果；目标变更会清除本页旧文件及地址')
+    c.add_argument('page', choices=['flash', 'rtt'])
     sub.add_parser('trace', help='原样转交全部现有ETM Trace CLI参数（trace之后的--help）')
     s=sub.add_parser('bridge-build',help='构建并验收Windows工作台，安装到dist/superlinkPRO，保留data')
     s.add_argument('--install-dir',type=Path,default=ROOT/'dist/superlinkPRO',help='工作台安装目录；更新前归档旧程序并保留data')
@@ -272,6 +320,8 @@ def main(argv=None):
             payload = {'action': args.command}
             if args.command == 'request':
                 payload = expand_arguments(load_json(args.file))
+            elif args.command == 'target':
+                payload = target_request(args)
             elif args.command == 'page':
                 payload = {'action': 'workbench', 'page': args.page, 'op': args.op}
                 for name in ('target', 'selector', 'method'):

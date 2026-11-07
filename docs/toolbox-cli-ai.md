@@ -3,7 +3,7 @@
 总入口是仓库根目录 **`toolbox.py`**。本文件是给 AI 的第一阅读入口；
 全部页面的分类、静态控件和方法源码位置集中在 **`docs/toolbox-cli-reference.json`**。
 逐条命令、全部参数、默认值、可选值和必填/互斥规则见
-**[CLI 命令与参数完整参考](toolbox-cli-options.md)**（从真实解析器生成，覆盖64个命令/分类节点）。
+**[CLI 命令与参数完整参考](toolbox-cli-options.md)**（从真实解析器生成）。
 运行时的 `page <分类> describe` 返回当前页面真实控件、当前选项、公开方法和可用子对象，优先于静态清单。
 
 这里提供两种执行方式：`trace` 原样复用成熟的 ETM CLI；`page` 通过本机授权队列调用
@@ -90,6 +90,7 @@ ETM 联动采集的网页自动解码默认使用原生紧凑链，生成 TraceS
 | `catalog [--full]` | 无需服务；返回全部分类和功能范围；--full 输出包含静态控件/选项/方法源码位置的总清单 |
 | `serve --port 8896` | 创建运行时并在前台运行本机服务；正常停止硬件后按 Ctrl+C 退出 |
 | `ping` / `status` | 执行页面就绪 / 工作台摘要 |
+| `target info / import / use` | 导入并选择 OpenOCD 核、读取共享配置、在烧录或 RTT Viewer 沿用目标；不操作硬件 |
 | `page P describe [--target view]` | 当前控件 `selector/type/value/options/disabled/label`，当前公开方法及 `targets` |
 | `page P state` | 摘要、最近全局异常和页面文字；页面自己捕获的错误可能只出现在文字/日志中 |
 | `page P show` | 切换显示页面；仅投递，不保证异步 `onShow` 已完成 |
@@ -124,6 +125,23 @@ SWO 的 capture/sources、ETM 的 target、存在时的 store。以 `describe` �
 按其 selector 使用；浏览器全屏仍受用户手势限制。部分页面把文件 input 放在 body 而非本页内，
 会以 `@file:view._fileInput`、`@file:hid._elfInput` 等虚拟 selector 出现在 controls 中，
 使用 describe 返回的原字符串传给 upload；这些是受控文件入口，不是任意对象访问。
+
+## OpenOCD 目标与 CFG
+
+调试、烧录和 RTT Viewer 共用 OpenOCD Wasm / CMSIS-DAP WebUSB。预设由工作台生成配置；使用板厂或上游脚本时，先在调试页导入一次，再明确让其它页沿用。使用源码入口 `toolbox.py` 和已启动的 `serve`；Windows 包的 `etm-trace.cmd` 是独立 Trace CLI。
+
+```powershell
+$runtime = 'E:/trace-runs/toolbox-001'
+python -X utf8 toolbox.py --runtime $runtime target info
+python -X utf8 toolbox.py --runtime $runtime target import E:/openocd/scripts --entry target/rp2350.cfg --core rp2350.cm0
+python -X utf8 toolbox.py --runtime $runtime target use flash
+python -X utf8 toolbox.py --runtime $runtime target use rtt
+python -X utf8 toolbox.py --runtime $runtime target info
+```
+
+入口应是板厂或上游为这块板提供的可信配置，须选择 CMSIS-DAP、声明目标和调试时钟；若只提供 target 脚本而未配置适配器，请改用匹配的 board CFG 或包含接口与 target 的入口 CFG。单文件导入省略 `--entry`；目录导入使用相对路径和 `/`，仅上传 CFG/Tcl，浏览器断开 USB 解析配置。指定不存在的核心、解析失败、调试已连接或沿用不适用的目标都会让命令失败；查看返回的 `job` 和错误。常规原版 CFG 会返回核心列表、选核、Flash bank 有无及配置指纹；HPM6800EVK 使用已核对的 SDK 入口。
+
+`target use` 会等待页面采用配置，换目标时会清掉本页的旧固件、RTT 地址等；如果已一致，返回 `changed:false`。烧录要求原版 CFG 声明 Flash bank；兼容导入不提供原版脚本的跨页能力。操作实际硬件前，再 `page … describe/state` 获取按钮、方法和当前状态。硬件身份、烧录校验和 RTT 收发仍分别核对。支持范围和复现入口见 [调试器 CFG 手册](../web/docs/dbg-page.md#内置芯片与-openocd-cfg)。
 
 ## 5. 示例：参数、文件、导出
 

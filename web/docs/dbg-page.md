@@ -10,6 +10,8 @@
 
 多核配置可通过「CFG 调试核」选定核心。工作台调试操作控制选中的 Cortex-M 核。导入并选好核心后，烧录页和 RTT Viewer 可点「沿用目标」，直接使用同一份 CFG 和连接配置。烧录要求脚本声明 Flash bank；RTT Viewer 用匹配的 ELF 或手工地址定位控制块。沿用目标本身不连接探针。
 
+自动化使用 `toolbox.py target import / use / info`，等待导入或沿用完成后返回核心、目标和配置指纹。已通过 F103ZE、H743 和 HPM6800EVK 的 Wasm 调试、烧录与 RTT Viewer 真机回归；RP2350 另以原版 CFG 跑过三页联动。见 [CLI 示例](../../docs/toolbox-cli-ai.md#openocd-目标与-cfg)、[F103ZE](../../docs/validation/f103ze-wasm-hw-20261107.md)、[H743](../../docs/validation/h743-wasm-hw-20261107.md)、[HPM6800EVK](../../docs/validation/hpm6800-wasm-full-hw-20261107.md)和 [RP2350](../../docs/validation/rp2350-cfg-shared-hw-20261108.md)。
+
 - **Cortex-M / SWD** 使用 CFG 的调试时钟并核对预期 DPIDR。支持单目标配置，以及引用内置 STM32F1 或 Nordic nRF52 target 的 board 文件。
 - **RV32 / JTAG** 使用单 TAP 的预期 IDCODE、IR 长度、所选 hart 和 JTAG 时钟。需要标准 DTM、0.13 调试模块和 32 位 SBA。确认目标的实际 SRAM 地址后，可用镜像目录中的 `load_image` 下载，再设 PC 和必要的启动寄存器，配合 ELF 符号进行源码调试。
 
@@ -111,9 +113,11 @@ dump_image {backup/ram dump.bin} 0x20000000 0x10000
 > （Cortex-M3/M4 的 SW-DP 是 `0x1BA01477`，H7 是 `0x6BA02477`）和 `FPB 比较器个数`
 > （M3/M4 常是 6 个、M7 是 8 个）。
 
-## 2. 底座是复用的，没有另起一套
+## 2. 传输层与历史实现
 
-`app/rtt/dap-webusb.js` 的 `WebUsbDapProbe` 早就把最难的部分写完了：
+当前真机入口是 `OpenOcdDebugSession`、`OpenOcdProbe` 和独立 Wasm Worker。`DebugSession` 继续提供 ARM 调试策略和模拟测试；下文 2026-10 的 WebUSB 内存、断点与性能细节记录的是迁移前实现。探针高速转发和专用工具仍可各自使用原生 CMSIS-DAP。
+
+旧调试入口以 `app/rtt/dap-webusb.js` 的 `WebUsbDapProbe` 为基础：
 `halt/run/isHalted/_dhcsr`、`regRead/regWrite`（DCRSR/DCRDR）、`readMem/writeMem`、
 `_targetInit`（SWJ 激活 + DP 上电 + CSW 试配）。调试页只是在它上面加了三件事：
 **硬件断点（FPB）**、**单步**、**抢占纪律**。

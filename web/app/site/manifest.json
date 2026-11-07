@@ -11,7 +11,7 @@
     "app/analog/transport.js": "ae4ed1988f849d3e5c50a7d4625c4b6b771951761cb649d29b9c86a5dedf8874",
     "app/analog/view.js": "153ff5d2b2d2644499074a30bbd6173ee9a63a7ecfa2668532343ed0b22ad78d",
     "app/core/bin.js": "0a236f6fb5165ef3effec574c0d0c2486ca15200c6587740b0caa4d3158c4ae5",
-    "app/core/build.js": "ce3f29b74e752be0f0376e4149aac63ad64370b9779dccc15baae4208b54cb90",
+    "app/core/build.js": "6e95cde839e6188cba2ea4c530ef745803f7195f818cb70ed5fc41dad7457e56",
     "app/core/bus-periodic.js": "12924e2c61da32ce40cf50045d1615b3c3e350d70361850324827e625aa98c0d",
     "app/core/bus.js": "a961476670cdbbc394335fe003d4e7c7f69448e4a109569773313e22dddb6fec",
     "app/core/bytes.js": "a0a745e234bf488590698bde140035eea47f8c093bc1c978b5574d8bb4276df8",
@@ -67,7 +67,7 @@
     "app/dbg/svd/bundled.js": "96f4f99097cf46ab497215dbe749a07ad25c3291c68fa28801858f6b982f38f5",
     "app/dbg/symbols.js": "f51436dc46679caa5847ae66c1e9bca6bc28d6272c943deee555ec5ef2457e8b",
     "app/dbg/thumb.js": "e754ad0e14768098cc032736bbab46cbe527108f00317d70a43b34bd38139d6c",
-    "app/dbg/view.js": "e52c91cf9ccf8831328a1960fc1bdbcaf0b6192c0c4ccf773cb0e15ffdaa5601",
+    "app/dbg/view.js": "9f3ef246b09d7fe695d74a72d96aeecf1b1d2d5f8f18219347dc56ad0a9a56e2",
     "app/dbg/watch.js": "c7522b76f24fbaaa8718bd85a7e2d59f94e91408ba6af771c9913eb987136657",
     "app/diagnostics/acquisition.js": "3b905182a8447b3d2a59d4e62ef7ba92ef126545ae85a25d6a1bba3aad5dee7a",
     "app/diagnostics/drawer.js": "c64d07834228a1190580aca5428f8076091ca83720f14adc590b17c2050c4e7f",
@@ -101,7 +101,7 @@
     "app/main.js": "af2fa748af9edb7f566b9676e519e71ce21c9e929a5e633f0828564b3f7e72fa",
     "app/rtt/elf.js": "76a6278965724f52133467f8f07d4472077c5a9c35ca187fece59abad42405c7",
     "app/rtt/mock.js": "713da5c0c48d4a912ed9da57dbaf5decf824e57be3b185adc70023e02a1c072d",
-    "app/rtt/protocol.js": "ea76b83af6f9214d90b355730fa16fea659bb96ce17cf9a3b62b6ecd7e3780b5",
+    "app/rtt/protocol.js": "a8f309821e7ab5e1715881579bb7471a6c5985c7162d934588cd3e1072da50b3",
     "app/rtt/view.js": "9c3d52a7dbea3fd4f9ab7abf6e6ce9bac9bb2035ccdf482fc8a91097103457b2",
     "app/scope/array-vars.js": "acef3efbffe7e2c70958e06c8dc8d0ea3fe123db3928a4baa6463f5ea9cafb5b",
     "app/scope/mock.js": "06cd937bb48f81dee9c7a1d5753e8dd1b3b177c4823f21e0f67d4b71484d4ef6",
@@ -160,7 +160,7 @@
     "app/ui/probe-status.js": "8bdb6fd91cc35129099cccf5372a7364237d41675921f66e263669721f2e4228",
     "app/ui/reg-grid.js": "7bc5102a621ee5dbd1585ff52dd6f44d849ba48578563e5deb65911307ec3871",
     "app/ui/scope-onboarding.js": "aa30a6cc808d1b272ee9f2400e6bc813435faeccb0f0f322c3a0ab1193a020d8",
-    "app/ui/session-context.js": "8027c67fada6196dcfaaf583b983068623bdafc07c8db6e227df2f8b87666dae",
+    "app/ui/session-context.js": "fa672713debd2f87315908ae1aecec90d52316ffa2dcc7c3083a19a40bb87a9f",
     "app/ui/sidebar-tabs.js": "f9fb32f7d5bb54905b76b3d8dd5ad0d786867503cdac411a8911bff2bf8e4634",
     "app/ui/spark.js": "0a752a6b30f7875759749df5b7fdb5c15337c3c011b1eab61a4c8741888ec4ea",
     "app/ui/tabs.js": "1fcac98227855786c6f8edca9b3199dca12b3dbba682f2ad05fa96e3399bb4cf",
@@ -169,6 +169,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "becc4d7d1bd248f49c7a394b29ed05f1fbc97fe9ffbf5cd5957928494fc82c21",
-  "outputBytes": 1163422
+  "outputSha256": "1000d6ca63f8dde2c7f41b1b2bb343ceb9b75bbe5df7e240c61b0f2a14fdd82c",
+  "outputBytes": 1164432
 }

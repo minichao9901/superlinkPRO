@@ -27,7 +27,7 @@
 | `tmp/` | 每次任务独立的可再生构建、导出、解压、运行目录 |
 | `dist/superlinkPRO/` | 本机 Windows 工作台，双击 `superlinkPRO.exe`；更新时保留 `data` |
 
-本机工作台构建入口为 `python -X utf8 toolbox.py bridge-build`，完整 ZIP 与清单在根 `dist/`；`--candidate-only`只生成候选。当前 Web 调试只保留 WebUSB / CMSIS-DAP，工程生成已替换为工程下载；原 SPI、I2C、SWO、ADC/DAC 等工具继续保留。2026-11-06 工作台重构没有修改 ETM 页面/分析源码，ETM 仍用原 Kingst 链路。本机包生成不等于已发布；工作台和历史ETM独立包分别核对清单、来源与线上验收，不能混用版本。
+本机工作台构建入口为 `python -X utf8 toolbox.py bridge-build`，完整 ZIP 与清单在根 `dist/`；`--candidate-only` 只生成候选。当前调试、烧录和 RTT Viewer 使用 OpenOCD Wasm / WebUSB / CMSIS-DAP；探针高速转发和外设工具各自保留。工程下载取代工程生成。ETM 仍用 Kingst，工作台自动解码默认走原生紧凑链。本机包和线上发布分别核验；工作台和历史 ETM 独立包分别核对清单与来源。
 
 WebUSB工作台Windows下载包事实来源：根`dist/manifest.json`、`dist/superlinkPRO-win64.zip`；线上为`downloads/manifest.json`与同目录ZIP。
 历史ETM独立包事实来源：`web/bridge/etm/downloads/manifest.json`、同目录`etm-bridge-win64.zip`；本轮工作台发布未替换这条历史包线。
@@ -70,6 +70,7 @@ python -X utf8 toolbox.py --runtime E:/superlinkPRO/tmp/session-NEW page etm sta
 ```
 
 先 `catalog`，再 `describe/state`；依返回结果使用 `set/click/upload/invoke/event`，不猜方法名、控件 ID 或参数。
+共享 OpenOCD 配置使用 `target import / use / info`，命令等待页面导入或沿用并回传结果；配置操作不访问硬件。
 全局参数放在子命令前。`ok:true` 仅代表请求处理成功，`click` 投递成功不等于采集/烧录完成；
 必须继续核对 job、页面日志、质量、计数或落盘文件。超时后保留并查询 job ID，避免重复执行硬件写操作。
 统一入口通常在 JSON 的 `value` 字段返回载荷（如 `catalog` 的 `value.pages`）；`trace` 沿用其自身的 `result` 信封，解析前核对实际输出，勿混用两者字段。

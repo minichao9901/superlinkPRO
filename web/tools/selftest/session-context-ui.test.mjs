@@ -66,12 +66,16 @@ test('flash and Viewer adopt the same imported CFG and selected core without a p
   assert.equal(adopt('flash').disabled,false);
   assert.equal(adopt('rtt').disabled,false);
   assert.equal(adopt('rttcdc').disabled,true);
-  await adopt('flash').onclick();
+  const adopted=await tools.sessionTarget.use('flash');
+  assert.equal(adopted.changed,true);
+  assert.equal(adopted.target.core,'board.core1');
+  assert.equal((await tools.sessionTarget.use('flash')).changed,false);
   await adopt('rtt').onclick();
   assert.equal(get('f-chip').value,context.target.id);
   assert.equal(get('r-chip').value,context.target.id);
   assert.equal(tools.flash.importedTarget.cfg,cfg);
   assert.equal(tools.rtt.importedTarget.cfg,cfg);
+  assert.equal(tools.sessionTarget.info().pages.rtt.id,adopted.target.id);
 }));
 
 test('debug target adoption uses the same JTAG transport for all HPM boards',()=>fixture(async({get,adopt})=>{

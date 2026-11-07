@@ -650,15 +650,18 @@ export class DbgView {
     }
   }
 
-  async _importCfg(file, directory = null){
-    if (this.session.connected || this._connecting || this._disconnecting || this._cfgImporting || $('d-backend')?.value === 'mock')
+  async _importCfg(file, directory = null, {core = null, strict = false} = {}){
+    if (this.session.connected || this._connecting || this._disconnecting || this._cfgImporting || $('d-backend')?.value === 'mock'){
+      if (strict) throw Error('请先断开调试会话并选择真实目标，再导入 CFG');
       return;
+    }
     this._cfgImporting = true;
     this._syncCfgControls();
     try {
       if (!directory && file.size > 65536) throw new Error('CFG 最大支持 64 KiB');
       const name = directory ? file : file.name;
       if (isHpmOpenOcdEntry(name)){
+        if (core && core !== 'hpm6880.cpu0') throw Error('此 HPM6800EVK 配置只支持 hpm6880.cpu0');
         const files = await hpmOpenOcdFiles(directory, name);
         this.wasmConfig = { files, name, arch:'riscv', family:'hpm6800', boardId:HPM_WASM_BOARD,
           target:'hpm6880.cpu0', clockKhz:8000, tapIdcode:0x1000563d, irLength:5, hart:0 };
@@ -669,7 +672,7 @@ export class DbgView {
         await this._syncBackend();
         this.onTargetConfigChanged?.();
         this._out('已导入 HPM6800EVK 原版 CFG，连接时由 OpenOCD Wasm 执行', 'ok');
-        return;
+        return this.wasmConfig;
       }
       const text = directory ? directory.get(name) : await file.text();
       let cfg;
@@ -682,17 +685,24 @@ export class DbgView {
         try { cfg = importOpenOcdCfg(text,name,directory); }
         catch (legacyError){ throw Error(`${rawError.message}；兼容导入：${legacyError.message}`); }
       }
+      if (core){
+        const selected = (cfg.cores || [cfg]).find(item => item.target === core);
+        if (!selected) throw Error('CFG 未定义所请求的核心：' + core);
+        cfg = { ...cfg, ...selected };
+      }
       await this._activateImportedCfg({ ...cfg, name });
       const riscv = cfg.arch === 'riscv';
       const workArea = cfg.workAreaSize != null ? `，工作区 ${hex32(cfg.workAreaBase)} / ${cfg.workAreaSize} 字节（仅供参考）` : '';
       this._out(`已导入 OpenOCD ${cfg.kind} CFG：${name}，${riscv ? 'JTAG' : 'SWD'} ${cfg.clockKhz} kHz${workArea}`, 'ok');
       if (cfg.sourced?.length) this._out(`读取目录依赖：${cfg.sourced.join('、')}`, 'dim');
       if (cfg.ignored.length) this._out(`调试配置跳过：${cfg.ignored.join('、')}`, 'dim');
+      return cfg;
     } catch (e){
       this._out(`✗ 导入 OpenOCD CFG 失败：${e.message}`, 'err');
       const previous = this._activeCfg();
       if (previous) this._out(`仍使用已导入的 ${previous.name}`, 'dim');
       toast(`导入 OpenOCD CFG 失败：${e.message}`, 'err', 6000);
+      if (strict) throw e;
     } finally {
       this._cfgImporting = false;
       this._syncCfgControls();

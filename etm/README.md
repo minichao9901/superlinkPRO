@@ -1,12 +1,12 @@
-# STM32H7B0 并行 ETM / Kingst LA 首次验证
+# ETM 执行轨迹与 Kingst 采集
 
-**AI/命令行入口：**`python -X utf8 etm/trace.py --help`（在合并仓库根目录运行）。硬件复用网页的调试命令、烧录和 WebUSB 驱动，不依赖 pyOCD；支持断点起点联动采集和持久调试会话。
-配置、真机采集、原生解码、查询与导出的完整流程见
-[给AI使用的Trace CLI](../docs/trace-cli-ai.md)。CLI当前真机验收范围为H743，历史网页/固件说明保留在下文。
+在仓库根目录运行 `python -X utf8 toolbox.py trace --help`，用 Trace CLI 做离线校验、解码、查询和导出。网页入口是工作台「ETM 执行轨迹」；从根目录运行 `python -X utf8 toolbox.py --runtime <新目录> serve --port 8896`，或运行 Windows 包里的 `superlinkPRO.exe`。真机用 KingstVIS Socket 采集，H743 网页自动解码默认使用原生紧凑链。详见 [Trace CLI](../docs/trace-cli-ai.md)、[当前四档验收](../docs/validation/h743-etm-auto-decode-20261107.md)和[存储维护](../docs/storage-maintenance.md)。
+
+下文是 2026-10 STM32H7B0 首次验证与独立工作目录的历史记录；端口、路径、界面和版本只适用于当时环境。
 
 **网页初版已完成：**打开 **http://127.0.0.1:8766**；下次双击 `start-web.bat` 启动。
 
-**当前稳定基准：CPU 70 MHz / TRACECLK 35 MHz v1。** 已重新烧录并完成 1 ms 复验与 10 ms 全地址业务窗口分析，恢复 484,570 条路径记录、132 次完整的 100 字节 SPI 发送；未发现 overflow 或包覆盖遗漏。固件、原始记录、完整解码与源码执行流已封存，见 [稳定基准说明](baselines/spi-70-35-v1/README.md)。保留 397 条未知条件执行状态和捕获边界，启动全过程尚未验收。频率优化已按用户要求暂停。
+**H7B0 历史稳定基准：CPU 70 MHz / TRACECLK 35 MHz v1。** 1 ms 复验与 10 ms 全地址业务窗口分析恢复 484,570 条路径记录、132 次完整的 100 字节 SPI 发送；未发现 overflow 或包覆盖遗漏。原始记录和生成说明见 [稳定基准](baselines/spi-70-35-v1/README.md)。保留 397 条未知条件执行状态和捕获边界，启动全过程尚未验收。
 
 下次继续前先阅读 [交接摘要、待办及建议做法](docs/交接摘要_2026-10-11.md)，其中包含基准标识、关键文件、已知限制和可直接使用的接手指令。
 

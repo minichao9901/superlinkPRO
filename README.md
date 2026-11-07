@@ -8,7 +8,7 @@ RTT · J-Scope 波形 · 烧录 · 源码级调试 · **ETM 执行轨迹与周�
 
 ![零安装](https://img.shields.io/badge/安装-零安装-2ea043)
 ![WebUSB](https://img.shields.io/badge/接口-WebUSB%20%2F%20WebHID%20%2F%20Web%20Serial-1f6feb)
-![目标](https://img.shields.io/badge/目标-STM32%20%C2%B7%20HPM%20RISC--V-orange)
+![目标](https://img.shields.io/badge/目标-STM32%20%C2%B7%20HPM%20%C2%B7%20RP2350-orange)
 ![RTT](https://img.shields.io/badge/RTT%20转发-3.05%20MB%2Fs-brightgreen)
 ![ETM](https://img.shields.io/badge/ETM-ETMv4%20%2B%20ETMv3.4-purple)
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue)
@@ -45,10 +45,10 @@ AI / 脚本统一入口：`python -X utf8 toolbox.py catalog`。覆盖全部 Web
 | 页面 | 能做什么 | 实测 / 状态 |
 |---|---|---|
 | **串口 / 终端** | Web Serial + WebUSB 双后端，HEX/文本、发送历史、记录到文件 | 稳定 |
-| **RTT Viewer** | SWD 轮询或 RISC-V/JTAG（SBA 直读），自动找控制块、通道/缓冲配置 | STM32 **447 KB/s**、RISC-V **60–77 KB/s** |
+| **RTT Viewer** | OpenOCD Wasm / WebUSB，沿用调试目标，按 ELF、扫描范围或手工地址定位 RTT 控制块 | [F103ZE、H743、HPM6800EVK 和 RP2350 验收](web/docs/dbg-page.md#内置芯片与-openocd-cfg) |
 | **RTT 转发** | 探针侧桥把 RTT 搬到 CDC，主机直接用串口工具 | **3.05 MB/s**（60 MHz 档） |
 | **J-Scope 波形** | 8 变量、多泳道/叠加、A/B 游标、实时 CSV / 原始包流 | 单变量 **495.8 kHz @ 2 µs**（名义 500 kHz；探针跳拍 ≈0.8%、探针本体 629 kHz；稳定窗 USB 丢 0 / 读错 0，边界另计）；8 通道 50 kHz 零丢 |
-| **烧录器** | STM32（AHB-AP flashloader）与 HPM RISC-V（XPI + XIP 校验），含校验与自愈 | H743 31.6 KB **2.4 s**；HPM 246 KB **8.2 s** |
+| **烧录器** | OpenOCD Wasm，支持 ELF / HEX / BIN，按目标 Flash bank 擦写、读回和复位 | [RP2350 原版 CFG 四扇区逐字节读回](docs/validation/rp2350-cfg-shared-hw-20261108.md) |
 | **调试器** | 断点/单步/寄存器/RAM、**源码级单步**（F10/F11/跳出）、结构体树、命令行 | ARM + RISC-V，与 gdb 逐地址对照通过 |
 | **SWO 执行轨迹** | 目标 SWO（NRZ）经 VCOM 接收、**PC 采样**、源码级回放与完整导出；UART 240 MHz，**最高 30 Mbaud（30 MHz 时钟）** | 30 Mbaud 连续 6 s：**2,424,768 PC / 12.9 MB**（≈404k PC/s），畸形包 / overflow / 未知 PC / UART 错误 0 |
 | **ETM 执行轨迹** | ETMv4 / ETMv3.4 四线并行采集、TPIU 解复用、源码回放、**周期计数** | H743 10 ms → **210,706 指令**；F103ZE 172,596 指令 |
@@ -122,7 +122,8 @@ AI / 脚本统一入口：`python -X utf8 toolbox.py catalog`。覆盖全部 Web
 
 2026-11-07补充复核：相同96MHz历史负载的RTT转发三轮3.055～3.058MB/s；额定72MHz目标HSS约496kSa/s，八变量约50k组/s。该轮使用生产协议及原生USB/CDC接收，范围与下表历史浏览器测量分别记录；详见[本轮验收及web.4线上包](docs/validation/perf-pages-20261107/README.md)。
 
-以下数字来自 **akaLinkPro 探针 + 真实浏览器页面 + 对应目标板** 的实测，不是理论值。
+下表是历史实测，涵盖工作台迁移到 OpenOCD Wasm 前的实现，不能用于推断当前后端性能。
+当前链路的数据见 [F103ZE](docs/validation/f103ze-wasm-hw-20261107.md)、[H743](docs/validation/h743-wasm-hw-20261107.md)、[HPM6800EVK](docs/validation/hpm6800-wasm-full-hw-20261107.md) 和 [RP2350](docs/validation/rp2350-cfg-shared-hw-20261108.md)。
 不同 USB 口、供电与浏览器负载会影响结果。
 
 | 项目 | 实测结果 | 条件 |
@@ -163,8 +164,10 @@ python -X utf8 toolbox.py bridge-build
 .\dist\superlinkPRO\superlinkPRO.exe --check
 ```
 
-调试后端统一为 WebUSB / CMSIS-DAP；工程生成与 OpenOCD/J-Link 后端已移除。
-新增日志检索、目标/ELF 显式复用、设置收起及固件字节/ELF 结构查看；SPI、I2C、SWO、ADC/DAC 等工具继续保留。
+调试、烧录和 RTT Viewer 通过 WebUSB / CMSIS-DAP 使用内置的 OpenOCD Wasm，无需另起桌面 OpenOCD 服务。
+可选芯片预设生成配置，也可导入受支持的原版 CFG/Tcl 目录并选核，在其它页面显式沿用。详见
+[调试与 CFG](web/docs/dbg-page.md#内置芯片与-openocd-cfg)和 [CLI 目标命令](docs/toolbox-cli-ai.md#openocd-目标与-cfg)。
+RTT 转发、J-Scope 等高速功能由探针固件提供；RP2350 当前已验证 RTT Viewer，探针 RTT 转发仍待适配（ISSUE-074）。
 
 ### 3. 烧探针固件（可选）
 
@@ -180,9 +183,9 @@ py script_test/hpm6800_flash_probe.py --no-build            # 经 HID 进 DFU �
 | 角色 | 支持情况 |
 |---|---|
 | 探针 | **akaLinkPro**（HPM5301：CMSIS-DAP v2 + CDC + 自定义 HID + WebUSB + DFU），SWD 最高 60 MHz，JTAG 支持 RISC-V |
-| ARM 目标 | STM32F103（含 ZE 大容量）、STM32F4、STM32H7B0、**STM32H743**（ETMv4） |
+| ARM 目标 | STM32F103（含 ZE 大容量）、STM32F4、STM32H7B0、**STM32H743**（ETMv4）、RP2350（已验 Cortex-M33 核 0） |
 | RISC-V 目标 | HPM6800EVK、HPM5301EVKLite 等 HPM 系列（JTAG + SBA + 触发器断点） |
-| 逻辑分析仪（ETM 用） | KingstVIS 系列（USB socket API），500 MSa/s · 5M 点/通道 |
+| 逻辑分析仪（ETM 用） | KingstVIS 系列（Socket API）；H743 60/20 MHz 已实测 500 MSa/s、每通道 5M～500M 样本 |
 
 已知边界（建议先读）：
 

@@ -478,7 +478,7 @@
       "id": "rtt",
       "label": "RTT Viewer",
       "source": "web/app/rtt/view.js",
-      "features": "WebUSB、通道、上下行、ELF复用、日志检索与记录",
+      "features": "OpenOCD Wasm / WebUSB、共享目标、通道、上下行、ELF复用与记录",
       "commands": [
         "describe",
         "state",
@@ -1888,7 +1888,7 @@
       "id": "dbg",
       "label": "调试器",
       "source": "web/app/dbg/view.js",
-      "features": "ARM/RISC-V、断点/单步、寄存器/内存/变量/调用栈、异常、SVD",
+      "features": "OpenOCD Wasm、CFG导入/选核、断点/单步、寄存器/内存/变量/调用栈",
       "commands": [
         "describe",
         "state",
@@ -2523,171 +2523,171 @@
         },
         {
           "name": "connect",
-          "line": 718
+          "line": 728
         },
         {
           "name": "disconnect",
-          "line": 790
+          "line": 800
         },
         {
           "name": "refreshAll",
-          "line": 851
+          "line": 861
         },
         {
           "name": "afterStop",
-          "line": 865
+          "line": 875
         },
         {
           "name": "renderRegs",
-          "line": 909
+          "line": 919
         },
         {
           "name": "presentBacktrace",
-          "line": 1011
+          "line": 1021
         },
         {
           "name": "presentSelectedFrame",
-          "line": 1030
+          "line": 1040
         },
         {
           "name": "presentLocals",
-          "line": 1036
+          "line": 1046
         },
         {
           "name": "renderDwt",
-          "line": 1050
+          "line": 1060
         },
         {
           "name": "renderBps",
-          "line": 1063
+          "line": 1073
         },
         {
           "name": "readMem",
-          "line": 1097
+          "line": 1107
         },
         {
           "name": "renderMem",
-          "line": 1131
+          "line": 1141
         },
         {
           "name": "writeMemEdit",
-          "line": 1189
+          "line": 1199
         },
         {
           "name": "pickImageDirectory",
-          "line": 1321
+          "line": 1331
         },
         {
           "name": "runLine",
-          "line": 1332
+          "line": 1342
         },
         {
           "name": "loadElfBuffer",
-          "line": 1493
+          "line": 1503
         },
         {
           "name": "loadBundledSvd",
-          "line": 1570
+          "line": 1580
         },
         {
           "name": "loadSvdText",
-          "line": 1596
+          "line": 1606
         },
         {
           "name": "renderSyms",
-          "line": 1750
+          "line": 1760
         },
         {
           "name": "addWatch",
-          "line": 1821
+          "line": 1831
         },
         {
           "name": "delWatch",
-          "line": 1842
+          "line": 1852
         },
         {
           "name": "watchItems",
-          "line": 1849
+          "line": 1859
         },
         {
           "name": "clearWatch",
-          "line": 1853
+          "line": 1863
         },
         {
           "name": "refreshWatch",
-          "line": 1861
+          "line": 1871
         },
         {
           "name": "renderWatch",
-          "line": 1911
+          "line": 1921
         },
         {
           "name": "pickSourceDir",
-          "line": 2017
+          "line": 2027
         },
         {
           "name": "renderSource",
-          "line": 2084
+          "line": 2094
         },
         {
           "name": "toggleSourceBp",
-          "line": 2177
+          "line": 2187
         },
         {
           "name": "runToLine",
-          "line": 2195
+          "line": 2205
         },
         {
           "name": "stepOver",
-          "line": 2232
+          "line": 2242
         },
         {
           "name": "stepInto",
-          "line": 2234
+          "line": 2244
         },
         {
           "name": "stepOut",
-          "line": 2236
+          "line": 2246
         },
         {
           "name": "showSource",
-          "line": 2245
+          "line": 2255
         },
         {
           "name": "rttStart",
-          "line": 2285
+          "line": 2295
         },
         {
           "name": "rttStop",
-          "line": 2316
+          "line": 2326
         },
         {
           "name": "rttClear",
-          "line": 2323
+          "line": 2333
         },
         {
           "name": "summary",
-          "line": 2343
+          "line": 2353
         },
         {
           "name": "for",
-          "line": 2376
+          "line": 2386
         },
         {
           "name": "if",
-          "line": 2382
+          "line": 2392
         },
         {
           "name": "if",
-          "line": 2383
+          "line": 2393
         },
         {
           "name": "if",
-          "line": 2384
+          "line": 2394
         },
         {
           "name": "if",
-          "line": 2385
+          "line": 2395
         }
       ]
     },
@@ -2695,7 +2695,7 @@
       "id": "flash",
       "label": "烧录器",
       "source": "web/app/flash/view.js",
-      "features": "ELF/HEX/BIN、目标算法、擦除/编程/校验、复位",
+      "features": "OpenOCD Wasm、共享目标、ELF/HEX/BIN、擦除/编程/校验、复位",
       "commands": [
         "describe",
         "state",
@@ -7421,6 +7421,19 @@
       ]
     }
   ],
+  "target": {
+    "commands": [
+      "info",
+      "import",
+      "use"
+    ],
+    "pages": [
+      "dbg",
+      "flash",
+      "rtt"
+    ],
+    "scope": "配置操作；不连接、复位或烧录目标"
+  },
   "trace": "toolbox.py trace <existing trace CLI arguments>",
   "browserRequired": true,
   "hardwareValidatedThisChange": false,

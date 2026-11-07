@@ -1,4 +1,6 @@
 /** Local, opt-in CLI projection of the actual workbench. No eval or protocol copy. */
+import {cfgPath,readCfgDirectory} from '../dbg/openocd-cfg.js';
+
 export const PAGES = {
   serial:['串口助手','assistant'], terminal:['终端','terminal'], rtt:['RTT Viewer','rtt'],
   rttcdc:['RTT 转发','stream'], spicdc:['SPI 转发','spiCdc'], scope:['J-Scope 波形','scope'],
@@ -120,8 +122,31 @@ export function createWorkbenchAutomation(tools,win=globalThis.window){
   return {async dispatch(m){
     if(m.op==='catalog')return {protocol:'workbench/1',pages:Object.entries(PAGES).map(([id,[label]])=>({id,label})),
       operations:['describe','state','read','set','click','upload','invoke','show','event','interrupt','downloads','download','discard'],
+      targetOperations:['target-info','target-import','target-use'],
       completion:'click/set/upload only dispatch events; invoke awaits returned promise; verify status/results separately'};
+    if(m.op==='target-info')return tools.sessionTarget.info();
+    if(m.op==='target-use')return tools.sessionTarget.use(m.page);
     const c=await context(m.page),{root,view}=c;
+    if(m.op==='target-import'){
+      if(m.page!=='dbg'||!Array.isArray(m.files)||!m.files.length||m.files.length>4096)
+        throw Error('请提供调试页 CFG 文件或目录');
+      if(m.core!=null&&(typeof m.core!=='string'||!/^[A-Za-z0-9_.-]{1,100}$/.test(m.core)))
+        throw Error('无效的 OpenOCD 核名');
+      const files=m.files.map(f=>{
+        if(!f||typeof f.$base64!=='string')throw Error('无效的 CFG 文件数据');
+        const file=argument({...f,kind:'file'},c);
+        if(f.relativePath)Object.defineProperty(file,'webkitRelativePath',{value:f.relativePath});
+        return file;
+      });
+      const directory=m.entry==null?null:await readCfgDirectory(files);
+      const entry=directory?cfgPath(m.entry):files[0];
+      if(directory?!/\.cfg$/i.test(entry)||!directory.has(entry):files.length!==1||!/\.cfg$/i.test(entry.name))
+        throw Error('找不到 CFG 入口');
+      const cfg=await view._importCfg(entry,directory,{core:m.core,strict:true});
+      return {name:cfg.name,kind:cfg.kind||(cfg.files?'HPM SDK 原版':'兼容'),core:cfg.target,cores:(cfg.cores||[cfg]).map(c=>c.target),
+        arch:cfg.arch,transport:cfg.transport||(cfg.arch==='riscv'?'jtag':'swd'),clockKhz:cfg.clockKhz,
+        hasFlash:!!(cfg.hasFlash||cfg.files),sha256:cfg.hash??null,hardwareAccessed:false,...tools.sessionTarget.info()};
+    }
     const targets={view,session:view.session||view.s,
       ...(m.page==='rttcdc'?{hid:tools.hid}:{}),
       ...(['spi','panel'].includes(m.page)?{session:tools.spiSession}:{}),

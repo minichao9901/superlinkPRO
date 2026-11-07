@@ -145,12 +145,34 @@ export function initSessionContext(tools){
       if(elf&&!compatible)row.identity.textContent+=' · 请先选择匹配目标';
     }
   };
-  const action=(page,fn)=>async()=>{
-    const row=rows.get(page);if(busy(page)){row.note.textContent='请先停止相关探针操作';return;}
+  const action=(page,fn,strict=false)=>async()=>{
+    const row=rows.get(page);if(busy(page)){
+      row.note.textContent='请先停止相关探针操作';
+      if(strict)throw Error(row.note.textContent);
+      return;
+    }
     applying=true;render();row.note.textContent='正在准备…';
     try{await fn();row.note.textContent='已沿用配置；尚未连接或烧录';}
-    catch(error){row.note.textContent=error.message||String(error);}
+    catch(error){row.note.textContent=error.message||String(error);if(strict)throw error;}
     finally{applying=false;render();}
+  };
+  const targetInfo=target=>{
+    if(!target)return null;
+    const {id,arch,label,cfg}=target;
+    return {id,arch,label,...(cfg?{name:cfg.name,core:cfg.target,transport:cfg.transport,clockKhz:cfg.clockKhz,
+      sha256:cfg.hash,hasFlash:cfg.hasFlash}:{} )};
+  };
+  tools.sessionTarget={
+    info:()=>({shared:targetInfo(context.target),pages:Object.fromEntries(
+      ['dbg','flash','rtt'].map(page=>[page,targetInfo(readTarget(page))]))}),
+    async use(page){
+      if(!['flash','rtt'].includes(page))throw Error('目标沿用只支持 flash 或 rtt');
+      const target=context.target;
+      if(!target||!supports(page,target))throw Error('本页不支持当前会话目标');
+      const changed=!sameTarget(page,target);
+      if(changed)await action(page,()=>applyTarget(page,target),true)();
+      return {changed,target:targetInfo(readTarget(page))};
+    },
   };
   for(const page of pages){
     const p=prefix[page],view=viewFor(page),panel=$('tab-'+page);

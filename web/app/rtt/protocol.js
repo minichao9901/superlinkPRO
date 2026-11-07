@@ -69,10 +69,7 @@ export const MAX_READ_PER_POLL = 64 * 1024;
 const sleepMs = waitMs;
 const allZero = b => b.length > 0 && b.every(x => x === 0);
 const hasCbId = b => b.length >= CB_ID.length && latin1(b.subarray(0, CB_ID.length)) === CB_ID;
-/**
- * 让链路自己重启一次（能做就做）：RISC-V 那条路是**复位调试模块**（见 riscv-mem.js 的 recover），
- * ARM/WebUSB 那条路也能重激活 SWD。没有 recover 的 mem（模拟器、桥）就当无事发生。
- */
+/** 后端提供恢复钩子时尝试一次；没有钩子时只重读。 */
 async function recoverMem(mem){ try { await mem?.recover?.(); } catch {} }
 
 export class Rtt {
@@ -259,7 +256,7 @@ export class Rtt {
     if (!e || !e.sName) return '';
     const k = `${dir}${ch}`;
     /**
-     * 后端声明"这个名字读不得"就直接跳过（RISC-V 的 `RiscvMem.skipNames`）：
+     * 后端声明无法安全读取通道名时直接跳过（例如 OpenOCD 的 RISC-V 路径）：
      * 1.2 s 超时只是**保护**，不是解药 —— 超时后那笔 SBA 事务还挂着，会把
      * `sbcs.sbbusyerror` 置成 sticky（写 1 才清），之后每个环读都直接失败，
      * 整条 Viewer 白连（真机现场见 make hw-campaign-hpm）。
