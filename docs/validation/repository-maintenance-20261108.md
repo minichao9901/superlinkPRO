@@ -30,6 +30,8 @@ Web 与 CLI 定向回归通过（Node 40 项、Python CLI/打包 12 项），Web
 
 旧 H743 自动解码运行目录的日志在预检期间变动，和仍在运行的工作台一起保留（ISSUE-081）。Windows 仍占用旧 H743 10 ms 的单个 Store 文件及 500 ms 记录的 Store，整份 500 ms 暂留（ISSUE-082）。未停止服务，未动正式样本、独立回归夹具、用户数据或原有未提交的探针固件输出。核对后尝试删除重复的 OpenOCD checkout，执行工具在启动前以 `blocked by policy` 拒绝，副本仍保留（ISSUE-083）。
 
+续查时，两份 Store 的删除权限探测均返回 Windows 错误 32。Restart Manager 将两处占用都归到监听本机 8911 端口的 Python 工作台，ETM 健康检查返回 HTTP 200。待该会话退出后，可以复核并删除两个遗留项。另已核对本轮验收目录下的生成文件全部清空，删除剩余空目录的命令也被执行工具以 `blocked by policy` 拒绝。
+
 ## 发布
 
 发布提交 `ef1227606b8a6b7bedc00be517e1a464920bac8a` 推送时一并删除了远程已合入的 `codex/hss-stop-offline`，远端分支只剩 `main`。[Pages 工作流 42397232085](https://github.com/minichao9901/superlinkPRO/actions/runs/42397232085) 部署成功。[线上工作台](https://minichao9901.github.io/superlinkPRO/)在 Edge 启动后有 15 个工具页，调试、烧录和 RTT Viewer 的共享目标入口均在。线上页面入口、合并脚本、CLI 模块、Wasm 和 ETM 页面副本与本地发布文件一致；[线上 Windows ZIP](https://minichao9901.github.io/superlinkPRO/downloads/superlinkPRO-win64.zip)完整读取后，大小和 SHA-256 与发布清单一致。
