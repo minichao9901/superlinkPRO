@@ -143,7 +143,9 @@ static void Set_Clock_Delay(uint32_t clock)
 		}
 		DAP_Data.clock_delay = delay;
 	}
-	printf("Set clock: %d, %d\r\n", clock, DAP_Data.clock_delay);
+	/* SWD bring-up visits several clocks while SPI DMA is still receiving.
+	 * Synchronous console writes here stall its main-loop drain. The selected
+	 * blob and delay are available through the scope benchmark reply. */
 }
 
 // Get DAP Information
