@@ -1,0 +1,192 @@
+{
+  "deployedCommit": "f2fa8ca441da58b2cae259746b5fe024d339a46c",
+  "workflow": "https://github.com/minichao9901/superlinkPRO/actions/runs/42368914493",
+  "site": "https://minichao9901.github.io/superlinkPRO/",
+  "browser": "Chrome 156.0.8078.48",
+  "measurements": {
+    "before": {
+      "samples": [
+        {
+          "readyMs": 1425.2,
+          "navigationTtfbMs": 495.1,
+          "bundleFetchMs": 369.7,
+          "bundleBytes": 436732,
+          "bundle": "main.js?v=eeae117b5109a7ac",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 343.9,
+          "navigationTtfbMs": 63,
+          "bundleFetchMs": 161.7,
+          "bundleBytes": 436732,
+          "bundle": "main.js?v=eeae117b5109a7ac",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 548.2,
+          "navigationTtfbMs": 57.8,
+          "bundleFetchMs": 100.1,
+          "bundleBytes": 436732,
+          "bundle": "main.js?v=eeae117b5109a7ac",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 338.6,
+          "navigationTtfbMs": 70.8,
+          "bundleFetchMs": 109.8,
+          "bundleBytes": 436732,
+          "bundle": "main.js?v=eeae117b5109a7ac",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 524,
+          "navigationTtfbMs": 56.8,
+          "bundleFetchMs": 343,
+          "bundleBytes": 436732,
+          "bundle": "main.js?v=eeae117b5109a7ac",
+          "wasmRequestsBeforeReady": 0
+        }
+      ],
+      "medianReadyMs": 524,
+      "medianBundleFetchMs": 161.7,
+      "medianNavigationTtfbMs": 63
+    },
+    "after": {
+      "samples": [
+        {
+          "readyMs": 2735.3,
+          "navigationTtfbMs": 668.9,
+          "bundleFetchMs": 1435,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 1865.4,
+          "navigationTtfbMs": 142.1,
+          "bundleFetchMs": 1331.5,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 2332.8,
+          "navigationTtfbMs": 139.2,
+          "bundleFetchMs": 1615.6,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 6413.8,
+          "navigationTtfbMs": 581.8,
+          "bundleFetchMs": 4979.8,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 6591.8,
+          "navigationTtfbMs": 138.4,
+          "bundleFetchMs": 5428.1,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        }
+      ],
+      "medianReadyMs": 2735.3,
+      "medianBundleFetchMs": 1615.6,
+      "medianNavigationTtfbMs": 142.1
+    },
+    "after-repeat": {
+      "samples": [
+        {
+          "readyMs": 2696.5,
+          "navigationTtfbMs": 1065.6,
+          "bundleFetchMs": 991.9,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 1113.7,
+          "navigationTtfbMs": 150.2,
+          "bundleFetchMs": 541.7,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 986.1,
+          "navigationTtfbMs": 135.7,
+          "bundleFetchMs": 470.3,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 792.3,
+          "navigationTtfbMs": 150.2,
+          "bundleFetchMs": 407.1,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        },
+        {
+          "readyMs": 1224.8,
+          "navigationTtfbMs": 161.3,
+          "bundleFetchMs": 775.5,
+          "bundleBytes": 453077,
+          "bundle": "main.js?v=7b1dc541fca5ff3c",
+          "wasmRequestsBeforeReady": 0
+        }
+      ],
+      "medianReadyMs": 1113.7,
+      "medianBundleFetchMs": 541.7,
+      "medianNavigationTtfbMs": 150.2
+    }
+  },
+  "wasmHttp": {
+    "type": "application/wasm",
+    "encoding": "gzip",
+    "encodedBytes": 1838160,
+    "decodedBytes": 5615519,
+    "sha256": "257f4ffc396ce941e55331eb689be18a7b84a7a0dd10e12ede22fabe37a3f16e"
+  },
+  "bundleSha256": "7b1dc541fca5ff3cc9bbae9796ca8dd12cb04d502ed03a94467e88d4caa0ff51",
+  "hardware": {
+    "config": {
+      "ready": true,
+      "origin": "https://minichao9901.github.io",
+      "entry": "bundle",
+      "cfg": "hpm6800_all_in_one.cfg",
+      "existingUsb": 0
+    },
+    "target": {
+      "connected": true,
+      "halted": false,
+      "idcode": 268457533,
+      "target": "hpm6880.cpu0",
+      "clockHz": 8000000,
+      "backend": "OpenOCD Wasm / WebUSB",
+      "timing": {
+        "click": 68844.89999999851,
+        "workerStart": 71059.19999999553,
+        "openId": 1,
+        "wasmReady": 72593.5,
+        "workerOpen": 72601.19999999553,
+        "initId": 3,
+        "initStart": 72601.69999999553,
+        "usbInit": 73189.69999999553
+      }
+    },
+    "passed": true,
+    "disconnected": true
+  },
+  "firstConnection": {
+    "workerToOpenOcdGreetingMs": 1534.3,
+    "workerToOpenMs": 1542.0,
+    "workerToUsbInitMs": 2130.5,
+    "clickToUsbInitMs": 4344.8
+  }
+}

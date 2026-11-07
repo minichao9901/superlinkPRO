@@ -10,6 +10,8 @@
 
 首次启用 Wasm 时，另测 Worker 创建到引擎初始化完成。静态服务器对模块和二进制按同样的 8 Mbps、150 ms 条件发送，每种三次。gzip 的 Wasm 响应为 1,802,655 字节，中位数 2.19 秒。未压缩的响应为 5,615,519 字节，中位数 5.98 秒。这段时间发生在用户连接探针时，测量未计入 USB 授权和目标连接。上线后的响应压缩、网络和缓存会决定实际耗时。 [现站](https://minichao9901.github.io/superlinkPRO/)
 
+随后已上线并完成 Pages 冷首屏、gzip 和 HPM6800EVK 连接复测。 [上线后实测](hpm6800-wasm-pages-20261107.md)
+
 复现使用已烧录 `dbgstress` 固件的板卡、当前本地授权执行页及 SDK 配置目录。 [压测脚本](../../web/tools/selftest/dbg-hpm6800-dual-stress.py)
 
 ```powershell
