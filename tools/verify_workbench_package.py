@@ -23,6 +23,7 @@ def main():
     result['sourceInputsMatch']=True
     assert (home/'toolbox/samples').is_dir() and not (home/'cli/web/samples').exists()
     result['publicSamplesSingleCopy']=True
+    assert not (home/'cli/web/app/site').exists();result['guiBundleSingleCopy']=True
     samples=[p[4:] for p in subprocess.check_output(['git','ls-files','-z','--','web/samples'],cwd=ROOT).decode('utf8').split('\0') if p and Path(p).suffix!='.map']
     for name in samples:assert (home/'toolbox'/name).read_bytes()==(ROOT/'web'/name).read_bytes(),name
     result['publicSampleFilesMatchSource']=len(samples)
@@ -78,7 +79,7 @@ def main():
             if started.returncode:raise RuntimeError('Frozen CLI readiness failed; see private log')
             value=json.loads(started.stdout);assert value['ok'] and value['result']['status']=='ready';cli_started=True
             checked=[]
-            for sample in ['samples/test_images/gradient.bmp','samples/anim/花园.mp4']:
+            for sample in ['samples/test_images/gradient.bmp','samples/anim/花园.mp4','app/site/main.js']:
                 expected=(home/'toolbox'/sample).read_bytes()
                 with urlopen(cli_base+quote(sample),timeout=15) as response:actual=response.read()
                 assert actual==expected;checked.append({'sample':sample,'bytes':len(actual),'sha256':hashlib.sha256(actual).hexdigest()})

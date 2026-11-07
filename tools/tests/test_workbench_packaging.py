@@ -15,7 +15,7 @@ class PackagingTests(unittest.TestCase):
     def test_cli_keeps_imports_but_only_public_toolbox_contains_samples(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);web=root/'web';package=root/'package';toolbox=package/'toolbox'
-            files={'package/toolbox/index.html':'page','package/toolbox/app/core.js':'module','package/toolbox/samples/image.bmp':'sample',
+            files={'package/toolbox/index.html':'page','package/toolbox/app/core.js':'module','package/toolbox/app/site/main.js':'gui-bundle','package/toolbox/samples/image.bmp':'sample',
                    'web/package.json':'{}','web/tools/dev/serve-etm.py':'service','web/bridge/etm/backend/web/app/target.js':'target',
                    'etm/tools/node-transport/worker.mjs':'worker','etm/tools/trace_target_cli.mjs':'cli',
                    'web/bridge/etm/licenses/Node-v24.13.1-LICENSE.txt':'license','docs/trace-cli-ai.md':'guide','docs/etm-flame-svg.md':'svg','node.exe':'node'}
@@ -28,5 +28,7 @@ class PackagingTests(unittest.TestCase):
             self.assertEqual((package/'cli/web/index.html').read_text(),'page')
             self.assertEqual((toolbox/'samples/image.bmp').read_text(),'sample')
             self.assertFalse((package/'cli/web/samples').exists())
+            self.assertFalse((package/'cli/web/app/site').exists())
+            self.assertEqual((toolbox/'app/site/main.js').read_text(),'gui-bundle')
 
 if __name__=='__main__':unittest.main()

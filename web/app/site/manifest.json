@@ -11,7 +11,7 @@
     "app/analog/transport.js": "3bd13246889e80f1621667991d91c82ff9795b80588c62ddacbdc8ea8c07a33b",
     "app/analog/view.js": "153ff5d2b2d2644499074a30bbd6173ee9a63a7ecfa2668532343ed0b22ad78d",
     "app/core/bin.js": "0a236f6fb5165ef3effec574c0d0c2486ca15200c6587740b0caa4d3158c4ae5",
-    "app/core/build.js": "804192f36158957ec7a4570273e34cfd45199f65529e82b63fff707b31462493",
+    "app/core/build.js": "5d80153cbdd4ad35a3922a8b52ee96542f75daf041218dc9894adf4c145ceca7",
     "app/core/bus-periodic.js": "12924e2c61da32ce40cf50045d1615b3c3e350d70361850324827e625aa98c0d",
     "app/core/bus.js": "a961476670cdbbc394335fe003d4e7c7f69448e4a109569773313e22dddb6fec",
     "app/core/bytes.js": "a0a745e234bf488590698bde140035eea47f8c093bc1c978b5574d8bb4276df8",
@@ -172,6 +172,6 @@
     "app/ui/workspace.js": "9c4fe48834c19f54f2a2b491265aa099a8867a3bd5a41fc149c09aad994d363a",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "b1e03fa14370282df8e4798c1b9e1f6aca13bc2e762f6b763eaebcf815876fff",
+  "outputSha256": "a874082bb0b77e941fb64fd3d0e61a182153823a4c92715716fbc9fe5aecbde0",
   "outputBytes": 1222730
 }

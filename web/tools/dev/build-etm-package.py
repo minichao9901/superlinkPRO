@@ -18,7 +18,14 @@ def package_cli(package,toolbox,node):
     # The frozen host serves package/toolbox (trace_cli_paths.toolbox_root).
     # Native Node imports still need cli/web/app and index.html, but copying
     # panel images/animations here duplicated ~5 MB of compressed sample data.
-    shutil.copytree(toolbox,cli/'web',ignore=lambda folder,names: {'samples'} if Path(folder)==toolbox else set())
+    def cli_only_modules(folder,names):
+        folder=Path(folder)
+        if folder==toolbox:return {'samples'}
+        # Native worker imports source modules; the GUI bundle is served once
+        # from toolbox/app/site and is never executed by linkedom.
+        if folder==toolbox/'app':return {'site'}
+        return set()
+    shutil.copytree(toolbox,cli/'web',ignore=cli_only_modules)
     shutil.copyfile(ROOT/'package.json',cli/'web/package.json')
     service=cli/'web/tools/dev/serve-etm.py';service.parent.mkdir(parents=True)
     shutil.copyfile(ROOT/'tools/dev/serve-etm.py',service)
