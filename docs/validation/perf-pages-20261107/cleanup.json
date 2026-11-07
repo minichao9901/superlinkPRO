@@ -1,0 +1,82 @@
+{
+  "date": "2026-11-07",
+  "mode": "Windows Recycle Bin",
+  "state": "recycled",
+  "directories": [
+    {
+      "path": "E:\\superlinkPRO\\tmp\\perf-pages-20261107",
+      "files": 129,
+      "bytes": 407858144.0,
+      "moved": true
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\workbench-package-f7b08f59",
+      "files": 3620,
+      "bytes": 640581424.0,
+      "moved": true
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\workbench-package-7ffabf21",
+      "files": 3626,
+      "bytes": 632827115.0,
+      "moved": true
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\workbench-package-be2e7e64",
+      "files": 3451,
+      "bytes": 616910807.0,
+      "moved": true
+    },
+    {
+      "path": "E:\\superlinkPRO\\tmp\\workbench-package-ef078db7",
+      "files": 3455,
+      "bytes": 618993184.0,
+      "moved": true
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\tmp\\etm-package-5145a73e",
+      "files": 3702,
+      "bytes": 372733186.0,
+      "moved": true
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\tmp\\etm-package-0a8295b2",
+      "files": 3532,
+      "bytes": 363852516.0,
+      "moved": true
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\tmp\\etm-package-47df89bd",
+      "files": 3536,
+      "bytes": 365359880.0,
+      "moved": true
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\tmp\\etm-package-ffac7760",
+      "files": 3534,
+      "bytes": 364124222.0,
+      "moved": true
+    },
+    {
+      "path": "E:\\superlinkPRO\\web\\downloads",
+      "files": 2,
+      "bytes": 98670606.0,
+      "moved": true
+    }
+  ],
+  "protectedArchive": "E:\\superlinkPRO-backups\\20261107-perf-pages",
+  "excluded": [
+    ".formal-trace-20261024",
+    "tmp/perf-baseline",
+    "tmp/flame-release/compiler-runtime",
+    "etm/records",
+    "web/bridge/etm/downloads",
+    "dist/superlinkPRO",
+    "dist/manifest.json",
+    "dist/superlinkPRO-win64.zip",
+    "all other historical or session directories"
+  ],
+  "files": 28587.0,
+  "bytes": 4481911084.0,
+  "remaining": 0
+}

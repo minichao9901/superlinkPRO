@@ -1,0 +1,99 @@
+{
+  "checkedAt": "2026-11-07T00:41:52.422251+00:00",
+  "deployment": {
+    "id": 42319658895,
+    "head_sha": "4406462a370f1c14e8f302be1b62b86b9ff71759",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/minichao9901/superlinkPRO/actions/runs/42319658895"
+  },
+  "manifest": {
+    "version": "1.1.0-web.4",
+    "platform": "windows-x64",
+    "file": "superlinkPRO-win64.zip",
+    "bytes": 99685437,
+    "sha256": "3c0851dbec17f74a51e776bb0c513f9485cd74f13733ee5e45442df43dd3254b",
+    "packageId": "e8cb6b4d1651db770836c5cc803f9325706020d0dca24c0dcff8dbd6f75943a5",
+    "sourceRevision": "89c5acfa337e60ef8cf82bb2b4c0df0ec557428c",
+    "sourceDirty": false,
+    "runtimeSourceRevision": "10b612b43d16a6d889ba69957d171dd12faf4be9"
+  },
+  "assets": [
+    {
+      "path": "index.html",
+      "http": 200,
+      "bytes": 186056,
+      "sha256": "592fab2480fb59f685b7c19a35003e459fa62a039efb229887db291122f82012",
+      "matchesCurrentSource": true,
+      "hashKind": "canonical LF text"
+    },
+    {
+      "path": "app/site/main.js",
+      "http": 200,
+      "bytes": 1222730,
+      "sha256": "a874082bb0b77e941fb64fd3d0e61a182153823a4c92715716fbc9fe5aecbde0",
+      "matchesCurrentSource": true,
+      "hashKind": "canonical LF text"
+    },
+    {
+      "path": "app/core/build.js",
+      "http": 200,
+      "bytes": 1051,
+      "sha256": "5d80153cbdd4ad35a3922a8b52ee96542f75daf041218dc9894adf4c145ceca7",
+      "matchesCurrentSource": true,
+      "hashKind": "canonical LF text"
+    },
+    {
+      "path": "app/download/view.js",
+      "http": 200,
+      "bytes": 2324,
+      "sha256": "a0deb26e2adbb2de3f32d32a4b1e3cb8bc5752f3356910c6539406ad9f7f2cac",
+      "matchesCurrentSource": true,
+      "hashKind": "canonical LF text"
+    },
+    {
+      "path": "app/app.css",
+      "http": 200,
+      "bytes": 106883,
+      "sha256": "f08ff1b3e830a22dfcbcd3260bcc87e710297f1c366ef3c55b7411e71385fc1d",
+      "matchesCurrentSource": true,
+      "hashKind": "canonical LF text"
+    },
+    {
+      "path": "etm/index.html",
+      "http": 200,
+      "bytes": 25584,
+      "sha256": "5aa6cbfefd88bda3db9421f910f30b19f9cd7f7377570194752963f60883acf1",
+      "matchesCurrentSource": true,
+      "hashKind": "canonical LF text"
+    },
+    {
+      "path": "etm/app/analysis-views.js",
+      "http": 200,
+      "bytes": 18353,
+      "sha256": "7f5140b1a894fcb58abb14d2fc36f2690b2a978664797bca307fa163c00cc63c",
+      "matchesCurrentSource": true,
+      "hashKind": "canonical LF text"
+    },
+    {
+      "path": "samples/anim/花园.mp4",
+      "http": 200,
+      "bytes": 1242529,
+      "sha256": "be6029de5f4a0747002ad473d0f626eeab49c01aeb6bffe7d1d2f01cd0bf6bd4",
+      "matchesCurrentSource": true,
+      "hashKind": "exact binary bytes"
+    }
+  ],
+  "plainZipHead": {
+    "http": 200,
+    "bytes": 99685437
+  },
+  "fullZip": {
+    "url": "https://minichao9901.github.io/superlinkPRO/downloads/superlinkPRO-win64.zip?sha256=3c0851dbec17f74a51e776bb0c513f9485cd74f13733ee5e45442df43dd3254b",
+    "http": 200,
+    "bytes": 99685437,
+    "sha256": "3c0851dbec17f74a51e776bb0c513f9485cd74f13733ee5e45442df43dd3254b",
+    "matchesLocalDistribution": true
+  },
+  "passed": true
+}

@@ -27,10 +27,11 @@
 | `tmp/` | 每次任务独立的可再生构建、导出、解压、运行目录 |
 | `dist/superlinkPRO/` | 本机 Windows 工作台，双击 `superlinkPRO.exe`；更新时保留 `data` |
 
-本机工作台构建入口为 `python -X utf8 toolbox.py bridge-build`，完整 ZIP 与清单在根 `dist/`；`--candidate-only`只生成候选。当前 Web 调试只保留 WebUSB / CMSIS-DAP，工程生成已替换为工程下载；原 SPI、I2C、SWO、ADC/DAC 等工具继续保留。2026-11-06 工作台重构没有修改 ETM 页面/分析源码，ETM 仍用原 Kingst 链路。本机包生成不等于已发布，下面的历史正式下载清单需在明确发布授权后另行更新。
+本机工作台构建入口为 `python -X utf8 toolbox.py bridge-build`，完整 ZIP 与清单在根 `dist/`；`--candidate-only`只生成候选。当前 Web 调试只保留 WebUSB / CMSIS-DAP，工程生成已替换为工程下载；原 SPI、I2C、SWO、ADC/DAC 等工具继续保留。2026-11-06 工作台重构没有修改 ETM 页面/分析源码，ETM 仍用原 Kingst 链路。本机包生成不等于已发布；工作台和历史ETM独立包分别核对清单、来源与线上验收，不能混用版本。
 
-正式 Windows 下载包及版本事实来源：`web/bridge/etm/downloads/manifest.json`、同目录 `etm-bridge-win64.zip`。
-运行时来源及文件指纹：`web/bridge/etm/provenance.json`。报告必须说明源码提交、包版本和验证对象。
+WebUSB工作台Windows下载包事实来源：根`dist/manifest.json`、`dist/superlinkPRO-win64.zip`；线上为`downloads/manifest.json`与同目录ZIP。
+历史ETM独立包事实来源：`web/bridge/etm/downloads/manifest.json`、同目录`etm-bridge-win64.zip`；本轮工作台发布未替换这条历史包线。
+当前构建运行时的来源及文件指纹：`web/bridge/etm/provenance.json`；各已发布包另按自身manifest核对，不能把新快照来源冒充历史ZIP来源。报告必须说明源码提交、包版本和验证对象。
 当前还存在 `.formal-trace-20261024/` 等未跟踪历史验收输入，不能将“未跟踪”直接解释为可删除。
 
 ## 3. CLI 路径与使用方法（必读）

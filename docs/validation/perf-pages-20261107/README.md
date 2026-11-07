@@ -1,5 +1,9 @@
 # RTT/HSS性能复核、Pages与启动策略定位
 
+本轮最终结论：RTT历史96MHz条件三轮3.055/3.058/3.056MB/s，HSS额定72MHz约496kSa/s、八变量50k组/s恢复历史量级。Pages重建登记后恢复，最终web.4已上线且完整ZIP哈希一致。184份样例完整，CLI重复资源已去掉。原固件全Flash恢复一致。绑定probe的CLI启动在重启后仍被工具前置策略拒绝（044），HSS停止半包尾部（043）及C模型环境（038）继续保留。
+
+最终证据：[包/冻结验证](release.json)、[线上全量验证](online.json)、[清理清单](cleanup.json)、[问题表](../../项目问题跟踪列表.md)。以下保留各阶段尝试，web.3候选不代表最终交付。
+
 日期：2026-11-07（Asia/Shanghai）。基线`5d7f23b`。设备akaLinkPro序号`8F538633E6AEC4CA8ABB6A36FEBB1AC2`、F103ZE。接入时目标运行HCLK48MHz，完整512KiB Flash SHA与上轮原始备份一致。探针固件未重刷；没有抢占其他硬件进程。其他工程的FPGA构建/仿真未停止。
 
 ## RTT：复现历史3.05MB/s
@@ -87,3 +91,7 @@ Release原型在CI创建草稿时403（run42308702640，build token日志显示c
 版本1.1.0-web.4，源码`89c5acfa337e60ef8cf82bb2b4c0df0ec557428c`、运行时`10b612b`，sourceDirty=false。ZIP99685437B，SHA-256 `3c0851dbec17f74a51e776bb0c513f9485cd74f13733ee5e45442df43dd3254b`；EXE SHA-256 `73eefbf094e61beca794a19cda3a3dee96f1fe25217043c5b98904d6828906cf`。3407个清单文件匹配，184份公开样例逐项与Git UTF-8原路径/内容一致，CLI样例及GUI bundle重复副本为0。
 
 真实冻结CLI受限启动、中文视频/图片/GUI bundle共享HTTP回读、正常退出通过；没有连接目标或开放镜像目录。冻结原生重解码、查询/导出、完整HTTP下载通过，见[release.json](release.json)。这不代替被拒的绑定探针CLI启动。web.3是过程候选，最终交付以web.4及其指纹为准。
+
+## 完成交付与清理
+
+线上run42319658895已成功，普通下载清单为web.4，ZIP HEAD=200/99685437B，按下载按钮SHA查询键完整GET后哈希与本地一致；HTML/JS/CSS/ETM及中文视频均与源匹配，二进制按原始字节核验。保留当前EXE、ZIP、数据目录，10个本次目录/28587文件/4481911084B移入Windows回收站，原位置残留0；这不等于释放对应物理磁盘空间。所有必要小记录/失败摘要和代表原始输入已保存到外部受保护目录。历史.formal-trace、ETM记录、嵌套基线仓及编译器私有前缀均保留。

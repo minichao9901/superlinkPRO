@@ -48,3 +48,9 @@ git push origin main
 
 恢复后验收通过：6 项页面/脚本/样式/清单 GET 均为 200 且内容与本地一致；完整包 HEAD 为 200，Content-Length 为 92628064。
 部署 [42142498349](https://github.com/minichao9901/superlinkPRO/actions/runs/42142498349) 成功，详细结果见 [验收 JSON](validation/pages-recovery-20261106.json)。
+
+## 2026-11-07 发布状态恢复
+
+仓库曾切换private/public，用户确认具体日期不确定。GitHub Free私有化会自动取消Pages发布，重新公开后仍需成功部署；见[官方可见性说明](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility)。不能仅据此推断所有部署队列失败的原因。
+
+已核对仓库public、Pages公开workflow、Actions启用且环境允许main；重写同配置PUT未恢复，备份并重新登记站点后，相同提交/ZIP发布成功，最终web.4的[run42319658895](https://github.com/minichao9901/superlinkPRO/actions/runs/42319658895)及完整ZIP哈希通过。保留原web/同源发布链路；当前包事实来源dist/manifest.json，线上downloads/manifest.json，历史ETM桥包仍保持原路径。证据见[恢复与验证](validation/perf-pages-20261107/README.md)。

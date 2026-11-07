@@ -120,6 +120,8 @@ AI / 脚本统一入口：`python -X utf8 toolbox.py catalog`。覆盖全部 Web
 
 ## 实测性能
 
+2026-11-07补充复核：相同96MHz历史负载的RTT转发三轮3.055～3.058MB/s；额定72MHz目标HSS约496kSa/s，八变量约50k组/s。该轮使用生产协议及原生USB/CDC接收，范围与下表历史浏览器测量分别记录；详见[本轮验收及web.4线上包](docs/validation/perf-pages-20261107/README.md)。
+
 以下数字来自 **akaLinkPro 探针 + 真实浏览器页面 + 对应目标板** 的实测，不是理论值。
 不同 USB 口、供电与浏览器负载会影响结果。
 
