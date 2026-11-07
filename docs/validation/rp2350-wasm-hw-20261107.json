@@ -1,0 +1,266 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "73e4b82",
+  "openocdSource": "9f2d876",
+  "board": "RP2350",
+  "sdkRevision": "a1438dff1d38bd9c65dbd693f0e5db4b9ae91779",
+  "transport": "SWD 1 MHz",
+  "arch": "Cortex-M33 core 0",
+  "cfgImport": {
+    "error": "rp2350.cfg：不支持的 CFG 值  cm0 cm1 ",
+    "wasmOfflineTargets": [
+      "rp2350.cm0",
+      "rp2350.cm1"
+    ],
+    "wasmOfflineBanks": [
+      "rp2xxx",
+      "virtual"
+    ]
+  },
+  "stages": {
+    "identity": {
+      "job": "f81b7aad939521b765e1ec31092fdd90",
+      "ok": true,
+      "value": {
+        "errors": [],
+        "returned": true,
+        "value": {
+          "chipId": 536889639,
+          "cpuid": 1092604432,
+          "id": 1275147383
+        },
+        "verificationRequired": true
+      }
+    },
+    "preserve": {
+      "stage": "preserve",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": null,
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x08000180",
+        "memLen": 0,
+        "outLines": 30,
+        "pc": 0,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": null,
+          "files": 0,
+          "ready": false,
+          "shown": 0
+        },
+        "symRows": 0,
+        "watch": [],
+        "watching": true
+      },
+      "target": {
+        "chipId": "0x20004927",
+        "cpuid": "0x411fd210",
+        "expectedDpidr": "0x4c013477"
+      },
+      "bytes": 16384,
+      "sha256": "1874f3e74596b9ebb855d431823bf1dfef760d32153585f84b19b7e10d59ae18"
+    },
+    "flash": {
+      "stage": "flash",
+      "ranges": [
+        [
+          268435456,
+          14692
+        ]
+      ],
+      "imageSha256": "ffe7b30ab986407b2829548bdb02ae647057dc938b9b1ea262393f391cf3a1a7",
+      "result": {
+        "bytes": 14692,
+        "reset": true,
+        "sectors": 4,
+        "verified": true
+      },
+      "seconds": 3.425019100002828,
+      "status": "已烧录 14.3 KB，读回校验通过"
+    },
+    "debug": {
+      "stage": "debug",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": null,
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x08000180",
+        "memLen": 0,
+        "outLines": 58,
+        "pc": 0,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": null,
+          "files": 0,
+          "ready": false,
+          "shown": 0
+        },
+        "symRows": 0,
+        "watch": [],
+        "watching": false
+      },
+      "target": {
+        "chipId": "0x20004927",
+        "cpuid": "0x411fd210",
+        "expectedDpidr": "0x4c013477"
+      },
+      "checks": {
+        "Flash boot heartbeat": {
+          "pass": true,
+          "result": [
+            13692,
+            13839
+          ]
+        },
+        "source step over/into/out": {
+          "pass": true,
+          "result": [
+            {
+              "command": "n",
+              "pc": "0x10000242",
+              "source": {
+                "file": "E:/superlinkPRO/tmp/rp2350-wasm-hw-20261107/fixture/main.c",
+                "line": 15
+              }
+            },
+            {
+              "command": "si",
+              "pc": "0x10000244",
+              "source": {
+                "file": "E:/superlinkPRO/tmp/rp2350-wasm-hw-20261107/fixture/main.c",
+                "line": 15
+              }
+            },
+            {
+              "command": "fin",
+              "pc": "0x1000029a",
+              "source": {
+                "file": "E:/superlinkPRO/tmp/rp2350-wasm-hw-20261107/fixture/main.c",
+                "line": 27
+              }
+            }
+          ]
+        },
+        "8 instruction steps": {
+          "pass": true,
+          "result": [
+            "0x1000022c",
+            "0x10000230",
+            "0x10000234",
+            "0x10000236",
+            "0x10000238",
+            "0x1000024e",
+            "0x10000250",
+            "0x1000029a"
+          ]
+        },
+        "SRAM write and restore, registers": {
+          "pass": true,
+          "result": {
+            "address": "0x20003930",
+            "readback": "5023a55a",
+            "restored": true,
+            "registers": 23
+          }
+        },
+        "40 stop/run rounds": {
+          "pass": true,
+          "result": {
+            "rounds": 40,
+            "enabledComparators": 0
+          }
+        }
+      }
+    },
+    "viewer": {
+      "stage": "viewer",
+      "error": "RTT receiving: {'backend': 'openocd', 'bufferedBytes': 0, 'clockKhz': None, 'connected': False, 'controlBlock': None, 'displaySuppressed': False, 'error': '连接失败：background polling: on\\nTAP: workbench.cpu (enabled)', 'pollLimit': None, 'running': False, 'stats': {'bytes': 0, 'corrupt': 0, 'hz': 0, 'lastBytes': 0, 'lastPolls': 0, 'lost': 0, 'polls': 0, 'rate': 0}}"
+    },
+    "viewer-retest": {
+      "stage": "viewer-retest",
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 12370,
+        "clockKhz": 1000,
+        "connected": true,
+        "controlBlock": 536872828,
+        "displaySuppressed": false,
+        "error": "控制块 0x2000077c，上行缓冲 12288 B（固件声明 2 个上行通道，本页读 ch0）",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 12370,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 129,
+          "rate": 0
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 13563,
+        "clockKhz": 1000,
+        "connected": true,
+        "controlBlock": 536872828,
+        "displaySuppressed": false,
+        "error": "",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 13563,
+          "corrupt": 0,
+          "hz": 812.6749300291993,
+          "lastBytes": 13193,
+          "lastPolls": 1433,
+          "lost": 0,
+          "polls": 2033,
+          "rate": 499.8000799687573
+        }
+      },
+      "bytes": 13573,
+      "heartbeats": 1354,
+      "echo": true
+    },
+    "restore": {
+      "stage": "restore",
+      "imageSha256": "1874f3e74596b9ebb855d431823bf1dfef760d32153585f84b19b7e10d59ae18",
+      "result": {
+        "bytes": 16384,
+        "reset": true,
+        "sectors": 4,
+        "verified": true
+      },
+      "seconds": 3.3791068000064115,
+      "status": "已烧录 16.0 KB，读回校验通过"
+    },
+    "verify": {
+      "stage": "verify",
+      "target": {
+        "chipId": "0x20004927",
+        "cpuid": "0x411fd210",
+        "expectedDpidr": "0x4c013477"
+      },
+      "bytes": 16384,
+      "sha256": "1874f3e74596b9ebb855d431823bf1dfef760d32153585f84b19b7e10d59ae18",
+      "matched": true
+    }
+  }
+}

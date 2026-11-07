@@ -15,7 +15,7 @@
 import { releaseLocalProbeUsers, prepareProbeHandoff } from '../core/probe-users.js';
 import { runProbeOperation } from '../core/probe-manager.js';
 import { waitMs } from '../core/pace.js';
-import { withTimeout } from '../rtt/dap-webusb.js';
+import { withTimeout } from '../core/timeout.js';
 import { $, setStatus, seg, esc } from '../ui/dom.js';
 import { store } from '../core/store.js';
 import { webClockKhz } from '../core/target-clock.js';
@@ -514,7 +514,7 @@ export class ScopeView {
     } else {
       if (this.hid === this.mockProbe) this.hid = null;
       $('sc-info').textContent = '未连接';
-      $('sc-usbinfo').textContent = '未连接数据端点（假探针模式不需要）';
+      $('sc-usbinfo').textContent = '未连接数据端点';
       this.setStatusText('已切回真机模式：先连探针，再连数据端点', '');
     }
     this.syncButtons();

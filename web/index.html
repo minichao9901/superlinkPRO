@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>superlinkPRO 工作台 —— 串口 · RTT · 波形 · 调试 · ETM</title>
-<meta name="description" content="零安装的网页工具：Web Serial 串口助手（SSCOM 风格）、ANSI 终端（Xshell 风格）、以及走 WebUSB/CMSIS-DAP 的 SEGGER RTT Viewer。">
+<meta name="description" content="superlinkPRO 网页工作台：Web Serial 串口助手、ANSI 终端和基于 WebUSB / CMSIS-DAP 的 SEGGER RTT Viewer。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1117'/%3E%3Ctext x='16' y='22' font-size='16' text-anchor='middle' fill='%2358a6ff'%3E%3E_%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="app/vendor/xterm/xterm.css">
 <link rel="stylesheet" href="app/app.css">
@@ -15,7 +15,7 @@
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=7b1dc541fca5ff3c';
+  window.__webBundleUrl = 'app/site/main.js?v=becc4d7d1bd248f4';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -53,8 +53,8 @@
       <summary>更多功能 <span aria-hidden="true">▾</span></summary>
       <div class="tool-menu" aria-label="更多功能">
         <button class="tab" data-tab="spi">USB→SPI/QSPI</button>
-        <button class="tab" data-tab="panel">SPI/QSPI屏</button>
-        <button class="tab" data-tab="spicdc">SPI转发</button>
+        <button class="tab" data-tab="panel">SPI/QSPI 屏幕</button>
+        <button class="tab" data-tab="spicdc">SPI 转发</button>
         <button class="tab" data-tab="swo">SWO 执行轨迹</button>
         <button class="tab" data-tab="etm">ETM 执行轨迹</button>
         <button class="tab" data-tab="i2c">USB→I2C</button>
@@ -72,7 +72,7 @@
          连接后 app/hid/view.js 的 _setResetIoUi() 会按 HID 0x3A 的真实状态清掉 indeterminate。 */
       (function(){ var c = document.getElementById('global-nrst-open-drain'); if (c) c.indeterminate = true; })();
     </script>
-    <button id="btn-global-reset" class="mini" type="button" title="向目标 NRST 发送硬复位脉冲；EVKLite 使用 PA27/J3[23]，PA08 接 TRST 时仅复位 JTAG">全局复位</button>
+    <button id="btn-global-reset" class="mini" type="button" title="通过 OpenOCD Wasm 复位烧录页所选目标">全局复位</button>
     <button id="btn-fullscreen" class="mini" type="button" aria-pressed="false" title="全屏显示工作台">全屏</button>
     <span id="probe-flag" class="flag flag-off" role="status">探针：未使用</span>
     <details class="app-more" id="app-more">
@@ -293,7 +293,7 @@
   <div class="ws">
     <aside class="side">
       <fieldset>
-        <legend>WebUSB 连接</legend>
+        <legend>OpenOCD Wasm / WebUSB</legend>
 
         <div id="r-webusb-box">
           <div class="row btnrow">
@@ -301,14 +301,14 @@
             <button id="r-usb-pick" title="换一个探针（会弹浏览器设备选择框）">换设备…</button>
             <button id="r-usb-disconnect" disabled>断开</button>
           </div>
-          <label class="row"><span>目标类型</span>
-            <select id="r-target" title="零安装通路的两种目标：ARM/Cortex-M 走 SWD + AHB-AP（浏览器里做 ADIv5）；RISC-V（HPM 等）走 JTAG + DMI + SBA 系统总线读。两者都只用 WebUSB，不需要装驱动">
-              <option value="swd">SWD / ARM（Cortex-M，默认）</option>
-              <option value="riscv">RISC-V / JTAG（HPM、CH32V…）</option>
+          <label class="row"><span>目标接口</span>
+            <select id="r-target" title="选择目标的物理接口。OpenOCD Wasm 通过 WebUSB 驱动探针。">
+              <option value="swd">SWD / ARM</option>
+              <option value="riscv">RISC-V / JTAG</option>
             </select>
           </label>
           <label class="row"><span>SWD 时钟</span>
-            <select id="r-usb-clock" title="SWD 时钟：自动 = 从高到低试到通为止；RISC-V/JTAG 下它是 JTAG TCK 频率（DAP_SWJ_Clock），同样留「自动」即可">
+            <select id="r-usb-clock" title="选择目标接口时钟，默认 SWD 1 MHz、JTAG 8 MHz">
               <option value="0">自动</option>
               <option value="1000">1 MHz</option>
               <option value="5000">5 MHz</option>
@@ -357,6 +357,7 @@
               <option value="stm32c0">STM32C0</option>
               <option value="stm32wb">STM32WB</option>
               <option value="stm32wl">STM32WL</option>
+              <option value="rp2350">RP2350（Cortex-M33）</option>
 
             </optgroup>
             <optgroup label="RISC-V（只能 JTAG · 控制块要在非缓存区）" data-arch="riscv">
@@ -445,14 +446,14 @@
         <label class="row"><span>通道</span>
           <input id="h-chan" class="num" value="0" title="RTT 上行通道号，0 = channel 0">
         </label>
-        <label class="row"><span>目标类型</span>
+        <label class="row"><span>目标接口</span>
           <select id="h-target" title="探针的全局目标类型（HID 0x31 action 10）。SWD/ARM 走 DAPLink 的 swd_host；RISC-V/JTAG 走探针里的 DMI+SBA 引擎（TAP 复位 + IR=0x11 + 唤醒 DM）。粘性：设一次就一直有效，采样器那个后端也跟着它走">
             <option value="swd">SWD / ARM</option>
             <option value="riscv">RISC-V / JTAG</option>
           </select>
         </label>
         <label class="row"><span>SWD 时钟</span>
-          <select id="h-clock" title="运行时调参（HID 0x31 action 7），改完立刻生效"></select>
+          <select id="h-clock" title="45 MHz 为探针默认档。60 MHz 对链路信号质量要求更高。"></select>
         </label>
         <div class="row btnrow">
           <button id="h-start" class="primary">启动转发</button>
@@ -538,14 +539,14 @@
         <div class="row btnrow">
           <button id="sc-usb" title="WebUSB 认领 interface 0，走那个空闲的 bulk IN 端点 0x83">连接数据端点…</button>
         </div>
-        <p class="hint" id="sc-usbinfo">未连接数据端点（假探针模式不需要）</p>
+        <p class="hint" id="sc-usbinfo">未连接数据端点</p>
       </fieldset>
 
         <fieldset>
         <legend>采样</legend>
         <label class="row"><span>周期</span><input id="sc-period" class="num" value="100" inputmode="decimal" title="µs，可填 2.25 / 2.5 / 2.75；小数周期需新版探针固件，按 24 MHz tick 量化"><em class="unit">µs</em></label>
         <label class="row"><span>时长</span><input id="sc-seconds" class="num" value="20" inputmode="numeric" title="缓冲容量 = 实测速率 × 时长（页面会显示占多少内存）"><em class="unit">s</em></label>
-        <label class="row" id="sc-target-row"><span>目标类型</span>
+        <label class="row" id="sc-target-row"><span>目标接口</span>
           <select id="sc-target" title="探针的全局目标类型（HID 0x31 action 10，与 RTT-over-JTAG 共用同一个开关）。粘性：设一次就一直有效。切到 RISC-V/JTAG 后本页后端也跟着换（探针侧采样器的传输后端 = 全局目标类型）">
             <option value="swd">SWD / ARM</option>
             <option value="riscv">RISC-V / JTAG</option>
@@ -656,18 +657,18 @@
         <legend>目标与连接</legend>
 
         <label class="row"><span>芯片</span>
-          <select id="f-chip" title="选择与目标匹配的 WebUSB 烧录算法"></select>
+          <select id="f-chip" title="选择与目标匹配的 OpenOCD Flash 配置"></select>
         </label>
         <div class="row btnrow">
-          <button id="f-idcode" title="只读地认目标（不动 flash、不改运行状态）：ARM/SWD 读 DP IDCODE + CPUID + STM32 DBGMCU DEV_ID/REV_ID + flash 容量寄存器；RISC-V/JTAG 读 TAP IDCODE。选错芯片也能读 —— 这个按钮不吃「芯片」那一格（按目标类型选择 SWD 或 JTAG）。">读 IDCODE</button>
+          <button id="f-idcode" title="通过所选物理接口读取目标身份">读 IDCODE</button>
         </div>
       </fieldset>
       <div class="tool-side-panel">
         <fieldset>
           <legend>烧录时钟</legend>
           <label class="row" id="f-custom-speed-row"><span>时钟</span>
-            <select id="f-speed" title="WebUSB Cortex-M：所选档用于 RAM 数据与 Flash 校验，执行控制保留 1 MHz；RISC-V 使用整体调试时钟。高频传输不稳定时请降低档位。">
-              <option value="">默认（10 MHz）</option>
+            <select id="f-speed" title="选择烧录与校验使用的物理接口时钟">
+              <option value="">默认</option>
               <option value="1000">1 MHz</option>
               <option value="4000">4 MHz</option>
               <option value="5000">5 MHz</option>
@@ -699,7 +700,7 @@
           <div class="row btnrow">
             <button id="f-flash" class="primary">烧录</button>
           </div>
-          <p class="hint">烧录会暂停目标并在完成后复位；烧录前会断开占用探针的 RTT 会话。</p>
+          <p class="hint">烧录会暂停目标。勾选复位时，完成后重新运行。</p>
         </fieldset>
       </div>
     </aside>
@@ -756,12 +757,11 @@
       </nav>
       <div id="d-side-session-panel" role="tabpanel" aria-labelledby="d-side-session-tab">
       <fieldset>
-        <legend>连接</legend>
-        <label class="row"><span>后端</span>
-          <select id="d-backend" title="调试连接方式">
+        <legend>OpenOCD Wasm / WebUSB</legend>
+        <label class="row"><span>目标接口</span>
+          <select id="d-backend" title="选择 OpenOCD Wasm 使用的物理接口">
             <option value="webusb">SWD / ARM</option>
-            <option value="openocd">HPM6800EVK · OpenOCD Wasm / WebUSB</option>
-            <option value="riscv">其它 RISC-V / JTAG</option>
+            <option value="riscv">JTAG / RISC-V</option>
             <option value="mock">模拟目标</option>
           </select>
         </label>
@@ -797,6 +797,9 @@
           <select id="d-cfg-entry" aria-label="入口 CFG"></select>
         </label>
         <p id="d-cfg-info" class="hint" role="status" hidden></p>
+        <label class="row" id="d-cfg-core-row" hidden><span>CFG 调试核</span>
+          <select id="d-cfg-core" aria-label="CFG 调试核"></select>
+        </label>
         <div class="row btnrow">
           <button id="d-connect" class="primary">连接</button>
           <button id="d-disconnect" disabled>断开</button>
@@ -1037,8 +1040,8 @@
         <div class="row btnrow">
           <button id="sp-usb" title="授权 WebUSB 并认领 SPI 桥接口（class 0xFF + EP11 双向）：OUT 0x0B 发帧、IN 0x8B 收应答。⚠️ 第一次点会弹出浏览器的设备选择框（HID 与 WebUSB 要各授权一次）">连接数据端点…</button>
         </div>
-        <label class="row"><span>在飞读</span><input id="sp-inflight" class="num" value="4" inputmode="numeric" title="同时在飞的 IN 读条数（连接数据端点时生效）"></label>
-        <p class="hint" id="sp-usbinfo">未连接数据端点（假探针模式不需要）</p>
+        <label class="row"><span>并发读取</span><input id="sp-inflight" class="num" value="4" inputmode="numeric" title="同时提交的 USB IN 读取请求数，连接数据端点时生效。"></label>
+        <p class="hint" id="sp-usbinfo">未连接数据端点</p>
 
       </fieldset>
       </div>
@@ -1371,11 +1374,11 @@
         <div class="row btnrow">
           <button id="pn-usb" title="授权 WebUSB 并认领 SPI 桥接口（刷图/发帧的数据走这条）。⚠️ 第一次点会弹出浏览器的设备选择框（HID 与 WebUSB 要各授权一次）">连接数据端点…</button>
         </div>
-        <label class="row"><span>在飞读</span><input id="pn-inflight" class="num" value="4" inputmode="numeric" title="同时在飞的 IN 读条数（连接数据端点时生效）"></label>
+        <label class="row"><span>并发读取</span><input id="pn-inflight" class="num" value="4" inputmode="numeric" title="同时提交的 USB IN 读取请求数，连接数据端点时生效。"></label>
         <!-- 攒批：一次 transferOut 带多个 512 B 包。固件仍按 512 B 槽解析（设备看到的包序列不变），
              只是主机少喊几次 —— 60 MHz 单线刷一帧只要 18.9 ms，而"每片一次调用"的固定开销
              （~150 µs × 290 片 ≈ 44 ms）才是帧率的真正瓶颈。512 = 老行为。 -->
-        <label class="row"><span>攒批</span><select id="pn-batch" title="一次 USB 传输带多少字节。固件按 512 B 槽解析，所以攒批不改变设备看到的东西，只减少主机侧的调用次数；512 B = 老行为（每片一次 transferOut）。真机实测（AXS15352 · 档 1 · 60 MHz）：512 B → 25.7 fps / 3.6 MB/s，8 KB → 35.3 fps / 4.9 MB/s，再往上没差别">
+        <label class="row"><span>USB 批量</span><select id="pn-batch" title="每次 USB 传输合并的数据量。设备仍按 512 B 分片解析。">
           <option value="512">512 B</option>
           <option value="4096">4 KB</option>
           <option value="8192" selected>8 KB（推荐）</option>
@@ -1690,14 +1693,14 @@
 <section class="panel" id="tab-spicdc">
   <div class="ws">
     <aside class="side">
-      <fieldset><legend>探针 · SPI转发</legend>
+      <fieldset><legend>探针 · SPI 转发</legend>
         <div class="row btnrow"><button id="si-connect" class="primary" title="自动连接唯一已授权的探针；首次或多个设备时弹框选择">连接探针</button><button id="si-disconnect" title="停止探针 SPI 转发并关闭 HID 连接；接收串口可在下方单独关闭" disabled>关闭探针</button></div>
         <p class="hint" id="si-info">未连接</p>
         <div class="row btnrow"><button id="si-pinmap-btn" title="查看 SPI 从机的 CS、SCK、MOSI 与 GND 接线">引脚分配图</button></div>
         <label class="row"><span>SPI 模式</span><select id="si-mode"><option value="0">Mode 0 · CPOL 0 / CPHA 0</option><option value="1">Mode 1 · CPOL 0 / CPHA 1</option><option value="2">Mode 2 · CPOL 1 / CPHA 0</option><option value="3">Mode 3 · CPOL 1 / CPHA 1</option></select></label>
         <label class="row"><span>位顺序</span><select id="si-lsb"><option value="0">MSB first</option><option value="1">LSB first</option></select></label>
         <div class="row btnrow"><button id="si-start" class="primary" disabled>启动转发</button><button id="si-stop" disabled>停止</button><button id="si-status" disabled>刷新状态</button></div>
-        <p id="si-state" role="status" aria-live="polite">等待连接探针</p>
+        <p id="si-state" class="hint" role="status" aria-live="polite">等待连接探针</p>
         <details class="helpnote"><summary>接线与资源</summary><p class="hint">复用 SPI2：PB10 CS、PB11 SCK、PB13 MOSI；PB12 MISO 可不接。主机与探针共地，CS 低有效，8 位。时钟由外部 SPI 主机提供。</p><p class="hint">SPI 从机与 USB→SPI/QSPI、SPI/QSPI 屏及 ADC 共用缓冲与引脚。CDC 与 UART、RTT 转发共用同一个串口，启动时切换数据源。先打开下方接收串口，再启动外部发送。</p><p class="hint">连接时自动复用唯一已授权的探针。要更换设备，请先关闭探针，再手动选择；接收串口独立管理。</p><button id="si-choose">选择其它探针…</button></details>
       </fieldset>
       <fieldset>
@@ -2204,7 +2207,7 @@
     </aside>
     <div class="main sw-main">
       <div class="toolbar sw-toolbar">
-        <strong>SWO 执行轨迹</strong><span id="sw-counts" class="dim">先记录，也可直接打开离线文件</span>
+        <strong>SWO 执行轨迹</strong><span id="sw-counts" class="hint">录制轨迹，或打开离线文件。</span>
         <div class="sw-display-controls">
           <button id="sw-chart-toggle" aria-controls="sw-chart-box" aria-expanded="true">收起轨迹图</button>
           <details id="sw-boundary-help" class="sw-toolbar-help"><summary>采样说明</summary><p class="sw-toolbar-popover sw-boundary">PC 采样是离散执行落点。相邻样本的跳转不代表直接调用，无法还原中间指令、完整分支或调用栈；缺口不会被补成执行路径。拖动轨迹可选区间，缩放以当前 PC 光标为中心。事件序号按解码记录递增，PC 样本序号只对 PC 落点递增。核心周期时间不是录制墙钟时间，睡眠可停止计数。</p></details>

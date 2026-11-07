@@ -1,0 +1,92 @@
+{
+  "baseCommit": "73e4b82",
+  "deployedWasmCommit": "f2fa8ca",
+  "targetFirmware": "hpm6800evk_dbgstress/fw.elf",
+  "targetFirmwareSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+  "wasm": {
+    "target": "hpm6880.cpu0",
+    "idcode": 268457533,
+    "clockHz": 8000000,
+    "originalMemoryMode": "progbuf sysbus abstract",
+    "defaultRunningError": "Error: [hpm6880.cpu0] Failed to read priv register.\nfailed to read memory",
+    "polling": {
+      "count": 160,
+      "elapsedMs": 495.29999999701977,
+      "hz": 323.0365435109282,
+      "minIntervalMs": 2.5999999940395355,
+      "p50IntervalMs": 2.899999998509884,
+      "p95IntervalMs": 4.100000001490116,
+      "maxIntervalMs": 5.800000004470348,
+      "first": {
+        "ms": 6.5999999940395355,
+        "tick": 16931498,
+        "stage": 10
+      },
+      "last": {
+        "ms": 495.29999999701977,
+        "tick": 16936399,
+        "stage": 10
+      },
+      "remainedRunning": true
+    },
+    "rtt": {
+      "syntheticRing": true,
+      "upBytes": 768,
+      "upMs": 64.20000000298023,
+      "downBytes": 23,
+      "wrapped": true,
+      "remainedRunning": true
+    },
+    "scratchRestored": true,
+    "passed": true,
+    "disconnected": true
+  },
+  "nativeScope": [
+    {
+      "requestedUs": 100,
+      "backend": "生效后端：RISC-V/JTAG",
+      "rateHz": 10000,
+      "receivedSamples": 22940,
+      "tailCountDelta": -18,
+      "metricsError": "样本未完整接收：收到 22940，探针 22958，无效 0",
+      "lostProbe": 0,
+      "lostUsb": 0,
+      "lostGap": 0,
+      "readErrors": 0,
+      "produced": 22958,
+      "tailComplete": false
+    },
+    {
+      "requestedUs": 100,
+      "backend": "生效后端：RISC-V/JTAG",
+      "rateHz": 10000,
+      "receivedSamples": 16089,
+      "tailCountDelta": -30,
+      "metricsError": "样本未完整接收：收到 16089，探针 16119，无效 0",
+      "lostProbe": 0,
+      "lostUsb": 0,
+      "lostGap": 0,
+      "readErrors": 0,
+      "produced": 16119,
+      "tailComplete": false
+    },
+    {
+      "requestedUs": 1000,
+      "backend": "生效后端：RISC-V/JTAG",
+      "rateHz": 1000,
+      "receivedSamples": 2170,
+      "tailCountDelta": -2,
+      "metricsError": "样本未完整接收：收到 2170，探针 2172，无效 0",
+      "lostProbe": 0,
+      "lostUsb": 0,
+      "lostGap": 0,
+      "readErrors": 0,
+      "produced": 2172,
+      "tailComplete": false
+    }
+  ],
+  "rttScratch": {
+    "start": "0x18000",
+    "bytes": 2304
+  }
+}

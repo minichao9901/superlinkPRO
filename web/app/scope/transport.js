@@ -11,7 +11,7 @@ import { waitMs } from '../core/pace.js';
  *  2. **收尾必须先停推流、再收干净**：WebUSB 没有取消接口（app/rtt/dap-webusb.js:39-49 记着
  *     这个坑），挂起的 transferIn 会偷走下一场的响应 —— 所以 stop() 里要等在飞的读自己回来。
  */
-import { withTimeout } from '../rtt/dap-webusb.js';
+import { withTimeout } from '../core/timeout.js';
 import { MockScopeProbe } from './mock.js';
 import { PACKET } from './protocol.js';
 import { UsbLease, isUsbResourceConflict } from '../core/usb-device.js';

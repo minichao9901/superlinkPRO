@@ -15,6 +15,23 @@ try{
 }finally{globalThis.setTimeout=saved;}
 console.log('rtt-lifecycle: stale successful/failed polls cannot publish, stop replacement or schedule old workers PASS');
 {
+ const poll=gate(),v=Object.create(RttView.prototype),events=[];
+ Object.assign(v,{probe:{rttPollLimit:8192},stats:{rate:0},interval:0,
+  rtt:{readUp:(_channel,limit)=>{assert.equal(limit,8192);return poll.promise;}},
+  _setSuppressed(on){this.suppressed=on;events.push(['display',on]);},
+  _ingest(bytes){events.push(['receive',bytes.length]);this.running=false;}});
+ v._startPoll();
+ poll.resolve({bytes:new Uint8Array(8192),lost:0,high:true,level:1,corrupt:false});
+ await v._pollTask;
+ assert.deepEqual(events,[['display',true],['receive',8192]]);
+ v._highspeedGate(0);
+ assert.equal(v.suppressed,true,'a slow stats sample cannot re-enable rendering while the ring is still full');
+ v._ringBackpressure=false;
+ v._highspeedGate(0);
+ assert.equal(v.suppressed,false);
+}
+console.log('rtt-lifecycle: a full Wasm ring pauses rendering before ingest and resumes after the backlog clears PASS');
+{
  const old=(()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};})(),events=[];
  const v=Object.create(RttView.prototype);v.probe={reset:async()=>{events.push('reset');return 'mock';}};
  v.running=true;v._pollTask=old.promise;globalThis.document={getElementById:()=>null};

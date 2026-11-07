@@ -12,15 +12,14 @@ const v=Object.create(DbgView.prototype),s=new DebugSession(),held=gate();let cl
 v.svdValues=new SvdValueState();v._svdRevision=0;
 s.probe={disconnect:async()=>{closed=true;}};Object.assign(v,{session:s,_stopWatch(){},rttStop(){},renderRegs(){},renderMem(){},renderBps(){},_syncButtons(){},_bindSessionLog(){}});
 const operation=s.exclusive(()=>held.promise),switching=v._ensureSession('riscv');await tick();assert.equal(v.session,s);assert.equal(closed,false);
-held.resolve();await Promise.all([operation,switching]);assert.equal(closed,true);assert.ok(v.session instanceof RiscvDebugSession);
-await v._ensureSession('openocd');assert.ok(v.session instanceof OpenOcdDebugSession);
+held.resolve();await Promise.all([operation,switching]);assert.equal(closed,true);assert.ok(v.session instanceof OpenOcdDebugSession);
 const wasm=v.session, wasmHeld=gate();let wasmClosed=false;
 wasm.link={close:async()=>{wasmClosed=true;}};wasm.probe={};
 const wasmOperation=wasm.exclusive(()=>wasmHeld.promise),switchingBack=v._ensureSession('webusb');
 await tick();assert.equal(v.session,wasm);assert.equal(wasmClosed,false);
 wasmHeld.resolve();await Promise.all([wasmOperation,switchingBack]);assert.equal(wasmClosed,true);
 assert.equal(v.session.constructor,DebugSession);
-console.log('dbg-backend-lifecycle: ARM, RISC-V and Wasm switches wait for old actions and disconnect PASS');
+console.log('dbg-backend-lifecycle: SWD / JTAG Wasm session switches wait for old actions and disconnect PASS');
 
 for (const Backend of [DebugSession, RiscvDebugSession]){
   const session = new Backend(), manager = new ProbeManager({ locks: null });

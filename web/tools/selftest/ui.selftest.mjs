@@ -311,7 +311,7 @@ export async function runUiSelfTest(tools){
     await new Promise(r => setTimeout(r, 60));
     const f = tools.flash;
     if (!f) throw new Error('没有 flash 视图对象');
-    if (typeof f._flashHpmRiscv !== 'function') throw new Error('烧录页没有 RISC-V 那条链路（_flashHpmRiscv）');
+    if (typeof f._openTarget !== 'function') throw new Error('烧录页没有 Wasm 目标入口');
     const chips = await import('/app/flash/hpm/chips.js');
     const b = chips.hpmBoard('hpm6800evk');
     if (!b || b.flashBase !== 0x80000000 || b.xpiBase !== 0xF3000000) throw new Error('HPM6800EVK 的板级参数不对');
@@ -392,8 +392,7 @@ export async function runUiSelfTest(tools){
     await new Promise(r => setTimeout(r, 60));
     if (sel.value !== 'swd') throw new Error('选 ARM 组的芯片后目标类型没切回 SWD（实际 ' + sel.value + '）');
 
-    const mod = await import('/app/rtt/riscv-mem.js');
-    if (typeof mod.openRiscvMem !== 'function') throw new Error('riscv-mem.js 没导出 openRiscvMem');
+    if (tools.rtt.backend !== 'mock' && tools.rtt.backend !== 'openocd') throw new Error('RTT Viewer 未使用 OpenOCD Wasm');
 
     sel.value = keepTarget;                     // 复原：这些控件是 store 绑定的，别把测试 profile 带偏
     sel.dispatchEvent(new Event('change'));

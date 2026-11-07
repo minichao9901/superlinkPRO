@@ -4,20 +4,22 @@
 
 ## 内置芯片与 OpenOCD CFG
 
-「SWD / ARM」的「芯片型号」下拉包含通用 ARM/SWD 和仓库的 STM32 预设。选好即可直接连接，型号会用于会话目标和 ELF 复用。RISC-V 后端保留 HPM 板卡及「其它 RISC-V」。断开后点击「导入 OpenOCD CFG…」会识别配置的架构并选中该 CFG。可以随时在断开状态切回内置预设，已导入的 CFG 仍可从下拉重选。
+「SWD / ARM」的「芯片型号」下拉包含通用 ARM/SWD 和仓库的 STM32 预设。选好即可直接连接，型号会用于会话目标和 ELF 复用。「JTAG / RISC-V」提供 HPM 板卡及「其它 RISC-V」。两种物理接口都由 OpenOCD Wasm 通过 WebUSB 驱动。断开后点击「导入 OpenOCD CFG…」会识别配置的架构并选中该 CFG。可以随时在断开状态切回内置预设，已导入的 CFG 仍可从下拉重选。
 
-如果 board CFG 引用了其它脚本，点击「选择 CFG 目录…」，选择包含 `board`、`target` 的 OpenOCD 脚本根目录，再选「入口 CFG」。`source [find …]` 从所选根目录解析，字面量 `source …` 先查引用文件所在目录，再查根目录。页面列出实际读取的依赖。脚本目录模式要求所引用的 target 文件存在，常用接口和辅助脚本继续按浏览器的已知行为处理。 [脚本语料与浏览器验证](../../docs/validation/openocd-coverage-20261107.md)
+优先由 OpenOCD Wasm 原样解析导入的 CFG。解析时探针不可访问。若 board CFG 引用其它脚本，用「选择 CFG 目录…」选择包含 `board`、`target` 的脚本根目录，再选「入口 CFG」。`source [find …]` 从所选脚本树解析。请选用与板卡匹配且可信的 CFG，连接时会执行其中的目标事件。入口应只声明配置，将 `init` 留给工作台连接动作。
+
+多核配置可通过「CFG 调试核」选定核心。工作台调试操作控制选中的 Cortex-M 核。导入并选好核心后，烧录页和 RTT Viewer 可点「沿用目标」，直接使用同一份 CFG 和连接配置。烧录要求脚本声明 Flash bank；RTT Viewer 用匹配的 ELF 或手工地址定位控制块。沿用目标本身不连接探针。
 
 - **Cortex-M / SWD** 使用 CFG 的调试时钟并核对预期 DPIDR。支持单目标配置，以及引用内置 STM32F1 或 Nordic nRF52 target 的 board 文件。
 - **RV32 / JTAG** 使用单 TAP 的预期 IDCODE、IR 长度、所选 hart 和 JTAG 时钟。需要标准 DTM、0.13 调试模块和 32 位 SBA。确认目标的实际 SRAM 地址后，可用镜像目录中的 `load_image` 下载，再设 PC 和必要的启动寄存器，配合 ELF 符号进行源码调试。
 
 HPM6800EVK 可直接导入 SDK v1.11.0 原名 `boards/openocd/boards/hpm6800evk.cfg`。该文件为板级片段，工作台补齐同一 SDK 的 HPM6880 TAP 参数和 CMSIS-DAP 8 MHz 时钟，并保留 HPM 内存访问约束。 [HPM6800EVK 真机验收](../../docs/validation/hpm6800-cfg-hw-20261107.md)
 
-HPM6800EVK 的调试入口是 **HPM6800EVK · OpenOCD Wasm / WebUSB**。旧的 HPM6800EVK 调试设置会切换到这个入口，「其它 RISC-V / JTAG」继续提供其他板型。导入 HPM SDK v1.11.0 的 `boards/openocd` 目录，选择 `hpm6800_all_in_one.cfg`，然后连接 akaLinkPro。首次连接需要在 Chrome 的 USB 对话框里授权，Wasm 也在连接时加载。可使用源码步进、常规调试复位和 ELF 只读段中的 XIP 常量。XIP 窗口显示的是 ELF 镜像中的数据，请核对它和板上固件是否匹配。「下载到 RAM 并调试」支持链接到 HPM6880 ILM、带可执行入口和 `main` 行号的小端 RV32 ELF。 [真机验收](../../docs/validation/hpm6800-wasm-parity-20261107.md)
+在「JTAG / RISC-V」选择 HPM6800EVK。旧的 HPM6800EVK 调试设置会迁移到这一板卡。导入 HPM SDK v1.11.0 的 `boards/openocd` 目录，选择 `hpm6800_all_in_one.cfg`，然后连接 akaLinkPro。首次连接需要在 Chrome 的 USB 对话框里授权，Wasm 也在连接时加载。可使用源码步进、常规调试复位和 ELF 只读段中的 XIP 常量。XIP 窗口显示的是 ELF 镜像中的数据，请核对它和板上固件是否匹配。「下载到 RAM 并调试」支持链接到 HPM6880 ILM、带可执行入口和 `main` 行号的小端 RV32 ELF。 [真机验收](../../docs/validation/hpm6800-wasm-parity-20261107.md)
 
 工作台 CLI 的 `page dbg describe --target session` 可发现 `programFlashElf`、`verifyFlashElf` 和 `bootVerifiedFlash`。烧录接受带 HPM ROM 启动头的 XIP ELF，校验 bank 和扇区布局后擦写启动区，保留受影响扇区中镜像未覆盖的字节，再整扇区读回。也可单独读回既有 ELF。复位操作要求当前会话已校验镜像，并检查新的系统复位标志与运行状态。 [验收脚本](../tools/selftest/dbg-hpm6800-wasm-flash-hw.py)
 
-原有 SWD / ARM 和 JTAG / RISC-V 后端的导入器将配置转成连接参数。Flash bank、已识别的外围初始化和擦除解锁过程会列为跳过项。未知脚本引用、任意 Tcl 和不支持的多 TAP 或多目标声明会报错。CFG 的工作区仅供参考，片上 SRAM 的一键启动由专用芯片身份和容量校验决定。 [Web 端到端验收](../../docs/validation/dbg-cfg-e2e-20261107.md)
+兼容导入仍可从旧格式脚本提取受支持的调试参数；其跳过的 Flash bank、外围初始化和擦除解锁过程不作为原版 CFG 的跨页配置。HPM6800EVK 保留已核对的 SDK 入口。一键 RAM 启动仍由专用芯片身份和容量校验决定。 [Web 端到端验收](../../docs/validation/dbg-cfg-e2e-20261107.md)
 
 ## 下载到 RAM 并调试
 

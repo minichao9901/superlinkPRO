@@ -201,7 +201,7 @@ export class Assistant {
     const prev = sel.value;
     sel.innerHTML = '';
     if (!this.ports.length){
-      sel.appendChild(new Option('（没有已授权的串口 → 点「选择…」）', ''));
+      sel.appendChild(new Option('未授权串口', ''));
     } else {
       const lastDesc = store.get('serial.lastDesc', '');
       this.ports.forEach((p, i) => {
@@ -216,7 +216,7 @@ export class Assistant {
     const descs = this.ports.map(p => SerialSession.describe(p)).join('，');
     setStatus($('s-note'), this.ports.length
       ? `已授权 ${this.ports.length} 个串口：${descs}（双击下拉框可起别名）。`
-      : '还没有授权任何串口：点「选择…」在浏览器弹框里选一次。', null);
+      : '点「选择…」授权串口。', null);
   }
 
   async pickPort(){

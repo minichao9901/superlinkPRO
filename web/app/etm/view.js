@@ -1,4 +1,4 @@
-import {WebUsbDapProbe} from '../rtt/dap-webusb.js';
+import {OpenOcdProbe} from '../core/openocd-probe.js';
 import {store} from '../core/store.js';
 
 export function workbenchUrl(current=location,saved=store.get('gen.etmPort',8878)){
@@ -100,7 +100,7 @@ export function pickIframeSrc(result){
 /** Same-origin embedded ETM; the parent owns probe arbitration and USB leases. */
 export class EtmView {
   constructor(){
-    this.bridge=null;this.loading=null;this.started=false;this.probeType=WebUsbDapProbe;
+    this.bridge=null;this.loading=null;this.started=false;this.probeType=OpenOcdProbe;
     this.bridgeBase=null;this.apiBase=null;this.bridgeInfo=null;this.candidates=[];
   }
   get probe(){return this.bridge?.probe()||null;}

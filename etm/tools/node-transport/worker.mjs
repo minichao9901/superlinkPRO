@@ -6,14 +6,14 @@ import {finishTargetCommand} from './handoff.mjs';
 import {localImages} from './files.mjs';
 import readline from 'node:readline';
 import {parseHTML} from 'linkedom';
-import {WebUsbDapProbe} from '../../../web/app/rtt/dap-webusb.js';
+import {OpenOcdProbe} from '../../../web/app/core/openocd-probe.js';
+import {makeOpenOcdProfile} from '../../../web/app/core/openocd-profile.js';
+import {installNativeOpenOcd} from './openocd-worker.mjs';
 import {DebugSession} from '../../../web/app/dbg/session.js';
 import {SymTab} from '../../../web/app/dbg/symbols.js';
 import {WatchList,formatWatchValue,summarizeTree,TREE_LIMITS} from '../../../web/app/dbg/watch.js';
 import {runCmd} from '../../../web/app/dbg/cmd.js';
 import {FlashView} from '../../../web/app/flash/view.js';
-import {ALGOS} from '../../../web/app/flash/algos.js';
-import {parseFirmware} from '../../../web/app/flash/image.js';
 import {EtmTarget} from '../../web/app/target.js';
 import {createTraceAutomation} from '../../../web/app/automation/trace.js';
 
@@ -24,7 +24,7 @@ if(origin.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(origin
 if(!tokenFile)throw Error('缺少 --token-file');
 const token=(await readFile(tokenFile,'ascii')).trim();
 const usb=navigatorUsb(new WebUSB({allowedDevices:[{vendorId:0x0d28,...(serial?{serialNumber:serial}:{})}],deviceTimeout:5000}));
-Object.defineProperty(globalThis,'navigator',{configurable:true,value:{usb}});
+await installNativeOpenOcd(usb);
 const {document,window}=parseHTML(await readFile(new URL('../../../web/index.html',import.meta.url),'utf8'));
 globalThis.document=document;
 // No UI is executed. The flash view's existing options/results are its adapter.
@@ -34,7 +34,7 @@ document.getElementById('toasts')?.remove();
 globalThis.confirm=()=>{throw Error('无人值守模式拒绝需要交互确认的镜像，请使用完整ELF/BIN');};
 const log=message=>process.stderr.write(String(message)+'\n');
 const session=new DebugSession();session.log=log;
-const target=new EtmTarget(log,{host:{probeType:WebUsbDapProbe}});
+const target=new EtmTarget(log,{host:{probeType:OpenOcdProbe}});
 let suspended=null;
 async function exactProbe(){
   const devices=(await usb.getDevices()).filter(d=>!serial||d.serialNumber===serial);
@@ -68,10 +68,8 @@ const dbg={session,sym:null,cancelFlag:false,_out:log,_syncBackend:async()=>{},
     if(target.probe){await target.disconnect();target.probe=null;}
     if(!session.connected){
       const device=await exactProbe();
-      session.probe=await WebUsbDapProbe.open(device,{clockKhz:Number(document.getElementById('d-clock').value)||1000});
-      session.name=session.probe.name;session.idcode=session.probe.idcode;
-      session.clockHz=session.probe.clockHz;session.backendName='WebUSB (Node USB adapter)';
-      await session.refresh();await session.verifyClock();await session.bpInit();
+      const cfg=makeOpenOcdProfile({clockKhz:Number(document.getElementById('d-clock').value)||1000});
+      await session.connect({device,cfg});
       if(suspended){
         const halted=await session.probe.isHalted();await session.ensureHalted();
         for(const bp of suspended.breakpoints)await session.bpAdd(bp.addr,bp.note);
@@ -101,20 +99,15 @@ const dbg={session,sym:null,cancelFlag:false,_out:log,_syncBackend:async()=>{},
   },
 };
 const flash=new FlashView();
-flash._log=log;flash._status=log;flash._bar=()=>{};
+flash._log=log;flash._status=log;flash._bar=()=>{};flash.selectDevice=exactProbe;
+const flashImage=flash.flash.bind(flash);
 flash.flash=async()=>{
-  const chip=document.getElementById('f-chip').value;
-  if(!Object.hasOwn(ALGOS,chip))throw Error('该网页烧录算法不支持此芯片：'+chip);
-  flash._devId=null;
-  const regions=parseFirmware(flash.file.name,Uint8Array.from(atob(flash.file.dataB64),c=>c.charCodeAt(0)),Number(document.getElementById('f-base').value)||0);
-  for(const segment of regions)flash._checkRange(segment,ALGOS[chip]);
-  await dbg.disconnect();if(target.probe)await target.disconnect();
-  flash.busy=true;
-  // A CLI request always verifies the programmed image; it never silently
-  // inherits an unchecked GUI option from an unrelated prior session.
+  await dbg.disconnect();
+  if(target.probe)await target.disconnect();
+  // CLI programming always verifies the image and resets after success.
   document.getElementById('f-verify').checked=true;
   document.getElementById('f-reset').checked=true;
-  try{await flash._flashWebusb(flash.file.name);}finally{await flash._closeProbe();flash.busy=false;}
+  await flashImage();
 };
 const e={target,state:{operation:false,hardwareOperation:false,job:null,waiting:false}};
 const etm={frame:{contentWindow:{__etm:e}},onShow:async()=>{},
@@ -147,7 +140,7 @@ const input=readline.createInterface({input:process.stdin});
 input.on('line',line=>{if(line==='stop'){stopping=true;dbg.cancelFlag=true;target.cancelEntry=true;}});
 input.on('close',()=>{stopping=true;dbg.cancelFlag=true;target.cancelEntry=true;});
 process.on('SIGINT',()=>{stopping=true;dbg.cancelFlag=true;target.cancelEntry=true;process.exitCode=130;});
-log('Native Web command worker ready; pyOCD is not loaded.');
+log('Native OpenOCD Wasm command worker ready.');
 try{
   let prefetched;
   for(let i=0;;i++){

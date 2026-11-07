@@ -1,5 +1,5 @@
 import {waitMs} from '../core/pace.js';
-import {WebUsbDapProbe} from '../rtt/dap-webusb.js';
+import {OpenOcdProbe,selectOpenOcdDevice} from '../core/openocd-probe.js';
 import {SerialSession} from '../serial/session.js';
 import {MAX_RAW} from './recording.js';
 import {inspectTarget} from './target.js';
@@ -64,8 +64,7 @@ export class SwoCapture {
     throw Error('RCC 时钟配置读回不稳定，请停止其他调试连接后重试');
   }
   async openProbe(){
-    const devices=await WebUsbDapProbe.authorized();
-    this.probe=devices.length===1?await WebUsbDapProbe.open(devices[0],{clockKhz:1000,skipClearHalt:true}):await WebUsbDapProbe.request(false,{clockKhz:1000,skipClearHalt:true});
+    this.probe=await OpenOcdProbe.open(await selectOpenOcdDevice());
   }
   async targetInfo(options={}){
     return inspectTarget(a=>this.read(a),a=>this.readClockConfig(a),options);
@@ -207,7 +206,7 @@ export class SwoCapture {
       }catch(error){this.setupFailed=true;try{await this._close();}catch(cleanup){this.probeManager?.fail('swo',cleanup);throw new AggregateError([error,cleanup],'启动失败且 trace 配置未确认恢复');}throw error;}
       finally{this.busy=false;this.startPhase=null;this.onChange();}
     };
-    this._startTask=this.probeManager?this.probeManager.run('swo',setup,{reason:'SWO 记录需要 SWD 与 VCOM',recovery:true}):setup();
+    this._startTask=this.probeManager?this.probeManager.run('swo',setup,{reason:'SWO 记录需要目标控制与 VCOM',recovery:true}):setup();
     try{return await this._startTask;}finally{this._startTask=null;}
   }
   async _close(){

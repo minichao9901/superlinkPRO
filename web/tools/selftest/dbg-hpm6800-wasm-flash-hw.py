@@ -92,7 +92,7 @@ def main():
         already_connected = status()['connected']
         require(not already_connected or args.lock_held, 'the workbench already has a debug session')
         if not already_connected:
-            dbg('set', '#d-backend', json.dumps('openocd'))
+            dbg('set', '#d-backend', json.dumps('riscv'))
         methods = {method['name'] for method in dbg('describe', '--target', 'session')['methods']}
         require({'programFlashElf', 'bootVerifiedFlash', 'memRead'} <= methods, 'reload the current workbench code')
         if not already_connected:

@@ -1,0 +1,124 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "73e4b82",
+  "webBundleSha256": "26874f9f699c2827957b44bca9962c1eadd63c16109330e519d4f0cc5ed0957f",
+  "board": "HPM6800EVK",
+  "probe": "akaLinkPro",
+  "sdk": "HPM SDK 1.11.0",
+  "cfg": "hpm6800_all_in_one.cfg",
+  "targetElfSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+  "cdcPort": "COM33",
+  "fixture": {
+    "address": "0x18000",
+    "restoredBytes": 2304,
+    "rttPayloadBytes": 396
+  },
+  "firstCompleteHandoff": {
+    "cdcPayloadExact": true,
+    "wasmAfterRtt": {
+      "backend": "OpenOCD Wasm / WebUSB",
+      "clockKhz": 8000,
+      "halted": false
+    },
+    "scope": {
+      "rateHz": 1000,
+      "receivedSamples": 434,
+      "lostGap": 0,
+      "readErrors": 0,
+      "vars": [
+        "g_ticks:u32@0x1240000",
+        "g_stage:u32@0x1240008"
+      ],
+      "debugReleased": true,
+      "afterHandoff": {
+        "receivedSamples": 2418,
+        "tailCountDelta": -1,
+        "metricsError": "样本未完整接收：收到 2418，探针 2419，无效 0"
+      }
+    },
+    "wasmAfterScope": {
+      "backend": "OpenOCD Wasm / WebUSB",
+      "clockKhz": 8000,
+      "halted": false
+    },
+    "scratchRestored": true,
+    "released": true
+  },
+  "handoffAndStandalone": {
+    "wasmInitial": {
+      "backend": "OpenOCD Wasm / WebUSB",
+      "clockKhz": 8000,
+      "halted": false
+    },
+    "rtt": {
+      "cbAddr": "0x18000",
+      "moved": 396,
+      "rdErr": 0,
+      "startRc": 0,
+      "running": true,
+      "state": "运行中 · 控制块 0x18000 · 上行缓冲 0x18018 · 通道 0 · 已搬运 396 B（1 次）· 轮询 3136 · 读错 0 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 33442 次",
+      "payloadBytes": 396,
+      "payloadExact": true,
+      "debugReleased": true
+    },
+    "wasmAfterRtt": {
+      "backend": "OpenOCD Wasm / WebUSB",
+      "clockKhz": 8000,
+      "halted": false
+    },
+    "scope": {
+      "rateHz": 1000,
+      "receivedSamples": 434,
+      "lostGap": 0,
+      "readErrors": 0,
+      "vars": [
+        "g_ticks:u32@0x1240000",
+        "g_stage:u32@0x1240008"
+      ],
+      "afterHandoff": {
+        "receivedSamples": 1922,
+        "tailCountDelta": -1,
+        "metricsError": "样本未完整接收：收到 1922，探针 1923，无效 0"
+      }
+    },
+    "wasmAfterScope": {
+      "backend": "OpenOCD Wasm / WebUSB",
+      "clockKhz": 8000,
+      "halted": false
+    },
+    "rttStandalone": {
+      "cbAddr": "0x18000",
+      "moved": 396,
+      "rdErr": 0,
+      "startRc": 0,
+      "running": true,
+      "state": "运行中 · 控制块 0x18000 · 上行缓冲 0x18018 · 通道 0 · 已搬运 396 B（1 次）· 轮询 4040 · 读错 0 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 33447 次",
+      "payloadBytes": 396,
+      "payloadExact": true,
+      "debugReleased": true
+    },
+    "scopeStandalone": {
+      "rateHz": 1000,
+      "receivedSamples": 434,
+      "lostGap": 0,
+      "readErrors": 0,
+      "vars": [
+        "g_ticks:u32@0x1240000",
+        "g_stage:u32@0x1240008"
+      ],
+      "afterDisconnect": {
+        "receivedSamples": 1922,
+        "tailCountDelta": -1,
+        "metricsError": "样本未完整接收：收到 1922，探针 1923，无效 0"
+      }
+    },
+    "wasmFinal": {
+      "backend": "OpenOCD Wasm / WebUSB",
+      "clockKhz": 8000,
+      "halted": false
+    },
+    "scratchRestored": true,
+    "handoffPassed": true,
+    "released": true
+  }
+}

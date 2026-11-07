@@ -1,10 +1,11 @@
-import assert from 'node:assert/strict';import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';import {SwoCapture} from '../../app/swo/capture.js';
+import assert from 'node:assert/strict';import {OpenOcdProbe} from '../../app/core/openocd-probe.js';import {SwoCapture} from '../../app/swo/capture.js';
 import {DEFAULT_SOURCES,receiverCandidate} from '../../app/swo/matching.js';
-const savedMethods={authorized:WebUsbDapProbe.authorized,open:WebUsbDapProbe.open};
+const savedOpen=OpenOcdProbe.open;
+Object.defineProperty(globalThis,'navigator',{value:{usb:{getDevices:async()=>[{vendorId:0x0d28}]}}});
 const addr=[0xe000edfc,0xe0001000,0xe0001004,0xe0000e80,0xe0000e00,0xe0000e40,0xe0040010,0xe00400f0,0xe0040304,0xe0042004];
 function rig(){const values=new Map(addr.map((a,i)=>[a,i===1?0x40000000:i===4?3:0]));values.set(0xe000ed00,0x411fc231);values.set(0xe0042000,0x20036410);values.set(0x40021004,0);values.set(0x40021000,0x03000083);values.set(0xe0000fb4,1);const before=new Map(values),writes=[];let fail=false,ignore=false,closed=0;
  const probe={device:{serialNumber:'test'},isHalted:async()=>false,readMemDiagnostic:async a=>{const b=new Uint8Array(4);new DataView(b.buffer).setUint32(0,values.get(a)||0,true);return b},writeMem:async(a,b)=>{writes.push(a);if(fail&&a===0xe0040010)throw Error('injected restore failure');if(!(ignore&&a===0xe0040010))values.set(a,new DataView(b.buffer,b.byteOffset,4).getUint32(0,true));},disconnect:async()=>closed++};
- WebUsbDapProbe.authorized=async()=>[{}];WebUsbDapProbe.open=async()=>probe;
+ OpenOcdProbe.open=async()=>probe;
  const c=new SwoCapture();c.serial.open=async()=>c.serial.isOpen=true;c.serial.close=async()=>c.serial.isOpen=false;
  return {c,values,before,writes,probe,get closed(){return closed},set fail(v){fail=v},set ignore(v){ignore=v}};
 }
@@ -23,7 +24,7 @@ try{
  r=rig();let verifies=0;await r.c.start({...options,verifyElf:async()=>{assert.equal(r.writes.length,0);if(++verifies===1)throw Object.assign(Error('stale ELF read'),{code:'SWO_ELF_VERIFY'});}});assert.equal(verifies,2);assert.equal(r.c.metadata.target.elfVerificationAttempts,2);await r.c.stop();assert.equal(r.closed,2,'one read-only reconnect, then normal close');
  r=rig();let badVerifies=0;await assert.rejects(r.c.start({...options,verifyElf:async()=>{badVerifies++;throw Object.assign(Error('wrong ELF'),{code:'SWO_ELF_VERIFY'});}}),/wrong ELF/);assert.equal(badVerifies,2);assert.equal(r.writes.length,0,'wrong code remains rejected after bounded read-only retry');assert.equal(r.closed,2);assert.equal(r.c.active,false);
  r=rig();await r.c.start(options);r.fail=true;await assert.rejects(r.c.stop(),/恢复失败/);assert.equal(r.c.serial.isOpen,false);assert.equal(r.closed,0,'unconfirmed restore retains ownership');assert.ok(r.writes.includes(0xe000edfc),'restore attempts remaining registers after a failure');r.fail=false;await r.c.stop();assert.equal(r.closed,1);assert.equal(r.c.active,false);
- r=rig();let resolveOpen;WebUsbDapProbe.open=()=>new Promise(resolve=>resolveOpen=resolve);const starting=r.c.start(options);const rejected=assert.rejects(starting,/取消/);while(!resolveOpen)await new Promise(resolve=>setTimeout(resolve,0));const stopping=r.c.stop();resolveOpen(r.probe);await rejected;await stopping;assert.equal(r.closed,1);assert.equal(r.c.active,false);assert.equal(r.writes.length,0);
+ r=rig();let resolveOpen;OpenOcdProbe.open=()=>new Promise(resolve=>resolveOpen=resolve);const starting=r.c.start(options);const rejected=assert.rejects(starting,/取消/);while(!resolveOpen)await new Promise(resolve=>setTimeout(resolve,0));const stopping=r.c.stop();resolveOpen(r.probe);await rejected;await stopping;assert.equal(r.closed,1);assert.equal(r.c.active,false);assert.equal(r.writes.length,0);
  r=rig();const read=r.probe.readMemDiagnostic;r.probe.readMemDiagnostic=async a=>{if(a===0xe00400f0)throw Error('snapshot unreadable');return read(a)};await assert.rejects(r.c.start(options),/snapshot unreadable/);assert.deepEqual(r.writes,[0xe000edfc,0xe000edfc],'incomplete snapshot only enables and restores the debug register clock');assert.equal(r.values.get(0xe000edfc),r.before.get(0xe000edfc));assert.equal(r.closed,1);
  r=rig();await r.c.start(options);r.ignore=true;await assert.rejects(r.c.stop(),/恢复失败/);assert.match(r.c.metadata.restoreError,/回读不一致/);assert.equal(r.closed,0);r.ignore=false;await r.c.stop();assert.equal(r.closed,1);
  r=rig();const {createProbeManager}=await import('../../app/core/probe-users.js');const t={swo:{capture:r.c},scope:{running:false,releaseProbe:async()=>{t.scope.running=false}}};const m=r.c.probeManager=createProbeManager(t,{locks:null});await r.c.start(options);assert.deepEqual(m.summary().owners,['swo']);assert.throws(()=>m.assertUsbResetAllowed('scope',{vendorId:0xd28,productId:0x204}),/swo/);await m.run('scope',async()=>{t.scope.running=true});assert.equal(r.c.active,false);assert.equal(r.c.metadata.restored,true);assert.equal(r.closed,1);assert.deepEqual(m.summary().owners,['scope']);
@@ -35,4 +36,4 @@ try{
  r=rig();rx=leased(r);rx.prepareError=true;await assert.rejects(r.c.start({...options,receiverMode:2}),/prepare failure/);assert.equal(rx.closes,1,'partial receiver setup released');assert.equal(r.c.active,false);for(const a of addr)assert.equal(r.values.get(a),r.before.get(a));
  r=rig();rx=leased(r);await r.c.start({...options,receiverMode:2});rx.releaseError=true;await assert.rejects(r.c.stop(),/恢复失败/);assert.equal(r.closed,0,'failed clock restoration retains probe ownership');assert.ok(r.c.receiver);rx.releaseError=false;await r.c.stop();assert.equal(r.c.receiver,null);assert.equal(r.c.metadata.receiverRestored,true);assert.equal(r.c.active,false);assert.equal(r.closed,1);
  console.log('SWO capture: register/receiver restoration, RX errors, clock/ELF rejection, failed cleanup retry and cancelled setup PASS');
-}finally{Object.assign(WebUsbDapProbe,savedMethods);}
+}finally{OpenOcdProbe.open=savedOpen;}

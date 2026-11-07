@@ -1,0 +1,1075 @@
+{
+  "board": "STM32F103ZE",
+  "date": "2026-11-07",
+  "sourceBase": "73e4b82",
+  "openocdSource": "9f2d876",
+  "wasmSha256": "5ee31e1e56f89bb9376e120d950de1a769bf3a84a158e9cd0aa6b346d6607b9e",
+  "stages": {
+    "cdc-hello72": {
+      "stage": "cdc-hello72",
+      "wasmViewerBefore": {
+        "backend": "openocd",
+        "bufferedBytes": 32767,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 536870924,
+        "displaySuppressed": false,
+        "error": "控制块 0x2000000c，上行缓冲 32768 B（固件声明 2 个上行通道，本页读 ch0）",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 32767,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 1,
+          "rate": 0
+        }
+      },
+      "start": {
+        "cbAddr": "0x2000000c",
+        "connected": true,
+        "dapYield": 31283,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 29311,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": true,
+        "stall": 0,
+        "startRc": 0,
+        "state": "运行中 · 控制块 0x2000000c · 上行缓冲 0x20000024 · 通道 0 · 已搬运 28.6 KB（15 次）· 轮询 16 · 读错 0 / RdOff 错 0 · 档位 60 MHz · 给 DAP 让路 31283 次",
+        "supported": true,
+        "swdMhz": 60
+      },
+      "windows": [
+        {
+          "bytes": 20299776,
+          "seconds": 8.006407299995772,
+          "bytesPerSec": 2535441.333344448,
+          "patternMismatch": false
+        },
+        {
+          "bytes": 20332544,
+          "seconds": 8.006515400003991,
+          "bytesPerSec": 2539499.767900261,
+          "patternMismatch": false
+        },
+        {
+          "bytes": 20332544,
+          "seconds": 8.006276400003117,
+          "bytesPerSec": 2539575.5759808747,
+          "patternMismatch": false
+        }
+      ],
+      "running": {
+        "cbAddr": "0x2000000c",
+        "connected": true,
+        "dapYield": 31283,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 63123523,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": true,
+        "stall": 0,
+        "startRc": 0,
+        "state": "运行中 · 控制块 0x2000000c · 上行缓冲 0x20000024 · 通道 0 · 已搬运 61644 KB（41253 次）· 轮询 61493 · 读错 0 / RdOff 错 0 · 档位 60 MHz · 给 DAP 让路 31283 次",
+        "supported": true,
+        "swdMhz": 60
+      },
+      "wasmAfter": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 6,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": {
+          "files": 15,
+          "lines": 603,
+          "name": "fw.elf",
+          "rtt": null,
+          "source": "dwarf",
+          "symbols": 351,
+          "vars": 48
+        },
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x80006090",
+        "memLen": 0,
+        "outLines": 137,
+        "pc": 134218116,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+            "line": 24
+          },
+          "files": 6,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 192,
+        "watch": [],
+        "watching": true
+      },
+      "clockAfterHandoff": "0x1d250a",
+      "stopped": {
+        "cbAddr": "",
+        "connected": false,
+        "dapYield": 0,
+        "info": "未连接（点「连接探针」；首次使用或有多个设备时选择 akaLinkPro）",
+        "label": "",
+        "mock": false,
+        "moved": 0,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": false,
+        "stall": 0,
+        "startRc": null,
+        "state": "—",
+        "supported": true,
+        "swdMhz": 0
+      }
+    },
+    "cdc-hello96": {
+      "stage": "cdc-hello96",
+      "start": {
+        "cbAddr": "0x2000000c",
+        "connected": true,
+        "dapYield": 36366,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 20413,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": true,
+        "stall": 0,
+        "startRc": 0,
+        "state": "运行中 · 控制块 0x2000000c · 上行缓冲 0x20000024 · 通道 0 · 已搬运 19.9 KB（10 次）· 轮询 10076 · 读错 0 / RdOff 错 0 · 档位 60 MHz · 给 DAP 让路 36366 次",
+        "supported": true,
+        "swdMhz": 60
+      },
+      "windows": [
+        {
+          "bytes": 24100864,
+          "seconds": 8.000809600001958,
+          "bytesPerSec": 3012303.1549199848,
+          "patternMismatch": false
+        },
+        {
+          "bytes": 24150016,
+          "seconds": 8.001929799997015,
+          "bytesPerSec": 3018023.977167234,
+          "patternMismatch": false
+        },
+        {
+          "bytes": 24150016,
+          "seconds": 8.00173370000266,
+          "bytesPerSec": 3018097.9404490767,
+          "patternMismatch": false
+        }
+      ],
+      "running": {
+        "cbAddr": "0x2000000c",
+        "connected": true,
+        "dapYield": 36366,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 74887168,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": true,
+        "stall": 0,
+        "startRc": 0,
+        "state": "运行中 · 控制块 0x2000000c · 上行缓冲 0x20000024 · 通道 0 · 已搬运 73132 KB（36567 次）· 轮询 6706 · 读错 0 / RdOff 错 0 · 档位 60 MHz · 给 DAP 让路 36366 次",
+        "supported": true,
+        "swdMhz": 60
+      },
+      "stopped": {
+        "cbAddr": "0x0",
+        "connected": true,
+        "dapYield": 36366,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 74887168,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": false,
+        "stall": 0,
+        "startRc": 0,
+        "state": "未运行（点「启动转发」或「自动搜控制块」）",
+        "supported": true,
+        "swdMhz": 60
+      }
+    },
+    "clock-72": {
+      "stage": "clock-72",
+      "RCC_CFGR": "0x1d250a",
+      "FLASH_ACR": "0x32",
+      "hclkMHz": 72
+    },
+    "clock-96": {
+      "stage": "clock-96",
+      "RCC_CFGR": "0x29250a",
+      "FLASH_ACR": "0x32",
+      "hclkMHz": 96
+    },
+    "clock-scope72": {
+      "stage": "clock-scope72",
+      "RCC_CFGR": "0x1d250a",
+      "FLASH_ACR": "0x32",
+      "hclkMHz": 72
+    },
+    "debug-locked": {
+      "stage": "debug-locked",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 6,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": {
+          "files": 15,
+          "lines": 603,
+          "name": "fw.elf",
+          "rtt": null,
+          "source": "dwarf",
+          "symbols": 351,
+          "vars": 48
+        },
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x80006090",
+        "memLen": 0,
+        "outLines": 282,
+        "pc": 134218116,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+            "line": 24
+          },
+          "files": 6,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 192,
+        "watch": [],
+        "watching": true
+      },
+      "checks": {
+        "boot after Flash reset": {
+          "pass": true,
+          "result": [
+            21931,
+            22425
+          ]
+        },
+        "source highlight": {
+          "pass": true,
+          "result": {
+            "cur": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+              "line": 24
+            },
+            "files": 6,
+            "ready": true,
+            "shown": 38
+          }
+        },
+        "4 simultaneous breakpoints": {
+          "pass": true,
+          "result": [
+            134218504,
+            134218604,
+            134219376,
+            134218116,
+            134218504,
+            134218604,
+            134219376,
+            134218116,
+            134218504,
+            134218604,
+            134219376,
+            134218116
+          ]
+        },
+        "19 instruction steps": {
+          "pass": false,
+          "error": "('c', 'OpenOCD 会话已关闭')"
+        }
+      },
+      "error": "('c', 'OpenOCD 会话已关闭')",
+      "log": "ne_linear+0x0)> cPC 停在断点 0x8000184 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x08000186 engine_linear+0x2> cPC 停在断点 0x8000308 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x0800030a engine_deep_chain+0x2> cPC 停在断点 0x800036c 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x0800036e engine_dispatch+0x2⏹ 命中断点 @ 0x08000670 model.c:120 (model_update+0x0)> cPC 停在断点 0x8000670 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x08000674 model_update+0x4> cPC 停在断点 0x8000184 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x08000186 engine_linear+0x2> cPC 停在断点 0x8000308 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x0800030a engine_deep_chain+0x2> cPC 停在断点 0x800036c 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x0800036e engine_dispatch+0x2> cPC 停在断点 0x8000670 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x08000674 model_update+0x4> cPC 停在断点 0x8000184 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x08000186 engine_linear+0x2> cPC 停在断点 0x8000308 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x0800030a engine_deep_chain+0x2⏹ 命中断点 @ 0x0800036c engine.c:166 (engine_dispatch+0x0)> cPC 停在断点 0x800036c 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x0800036e engine_dispatch+0x2> cPC 停在断点 0x8000670 上：先单步跨过它再继续继续运行（遇到断点或暂停为止）状态：运行中　PC=0x08000674 model_update+0x4> cPC 停在断点 0x8000184 上：先单步跨过它再继续✗ OpenOCD 会话已关闭"
+    },
+    "debug-steponly": {
+      "stage": "debug-steponly",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 6,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": null,
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x08000360",
+        "memLen": 128,
+        "outLines": 30,
+        "pc": 0,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": null,
+          "files": 0,
+          "ready": false,
+          "shown": 0
+        },
+        "symRows": 0,
+        "watch": [],
+        "watching": true
+      },
+      "checks": {
+        "boot after Flash reset": {
+          "pass": true,
+          "result": [
+            23223,
+            23594
+          ]
+        },
+        "source highlight": {
+          "pass": true,
+          "result": {
+            "cur": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+              "line": 24
+            },
+            "files": 6,
+            "ready": true,
+            "shown": 38
+          }
+        },
+        "4 simultaneous breakpoints": {
+          "pass": true,
+          "result": [
+            134218504,
+            134218604,
+            134219376,
+            134218116,
+            134218504,
+            134218604,
+            134219376,
+            134218116,
+            134218504,
+            134218604,
+            134219376,
+            134218116
+          ]
+        },
+        "19 instruction steps": {
+          "pass": true,
+          "result": [
+            134218116,
+            134218118,
+            134218120,
+            134218122,
+            134218124,
+            134218126,
+            134218128,
+            134218130,
+            134218132,
+            134218134,
+            134218136,
+            134218138,
+            134218140,
+            134218144,
+            134218146,
+            134218148,
+            134218150,
+            134218152,
+            134218154,
+            134218156
+          ]
+        },
+        "19 source steps": {
+          "pass": true,
+          "result": [
+            134218116,
+            134218126,
+            134218132,
+            134218138,
+            134218146,
+            134218154,
+            134218162,
+            134218170,
+            134218180,
+            134218188,
+            134218196,
+            134218204,
+            134218216,
+            134218224,
+            134218234,
+            134218242,
+            134218252,
+            134218260,
+            134218270,
+            134218436
+          ]
+        },
+        "40 stop/run rounds with FPB audit": {
+          "pass": true,
+          "result": {
+            "rounds": 40,
+            "pc": 134218632,
+            "enabledComparators": 0
+          }
+        },
+        "reset halt and run": {
+          "pass": true,
+          "result": [
+            134218116,
+            134218116,
+            134218116,
+            134218116
+          ]
+        },
+        "registers, RAM and Flash": {
+          "pass": true,
+          "result": {
+            "registers": 23,
+            "ramBytes": 32,
+            "flashBytes": 32
+          }
+        }
+      }
+    },
+    "debug": {
+      "stage": "debug",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 6,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": null,
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x80006090",
+        "memLen": 128,
+        "outLines": 58,
+        "pc": 0,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": null,
+          "files": 0,
+          "ready": false,
+          "shown": 0
+        },
+        "symRows": 0,
+        "watch": [],
+        "watching": true
+      },
+      "checks": {
+        "boot after Flash reset": {
+          "pass": true,
+          "result": [
+            20511,
+            21856
+          ]
+        },
+        "source highlight": {
+          "pass": true,
+          "result": {
+            "cur": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+              "line": 24
+            },
+            "files": 6,
+            "ready": true,
+            "shown": 38
+          }
+        },
+        "4 simultaneous breakpoints": {
+          "pass": true,
+          "result": [
+            134218504,
+            134218604,
+            134219376,
+            134218116,
+            134218504,
+            134218604,
+            134219376,
+            134218116,
+            134218504,
+            134218604,
+            134219376,
+            134218116
+          ]
+        },
+        "19 instruction steps": {
+          "pass": false,
+          "error": "OpenOCD 会话已关闭"
+        }
+      },
+      "error": "OpenOCD 会话已关闭",
+      "cleanupError": "OpenOCD 会话已关闭"
+    },
+    "flash-dbg-retest": {
+      "stage": "flash-dbg-retest",
+      "imageSha256": "eaa07aa96e99d8e021f867a4d2d08e7eaab213145a6f570e29cc25e7135c71ce",
+      "result": {
+        "bytes": 9820,
+        "reset": true,
+        "sectors": 5,
+        "verified": true
+      },
+      "seconds": 5.669078799997806,
+      "status": "已烧录 9.6 KB，读回校验通过"
+    },
+    "flash-dbg-step": {
+      "stage": "flash-dbg-step",
+      "imageSha256": "eaa07aa96e99d8e021f867a4d2d08e7eaab213145a6f570e29cc25e7135c71ce",
+      "result": {
+        "bytes": 9820,
+        "reset": true,
+        "sectors": 5,
+        "verified": true
+      },
+      "seconds": 5.548817199996847,
+      "status": "已烧录 9.6 KB，读回校验通过"
+    },
+    "flash-dbg": {
+      "stage": "flash-dbg",
+      "imageSha256": "eaa07aa96e99d8e021f867a4d2d08e7eaab213145a6f570e29cc25e7135c71ce",
+      "result": {
+        "bytes": 9820,
+        "reset": true,
+        "sectors": 5,
+        "verified": true
+      },
+      "seconds": 5.539356900000712,
+      "status": "已烧录 9.6 KB，读回校验通过"
+    },
+    "flash-echo72": {
+      "stage": "flash-echo72",
+      "imageSha256": "af7f75410e665f85dde35ea2196f03bcd8f81b011ef72f527ec62cba04a7b9e1",
+      "result": {
+        "bytes": 1264,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 1.4455057000013767,
+      "status": "已烧录 1.2 KB，读回校验通过"
+    },
+    "flash-hello72": {
+      "stage": "flash-hello72",
+      "imageSha256": "3d43e083c300f2f0cbce4e00889ac383c31651141a0e4ebfab99a8a372f6bc3c",
+      "result": {
+        "bytes": 1052,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 1.6387915999948746,
+      "status": "已烧录 1.0 KB，读回校验通过"
+    },
+    "flash-hello96": {
+      "stage": "flash-hello96",
+      "imageSha256": "8b069904f99cfbc13cddb133f4e8db944c34c402fb6a98e29f77923c842c95cf",
+      "result": {
+        "bytes": 1052,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 1.5046049000011408,
+      "status": "已烧录 1.0 KB，读回校验通过"
+    },
+    "flash-original": {
+      "stage": "flash-original",
+      "imageSha256": "5d67922babe92063c34f685f4c23812f99dc5bce65a306fa59fc8f99d6ff93eb",
+      "result": {
+        "bytes": 16384,
+        "reset": true,
+        "sectors": 8,
+        "verified": true
+      },
+      "seconds": 8.510534900000494,
+      "status": "已烧录 16.0 KB，读回校验通过"
+    },
+    "flash-scope72": {
+      "stage": "flash-scope72",
+      "imageSha256": "f26d0ada9b89c35c803cded04f34c5c7a53b59ad17f55c7cfbfc559a015a2ca0",
+      "result": {
+        "bytes": 3388,
+        "reset": true,
+        "sectors": 2,
+        "verified": true
+      },
+      "seconds": 3.195892300005653,
+      "status": "已烧录 3.3 KB，读回校验通过"
+    },
+    "identity-poll": {
+      "stage": "identity-poll",
+      "target": {
+        "cpuid": 1092600369,
+        "devId": 1044,
+        "flashKb": 512,
+        "id": 463475831
+      }
+    },
+    "identity": {
+      "job": "0d16034bffe6a0d81455aada45a8da64",
+      "error": "OpenOCD 未识别目标：unknown",
+      "ok": false
+    },
+    "preflight": {
+      "job": "2cc08e8e0a618537453777a9e44d75eb",
+      "error": "OpenOCD 未识别目标：unknown",
+      "ok": false
+    },
+    "preserve": {
+      "stage": "preserve",
+      "target": {
+        "devId": 1044,
+        "cpuid": 1092600369,
+        "sizeKb": 512
+      },
+      "bytes": 16384,
+      "sha256": "5d67922babe92063c34f685f4c23812f99dc5bce65a306fa59fc8f99d6ff93eb"
+    },
+    "scope": {
+      "stage": "scope",
+      "wasmBefore": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 6,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": {
+          "files": 15,
+          "lines": 603,
+          "name": "fw.elf",
+          "rtt": null,
+          "source": "dwarf",
+          "symbols": 351,
+          "vars": 48
+        },
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x80006090",
+        "memLen": 0,
+        "outLines": 195,
+        "pc": 134218116,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+            "line": 24
+          },
+          "files": 6,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 192,
+        "watch": [],
+        "watching": true
+      },
+      "windows": [
+        {
+          "channels": 1,
+          "periodUs": 2,
+          "flags": 161,
+          "seconds": 8.128149958333333,
+          "producedHz": 495634.55652903055,
+          "stable": {
+            "produced": 4028592,
+            "skipped": 35483,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "rateHz": 495626,
+          "receivedSamples": 4695947,
+          "lostProbe": 41447,
+          "lostUsb": 0,
+          "lostGap": 0,
+          "readErrors": 0,
+          "tailCountDelta": 0,
+          "probeMetrics": {
+            "bytes": 19698176,
+            "errors": 0,
+            "flags": 161,
+            "hz": 24000000,
+            "invalidSamples": 0,
+            "periodTicks": 48,
+            "produced": 4695947,
+            "skipped": 41447,
+            "tick": 4029550505,
+            "tx": 38473,
+            "usb": 0,
+            "yields": 0
+          },
+          "transport": {
+            "bytes": 19698176,
+            "chunks": 2405,
+            "errors": 0,
+            "lastError": null,
+            "running": false
+          },
+          "vars": [
+            "g_pack.word5:u32@0x20001028"
+          ]
+        },
+        {
+          "channels": 1,
+          "periodUs": 2.5,
+          "flags": 161,
+          "seconds": 8.032147833333333,
+          "producedHz": 399978.07145274366,
+          "stable": {
+            "produced": 3212683,
+            "skipped": 176,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "rateHz": 399971,
+          "receivedSamples": 3728831,
+          "lostProbe": 269,
+          "lostUsb": 0,
+          "lostGap": 0,
+          "readErrors": 0,
+          "tailCountDelta": 0,
+          "probeMetrics": {
+            "bytes": 15641600,
+            "errors": 0,
+            "flags": 161,
+            "hz": 24000000,
+            "invalidSamples": 0,
+            "periodTicks": 60,
+            "produced": 3728831,
+            "skipped": 269,
+            "tick": 4269074913,
+            "tx": 69023,
+            "usb": 0,
+            "yields": 0
+          },
+          "transport": {
+            "bytes": 15641600,
+            "chunks": 1910,
+            "errors": 0,
+            "lastError": null,
+            "running": false
+          },
+          "vars": [
+            "g_pack.word5:u32@0x20001028"
+          ]
+        },
+        {
+          "channels": 8,
+          "periodUs": 20,
+          "flags": 161,
+          "seconds": 8.044147125,
+          "producedHz": 50000.08002712904,
+          "stable": {
+            "produced": 402208,
+            "skipped": 0,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "rateHz": 50000,
+          "receivedSamples": 462133,
+          "lostProbe": 3,
+          "lostUsb": 0,
+          "lostGap": 0,
+          "readErrors": 0,
+          "tailCountDelta": 0,
+          "probeMetrics": {
+            "bytes": 16025088,
+            "errors": 0,
+            "flags": 161,
+            "hz": 24000000,
+            "invalidSamples": 0,
+            "periodTicks": 480,
+            "produced": 462133,
+            "skipped": 3,
+            "tick": 224672205,
+            "tx": 100322,
+            "usb": 0,
+            "yields": 0
+          },
+          "transport": {
+            "bytes": 16025088,
+            "chunks": 1957,
+            "errors": 0,
+            "lastError": null,
+            "running": false
+          },
+          "vars": [
+            "g_pack.word0:u32@0x20001014",
+            "g_pack.word1:u32@0x20001018",
+            "g_pack.word2:u32@0x2000101c",
+            "g_pack.word3:u32@0x20001020",
+            "g_pack.word4:u32@0x20001024",
+            "g_pack.word5:u32@0x20001028",
+            "g_pack.word6:u32@0x2000102c",
+            "g_pack.word7:u32@0x20001030"
+          ]
+        }
+      ],
+      "activeForHandoff": {
+        "awaitingDefinition": false,
+        "benchUs": null,
+        "blob": null,
+        "capacity": 275064,
+        "captureFlags": 161,
+        "connectErr": null,
+        "dapYields": 0,
+        "definitionReceived": true,
+        "elf": {
+          "name": "scope72.elf",
+          "note": "",
+          "source": "dwarf",
+          "stats": {
+            "cu": 2,
+            "dies": 127,
+            "vars": 30
+          },
+          "versions": [
+            4
+          ]
+        },
+        "lod": false,
+        "lost": 0,
+        "lostGap": 0,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "metricsError": null,
+        "mockVars": [
+          "mock0.f32",
+          "mock1.f32",
+          "mock2.i32",
+          "mock3.u16",
+          "mock4.i16",
+          "mock5.u8",
+          "mock6.i8",
+          "mock7.f64"
+        ],
+        "mode": "real",
+        "packets": 320,
+        "plan": {
+          "estHz": 81446,
+          "estUs": 12.28,
+          "frameBytes": 32,
+          "spans": 1
+        },
+        "probeMetrics": null,
+        "rateHz": 25000,
+        "raw": 0,
+        "readErrors": 0,
+        "receivedSamples": 4725,
+        "resyncs": 0,
+        "running": true,
+        "samples": 4725,
+        "stalePackets": 0,
+        "state": "采样中 141.56 ms / 10.000 s（3540 样本 · 实得 25.0 kHz · 缓冲 1%）",
+        "supportsMetrics": true,
+        "tailCountDelta": null,
+        "transport": {
+          "bytes": 163840,
+          "chunks": 20,
+          "errors": 0,
+          "lastError": null,
+          "running": true
+        },
+        "trigger": {
+          "hit": -1,
+          "hits": 0,
+          "marker": false,
+          "mode": 0
+        },
+        "varCount": 8,
+        "vars": [
+          "g_pack.word0:u32@0x20001014",
+          "g_pack.word1:u32@0x20001018",
+          "g_pack.word2:u32@0x2000101c",
+          "g_pack.word3:u32@0x20001020",
+          "g_pack.word4:u32@0x20001024",
+          "g_pack.word5:u32@0x20001028",
+          "g_pack.word6:u32@0x2000102c",
+          "g_pack.word7:u32@0x20001030"
+        ],
+        "view": {
+          "end": 4245,
+          "start": 0
+        }
+      },
+      "wasmAfter": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 6,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": {
+          "files": 15,
+          "lines": 603,
+          "name": "fw.elf",
+          "rtt": null,
+          "source": "dwarf",
+          "symbols": 351,
+          "vars": 48
+        },
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x80006090",
+        "memLen": 0,
+        "outLines": 224,
+        "pc": 134218116,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+            "line": 24
+          },
+          "files": 6,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 192,
+        "watch": [],
+        "watching": false
+      },
+      "afterHandoff": {
+        "running": false,
+        "receivedSamples": 14064,
+        "tailCountDelta": 0,
+        "readErrors": 0
+      }
+    },
+    "verify-original": {
+      "stage": "verify-original",
+      "bytes": 16384,
+      "sha256": "5d67922babe92063c34f685f4c23812f99dc5bce65a306fa59fc8f99d6ff93eb",
+      "matched": true
+    },
+    "viewer-echo72": {
+      "stage": "viewer-echo72",
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 32767,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 536870924,
+        "displaySuppressed": false,
+        "error": "控制块 0x2000000c，上行缓冲 32768 B（固件声明 2 个上行通道，本页读 ch0）",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 32767,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 1,
+          "rate": 0
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 1415582,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 536870924,
+        "displaySuppressed": true,
+        "error": "高速 440.4 KB/s，渲染已停（收数/记录不受影响）· 点此恢复显示",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 1415582,
+          "corrupt": 0,
+          "hz": 32.09950847632444,
+          "lastBytes": 943383,
+          "lastPolls": 51,
+          "lost": 0,
+          "polls": 79,
+          "rate": 541960.0762371428
+        }
+      },
+      "seconds": 2.6296459999939543,
+      "bytesPerSec": 525855.9517148617,
+      "echo": true,
+      "helloCount": 110640,
+      "rawBytes": 1438423
+    },
+    "viewer-hello72": {
+      "stage": "viewer-hello72",
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 32767,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 536870924,
+        "displaySuppressed": false,
+        "error": "控制块 0x2000000c，上行缓冲 32768 B（固件声明 2 个上行通道，本页读 ch0）",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 32767,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 1,
+          "rate": 0
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 1673501,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 536870924,
+        "displaySuppressed": true,
+        "error": "高速 444.8 KB/s，渲染已停（收数/记录不受影响）· 点此恢复显示",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 1673501,
+          "corrupt": 0,
+          "hz": 32.0032003200797,
+          "lastBytes": 1418662,
+          "lastPolls": 79,
+          "lost": 0,
+          "polls": 94,
+          "rate": 546535.6535661711
+        }
+      },
+      "seconds": 3.040764900004433,
+      "bytesPerSec": 539579.3670196627
+    }
+  }
+}

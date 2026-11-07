@@ -1,0 +1,3493 @@
+{
+  "date": "2026-11-07",
+  "board": "STM32H743",
+  "sourceBase": "73e4b82",
+  "openocdSource": "9f2d876",
+  "probeOutputFiles": {
+    "akaLinkPro_App.asm": {
+      "bytes": 3911199,
+      "sha256": "f96a8c3512edd53d43804e5aa2cf5ac0e59f956c8208e061c16f49e4d56640ab"
+    },
+    "akaLinkPro_App.bin": {
+      "bytes": 194088,
+      "sha256": "d9368446e22b20cd8b16acd2c39aac1fd225d271284723476b96b18d8593ec9a"
+    },
+    "akaLinkPro_App.elf": {
+      "bytes": 1770032,
+      "sha256": "43466d5388e44f37fb758947e7f80ec43b7d592dde005dd0787087e21a48bcc8"
+    },
+    "akaLinkPro_App.hex": {
+      "bytes": 545990,
+      "sha256": "edd8080295a70a563cc117fe41d121d7ce0ac65031b11b82da3ab9b64881b4c9"
+    },
+    "akaLinkPro_App.map": {
+      "bytes": 448224,
+      "sha256": "283417d752d1858387da7e9831cc7a5e7b274c6ecd4c007901e73b82398283ef"
+    },
+    "akaLinkPro_App_pack.bin": {
+      "bytes": 194088,
+      "sha256": "5d32f353f91dc8b38074179d5aed0dc0cc2c5bd7644567d9c092c5a406aac3ed"
+    },
+    "akaLinkPro_App_pack.hex": {
+      "bytes": 545943,
+      "sha256": "d8bf2cab38d6553021093263db17c996bd53f02447c605d2ce456300eef8d27d"
+    }
+  },
+  "rawCapture": {
+    "run": "raw-echo",
+    "captures": [
+      {
+        "ms": 10,
+        "seconds": 8.550204499995743,
+        "jobState": "记录已保存",
+        "records": [
+          "capture-d5507183dbe24d368428cee3cd1fa920"
+        ],
+        "echoBefore": 165,
+        "echoAfter": 987,
+        "echoError": null,
+        "session": {
+          "actualDepth": "5000000",
+          "captureExtent": {
+            "requestedSeconds": 0.01,
+            "actualSeconds": 0.01,
+            "requestedSamples": 5000000,
+            "actualSamples": 5000000,
+            "complete": true
+          },
+          "actualTime": "-0.00049985 0.00950015",
+          "captureStatus": "saved",
+          "targetVerified": true,
+          "targetSnapshot": {
+            "cpuid": 1092600433,
+            "device": 537093200,
+            "profile": "stm32h743",
+            "name": "STM32H743 / H742 / H750 / H753",
+            "core": "Cortex-M7",
+            "etmVersion": "ETMv4",
+            "traceSupported": true,
+            "traceStatus": "H743 ETMv4 已验收：48/24～60/30 MHz、周期计数/返回栈/分支广播选项回读与解码；同 DEV_ID 的 H742/H750/H753 未单独验收",
+            "flashLimit": 136314880,
+            "traceOptions": {
+              "branchBroadcast": true,
+              "returnStack": true,
+              "cycleCount": true
+            },
+            "config": {
+              "idr0": 134219489,
+              "idr1": 1090581505,
+              "idr2": 4,
+              "idr8": 1,
+              "idr9": 0,
+              "idr10": 0,
+              "idr11": 0,
+              "idr12": 1,
+              "idr13": 0,
+              "config": 1,
+              "traceid": 2
+            },
+            "halted": true,
+            "rcc": {
+              "cr": 855883813,
+              "cfgr": 27,
+              "domain": 64,
+              "pllSource": 26345554,
+              "pllConfig": 33489673,
+              "pllDiv": 184618591,
+              "pllFrac": 0
+            },
+            "clocks": {
+              "knownHz": 60000000,
+              "knownTraceHz": 40000000,
+              "coreHz": 60000000,
+              "traceHz": 40000000,
+              "external": true,
+              "source": "HSE → PLL1",
+              "path": "HSE 25 MHz ÷M5 ×(96) ÷P8 → CPU ÷1 → HCLK ÷1",
+              "tracePath": "PLL1 VCO ÷R12 → TRACEPORTCK",
+              "traceReady": true,
+              "busDivider": 1,
+              "coreDivider": 1,
+              "traceRelation": "并行 trace 输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；物理 TRACECLK = 输入 / 2；CPU / HCLK 独立分频",
+              "physicalTraceHz": 20000000,
+              "hclkHz": 60000000
+            },
+            "clockError": null,
+            "hseHz": 25000000,
+            "width": 8,
+            "tracePins": {
+              "pinSpeed": 2,
+              "mode": 4294961839,
+              "speed": 10912,
+              "alternate": 0
+            }
+          },
+          "laFilter": {
+            "basis": "record snapshot",
+            "source": "E:\\superlinkPRO\\etm\\records\\capture-d5507183dbe24d368428cee3cd1fa920\\capture.kvdat",
+            "keepOnRestart": true,
+            "channels": [
+              {
+                "channel": 0,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 1,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 2,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 3,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 4,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 5,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 6,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 7,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 8,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 9,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 10,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 11,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 12,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 13,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 14,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 15,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              }
+            ],
+            "sampleRate": 500000000,
+            "nativeSocketControl": false
+          },
+          "captureScope": "business-unfiltered-window",
+          "timings": null,
+          "summary": null
+        }
+      },
+      {
+        "ms": 200,
+        "seconds": 9.389802899997449,
+        "jobState": "记录已保存",
+        "records": [
+          "capture-3e3d7cf5f97e461f97599bb16257fde5"
+        ],
+        "echoBefore": 1137,
+        "echoAfter": 2199,
+        "echoError": null,
+        "session": {
+          "actualDepth": "100000000",
+          "captureExtent": {
+            "requestedSeconds": 0.2,
+            "actualSeconds": 0.2,
+            "requestedSamples": 100000000,
+            "actualSamples": 100000000,
+            "complete": true
+          },
+          "actualTime": "-0.00999996 0.19000004",
+          "captureStatus": "saved",
+          "targetVerified": true,
+          "targetSnapshot": {
+            "cpuid": 1092600433,
+            "device": 537093200,
+            "profile": "stm32h743",
+            "name": "STM32H743 / H742 / H750 / H753",
+            "core": "Cortex-M7",
+            "etmVersion": "ETMv4",
+            "traceSupported": true,
+            "traceStatus": "H743 ETMv4 已验收：48/24～60/30 MHz、周期计数/返回栈/分支广播选项回读与解码；同 DEV_ID 的 H742/H750/H753 未单独验收",
+            "flashLimit": 136314880,
+            "traceOptions": {
+              "branchBroadcast": true,
+              "returnStack": true,
+              "cycleCount": true
+            },
+            "config": {
+              "idr0": 134219489,
+              "idr1": 1090581505,
+              "idr2": 4,
+              "idr8": 1,
+              "idr9": 0,
+              "idr10": 0,
+              "idr11": 0,
+              "idr12": 1,
+              "idr13": 0,
+              "config": 1,
+              "traceid": 2
+            },
+            "halted": true,
+            "rcc": {
+              "cr": 855883813,
+              "cfgr": 27,
+              "domain": 64,
+              "pllSource": 26345554,
+              "pllConfig": 33489673,
+              "pllDiv": 184618591,
+              "pllFrac": 0
+            },
+            "clocks": {
+              "knownHz": 60000000,
+              "knownTraceHz": 40000000,
+              "coreHz": 60000000,
+              "traceHz": 40000000,
+              "external": true,
+              "source": "HSE → PLL1",
+              "path": "HSE 25 MHz ÷M5 ×(96) ÷P8 → CPU ÷1 → HCLK ÷1",
+              "tracePath": "PLL1 VCO ÷R12 → TRACEPORTCK",
+              "traceReady": true,
+              "busDivider": 1,
+              "coreDivider": 1,
+              "traceRelation": "并行 trace 输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；物理 TRACECLK = 输入 / 2；CPU / HCLK 独立分频",
+              "physicalTraceHz": 20000000,
+              "hclkHz": 60000000
+            },
+            "clockError": null,
+            "hseHz": 25000000,
+            "width": 8,
+            "tracePins": {
+              "pinSpeed": 2,
+              "mode": 4294961839,
+              "speed": 10912,
+              "alternate": 0
+            }
+          },
+          "laFilter": {
+            "basis": "record snapshot",
+            "source": "E:\\superlinkPRO\\etm\\records\\capture-3e3d7cf5f97e461f97599bb16257fde5\\capture.kvdat",
+            "keepOnRestart": true,
+            "channels": [
+              {
+                "channel": 0,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 1,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 2,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 3,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 4,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 5,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 6,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 7,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 8,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 9,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 10,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 11,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 12,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 13,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 14,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 15,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              }
+            ],
+            "sampleRate": 500000000,
+            "nativeSocketControl": false
+          },
+          "captureScope": "business-unfiltered-window",
+          "timings": null,
+          "summary": null
+        }
+      },
+      {
+        "ms": 500,
+        "seconds": 11.78400099999999,
+        "jobState": "记录已保存",
+        "records": [
+          "capture-e367d88c18ce4476b66af281e3809deb"
+        ],
+        "echoBefore": 2495,
+        "echoAfter": 4012,
+        "echoError": null,
+        "session": {
+          "actualDepth": "250000000",
+          "captureExtent": {
+            "requestedSeconds": 0.5,
+            "actualSeconds": 0.5,
+            "requestedSamples": 250000000,
+            "actualSamples": 250000000,
+            "complete": true
+          },
+          "actualTime": "-0.024999978 0.475000022",
+          "captureStatus": "saved",
+          "targetVerified": true,
+          "targetSnapshot": {
+            "cpuid": 1092600433,
+            "device": 537093200,
+            "profile": "stm32h743",
+            "name": "STM32H743 / H742 / H750 / H753",
+            "core": "Cortex-M7",
+            "etmVersion": "ETMv4",
+            "traceSupported": true,
+            "traceStatus": "H743 ETMv4 已验收：48/24～60/30 MHz、周期计数/返回栈/分支广播选项回读与解码；同 DEV_ID 的 H742/H750/H753 未单独验收",
+            "flashLimit": 136314880,
+            "traceOptions": {
+              "branchBroadcast": true,
+              "returnStack": true,
+              "cycleCount": true
+            },
+            "config": {
+              "idr0": 134219489,
+              "idr1": 1090581505,
+              "idr2": 4,
+              "idr8": 1,
+              "idr9": 0,
+              "idr10": 0,
+              "idr11": 0,
+              "idr12": 1,
+              "idr13": 0,
+              "config": 1,
+              "traceid": 2
+            },
+            "halted": true,
+            "rcc": {
+              "cr": 855883813,
+              "cfgr": 27,
+              "domain": 64,
+              "pllSource": 26345554,
+              "pllConfig": 33489673,
+              "pllDiv": 184618591,
+              "pllFrac": 0
+            },
+            "clocks": {
+              "knownHz": 60000000,
+              "knownTraceHz": 40000000,
+              "coreHz": 60000000,
+              "traceHz": 40000000,
+              "external": true,
+              "source": "HSE → PLL1",
+              "path": "HSE 25 MHz ÷M5 ×(96) ÷P8 → CPU ÷1 → HCLK ÷1",
+              "tracePath": "PLL1 VCO ÷R12 → TRACEPORTCK",
+              "traceReady": true,
+              "busDivider": 1,
+              "coreDivider": 1,
+              "traceRelation": "并行 trace 输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；物理 TRACECLK = 输入 / 2；CPU / HCLK 独立分频",
+              "physicalTraceHz": 20000000,
+              "hclkHz": 60000000
+            },
+            "clockError": null,
+            "hseHz": 25000000,
+            "width": 8,
+            "tracePins": {
+              "pinSpeed": 2,
+              "mode": 4294961839,
+              "speed": 10912,
+              "alternate": 0
+            }
+          },
+          "laFilter": {
+            "basis": "record snapshot",
+            "source": "E:\\superlinkPRO\\etm\\records\\capture-e367d88c18ce4476b66af281e3809deb\\capture.kvdat",
+            "keepOnRestart": true,
+            "channels": [
+              {
+                "channel": 0,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 1,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 2,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 3,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 4,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 5,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 6,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 7,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 8,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 9,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 10,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 11,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 12,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 13,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 14,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 15,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              }
+            ],
+            "sampleRate": 500000000,
+            "nativeSocketControl": false
+          },
+          "captureScope": "business-unfiltered-window",
+          "timings": null,
+          "summary": null
+        }
+      },
+      {
+        "ms": 1000,
+        "seconds": 14.704146199997922,
+        "jobState": "记录已保存",
+        "records": [
+          "capture-567e9135baef409982a58c08cc0f8feb"
+        ],
+        "echoBefore": 4267,
+        "echoAfter": 6459,
+        "echoError": null,
+        "session": {
+          "actualDepth": "500000000",
+          "captureExtent": {
+            "requestedSeconds": 1.0,
+            "actualSeconds": 1.0,
+            "requestedSamples": 500000000,
+            "actualSamples": 500000000,
+            "complete": true
+          },
+          "actualTime": "-0.04999998 0.95000002",
+          "captureStatus": "saved",
+          "targetVerified": true,
+          "targetSnapshot": {
+            "cpuid": 1092600433,
+            "device": 537093200,
+            "profile": "stm32h743",
+            "name": "STM32H743 / H742 / H750 / H753",
+            "core": "Cortex-M7",
+            "etmVersion": "ETMv4",
+            "traceSupported": true,
+            "traceStatus": "H743 ETMv4 已验收：48/24～60/30 MHz、周期计数/返回栈/分支广播选项回读与解码；同 DEV_ID 的 H742/H750/H753 未单独验收",
+            "flashLimit": 136314880,
+            "traceOptions": {
+              "branchBroadcast": true,
+              "returnStack": true,
+              "cycleCount": true
+            },
+            "config": {
+              "idr0": 134219489,
+              "idr1": 1090581505,
+              "idr2": 4,
+              "idr8": 1,
+              "idr9": 0,
+              "idr10": 0,
+              "idr11": 0,
+              "idr12": 1,
+              "idr13": 0,
+              "config": 1,
+              "traceid": 2
+            },
+            "halted": true,
+            "rcc": {
+              "cr": 855883813,
+              "cfgr": 27,
+              "domain": 64,
+              "pllSource": 26345554,
+              "pllConfig": 33489673,
+              "pllDiv": 184618591,
+              "pllFrac": 0
+            },
+            "clocks": {
+              "knownHz": 60000000,
+              "knownTraceHz": 40000000,
+              "coreHz": 60000000,
+              "traceHz": 40000000,
+              "external": true,
+              "source": "HSE → PLL1",
+              "path": "HSE 25 MHz ÷M5 ×(96) ÷P8 → CPU ÷1 → HCLK ÷1",
+              "tracePath": "PLL1 VCO ÷R12 → TRACEPORTCK",
+              "traceReady": true,
+              "busDivider": 1,
+              "coreDivider": 1,
+              "traceRelation": "并行 trace 输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；物理 TRACECLK = 输入 / 2；CPU / HCLK 独立分频",
+              "physicalTraceHz": 20000000,
+              "hclkHz": 60000000
+            },
+            "clockError": null,
+            "hseHz": 25000000,
+            "width": 8,
+            "tracePins": {
+              "pinSpeed": 2,
+              "mode": 4294961839,
+              "speed": 10912,
+              "alternate": 0
+            }
+          },
+          "laFilter": {
+            "basis": "record snapshot",
+            "source": "E:\\superlinkPRO\\etm\\records\\capture-567e9135baef409982a58c08cc0f8feb\\capture.kvdat",
+            "keepOnRestart": true,
+            "channels": [
+              {
+                "channel": 0,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 1,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 2,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 3,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 4,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 5,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 6,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 7,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 8,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 9,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 10,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 11,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 12,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 13,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 14,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              },
+              {
+                "channel": 15,
+                "enabled": false,
+                "samples": 1,
+                "widthNs": 2.0
+              }
+            ],
+            "sampleRate": 500000000,
+            "nativeSocketControl": false
+          },
+          "captureScope": "business-unfiltered-window",
+          "timings": null,
+          "summary": null
+        }
+      }
+    ],
+    "target": "STM32H743 / H742 / H750 / H753 · 运行中 · DEV_ID 0x00000450",
+    "clock": "CPU 60.000 MHz / HCLK 60.000 MHz / TRACECLK 20.000 MHz\nHSE 25 MHz ÷M5 ×(96) ÷P8 → CPU ÷1 → HCLK ÷1",
+    "echo": {
+      "port": "COM34",
+      "sent": 6658,
+      "received": 6658,
+      "missing": [],
+      "badCrc": 0,
+      "duplicates": 0,
+      "banners": 1427,
+      "error": null,
+      "passed": true
+    }
+  },
+  "compact": [
+    {
+      "ms": 10,
+      "source": "capture-d5507183dbe24d368428cee3cd1fa920",
+      "record": "etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\10ms",
+      "wallSeconds": 1.9749112999998033,
+      "result": {
+        "protocol": "trace-cli/1",
+        "runId": "20261107-231615-27067d93",
+        "command": "decode",
+        "ok": true,
+        "result": {
+          "recordDir": "E:\\superlinkPRO\\etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\10ms",
+          "wallSeconds": 0.6977767999997013,
+          "engine": "native",
+          "verification": {
+            "recordDir": "E:\\superlinkPRO\\etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\10ms",
+            "extent": {
+              "known": true,
+              "actualSamples": 5000000,
+              "actualRate": 500000000,
+              "actualSeconds": 0.01,
+              "requestedSeconds": 0.01,
+              "requestedSamples": 5000000,
+              "complete": true
+            },
+            "raw": {
+              "bytes": 3217462,
+              "sha256": "8501b926dcc2cd036f51f8b6c6d6f728b15f249246a7b438735b5220a6d5c822"
+            },
+            "elf": {
+              "bytes": 2178620,
+              "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+            },
+            "inputManifestVerified": true,
+            "passed": true,
+            "storeInputVerification": {
+              "verified": true,
+              "skipped": false,
+              "reason": "",
+              "declared": 12,
+              "present": 9,
+              "blockingHashed": 9,
+              "hashed": 10,
+              "hashedBytes": 5553488,
+              "hashSeconds": 0.008894,
+              "unverified": [],
+              "unbound": [],
+              "excluded": [
+                "capture.kvdat"
+              ],
+              "metadata": [
+                {
+                  "name": "session.json",
+                  "bytes": 5192,
+                  "expectedSha256": "0c9fe3f5f8be109be5b645db6e801b5f7e2950dd554df31418cb8f75ecdffb4c",
+                  "sha256": null,
+                  "seconds": 0.0,
+                  "status": "size-mismatch"
+                },
+                {
+                  "name": "sources.json",
+                  "bytes": 124973,
+                  "expectedSha256": "b49506fb9833f48238e720652646fcfbf45609f193491004f15cb3f38bebf5f0",
+                  "sha256": "b49506fb9833f48238e720652646fcfbf45609f193491004f15cb3f38bebf5f0",
+                  "seconds": 0.000476,
+                  "status": "ok"
+                }
+              ],
+              "metadataChanged": [],
+              "inputs": [
+                {
+                  "name": "etm.bin",
+                  "bytes": 21702,
+                  "expectedSha256": "7a6d047a4b16725530f1d6e32ed75f1a6ec98868e33b524a44494c109562b286",
+                  "sha256": "7a6d047a4b16725530f1d6e32ed75f1a6ec98868e33b524a44494c109562b286",
+                  "seconds": 0.000408,
+                  "status": "ok"
+                },
+                {
+                  "name": "native.bin",
+                  "bytes": 2994171,
+                  "expectedSha256": "153f4252902fb84312031bcab49897a76128a477c666e83a2ed0392df211f71a",
+                  "sha256": "153f4252902fb84312031bcab49897a76128a477c666e83a2ed0392df211f71a",
+                  "seconds": 0.003037,
+                  "status": "ok"
+                },
+                {
+                  "name": "native-config.txt",
+                  "bytes": 259,
+                  "expectedSha256": "d3bf673c7b28455dce3fe9b637b48ed275af64e07bb41e1f674c7ba17635cf29",
+                  "sha256": "d3bf673c7b28455dce3fe9b637b48ed275af64e07bb41e1f674c7ba17635cf29",
+                  "seconds": 0.000507,
+                  "status": "ok"
+                },
+                {
+                  "name": "firmware.elf",
+                  "bytes": 2178620,
+                  "expectedSha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+                  "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+                  "seconds": 0.002337,
+                  "status": "ok"
+                },
+                {
+                  "name": "physical.json",
+                  "bytes": 1689,
+                  "expectedSha256": "8f7f2c15ea10b63d3e1f41d9c931a6960dfbee5a7a0631fd24db3045f8a19f85",
+                  "sha256": "8f7f2c15ea10b63d3e1f41d9c931a6960dfbee5a7a0631fd24db3045f8a19f85",
+                  "seconds": 0.000389,
+                  "status": "ok"
+                },
+                {
+                  "name": "framing.json",
+                  "bytes": 326,
+                  "expectedSha256": "bbb6cda869ef0d724c9a85ed2d4981eba8545e1e0e58979fea4cba73ce54d6be",
+                  "sha256": "bbb6cda869ef0d724c9a85ed2d4981eba8545e1e0e58979fea4cba73ce54d6be",
+                  "seconds": 0.000373,
+                  "status": "ok"
+                },
+                {
+                  "name": "tpiu.bin",
+                  "bytes": 200004,
+                  "expectedSha256": "f690e5be29639ba16287cee76d69b69e158622d6b8f31212a8691a6fa044ea8e",
+                  "sha256": "f690e5be29639ba16287cee76d69b69e158622d6b8f31212a8691a6fa044ea8e",
+                  "seconds": 0.000578,
+                  "status": "ok"
+                },
+                {
+                  "name": "image-0.bin",
+                  "bytes": 31600,
+                  "expectedSha256": "a65b0b5f2873b6bee18be121da9ee2a3f14c903533acbd7efbb155b016479926",
+                  "sha256": "a65b0b5f2873b6bee18be121da9ee2a3f14c903533acbd7efbb155b016479926",
+                  "seconds": 0.000388,
+                  "status": "ok"
+                },
+                {
+                  "name": "image-1.bin",
+                  "bytes": 144,
+                  "expectedSha256": "96b68c9cac1f6cc3d0e744f80440b4d89e779b6df4ae111d69e8968c402bfd5d",
+                  "sha256": "96b68c9cac1f6cc3d0e744f80440b4d89e779b6df4ae111d69e8968c402bfd5d",
+                  "seconds": 0.000401,
+                  "status": "ok"
+                }
+              ],
+              "problems": [],
+              "elapsedSeconds": 0.010191,
+              "generation": "g-20261107T231616-00c20fd3",
+              "storeCheckSeconds": 0.018357,
+              "openSeconds": 0.029844
+            },
+            "quality": {
+              "passed": true,
+              "failures": {},
+              "terminalBoundaryPackets": [],
+              "note": "尾部INCOMPLETE_EOT单列保留；初始化未同步/条件未知不视作已证实执行；字节核算不等于无损证明"
+            },
+            "summary": {
+              "instructions": 174708,
+              "executed": 154230,
+              "unknownExecution": 111,
+              "packetIssues": 0,
+              "exceptions": 23,
+              "gaps": 1,
+              "sourceMapped": 172374,
+              "cdcFunctions": {
+                "handle_command": 207,
+                "cdc_write": 75,
+                "OTG_FS_IRQHandler": 105,
+                "usbd_cdc_acm_bulk_out": 45
+              }
+            }
+          }
+        },
+        "exitCode": 0,
+        "elapsedSeconds": 1.4919844999967609
+      },
+      "pages": [
+        {
+          "offset": 0,
+          "ok": true,
+          "elapsedSeconds": 0.2881386000008206
+        },
+        {
+          "offset": 87354,
+          "ok": true,
+          "elapsedSeconds": 0.2851950000040233
+        },
+        {
+          "offset": 174688,
+          "ok": true,
+          "elapsedSeconds": 0.2725862999941455
+        }
+      ],
+      "decodePerformance": {
+        "storePhasesSeconds": {
+          "decodeAndInputs": 0.009378,
+          "prescanAndStatic": 0.217128,
+          "nativeBuild": 0.073966,
+          "queryIndex": 0.104222,
+          "assemble": 0.019264,
+          "inputBindings": 0.028193,
+          "publish": 0.014123,
+          "cleanup": 0.022974
+        },
+        "storeDetails": {
+          "phases": {
+            "decodeAndInputs": 0.009378,
+            "prescanAndStatic": 0.217128,
+            "nativeBuild": 0.073966,
+            "queryIndex": 0.104222,
+            "assemble": 0.019264,
+            "inputBindings": 0.028193,
+            "publish": 0.014123,
+            "cleanup": 0.022974
+          },
+          "index": {
+            "staticMaps": 0.0011,
+            "counts": 0.0011,
+            "cycles": 0.0,
+            "firstSeq": 0.0004,
+            "hotspotFinalize": 0.0,
+            "v2Tables": 0.002,
+            "remainingSeconds": 0.0032,
+            "tablesSeconds": 0.0088,
+            "defaultViewsSeconds": 0.0625,
+            "encodeSeconds": 0.0088,
+            "totalSeconds": 0.0801
+          },
+          "static": {
+            "uniquePCs": 1314,
+            "predicateFallback": 0,
+            "sourceMapped": 940,
+            "functions": 320,
+            "functionBytes": 28474,
+            "predicateCount": 87,
+            "knownCount": 10315,
+            "timings": {
+              "loadImageSeconds": 0.0,
+              "addressPreparationCacheHit": false,
+              "addressCacheSeconds": 0.0818890999944415,
+              "predicateAddressesSeconds": 0.0579169999982696,
+              "knownAddressesSeconds": 0.02259079999930691,
+              "instructionTableSeconds": 0.0004,
+              "disasmUniqueRangesSeconds": 0.0117,
+              "staticInfoSeconds": 0.0777
+            },
+            "buildSeconds": 0.173
+          },
+          "image": {
+            "cacheHit": true,
+            "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+            "readAndHashSeconds": 0.0021037000042269938,
+            "parseSeconds": 0.0,
+            "waitSeconds": 1.5999976312741637e-06,
+            "totalSeconds": 0.003032800006621983
+          }
+        },
+        "version": 1,
+        "generation": "g-20261107T231616-00c20fd3",
+        "scope": "offline-decode; excludes acquisition, upload and browser rendering",
+        "decodeSeconds": 0.614319099993736,
+        "decodePhasesSeconds": {
+          "imagePreparation": 0.003041500000108499,
+          "nativeInputPreparation": 0.0013513000012608245,
+          "openCsd": 0.04177650000201538,
+          "storeBuildAndIndex": 0.5672567000001436
+        },
+        "image": {
+          "cacheHit": true,
+          "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+          "readAndHashSeconds": 0.0021037000042269938,
+          "parseSeconds": 0.0,
+          "waitSeconds": 1.5999976312741637e-06,
+          "totalSeconds": 0.003032800006621983
+        },
+        "frontendSeconds": 0.04989890000433661,
+        "frontendPhasesSeconds": {
+          "read": 0.0070787,
+          "filter": 0.0086319,
+          "sample": 0.009063400000000001,
+          "demux": 0.0003483,
+          "loop": 0.0251223,
+          "sha256": 0.0030151,
+          "total": 0.0318346
+        },
+        "captureToDecodedSeconds": 0.6919534999979078
+      }
+    },
+    {
+      "ms": 200,
+      "source": "capture-3e3d7cf5f97e461f97599bb16257fde5",
+      "record": "etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\200ms",
+      "wallSeconds": 3.975918800002546,
+      "result": {
+        "protocol": "trace-cli/1",
+        "runId": "20261107-231619-2c56a710",
+        "command": "decode",
+        "ok": true,
+        "result": {
+          "recordDir": "E:\\superlinkPRO\\etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\200ms",
+          "wallSeconds": 2.5505303000027197,
+          "engine": "native",
+          "verification": {
+            "recordDir": "E:\\superlinkPRO\\etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\200ms",
+            "extent": {
+              "known": true,
+              "actualSamples": 100000000,
+              "actualRate": 500000000,
+              "actualSeconds": 0.2,
+              "requestedSeconds": 0.2,
+              "requestedSamples": 100000000,
+              "complete": true
+            },
+            "raw": {
+              "bytes": 64268199,
+              "sha256": "d1d98fdac9e5665796af55126477deaa94ba02ed56ff9ce502a9d2708ab4124b"
+            },
+            "elf": {
+              "bytes": 2178620,
+              "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+            },
+            "inputManifestVerified": true,
+            "passed": true,
+            "storeInputVerification": {
+              "verified": true,
+              "skipped": false,
+              "reason": "",
+              "declared": 12,
+              "present": 9,
+              "blockingHashed": 9,
+              "hashed": 10,
+              "hashedBytes": 66559848,
+              "hashSeconds": 0.064511,
+              "unverified": [],
+              "unbound": [],
+              "excluded": [
+                "capture.kvdat"
+              ],
+              "metadata": [
+                {
+                  "name": "session.json",
+                  "bytes": 5195,
+                  "expectedSha256": "b80128d204091cf87921f7f417f0eece80062739aafb4219d026dbfe440f66f7",
+                  "sha256": null,
+                  "seconds": 0.0,
+                  "status": "size-mismatch"
+                },
+                {
+                  "name": "sources.json",
+                  "bytes": 124973,
+                  "expectedSha256": "b49506fb9833f48238e720652646fcfbf45609f193491004f15cb3f38bebf5f0",
+                  "sha256": "b49506fb9833f48238e720652646fcfbf45609f193491004f15cb3f38bebf5f0",
+                  "seconds": 0.000515,
+                  "status": "ok"
+                }
+              ],
+              "metadataChanged": [],
+              "inputs": [
+                {
+                  "name": "etm.bin",
+                  "bytes": 431211,
+                  "expectedSha256": "7ca776cf4aec91948071e4af3cce1fbcb34179665d0fb308e81441205d96ebe6",
+                  "sha256": "7ca776cf4aec91948071e4af3cce1fbcb34179665d0fb308e81441205d96ebe6",
+                  "seconds": 0.000823,
+                  "status": "ok"
+                },
+                {
+                  "name": "native.bin",
+                  "bytes": 59790894,
+                  "expectedSha256": "9483b9406ff87453e728887631192ceb0c6eecf8ba9a1ebedf46a86acc4ae883",
+                  "sha256": "9483b9406ff87453e728887631192ceb0c6eecf8ba9a1ebedf46a86acc4ae883",
+                  "seconds": 0.05506,
+                  "status": "ok"
+                },
+                {
+                  "name": "native-config.txt",
+                  "bytes": 261,
+                  "expectedSha256": "2755b62bb65efcf68b016bad757460744baf2ec6707d803c61701f3236f22b63",
+                  "sha256": "2755b62bb65efcf68b016bad757460744baf2ec6707d803c61701f3236f22b63",
+                  "seconds": 0.00052,
+                  "status": "ok"
+                },
+                {
+                  "name": "firmware.elf",
+                  "bytes": 2178620,
+                  "expectedSha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+                  "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+                  "seconds": 0.002319,
+                  "status": "ok"
+                },
+                {
+                  "name": "physical.json",
+                  "bytes": 1713,
+                  "expectedSha256": "42cff46b4c0d7d0205ec3c589a6559036174dad95af49e7355037ef81da62b8c",
+                  "sha256": "42cff46b4c0d7d0205ec3c589a6559036174dad95af49e7355037ef81da62b8c",
+                  "seconds": 0.000401,
+                  "status": "ok"
+                },
+                {
+                  "name": "framing.json",
+                  "bytes": 332,
+                  "expectedSha256": "c18c9493ee269a8921eb5d761b2bcce393c12ea13849c2819e05b3db232e5db5",
+                  "sha256": "c18c9493ee269a8921eb5d761b2bcce393c12ea13849c2819e05b3db232e5db5",
+                  "seconds": 0.000471,
+                  "status": "ok"
+                },
+                {
+                  "name": "tpiu.bin",
+                  "bytes": 4000100,
+                  "expectedSha256": "4d1e82091d41a73a85083f000df91c8f243a7a692e06cc8be0a38ece9dab4d37",
+                  "sha256": "4d1e82091d41a73a85083f000df91c8f243a7a692e06cc8be0a38ece9dab4d37",
+                  "seconds": 0.003618,
+                  "status": "ok"
+                },
+                {
+                  "name": "image-0.bin",
+                  "bytes": 31600,
+                  "expectedSha256": "a65b0b5f2873b6bee18be121da9ee2a3f14c903533acbd7efbb155b016479926",
+                  "sha256": "a65b0b5f2873b6bee18be121da9ee2a3f14c903533acbd7efbb155b016479926",
+                  "seconds": 0.000394,
+                  "status": "ok"
+                },
+                {
+                  "name": "image-1.bin",
+                  "bytes": 144,
+                  "expectedSha256": "96b68c9cac1f6cc3d0e744f80440b4d89e779b6df4ae111d69e8968c402bfd5d",
+                  "sha256": "96b68c9cac1f6cc3d0e744f80440b4d89e779b6df4ae111d69e8968c402bfd5d",
+                  "seconds": 0.000391,
+                  "status": "ok"
+                }
+              ],
+              "problems": [],
+              "elapsedSeconds": 0.066127,
+              "generation": "g-20261107T231620-0600ee24",
+              "storeCheckSeconds": 0.024264,
+              "openSeconds": 0.091865
+            },
+            "quality": {
+              "passed": true,
+              "failures": {},
+              "terminalBoundaryPackets": [],
+              "note": "尾部INCOMPLETE_EOT单列保留；初始化未同步/条件未知不视作已证实执行；字节核算不等于无损证明"
+            },
+            "summary": {
+              "instructions": 3490866,
+              "executed": 3083016,
+              "unknownExecution": 1722,
+              "packetIssues": 0,
+              "exceptions": 439,
+              "gaps": 1,
+              "sourceMapped": 3451525,
+              "cdcFunctions": {
+                "handle_command": 3174,
+                "cdc_write": 1400,
+                "OTG_FS_IRQHandler": 1750,
+                "usbd_cdc_acm_bulk_out": 690
+              }
+            }
+          }
+        },
+        "exitCode": 0,
+        "elapsedSeconds": 3.548493700000108
+      },
+      "pages": [
+        {
+          "offset": 0,
+          "ok": true,
+          "elapsedSeconds": 0.38746830000309274
+        },
+        {
+          "offset": 1745433,
+          "ok": true,
+          "elapsedSeconds": 0.38277240000024904
+        },
+        {
+          "offset": 3490846,
+          "ok": true,
+          "elapsedSeconds": 0.37562869999965187
+        }
+      ],
+      "decodePerformance": {
+        "storePhasesSeconds": {
+          "decodeAndInputs": 0.082395,
+          "prescanAndStatic": 0.250928,
+          "nativeBuild": 0.570938,
+          "queryIndex": 0.520395,
+          "assemble": 0.089462,
+          "inputBindings": 0.140107,
+          "publish": 0.013923,
+          "cleanup": 0.031138
+        },
+        "storeDetails": {
+          "phases": {
+            "decodeAndInputs": 0.082395,
+            "prescanAndStatic": 0.250928,
+            "nativeBuild": 0.570938,
+            "queryIndex": 0.520395,
+            "assemble": 0.089462,
+            "inputBindings": 0.140107,
+            "publish": 0.013923,
+            "cleanup": 0.031138
+          },
+          "index": {
+            "staticMaps": 0.0011,
+            "counts": 0.0011,
+            "cycles": 0.0,
+            "firstSeq": 0.0001,
+            "hotspotFinalize": 0.0,
+            "v2Tables": 0.0217,
+            "remainingSeconds": 0.0439,
+            "tablesSeconds": 0.096,
+            "defaultViewsSeconds": 0.2777,
+            "encodeSeconds": 0.1082,
+            "totalSeconds": 0.482
+          },
+          "static": {
+            "uniquePCs": 1336,
+            "predicateFallback": 0,
+            "sourceMapped": 955,
+            "functions": 320,
+            "functionBytes": 28474,
+            "predicateCount": 87,
+            "knownCount": 10315,
+            "timings": {
+              "loadImageSeconds": 0.0,
+              "addressPreparationCacheHit": false,
+              "addressCacheSeconds": 0.08248980000644224,
+              "predicateAddressesSeconds": 0.05837420000170823,
+              "knownAddressesSeconds": 0.022734300000593066,
+              "instructionTableSeconds": 0.0005,
+              "disasmUniqueRangesSeconds": 0.0152,
+              "staticInfoSeconds": 0.0779
+            },
+            "buildSeconds": 0.178
+          },
+          "image": {
+            "cacheHit": true,
+            "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+            "readAndHashSeconds": 0.0021693000016966835,
+            "parseSeconds": 0.0,
+            "waitSeconds": 1.6999983927235007e-06,
+            "totalSeconds": 0.0031749000045238063
+          }
+        },
+        "version": 1,
+        "generation": "g-20261107T231620-0600ee24",
+        "scope": "offline-decode; excludes acquisition, upload and browser rendering",
+        "decodeSeconds": 2.008731000001717,
+        "decodePhasesSeconds": {
+          "imagePreparation": 0.00318209999386454,
+          "nativeInputPreparation": 0.0017505000068922527,
+          "openCsd": 0.2365222999942489,
+          "storeBuildAndIndex": 1.7666151000012178
+        },
+        "image": {
+          "cacheHit": true,
+          "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+          "readAndHashSeconds": 0.0021693000016966835,
+          "parseSeconds": 0.0,
+          "waitSeconds": 1.6999983927235007e-06,
+          "totalSeconds": 0.0031749000045238063
+        },
+        "frontendSeconds": 0.5144289999952889,
+        "frontendPhasesSeconds": {
+          "read": 0.10759120000000003,
+          "filter": 0.1567446,
+          "sample": 0.17867359999999996,
+          "demux": 0.007094399999999984,
+          "loop": 0.4501038,
+          "sha256": 0.0450734,
+          "total": 0.4960806
+        },
+        "captureToDecodedSeconds": 2.5447645999956876
+      }
+    },
+    {
+      "ms": 500,
+      "source": "capture-e367d88c18ce4476b66af281e3809deb",
+      "record": "etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\500ms",
+      "wallSeconds": 7.508073799996055,
+      "result": {
+        "protocol": "trace-cli/1",
+        "runId": "20261107-231625-c258ae25",
+        "command": "decode",
+        "ok": true,
+        "result": {
+          "recordDir": "E:\\superlinkPRO\\etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\500ms",
+          "wallSeconds": 5.71488379999937,
+          "engine": "native",
+          "verification": {
+            "recordDir": "E:\\superlinkPRO\\etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\500ms",
+            "extent": {
+              "known": true,
+              "actualSamples": 250000000,
+              "actualRate": 500000000,
+              "actualSeconds": 0.5,
+              "requestedSeconds": 0.5,
+              "requestedSamples": 250000000,
+              "complete": true
+            },
+            "raw": {
+              "bytes": 160630669,
+              "sha256": "91972c92dac15032e6ebdaaa5242681b6c9db6a1a82db6d1440bf3a2d012604c"
+            },
+            "elf": {
+              "bytes": 2178620,
+              "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+            },
+            "inputManifestVerified": true,
+            "passed": true,
+            "storeInputVerification": {
+              "verified": true,
+              "skipped": false,
+              "reason": "",
+              "declared": 12,
+              "present": 9,
+              "blockingHashed": 9,
+              "hashed": 10,
+              "hashedBytes": 162868830,
+              "hashSeconds": 0.146666,
+              "unverified": [],
+              "unbound": [],
+              "excluded": [
+                "capture.kvdat"
+              ],
+              "metadata": [
+                {
+                  "name": "session.json",
+                  "bytes": 5196,
+                  "expectedSha256": "5886699104720b72532f38d9f8170725f3d6b38316635aaa5272726134069a25",
+                  "sha256": null,
+                  "seconds": 0.0,
+                  "status": "size-mismatch"
+                },
+                {
+                  "name": "sources.json",
+                  "bytes": 124973,
+                  "expectedSha256": "b49506fb9833f48238e720652646fcfbf45609f193491004f15cb3f38bebf5f0",
+                  "sha256": "b49506fb9833f48238e720652646fcfbf45609f193491004f15cb3f38bebf5f0",
+                  "seconds": 0.000543,
+                  "status": "ok"
+                }
+              ],
+              "metadataChanged": [],
+              "inputs": [
+                {
+                  "name": "etm.bin",
+                  "bytes": 1077515,
+                  "expectedSha256": "afee1fc2f4ca1beefe6ce416b9c1c512518070d48cd75557e17fc8a93401b8fb",
+                  "sha256": "afee1fc2f4ca1beefe6ce416b9c1c512518070d48cd75557e17fc8a93401b8fb",
+                  "seconds": 0.001293,
+                  "status": "ok"
+                },
+                {
+                  "name": "native.bin",
+                  "bytes": 149453417,
+                  "expectedSha256": "46f5562fcd3641bbbc69c5c7ee6c0f75f9608608b6118e8ac65d4b87aa2ba699",
+                  "sha256": "46f5562fcd3641bbbc69c5c7ee6c0f75f9608608b6118e8ac65d4b87aa2ba699",
+                  "seconds": 0.131042,
+                  "status": "ok"
+                },
+                {
+                  "name": "native-config.txt",
+                  "bytes": 261,
+                  "expectedSha256": "26545e736c79f3d8c51e7b2f77d5a1b14dd4b49265623269eb5f53efe49625e3",
+                  "sha256": "26545e736c79f3d8c51e7b2f77d5a1b14dd4b49265623269eb5f53efe49625e3",
+                  "seconds": 0.000412,
+                  "status": "ok"
+                },
+                {
+                  "name": "firmware.elf",
+                  "bytes": 2178620,
+                  "expectedSha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+                  "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+                  "seconds": 0.002488,
+                  "status": "ok"
+                },
+                {
+                  "name": "physical.json",
+                  "bytes": 1715,
+                  "expectedSha256": "dc2499474c2db1713ff66a59c20f6062eef1fa0acd0645283bd0a68f7da32665",
+                  "sha256": "dc2499474c2db1713ff66a59c20f6062eef1fa0acd0645283bd0a68f7da32665",
+                  "seconds": 0.000403,
+                  "status": "ok"
+                },
+                {
+                  "name": "framing.json",
+                  "bytes": 333,
+                  "expectedSha256": "2d5d4bdafe39a85b2206d5091cef8313434d4118a6df180d4144b7e92a8244c7",
+                  "sha256": "2d5d4bdafe39a85b2206d5091cef8313434d4118a6df180d4144b7e92a8244c7",
+                  "seconds": 0.000405,
+                  "status": "ok"
+                },
+                {
+                  "name": "tpiu.bin",
+                  "bytes": 10000252,
+                  "expectedSha256": "c883b833a4c3244f213440dc45eb0d74568029efa1e693eeb3e3449578e97f6f",
+                  "sha256": "c883b833a4c3244f213440dc45eb0d74568029efa1e693eeb3e3449578e97f6f",
+                  "seconds": 0.009171,
+                  "status": "ok"
+                },
+                {
+                  "name": "image-0.bin",
+                  "bytes": 31600,
+                  "expectedSha256": "a65b0b5f2873b6bee18be121da9ee2a3f14c903533acbd7efbb155b016479926",
+                  "sha256": "a65b0b5f2873b6bee18be121da9ee2a3f14c903533acbd7efbb155b016479926",
+                  "seconds": 0.000518,
+                  "status": "ok"
+                },
+                {
+                  "name": "image-1.bin",
+                  "bytes": 144,
+                  "expectedSha256": "96b68c9cac1f6cc3d0e744f80440b4d89e779b6df4ae111d69e8968c402bfd5d",
+                  "sha256": "96b68c9cac1f6cc3d0e744f80440b4d89e779b6df4ae111d69e8968c402bfd5d",
+                  "seconds": 0.000392,
+                  "status": "ok"
+                }
+              ],
+              "problems": [],
+              "elapsedSeconds": 0.148216,
+              "generation": "g-20261107T231628-67f9e6ab",
+              "storeCheckSeconds": 0.036424,
+              "openSeconds": 0.186177
+            },
+            "quality": {
+              "passed": true,
+              "failures": {},
+              "terminalBoundaryPackets": [],
+              "note": "尾部INCOMPLETE_EOT单列保留；初始化未同步/条件未知不视作已证实执行；字节核算不等于无损证明"
+            },
+            "summary": {
+              "instructions": 8725857,
+              "executed": 7706109,
+              "unknownExecution": 4229,
+              "packetIssues": 0,
+              "exceptions": 1087,
+              "gaps": 1,
+              "sourceMapped": 8629418,
+              "cdcFunctions": {
+                "handle_command": 7797,
+                "cdc_write": 3425,
+                "OTG_FS_IRQHandler": 4291,
+                "usbd_cdc_acm_bulk_out": 1695
+              }
+            }
+          }
+        },
+        "exitCode": 0,
+        "elapsedSeconds": 7.09977539999818
+      },
+      "pages": [
+        {
+          "offset": 0,
+          "ok": true,
+          "elapsedSeconds": 0.535959400003776
+        },
+        {
+          "offset": 4362928,
+          "ok": true,
+          "elapsedSeconds": 0.5279800999996951
+        },
+        {
+          "offset": 8725837,
+          "ok": true,
+          "elapsedSeconds": 0.5357034999979078
+        }
+      ],
+      "decodePerformance": {
+        "storePhasesSeconds": {
+          "decodeAndInputs": 0.204002,
+          "prescanAndStatic": 0.294915,
+          "nativeBuild": 1.448474,
+          "queryIndex": 1.370112,
+          "assemble": 0.105263,
+          "inputBindings": 0.309795,
+          "publish": 0.026776,
+          "cleanup": 0.048102
+        },
+        "storeDetails": {
+          "phases": {
+            "decodeAndInputs": 0.204002,
+            "prescanAndStatic": 0.294915,
+            "nativeBuild": 1.448474,
+            "queryIndex": 1.370112,
+            "assemble": 0.105263,
+            "inputBindings": 0.309795,
+            "publish": 0.026776,
+            "cleanup": 0.048102
+          },
+          "index": {
+            "staticMaps": 0.0013,
+            "counts": 0.0013,
+            "cycles": 0.0,
+            "firstSeq": 0.0003,
+            "hotspotFinalize": 0.0,
+            "v2Tables": 0.0698,
+            "remainingSeconds": 0.145,
+            "tablesSeconds": 0.304,
+            "defaultViewsSeconds": 0.7312,
+            "encodeSeconds": 0.2557,
+            "totalSeconds": 1.291
+          },
+          "static": {
+            "uniquePCs": 1336,
+            "predicateFallback": 0,
+            "sourceMapped": 955,
+            "functions": 320,
+            "functionBytes": 28474,
+            "predicateCount": 87,
+            "knownCount": 10315,
+            "timings": {
+              "loadImageSeconds": 0.0,
+              "addressPreparationCacheHit": false,
+              "addressCacheSeconds": 0.08048169999528909,
+              "predicateAddressesSeconds": 0.05647119999775896,
+              "knownAddressesSeconds": 0.022663800002192147,
+              "instructionTableSeconds": 0.0004,
+              "disasmUniqueRangesSeconds": 0.0131,
+              "staticInfoSeconds": 0.0828
+            },
+            "buildSeconds": 0.178
+          },
+          "image": {
+            "cacheHit": true,
+            "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+            "readAndHashSeconds": 0.0020348999969428405,
+            "parseSeconds": 0.0,
+            "waitSeconds": 1.4999968698248267e-06,
+            "totalSeconds": 0.002914799995778594
+          }
+        },
+        "version": 1,
+        "generation": "g-20261107T231628-67f9e6ab",
+        "scope": "offline-decode; excludes acquisition, upload and browser rendering",
+        "decodeSeconds": 4.437640399999509,
+        "decodePhasesSeconds": {
+          "imagePreparation": 0.0029206999970483594,
+          "nativeInputPreparation": 0.0017077000011340715,
+          "openCsd": 0.5521867999996175,
+          "storeBuildAndIndex": 3.880209400005697
+        },
+        "image": {
+          "cacheHit": true,
+          "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+          "readAndHashSeconds": 0.0020348999969428405,
+          "parseSeconds": 0.0,
+          "waitSeconds": 1.4999968698248267e-06,
+          "totalSeconds": 0.002914799995778594
+        },
+        "frontendSeconds": 1.2384897000010824,
+        "frontendPhasesSeconds": {
+          "read": 0.2520044,
+          "filter": 0.38205320000000004,
+          "sample": 0.4458023,
+          "demux": 0.016896100000000053,
+          "loop": 1.096756,
+          "sha256": 0.1149343,
+          "total": 1.2129064
+        },
+        "captureToDecodedSeconds": 5.70840880000469
+      }
+    },
+    {
+      "ms": 1000,
+      "source": "capture-567e9135baef409982a58c08cc0f8feb",
+      "record": "etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\1000ms",
+      "wallSeconds": 13.727286100001947,
+      "result": {
+        "protocol": "trace-cli/1",
+        "runId": "20261107-231635-2ff7204c",
+        "command": "decode",
+        "ok": true,
+        "result": {
+          "recordDir": "E:\\superlinkPRO\\etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\1000ms",
+          "wallSeconds": 11.254987499996787,
+          "engine": "native",
+          "verification": {
+            "recordDir": "E:\\superlinkPRO\\etm\\records\\baselines\\h743-cdc\\wasm-60-20-20261107\\1000ms",
+            "extent": {
+              "known": true,
+              "actualSamples": 500000000,
+              "actualRate": 500000000,
+              "actualSeconds": 1.0,
+              "requestedSeconds": 1.0,
+              "requestedSamples": 500000000,
+              "complete": true
+            },
+            "raw": {
+              "bytes": 321244405,
+              "sha256": "f82082f0b016c81bbc0c0d529444f4fee58907f4ba94bab750c6df2cfaf8d753"
+            },
+            "elf": {
+              "bytes": 2178620,
+              "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9"
+            },
+            "inputManifestVerified": true,
+            "passed": true,
+            "storeInputVerification": {
+              "verified": true,
+              "skipped": false,
+              "reason": "",
+              "declared": 12,
+              "present": 9,
+              "blockingHashed": 9,
+              "hashed": 10,
+              "hashedBytes": 323386596,
+              "hashSeconds": 0.286206,
+              "unverified": [],
+              "unbound": [],
+              "excluded": [
+                "capture.kvdat"
+              ],
+              "metadata": [
+                {
+                  "name": "session.json",
+                  "bytes": 5195,
+                  "expectedSha256": "87764160fcb7f1bb0bc4404687cce65e74927967697098400da926d369b67991",
+                  "sha256": null,
+                  "seconds": 0.0,
+                  "status": "size-mismatch"
+                },
+                {
+                  "name": "sources.json",
+                  "bytes": 124973,
+                  "expectedSha256": "b49506fb9833f48238e720652646fcfbf45609f193491004f15cb3f38bebf5f0",
+                  "sha256": "b49506fb9833f48238e720652646fcfbf45609f193491004f15cb3f38bebf5f0",
+                  "seconds": 0.000713,
+                  "status": "ok"
+                }
+              ],
+              "metadataChanged": [],
+              "inputs": [
+                {
+                  "name": "etm.bin",
+                  "bytes": 2154852,
+                  "expectedSha256": "350279f675bc490c5890298ee8f485dce8bac2698a308f1f98efff064a6ec831",
+                  "sha256": "350279f675bc490c5890298ee8f485dce8bac2698a308f1f98efff064a6ec831",
+                  "seconds": 0.002421,
+                  "status": "ok"
+                },
+                {
+                  "name": "native.bin",
+                  "bytes": 298893575,
+                  "expectedSha256": "be78a2e6d9f27dff8624b3ff9179abcb72e8b6b4d18a5e9bb781bad49db66b76",
+                  "sha256": "be78a2e6d9f27dff8624b3ff9179abcb72e8b6b4d18a5e9bb781bad49db66b76",
+                  "seconds": 0.260087,
+                  "status": "ok"
+                },
+                {
+                  "name": "native-config.txt",
+                  "bytes": 263,
+                  "expectedSha256": "f0b805be2fba26cbd16f7d7657f71569fd41e79549bd7e81d861739c6cedaf8b",
+                  "sha256": "f0b805be2fba26cbd16f7d7657f71569fd41e79549bd7e81d861739c6cedaf8b",
+                  "seconds": 0.000473,
+                  "status": "ok"
+                },
+                {
+                  "name": "firmware.elf",
+                  "bytes": 2178620,
+                  "expectedSha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+                  "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+                  "seconds": 0.002377,
+                  "status": "ok"
+                },
+                {
+                  "name": "physical.json",
+                  "bytes": 1729,
+                  "expectedSha256": "70d4843af292d36213cd0fab8288350ef4cb16c2fa8e9167a6e16b0d019dea8b",
+                  "sha256": "70d4843af292d36213cd0fab8288350ef4cb16c2fa8e9167a6e16b0d019dea8b",
+                  "seconds": 0.000448,
+                  "status": "ok"
+                },
+                {
+                  "name": "framing.json",
+                  "bytes": 334,
+                  "expectedSha256": "60d2df3276249ff1b64fca6caa2d4d0e5ce56321f1d7b6dfaeac7ba9f7dcef3a",
+                  "sha256": "60d2df3276249ff1b64fca6caa2d4d0e5ce56321f1d7b6dfaeac7ba9f7dcef3a",
+                  "seconds": 0.000422,
+                  "status": "ok"
+                },
+                {
+                  "name": "tpiu.bin",
+                  "bytes": 20000506,
+                  "expectedSha256": "de4c4642c1087045bf2669cf7baf133f65470c9241aead19351c1e46bbd0d68a",
+                  "sha256": "de4c4642c1087045bf2669cf7baf133f65470c9241aead19351c1e46bbd0d68a",
+                  "seconds": 0.018356,
+                  "status": "ok"
+                },
+                {
+                  "name": "image-0.bin",
+                  "bytes": 31600,
+                  "expectedSha256": "a65b0b5f2873b6bee18be121da9ee2a3f14c903533acbd7efbb155b016479926",
+                  "sha256": "a65b0b5f2873b6bee18be121da9ee2a3f14c903533acbd7efbb155b016479926",
+                  "seconds": 0.0005,
+                  "status": "ok"
+                },
+                {
+                  "name": "image-1.bin",
+                  "bytes": 144,
+                  "expectedSha256": "96b68c9cac1f6cc3d0e744f80440b4d89e779b6df4ae111d69e8968c402bfd5d",
+                  "sha256": "96b68c9cac1f6cc3d0e744f80440b4d89e779b6df4ae111d69e8968c402bfd5d",
+                  "seconds": 0.00041,
+                  "status": "ok"
+                }
+              ],
+              "problems": [],
+              "elapsedSeconds": 0.287736,
+              "generation": "g-20261107T231640-882472d7",
+              "storeCheckSeconds": 0.058787,
+              "openSeconds": 0.348071
+            },
+            "quality": {
+              "passed": true,
+              "failures": {},
+              "terminalBoundaryPackets": [],
+              "note": "尾部INCOMPLETE_EOT单列保留；初始化未同步/条件未知不视作已证实执行；字节核算不等于无损证明"
+            },
+            "summary": {
+              "instructions": 17451162,
+              "executed": 15411514,
+              "unknownExecution": 8419,
+              "packetIssues": 0,
+              "exceptions": 2168,
+              "gaps": 1,
+              "sourceMapped": 17259422,
+              "cdcFunctions": {
+                "handle_command": 15525,
+                "cdc_write": 6800,
+                "OTG_FS_IRQHandler": 8533,
+                "usbd_cdc_acm_bulk_out": 3375
+              }
+            }
+          }
+        },
+        "exitCode": 0,
+        "elapsedSeconds": 13.305445500001952
+      },
+      "pages": [
+        {
+          "offset": 0,
+          "ok": true,
+          "elapsedSeconds": 0.7489715999981854
+        },
+        {
+          "offset": 8725581,
+          "ok": true,
+          "elapsedSeconds": 0.7710588000045391
+        },
+        {
+          "offset": 17451142,
+          "ok": true,
+          "elapsedSeconds": 0.7494846999979927
+        }
+      ],
+      "decodePerformance": {
+        "storePhasesSeconds": {
+          "decodeAndInputs": 0.386202,
+          "prescanAndStatic": 0.371712,
+          "nativeBuild": 3.02587,
+          "queryIndex": 2.775364,
+          "assemble": 0.207703,
+          "inputBindings": 0.598061,
+          "publish": 0.016671,
+          "cleanup": 0.062782
+        },
+        "storeDetails": {
+          "phases": {
+            "decodeAndInputs": 0.386202,
+            "prescanAndStatic": 0.371712,
+            "nativeBuild": 3.02587,
+            "queryIndex": 2.775364,
+            "assemble": 0.207703,
+            "inputBindings": 0.598061,
+            "publish": 0.016671,
+            "cleanup": 0.062782
+          },
+          "index": {
+            "staticMaps": 0.0016,
+            "counts": 0.0017,
+            "cycles": 0.0,
+            "firstSeq": 0.0004,
+            "hotspotFinalize": 0.0,
+            "v2Tables": 0.1247,
+            "remainingSeconds": 0.2554,
+            "tablesSeconds": 0.5616,
+            "defaultViewsSeconds": 1.4924,
+            "encodeSeconds": 0.5879,
+            "totalSeconds": 2.642
+          },
+          "static": {
+            "uniquePCs": 1336,
+            "predicateFallback": 0,
+            "sourceMapped": 955,
+            "functions": 320,
+            "functionBytes": 28474,
+            "predicateCount": 87,
+            "knownCount": 10315,
+            "timings": {
+              "loadImageSeconds": 0.0,
+              "addressPreparationCacheHit": false,
+              "addressCacheSeconds": 0.08748969999578549,
+              "predicateAddressesSeconds": 0.05896029999712482,
+              "knownAddressesSeconds": 0.02702069999941159,
+              "instructionTableSeconds": 0.0005,
+              "disasmUniqueRangesSeconds": 0.0143,
+              "staticInfoSeconds": 0.0877
+            },
+            "buildSeconds": 0.192
+          },
+          "image": {
+            "cacheHit": true,
+            "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+            "readAndHashSeconds": 0.002752599997620564,
+            "parseSeconds": 0.0,
+            "waitSeconds": 3.2000025385059416e-06,
+            "totalSeconds": 0.00398259999928996
+          }
+        },
+        "version": 1,
+        "generation": "g-20261107T231640-882472d7",
+        "scope": "offline-decode; excludes acquisition, upload and browser rendering",
+        "decodeSeconds": 8.674717399997462,
+        "decodePhasesSeconds": {
+          "imagePreparation": 0.003994899998360779,
+          "nativeInputPreparation": 0.0033895000015036203,
+          "openCsd": 1.140744199998153,
+          "storeBuildAndIndex": 7.525911600001564
+        },
+        "image": {
+          "cacheHit": true,
+          "sha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+          "readAndHashSeconds": 0.002752599997620564,
+          "parseSeconds": 0.0,
+          "waitSeconds": 3.2000025385059416e-06,
+          "totalSeconds": 0.00398259999928996
+        },
+        "frontendSeconds": 2.5518307000020286,
+        "frontendPhasesSeconds": {
+          "read": 0.5168909,
+          "filter": 0.7974084999999999,
+          "sample": 0.9231238000000008,
+          "demux": 0.03395139999999952,
+          "loop": 2.2713746,
+          "sha256": 0.2359534,
+          "total": 2.5090288
+        },
+        "captureToDecodedSeconds": 11.248825800001214
+      }
+    }
+  ],
+  "stages": {
+    "probe": {
+      "stage": "probe",
+      "build": "2026/11/07 14:01:44"
+    },
+    "preserve": {
+      "stage": "preserve",
+      "target": {
+        "devId": 1104,
+        "cpuid": 1092600433,
+        "sizeKb": 2048
+      },
+      "bytes": 131072,
+      "sha256": "c2c22dbaaa3f08063e1bb57a79994d01a416a181209326728cf6eed0ca47ca7c"
+    },
+    "flash-etm": {
+      "stage": "flash-etm",
+      "imageSha256": "3d3fda8c6202ed63763e10ea0532cf7aa81aa2021a7f2f2d2720a3ef9f1c42a9",
+      "result": {
+        "bytes": 31744,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 11.264638600005128,
+      "status": "已烧录 31.0 KB，读回校验通过"
+    },
+    "flash-dbg": {
+      "stage": "flash-dbg",
+      "imageSha256": "a9ba8d95d39c6a7af757224dfe2703d8a2c29afde8e1618c3b3814699154c7db",
+      "result": {
+        "bytes": 7740,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 10.796671600000991,
+      "status": "已烧录 7.6 KB，读回校验通过"
+    },
+    "debug": {
+      "stage": "debug",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": null,
+        "halted": false,
+        "lastStepMode": "openocd",
+        "lastStepOk": true,
+        "memAddr": "0x08000180",
+        "memLen": 0,
+        "outLines": 495,
+        "pc": 134218116,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32f103_dbgstress/src/engine.c",
+            "line": 24
+          },
+          "files": 6,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 192,
+        "watch": [],
+        "watching": true
+      },
+      "checks": {
+        "boot after Flash reset": {
+          "pass": true,
+          "result": [
+            28202,
+            29840
+          ]
+        },
+        "source highlight": {
+          "pass": true,
+          "result": {
+            "cur": {
+              "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32h743_dbgstress/src/engine.c",
+              "line": 24
+            },
+            "files": 6,
+            "ready": true,
+            "shown": 38
+          }
+        },
+        "4 simultaneous breakpoints": {
+          "pass": true,
+          "result": [
+            134218504,
+            134218604,
+            134219368,
+            134218116,
+            134218504,
+            134218604,
+            134219368,
+            134218116,
+            134218504,
+            134218604,
+            134219368,
+            134218116
+          ]
+        },
+        "19 instruction steps": {
+          "pass": true,
+          "result": [
+            134218116,
+            134218118,
+            134218120,
+            134218122,
+            134218124,
+            134218126,
+            134218128,
+            134218130,
+            134218132,
+            134218134,
+            134218136,
+            134218138,
+            134218140,
+            134218144,
+            134218146,
+            134218148,
+            134218150,
+            134218152,
+            134218154,
+            134218156
+          ]
+        },
+        "19 source steps": {
+          "pass": true,
+          "result": [
+            134218116,
+            134218126,
+            134218132,
+            134218138,
+            134218146,
+            134218154,
+            134218162,
+            134218170,
+            134218180,
+            134218188,
+            134218196,
+            134218204,
+            134218216,
+            134218224,
+            134218234,
+            134218242,
+            134218250,
+            134218258,
+            134217942,
+            134217954
+          ]
+        },
+        "40 stop/run rounds with FPB audit": {
+          "pass": true,
+          "result": {
+            "rounds": 40,
+            "pc": 134218632,
+            "enabledComparators": 0
+          }
+        },
+        "reset halt and run": {
+          "pass": true,
+          "result": [
+            134218116,
+            134218116,
+            134218116,
+            134218116
+          ]
+        },
+        "registers, RAM and Flash": {
+          "pass": true,
+          "result": {
+            "registers": 23,
+            "ramBytes": 32,
+            "flashBytes": 32
+          }
+        }
+      }
+    },
+    "flash-echo480": {
+      "stage": "flash-echo480",
+      "imageSha256": "0b7e2bb7f57f7bf3c7566ad6eb50ef211a3ead729f888501f8ca04ed726eac79",
+      "result": {
+        "bytes": 1408,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 10.845722500002012,
+      "status": "已烧录 1.4 KB，读回校验通过"
+    },
+    "viewer-echo480": {
+      "stage": "viewer-echo480",
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 24574,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 603979796,
+        "displaySuppressed": false,
+        "error": "控制块 0x24000014，上行缓冲 12288 B（固件声明 2 个上行通道，本页读 ch0）",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 24574,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 2,
+          "rate": 0
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 1306876,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 603979796,
+        "displaySuppressed": true,
+        "error": "高速 389.6 KB/s，渲染已停（收数/记录不受影响）· 点此恢复显示",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 1306876,
+          "corrupt": 0,
+          "hz": 50.99490050987303,
+          "lastBytes": 818039,
+          "lastPolls": 78,
+          "lost": 0,
+          "polls": 130,
+          "rate": 486241.3758616893
+        }
+      },
+      "seconds": 2.782612100003462,
+      "bytesPerSec": 460826.71745673957,
+      "echo": true,
+      "helloCount": 105836,
+      "rawBytes": 1375960
+    },
+    "flash-hello480": {
+      "stage": "flash-hello480",
+      "imageSha256": "d0079519c3644ceab8bf5514980ac5ed30ac38f335a45d8680174d908a99073e",
+      "result": {
+        "bytes": 1192,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 11.087413100001868,
+      "status": "已烧录 1.2 KB，读回校验通过"
+    },
+    "viewer-hello480": {
+      "stage": "viewer-hello480",
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 36861,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 603979796,
+        "displaySuppressed": false,
+        "error": "控制块 0x24000014，上行缓冲 12288 B（固件声明 2 个上行通道，本页读 ch0）",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 36861,
+          "corrupt": 0,
+          "hz": 50.99490050987303,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 3,
+          "rate": 486241.3758616893
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 1413005,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 603979796,
+        "displaySuppressed": false,
+        "error": "控制块 0x24000014，上行缓冲 12288 B（固件声明 2 个上行通道，本页读 ch0）",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 1413005,
+          "corrupt": 0,
+          "hz": 50.99490050987303,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 115,
+          "rate": 486241.3758616893
+        }
+      },
+      "seconds": 3.1287267000006977,
+      "bytesPerSec": 439841.54959897685
+    },
+    "clock-480": {
+      "stage": "clock-480",
+      "coreMHz": 480,
+      "clockError": 0,
+      "rccCfgr": "0x1b"
+    },
+    "cdc-45": {
+      "stage": "cdc-45",
+      "start": {
+        "cbAddr": "0x24000014",
+        "connected": true,
+        "dapYield": 31283,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 45182,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": true,
+        "stall": 1,
+        "startRc": 0,
+        "state": "运行中 · 控制块 0x24000014 · 上行缓冲 0x2400002c · 通道 0 · 已搬运 44.1 KB（23 次）· 轮询 9567 · 读错 0 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31283 次",
+        "supported": true,
+        "swdMhz": 45
+      },
+      "windows": [
+        {
+          "bytes": 20430848,
+          "seconds": 8.005993700004183,
+          "bytesPerSec": 2551944.0516158943,
+          "patternMismatch": false
+        },
+        {
+          "bytes": 20447232,
+          "seconds": 8.002501399998437,
+          "bytesPerSec": 2555105.0825188225,
+          "patternMismatch": false
+        },
+        {
+          "bytes": 20447232,
+          "seconds": 8.004849299999478,
+          "bytesPerSec": 2554355.6453962643,
+          "patternMismatch": false
+        }
+      ],
+      "running": {
+        "cbAddr": "0x24000014",
+        "connected": true,
+        "dapYield": 31283,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 63467646,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": true,
+        "stall": 0,
+        "startRc": 0,
+        "state": "运行中 · 控制块 0x24000014 · 上行缓冲 0x2400002c · 通道 0 · 已搬运 61980 KB（30991 次）· 轮询 59409 · 读错 0 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31283 次",
+        "supported": true,
+        "swdMhz": 45
+      },
+      "stopped": {
+        "cbAddr": "0x0",
+        "connected": true,
+        "dapYield": 31283,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 63467646,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": false,
+        "stall": 0,
+        "startRc": 0,
+        "state": "未运行（点「启动转发」或「自动搜控制块」）",
+        "supported": true,
+        "swdMhz": 45
+      }
+    },
+    "cdc-60": {
+      "stage": "cdc-60",
+      "wasmViewerBefore": {
+        "backend": "openocd",
+        "bufferedBytes": 36861,
+        "clockKhz": 20000,
+        "connected": true,
+        "controlBlock": 603979796,
+        "displaySuppressed": false,
+        "error": "控制块 0x24000014，上行缓冲 12288 B（固件声明 2 个上行通道，本页读 ch0）",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 36861,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 3,
+          "rate": 0
+        }
+      },
+      "start": {
+        "cbAddr": "0x24000014",
+        "connected": true,
+        "dapYield": 31281,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 45081,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": true,
+        "stall": 1,
+        "startRc": 0,
+        "state": "运行中 · 控制块 0x24000014 · 上行缓冲 0x2400002c · 通道 0 · 已搬运 44.0 KB（23 次）· 轮询 15104 · 读错 0 / RdOff 错 0 · 档位 60 MHz · 给 DAP 让路 31281 次",
+        "supported": true,
+        "swdMhz": 60
+      },
+      "windows": [
+        {
+          "bytes": 24084480,
+          "seconds": 8.001596099995368,
+          "bytesPerSec": 3009959.4754618946,
+          "patternMismatch": false
+        },
+        {
+          "bytes": 24133632,
+          "seconds": 8.002577400002338,
+          "bytesPerSec": 3015732.4064110834,
+          "patternMismatch": false
+        },
+        {
+          "bytes": 24133632,
+          "seconds": 8.00271509999584,
+          "bytesPerSec": 3015680.515730536,
+          "patternMismatch": false
+        }
+      ],
+      "running": {
+        "cbAddr": "0x24000014",
+        "connected": true,
+        "dapYield": 31281,
+        "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+        "label": "akaLinkPro CMSIS-DAP",
+        "mock": false,
+        "moved": 74870809,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": true,
+        "stall": 0,
+        "startRc": 0,
+        "state": "运行中 · 控制块 0x24000014 · 上行缓冲 0x2400002c · 通道 0 · 已搬运 73116 KB（36559 次）· 轮询 5654 · 读错 0 / RdOff 错 0 · 档位 60 MHz · 给 DAP 让路 31281 次",
+        "supported": true,
+        "swdMhz": 60
+      },
+      "wasmAfter": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": {
+          "files": 15,
+          "lines": 604,
+          "name": "fw.elf",
+          "rtt": null,
+          "source": "dwarf",
+          "symbols": 325,
+          "vars": 48
+        },
+        "halted": false,
+        "lastStepMode": "openocd",
+        "lastStepOk": true,
+        "memAddr": "0x08000180",
+        "memLen": 128,
+        "outLines": 800,
+        "pc": 134218116,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32h743_dbgstress/src/engine.c",
+            "line": 24
+          },
+          "files": 6,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 171,
+        "watch": [],
+        "watching": false
+      },
+      "clockAfterHandoff": "0x1b",
+      "stopped": {
+        "cbAddr": "",
+        "connected": false,
+        "dapYield": 0,
+        "info": "未连接（点「连接探针」；首次使用或有多个设备时选择 akaLinkPro）",
+        "label": "",
+        "mock": false,
+        "moved": 0,
+        "rdErr": 0,
+        "rescans": 0,
+        "running": false,
+        "stall": 0,
+        "startRc": null,
+        "state": "—",
+        "supported": true,
+        "swdMhz": 0
+      }
+    },
+    "flash-scope480": {
+      "stage": "flash-scope480",
+      "imageSha256": "a4bceb12d5ac54c7f1eb254b31144d84708f16a62cacda96264f160c9d4dd3b6",
+      "result": {
+        "bytes": 1240,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 10.722752399997262,
+      "status": "已烧录 1.2 KB，读回校验通过"
+    },
+    "scope": {
+      "stage": "scope",
+      "wasmBefore": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": {
+          "files": 15,
+          "lines": 604,
+          "name": "fw.elf",
+          "rtt": null,
+          "source": "dwarf",
+          "symbols": 325,
+          "vars": 48
+        },
+        "halted": false,
+        "lastStepMode": "openocd",
+        "lastStepOk": true,
+        "memAddr": "0x08000180",
+        "memLen": 128,
+        "outLines": 800,
+        "pc": 134218116,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32h743_dbgstress/src/engine.c",
+            "line": 24
+          },
+          "files": 6,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 171,
+        "watch": [],
+        "watching": true
+      },
+      "windows": [
+        {
+          "channels": 1,
+          "periodUs": 2,
+          "flags": 161,
+          "seconds": 8.164146291666666,
+          "producedHz": 492010.6593508851,
+          "stable": {
+            "produced": 4016847,
+            "skipped": 65228,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "rateHz": 492002,
+          "receivedSamples": 4618318,
+          "lostProbe": 75079,
+          "lostUsb": 0,
+          "lostGap": 0,
+          "readErrors": 0,
+          "tailCountDelta": 0,
+          "probeMetrics": {
+            "bytes": 19372544,
+            "errors": 0,
+            "flags": 161,
+            "hz": 24000000,
+            "invalidSamples": 0,
+            "periodTicks": 48,
+            "produced": 4618318,
+            "skipped": 75079,
+            "tick": 1944164800,
+            "tx": 37837,
+            "usb": 0,
+            "yields": 0
+          },
+          "transport": {
+            "bytes": 19372544,
+            "chunks": 2365,
+            "errors": 0,
+            "lastError": null,
+            "running": false
+          },
+          "vars": [
+            "g_pack.word5:u32@0x24001028"
+          ]
+        },
+        {
+          "channels": 1,
+          "periodUs": 20,
+          "flags": 161,
+          "seconds": 8.064144833333334,
+          "producedHz": 49999.970031953584,
+          "stable": {
+            "produced": 403207,
+            "skipped": 0,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "rateHz": 50000,
+          "receivedSamples": 475535,
+          "lostProbe": 2,
+          "lostUsb": 0,
+          "lostGap": 0,
+          "readErrors": 0,
+          "tailCountDelta": 0,
+          "probeMetrics": {
+            "bytes": 1994752,
+            "errors": 0,
+            "flags": 161,
+            "hz": 24000000,
+            "invalidSamples": 0,
+            "periodTicks": 480,
+            "produced": 475535,
+            "skipped": 2,
+            "tick": 2189065316,
+            "tx": 41733,
+            "usb": 0,
+            "yields": 0
+          },
+          "transport": {
+            "bytes": 1994752,
+            "chunks": 487,
+            "errors": 0,
+            "lastError": null,
+            "running": false
+          },
+          "vars": [
+            "g_pack.word5:u32@0x24001028"
+          ]
+        },
+        {
+          "channels": 3,
+          "periodUs": 2,
+          "flags": 161,
+          "seconds": 8.036145333333334,
+          "producedHz": 54238.06836743785,
+          "stable": {
+            "produced": 435865,
+            "skipped": 3582208,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "rateHz": 54231,
+          "receivedSamples": 506654,
+          "lostProbe": 4164714,
+          "lostUsb": 0,
+          "lostGap": 0,
+          "readErrors": 0,
+          "tailCountDelta": 0,
+          "probeMetrics": {
+            "bytes": 17568768,
+            "errors": 0,
+            "flags": 161,
+            "hz": 24000000,
+            "invalidSamples": 0,
+            "periodTicks": 48,
+            "produced": 506654,
+            "skipped": 4164714,
+            "tick": 2447502096,
+            "tx": 76047,
+            "usb": 0,
+            "yields": 0
+          },
+          "transport": {
+            "bytes": 17568768,
+            "chunks": 2145,
+            "errors": 0,
+            "lastError": null,
+            "running": false
+          },
+          "vars": [
+            "g_pack.word0:u32@0x24001014",
+            "g_pack.word1:u32@0x24001018",
+            "g_pack.word2:u32@0x2400101c",
+            "g_pack.word3:u32@0x24001020",
+            "g_pack.word4:u32@0x24001024",
+            "g_pack.word5:u32@0x24001028",
+            "g_pack.word6:u32@0x2400102c",
+            "g_pack.word7:u32@0x24001030"
+          ]
+        },
+        {
+          "channels": 3,
+          "periodUs": 20,
+          "flags": 161,
+          "seconds": 8.140150666666667,
+          "producedHz": 50000.057328996205,
+          "stable": {
+            "produced": 407008,
+            "skipped": 0,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "rateHz": 49999,
+          "receivedSamples": 478932,
+          "lostProbe": 5,
+          "lostUsb": 0,
+          "lostGap": 0,
+          "readErrors": 0,
+          "tailCountDelta": 0,
+          "probeMetrics": {
+            "bytes": 16607232,
+            "errors": 0,
+            "flags": 161,
+            "hz": 24000000,
+            "invalidSamples": 0,
+            "periodTicks": 480,
+            "produced": 478932,
+            "skipped": 5,
+            "tick": 2708722920,
+            "tx": 108483,
+            "usb": 0,
+            "yields": 0
+          },
+          "transport": {
+            "bytes": 16607232,
+            "chunks": 2028,
+            "errors": 0,
+            "lastError": null,
+            "running": false
+          },
+          "vars": [
+            "g_pack.word0:u32@0x24001014",
+            "g_pack.word1:u32@0x24001018",
+            "g_pack.word2:u32@0x2400101c",
+            "g_pack.word3:u32@0x24001020",
+            "g_pack.word4:u32@0x24001024",
+            "g_pack.word5:u32@0x24001028",
+            "g_pack.word6:u32@0x2400102c",
+            "g_pack.word7:u32@0x24001030"
+          ]
+        },
+        {
+          "channels": 8,
+          "periodUs": 20,
+          "flags": 161,
+          "seconds": 8.128150541666667,
+          "producedHz": 49999.93515335,
+          "stable": {
+            "produced": 406407,
+            "skipped": 0,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "rateHz": 49999,
+          "receivedSamples": 476932,
+          "lostProbe": 5,
+          "lostUsb": 0,
+          "lostGap": 0,
+          "readErrors": 0,
+          "tailCountDelta": 0,
+          "probeMetrics": {
+            "bytes": 16538112,
+            "errors": 0,
+            "flags": 161,
+            "hz": 24000000,
+            "invalidSamples": 0,
+            "periodTicks": 480,
+            "produced": 476932,
+            "skipped": 5,
+            "tick": 2973111803,
+            "tx": 140784,
+            "usb": 0,
+            "yields": 0
+          },
+          "transport": {
+            "bytes": 16538112,
+            "chunks": 2019,
+            "errors": 0,
+            "lastError": null,
+            "running": false
+          },
+          "vars": [
+            "g_pack.word0:u32@0x24001014",
+            "g_pack.word1:u32@0x24001018",
+            "g_pack.word2:u32@0x2400101c",
+            "g_pack.word3:u32@0x24001020",
+            "g_pack.word4:u32@0x24001024",
+            "g_pack.word5:u32@0x24001028",
+            "g_pack.word6:u32@0x2400102c",
+            "g_pack.word7:u32@0x24001030"
+          ]
+        }
+      ],
+      "activeForHandoff": {
+        "awaitingDefinition": false,
+        "benchUs": null,
+        "blob": null,
+        "capacity": 275064,
+        "captureFlags": 161,
+        "connectErr": null,
+        "dapYields": 0,
+        "definitionReceived": true,
+        "elf": {
+          "name": "scope480.elf",
+          "note": "",
+          "source": "dwarf",
+          "stats": {
+            "cu": 2,
+            "dies": 158,
+            "vars": 36
+          },
+          "versions": [
+            4
+          ]
+        },
+        "lod": false,
+        "lost": 0,
+        "lostGap": 0,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "metricsError": null,
+        "mockVars": [
+          "mock0.f32",
+          "mock1.f32",
+          "mock2.i32",
+          "mock3.u16",
+          "mock4.i16",
+          "mock5.u8",
+          "mock6.i8",
+          "mock7.f64"
+        ],
+        "mode": "real",
+        "packets": 336,
+        "plan": {
+          "estHz": 81446,
+          "estUs": 12.28,
+          "frameBytes": 32,
+          "spans": 1
+        },
+        "probeMetrics": null,
+        "rateHz": 25000,
+        "raw": 0,
+        "readErrors": 0,
+        "receivedSamples": 4950,
+        "resyncs": 0,
+        "running": true,
+        "samples": 4950,
+        "stalePackets": 0,
+        "state": "采样中：8 通道 × 25.00 kHz，缓冲 275064 样本　预计 DATA 流量 0.81 MB/s（另有状态包）；稳定上限以实采跳拍/USB 计数为准",
+        "supportsMetrics": true,
+        "tailCountDelta": null,
+        "transport": {
+          "bytes": 172032,
+          "chunks": 21,
+          "errors": 0,
+          "lastError": null,
+          "running": true
+        },
+        "trigger": {
+          "hit": -1,
+          "hits": 0,
+          "marker": false,
+          "mode": 0
+        },
+        "varCount": 8,
+        "vars": [
+          "g_pack.word0:u32@0x24001014",
+          "g_pack.word1:u32@0x24001018",
+          "g_pack.word2:u32@0x2400101c",
+          "g_pack.word3:u32@0x24001020",
+          "g_pack.word4:u32@0x24001024",
+          "g_pack.word5:u32@0x24001028",
+          "g_pack.word6:u32@0x2400102c",
+          "g_pack.word7:u32@0x24001030"
+        ],
+        "view": {
+          "end": 1,
+          "start": 0
+        }
+      },
+      "wasmAfter": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": {
+          "files": 15,
+          "lines": 604,
+          "name": "fw.elf",
+          "rtt": null,
+          "source": "dwarf",
+          "symbols": 325,
+          "vars": 48
+        },
+        "halted": false,
+        "lastStepMode": "openocd",
+        "lastStepOk": true,
+        "memAddr": "0x08000180",
+        "memLen": 128,
+        "outLines": 800,
+        "pc": 134218116,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/web-serial-rtt-tools/tools/target-firmware/stm32h743_dbgstress/src/engine.c",
+            "line": 24
+          },
+          "files": 6,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 171,
+        "watch": [],
+        "watching": true
+      },
+      "afterHandoff": {
+        "running": false,
+        "receivedSamples": 15364,
+        "tailCountDelta": 0,
+        "readErrors": 0
+      }
+    },
+    "flash-original": {
+      "stage": "flash-original",
+      "imageSha256": "c2c22dbaaa3f08063e1bb57a79994d01a416a181209326728cf6eed0ca47ca7c",
+      "result": {
+        "bytes": 131072,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 9.5508719999998,
+      "status": "已烧录 128.0 KB，读回校验通过"
+    },
+    "verify": {
+      "stage": "verify",
+      "bytes": 131072,
+      "sha256": "c2c22dbaaa3f08063e1bb57a79994d01a416a181209326728cf6eed0ca47ca7c",
+      "matched": true
+    },
+    "flash-scope-historical": {
+      "stage": "flash-scope-historical",
+      "imageSha256": "a4bceb12d5ac54c7f1eb254b31144d84708f16a62cacda96264f160c9d4dd3b6",
+      "result": {
+        "bytes": 1240,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 10.985690300003625,
+      "status": "已烧录 1.2 KB，读回校验通过"
+    },
+    "scope-historical": {
+      "stage": "scope-historical",
+      "windows": [
+        {
+          "vars": [
+            "g_pack.u_cnt"
+          ],
+          "plan": {
+            "estHz": 223914,
+            "estUs": 4.47,
+            "frameBytes": 1,
+            "spans": 1
+          },
+          "periodUs": 3,
+          "cdcOff": false,
+          "clock": "SWD 60 MHz",
+          "flags": 129,
+          "producedHz": 158628.53443308247,
+          "rateHz": 158632,
+          "stable": {
+            "produced": 1289356,
+            "skipped": 1420027,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "tailCountDelta": 0,
+          "lostUsb": 0,
+          "lostGap": 0
+        },
+        {
+          "vars": [
+            "g_pack.f_sin",
+            "g_pack.i_tick",
+            "g_pack.i_sq1k"
+          ],
+          "plan": {
+            "estHz": 127975,
+            "estUs": 7.81,
+            "frameBytes": 10,
+            "spans": 1
+          },
+          "periodUs": 10,
+          "cdcOff": false,
+          "clock": "SWD 60 MHz",
+          "flags": 129,
+          "producedHz": 84480.07152110079,
+          "rateHz": 84479,
+          "stable": {
+            "produced": 679232,
+            "skipped": 124784,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "tailCountDelta": 0,
+          "lostUsb": 0,
+          "lostGap": 0
+        },
+        {
+          "vars": [
+            "g_pack.f_sin",
+            "g_pack.i_tick",
+            "g_pack.i_sq1k"
+          ],
+          "plan": {
+            "estHz": 127975,
+            "estUs": 7.81,
+            "frameBytes": 10,
+            "spans": 1
+          },
+          "periodUs": 10,
+          "cdcOff": true,
+          "clock": "SWD 60 MHz",
+          "flags": 161,
+          "producedHz": 88257.50437143873,
+          "rateHz": 88257,
+          "stable": {
+            "produced": 718076,
+            "skipped": 95539,
+            "usb": 0,
+            "errors": 0,
+            "yields": 0
+          },
+          "tailCountDelta": 0,
+          "lostUsb": 0,
+          "lostGap": 0
+        }
+      ]
+    },
+    "flash-original-final": {
+      "stage": "flash-original-final",
+      "imageSha256": "c2c22dbaaa3f08063e1bb57a79994d01a416a181209326728cf6eed0ca47ca7c",
+      "result": {
+        "bytes": 131072,
+        "reset": true,
+        "sectors": 1,
+        "verified": true
+      },
+      "seconds": 9.289054900000338,
+      "status": "已烧录 128.0 KB，读回校验通过"
+    },
+    "verify-final": {
+      "stage": "verify-final",
+      "bytes": 131072,
+      "sha256": "c2c22dbaaa3f08063e1bb57a79994d01a416a181209326728cf6eed0ca47ca7c",
+      "matched": true
+    },
+    "functional-flow": [
+      {
+        "stage": "probe",
+        "exitCode": 0
+      },
+      {
+        "stage": "flash-dbg",
+        "exitCode": 0
+      },
+      {
+        "stage": "debug",
+        "exitCode": 0
+      },
+      {
+        "stage": "flash-echo480",
+        "exitCode": 0
+      },
+      {
+        "stage": "viewer-echo480",
+        "exitCode": 0
+      },
+      {
+        "stage": "flash-hello480",
+        "exitCode": 0
+      },
+      {
+        "stage": "clock-480",
+        "exitCode": 0
+      },
+      {
+        "stage": "viewer-hello480",
+        "exitCode": 0
+      },
+      {
+        "stage": "cdc-45",
+        "exitCode": 0
+      },
+      {
+        "stage": "cdc-60",
+        "exitCode": 0
+      },
+      {
+        "stage": "flash-scope480",
+        "exitCode": 0
+      },
+      {
+        "stage": "scope",
+        "exitCode": 0
+      },
+      {
+        "stage": "flash-original",
+        "exitCode": 0
+      },
+      {
+        "stage": "verify",
+        "exitCode": 0
+      }
+    ]
+  },
+  "etmUseChain": {
+    "10ms head": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.3266548000028706
+    },
+    "10ms middle": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.3411359000019729
+    },
+    "10ms tail": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.3051523000031011
+    },
+    "10ms rows": 174758,
+    "200ms head": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.4191055999981472
+    },
+    "200ms middle": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.4061911999961012
+    },
+    "200ms tail": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.4167435999988811
+    },
+    "200ms rows": 3491748,
+    "500ms head": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.557342799998878
+    },
+    "500ms middle": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.5681125999981305
+    },
+    "500ms tail": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.5835200999936205
+    },
+    "500ms rows": 8728035,
+    "1000ms head": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.7940174999966985
+    },
+    "1000ms middle": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.7789952000021003
+    },
+    "1000ms tail": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.762234100002388
+    },
+    "1000ms rows": 17455502,
+    "simplified": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 1.0848660999981803,
+      "bytes": 17039
+    },
+    "html": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.8813640000007581,
+      "bytes": 218522
+    },
+    "source": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.8457296999986283,
+      "bytes": 118556
+    },
+    "csv": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.8563096999932895,
+      "bytes": 133690
+    },
+    "package": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 2.48364379999839
+    },
+    "import": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 1.400428599998122
+    },
+    "round-trip verify": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.5010885000010603
+    },
+    "original verify": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 0.526812099997187
+    },
+    "deep search": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 1.572038899998006
+    },
+    "cycles export rejected": {
+      "ok": false,
+      "exitCode": 2,
+      "seconds": 0.608456699999806
+    },
+    "1s integrity after export failure": {
+      "ok": true,
+      "exitCode": 0,
+      "seconds": 1.278624899998249
+    }
+  },
+  "restoredTargetEcho": {
+    "port": "COM34",
+    "sent": 78,
+    "received": 78,
+    "missing": [],
+    "badCrc": 0,
+    "duplicates": 0,
+    "banners": 75,
+    "error": null,
+    "passed": true
+  },
+  "initialRejectedCapture": {
+    "ms": 10,
+    "seconds": 7.946925899996131,
+    "jobState": "启动 LA 并采集失败：不能唯一确定 TPIU 字节相位：0 个候选；请检查通道和取样位置。 TPIU 帧内完整同步或非法源 ID 0x7f（物理偏移 10561，帧内 12 字节）；拒绝拼接损坏帧",
+    "log": "erface ready\n23:03:47 Info : SWCLK/TCK = 1 SWDIO/TMS = 1 TDI = 1 TDO = 1 nTRST = 1 nRESET = 1\n23:03:47 Info : CMSIS-DAP: Interface Initialised (SWD)\n23:03:47 Info : CMSIS-DAP: FW Version = 2.1.2\n23:03:47 Info : CMSIS-DAP: UART via USB COM port supported\n23:03:47 Info : CMSIS-DAP: Test domain timer supported\n23:03:47 Info : CMSIS-DAP: Atomic commands supported\n23:03:47 Info : CMSIS-DAP: SWD supported\n23:03:47 Info : Using CMSIS-DAPv2 interface with VID:PID=0x0d28:0x0204, serial=[redacted]\n23:03:47 Info : telnet server disabled\n23:03:47 Info : tcl server disabled\n23:03:47 Warn : [workbench.dap] DEPRECATED! '-chain-position' will be removed in the future, use '-tap' instead\n23:03:47 Warn : Could not determine executable path, using configured BINDIR.\n23:03:47 \thttp://openocd.org/doc/doxygen/bugs.html\n23:03:47 For bug reports, read\n23:03:47 Licensed under GNU GPL v2\n23:03:47 Open On-Chip Debugger 0.12.0+dev-g9f2d876-dirty (2026-11-07-09:03)\n23:03:47 ELF 已载入；可连接目标采集，也可在文件页离线导入\n22:58:49 已恢复采集前的 trace 配置与引脚状态\n22:58:48 Info : [workbench.cpu] gdb port disabled\n22:58:48 Info : [workbench.cpu] Examination succeed\n22:58:48 Info : [workbench.cpu] target has 8 breakpoints, 4 watchpoints\n22:58:48 Info : [workbench.cpu] The erratum 3092511 workaround will resume after an incorrect halt\n22:58:48 Warn : [workbench.cpu] Erratum 3092511: Cortex-M7 can halt in an incorrect address when breakpoint and exception occurs simultaneously\n22:58:48 Info : [workbench.cpu] Cortex-M7 r1p1 processor detected\n22:58:48 Info : SWD DPIDR 0x6ba02477\n22:58:48 Info : clock speed 1000 kHz\n22:58:48 Info : CMSIS-DAP: Interface ready\n22:58:48 Info : SWCLK/TCK = 1 SWDIO/TMS = 1 TDI = 1 TDO = 1 nTRST = 1 nRESET = 1\n22:58:48 Info : CMSIS-DAP: Interface Initialised (SWD)\n22:58:48 Info : CMSIS-DAP: FW Version = 2.1.2\n22:58:48 Info : CMSIS-DAP: UART via USB COM port supported\n22:58:48 Info : CMSIS-DAP: Test domain timer supported\n22:58:48 Info : CMSIS-DAP: Atomic commands supported\n22:58:48 Info : CMSIS-DAP: SWD supported\n22:58:48 Info : Using CMSIS-DAPv2 interface with VID:PID=0x0d28:0x0204, serial=[redacted]\n22:58:48 Info : telnet server disabled\n22:58:48 Info : tcl server disabled\n22:58:48 Warn : [workbench.dap] DEPRECATED! '-chain-position' will be removed in the future, use '-tap' instead\n22:58:48 Warn : Could not determine executable path, using configured BINDIR.\n22:58:48 \thttp://openocd.org/doc/doxygen/bugs.html\n22:58:48 For bug reports, read\n22:58:48 Licensed under GNU GPL v2\n22:58:48 Open On-Chip Debugger 0.12.0+dev-g9f2d876-dirty (2026-11-07-09:03)\n",
+    "records": [
+      "capture-9188b52149d9469fa8ccafe93b525993"
+    ],
+    "session": {
+      "actualDepth": "5000000",
+      "captureExtent": {
+        "requestedSeconds": 0.01,
+        "actualSeconds": 0.01,
+        "requestedSamples": 5000000,
+        "actualSamples": 5000000,
+        "complete": true
+      },
+      "actualTime": "-0.000499902 0.009500098",
+      "captureStatus": "saved",
+      "targetVerified": true,
+      "targetSnapshot": {
+        "cpuid": 1092600433,
+        "device": 537093200,
+        "profile": "stm32h743",
+        "name": "STM32H743 / H742 / H750 / H753",
+        "core": "Cortex-M7",
+        "etmVersion": "ETMv4",
+        "traceSupported": true,
+        "traceStatus": "H743 ETMv4 已验收：48/24～60/30 MHz、周期计数/返回栈/分支广播选项回读与解码；同 DEV_ID 的 H742/H750/H753 未单独验收",
+        "flashLimit": 136314880,
+        "traceOptions": {
+          "branchBroadcast": true,
+          "returnStack": true,
+          "cycleCount": true
+        },
+        "config": {
+          "idr0": 134219489,
+          "idr1": 1090581505,
+          "idr2": 4,
+          "idr8": 1,
+          "idr9": 0,
+          "idr10": 0,
+          "idr11": 0,
+          "idr12": 1,
+          "idr13": 0,
+          "config": 1,
+          "traceid": 2
+        },
+        "halted": true,
+        "rcc": {
+          "cr": 855883813,
+          "cfgr": 27,
+          "domain": 64,
+          "pllSource": 26345554,
+          "pllConfig": 33489673,
+          "pllDiv": 184618591,
+          "pllFrac": 0
+        },
+        "clocks": {
+          "knownHz": 60000000,
+          "knownTraceHz": 40000000,
+          "coreHz": 60000000,
+          "traceHz": 40000000,
+          "external": true,
+          "source": "HSE → PLL1",
+          "path": "HSE 25 MHz ÷M5 ×(96) ÷P8 → CPU ÷1 → HCLK ÷1",
+          "tracePath": "PLL1 VCO ÷R12 → TRACEPORTCK",
+          "traceReady": true,
+          "busDivider": 1,
+          "coreDivider": 1,
+          "traceRelation": "并行 trace 输入 TRACEPORTCK：HSI / CSI / HSE / PLL1_R；物理 TRACECLK = 输入 / 2；CPU / HCLK 独立分频",
+          "physicalTraceHz": 20000000,
+          "hclkHz": 60000000
+        },
+        "clockError": null,
+        "hseHz": 25000000,
+        "width": 8,
+        "tracePins": {
+          "pinSpeed": 2,
+          "mode": 4294961839,
+          "speed": 10912,
+          "alternate": 0
+        }
+      },
+      "laFilter": {
+        "basis": "record snapshot",
+        "source": "E:\\superlinkPRO\\etm\\records\\capture-9188b52149d9469fa8ccafe93b525993\\capture.kvdat",
+        "keepOnRestart": true,
+        "channels": [
+          {
+            "channel": 0,
+            "enabled": true,
+            "samples": 10,
+            "widthNs": 20.0
+          },
+          {
+            "channel": 1,
+            "enabled": false,
+            "samples": 10,
+            "widthNs": 20.0
+          },
+          {
+            "channel": 2,
+            "enabled": false,
+            "samples": 4,
+            "widthNs": 8.0
+          },
+          {
+            "channel": 3,
+            "enabled": false,
+            "samples": 4,
+            "widthNs": 8.0
+          },
+          {
+            "channel": 4,
+            "enabled": false,
+            "samples": 4,
+            "widthNs": 8.0
+          },
+          {
+            "channel": 5,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 6,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 7,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 8,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 9,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 10,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 11,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 12,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 13,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 14,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          },
+          {
+            "channel": 15,
+            "enabled": false,
+            "samples": 1,
+            "widthNs": 2.0
+          }
+        ],
+        "sampleRate": 500000000,
+        "nativeSocketControl": false
+      },
+      "captureScope": "business-unfiltered-window",
+      "timings": null,
+      "summary": null
+    }
+  },
+  "legacyPageCapture": [
+    {
+      "ms": 10,
+      "seconds": 15.463044599993736,
+      "records": [
+        "capture-27838c40af164bc5b0a4066fa740507e"
+      ]
+    },
+    {
+      "ms": 200,
+      "seconds": 82.59824859999935,
+      "records": [
+        "capture-54b83873803f45a4930409f819dd111b"
+      ]
+    },
+    {
+      "ms": 500,
+      "seconds": 191.2548551,
+      "records": [
+        "capture-431d85f6d9094747bda8ceb21cc64bfe"
+      ]
+    },
+    {
+      "ms": 1000,
+      "seconds": 14.8240575000018,
+      "records": [
+        "capture-309212b6294f410fb904d3e51a08a6e5"
+      ]
+    }
+  ]
+}

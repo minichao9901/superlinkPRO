@@ -49,7 +49,10 @@ export function setFlag(el, text, kind){
 /** 状态行文本 + 颜色类 */
 export function setStatus(el, text, kind){
   el.textContent = text;
-  el.className = kind === 'ok' ? 'ok' : kind === 'err' ? 'err' : kind === 'warn' ? 'warn' : '';
+  const tones = ['ok', 'err', 'warn'];
+  const classes = (el.className || '').split(/\s+/).filter(name => name && !tones.includes(name));
+  if (tones.includes(kind)) classes.push(kind);
+  el.className = classes.join(' ');
 }
 
 /** 防抖 */

@@ -1,6 +1,7 @@
 import { OpenOcdTargetSession } from '../core/openocd-session.js';
+import { isHpm6800BulkSram, OpenOcdProbe } from '../core/openocd-probe.js';
 import { waitMs } from '../core/pace.js';
-import { overlapsSbaFence, hpmBoard } from '../targets/hpm/porting.js';
+import { hpmBoard } from '../targets/hpm/porting.js';
 import { DebugSession } from './session.js';
 import { elfProgram } from './image.js';
 import { hpmFlashGeometry, hpmFlashPlan } from './openocd-flash.js';
@@ -47,6 +48,8 @@ export class OpenOcdDebugSession extends DebugSession {
   constructor(){
     super();
     this.arch = RV_ARCH;
+    this.target = TARGET;
+    this.sbaFence = hpm.memory.sbaReadForbidden;
     this.isRiscv = true;
     this.backendName = 'OpenOCD Wasm / WebUSB';
     this.caps = { numCode:8, rev:2 };
@@ -54,6 +57,22 @@ export class OpenOcdDebugSession extends DebugSession {
   }
 
   async connect({ cfg, device }){
+    this.target = cfg.target;
+    this.sbaFence = cfg.sbaFence ?? (cfg.script || cfg.raw ? [] : hpm.memory.sbaReadForbidden);
+    this.hpm6800 = cfg.boardId === 'hpm6800evk';
+    this.hpmSdk = this.hpm6800 && !cfg.script;
+    if (cfg.script || cfg.raw){
+      const memory = await OpenOcdProbe.open(device, { cfg, onLog:line => this._log(line, 'dim') });
+      this.link = memory.link;
+      this.memory = memory;
+      this.probe = memory;
+      this.name = cfg.name;
+      this.idcode = memory.idcode;
+      this.clockHz = memory.clockHz;
+      try { await this.refresh(); }
+      catch (error){ await this.disconnect(); throw error; }
+      return;
+    }
     const link = new OpenOcdTargetSession(line => this._log(line, 'dim'));
     try {
       await link.open(cfg, device);
@@ -62,6 +81,8 @@ export class OpenOcdDebugSession extends DebugSession {
       const id = await link.command('capture {scan_chain}');
       if (!/\b0x1000563d\b/i.test(id)) throw new Error('JTAG 未识别 HPM6800EVK 的 TAP');
       this.link = link;
+      this.memory = new OpenOcdProbe(device, { ...cfg, sbaFence:this.sbaFence });
+      this.memory.link = link;
       this.probe = { halt:() => this._command('halt') };
       this.name = TARGET;
       this.idcode = 0x1000563d;
@@ -77,24 +98,26 @@ export class OpenOcdDebugSession extends DebugSession {
   }
 
   async disconnect(){
+    await this._memoryTask;
     const link = this.link;
+    if (link?.worker && this.bps.length) await this.bpClear();
+    await link?.close();
     this.link = null;
+    this.memory = null;
     this._verifiedFlash = null;
     this._xipFallbackLogged = false;
-    try { await link?.close(); }
-    finally {
-      this.probe = null;
-      this.halted = false;
-      this.bps = [];
-      this.bpNotes.clear();
-      this.regs = [];
-      this.clearFrames();
-    }
+    this.probe = null;
+    this.halted = false;
+    this.bps = [];
+    this.bpNotes.clear();
+    this.regs = [];
+    this.clearFrames();
   }
 
   _command(line, timeoutMs){ return this.link.command(line, timeoutMs); }
 
   async programFlashElf(buffer){
+    if (!this.hpmSdk) throw Error('此命令需要 HPM6800EVK 原版 SDK CFG，也可使用烧录页');
     const { entry, main, ranges } = hpmFlashPlan(buffer);
     return this.exclusive(async () => {
       if (!this.connected || this.bps.length) throw new Error('请先连接 HPM6800EVK 并移除断点');
@@ -145,6 +168,7 @@ export class OpenOcdDebugSession extends DebugSession {
   }
 
   async verifyFlashElf(buffer){
+    if (!this.hpmSdk) throw Error('此命令需要 HPM6800EVK 原版 SDK CFG，也可使用烧录页');
     const { entry, main, ranges } = hpmFlashPlan(buffer);
     return this.exclusive(async () => {
       if (!this.connected || this.bps.length) throw new Error('请先连接 HPM6800EVK 并移除断点');
@@ -182,13 +206,20 @@ export class OpenOcdDebugSession extends DebugSession {
   }
 
   async _systemReset(halt){
+    if (!this.hpm6800){
+      this.clearFrames();
+      await this._command(halt ? 'reset halt' : 'reset run');
+      await this.refresh();
+      if (this.halted !== halt) throw Error('OpenOCD 未确认复位后的目标状态');
+      return { halted:this.halted };
+    }
     await this.ensureHalted();
     this.clearFrames();
     // A NOP through the program buffer flushes and invalidates OpenOCD's
     // register cache before the HPM system reset pulse.
-    await this._command(`${TARGET} riscv exec_progbuf 0x00000013`);
-    const readStatus = async () => Number(await this._command(`${TARGET} riscv dmi_read 0x11`));
-    const writeControl = value => this._command(`${TARGET} riscv dmi_write 0x10 0x${value.toString(16)}`);
+    await this._command(`${this.target} riscv exec_progbuf 0x00000013`);
+    const readStatus = async () => Number(await this._command(`${this.target} riscv dmi_read 0x11`));
+    const writeControl = value => this._command(`${this.target} riscv dmi_write 0x10 0x${value.toString(16)}`);
     const ackHaveReset = 0x10000000;
     const anyHaveReset = 0x40000;
     const allHalted = 0x200;
@@ -203,7 +234,7 @@ export class OpenOcdDebugSession extends DebugSession {
     } finally {
       await writeControl(haltRequest + active);
     }
-    const control = Number(await this._command(`${TARGET} riscv dmi_read 0x10`));
+    const control = Number(await this._command(`${this.target} riscv dmi_read 0x10`));
     if ((control & 3) !== active) throw new Error('未确认系统复位已释放');
     const mask = anyHaveReset | (halt ? allHalted : allRunning);
     const deadline = performance.now() + 3000;
@@ -221,7 +252,7 @@ export class OpenOcdDebugSession extends DebugSession {
 
   async _pollHalted(){
     await this._command('poll');
-    const state = await this._command(TARGET + ' curstate');
+    const state = await this._command(this.target + ' curstate');
     if (state !== 'halted' && state !== 'running') throw new Error('OpenOCD 目标状态：' + state);
     return state === 'halted';
   }
@@ -264,13 +295,13 @@ export class OpenOcdDebugSession extends DebugSession {
       }
     }
     await this.refreshRegs();
-    return '系统复位（ndmreset）+ 停住';
+    return 'OpenOCD 系统复位 + 停住';
   }
 
   async resetRun(){
     await this.resetHalt();
     await this.run();
-    return '系统复位（ndmreset）+ 运行';
+    return 'OpenOCD 系统复位 + 运行';
   }
   async verifyClock(){ return { ok:true, hz:this.clockHz, checked:false }; }
 
@@ -285,7 +316,7 @@ export class OpenOcdDebugSession extends DebugSession {
   async readRegs(names){
     const openOcdNames = names.map(name => openOcdRegName(this.regInfo(name)?.name));
     if (openOcdNames.some(name => !name)) throw new Error('未知寄存器');
-    const out = await this._command(TARGET + ' get_reg {' + openOcdNames.join(' ') + '}');
+    const out = await this._command(this.target + ' get_reg {' + openOcdNames.join(' ') + '}');
     const entries = new Map([...out.matchAll(/(\w+)\s+(0x[0-9a-f]+)/gi)].map(([,name,value]) => [name, Number(value)]));
     if (openOcdNames.some(name => !entries.has(name))) throw new Error('OpenOCD 寄存器回包不完整：' + out);
     return new Map(names.map((name, i) => [name, entries.get(openOcdNames[i])]));
@@ -300,7 +331,7 @@ export class OpenOcdDebugSession extends DebugSession {
   async writeReg(name, value){
     const reg = this.regInfo(name);
     if (!reg || !Number.isInteger(value)) throw new Error('无效的寄存器写入');
-    await this._command(TARGET + ' set_reg {' + openOcdRegName(reg.name) + ' ' + (value >>> 0) + '}');
+    await this._command(this.target + ' set_reg {' + openOcdRegName(reg.name) + ' ' + (value >>> 0) + '}');
     if (reg.name === 'pc') this.pc = value >>> 0;
     this.clearFrames();
   }
@@ -317,8 +348,8 @@ export class OpenOcdDebugSession extends DebugSession {
   async memRead(addr, len){
     if (!Number.isInteger(addr) || !Number.isInteger(len) || addr < 0 || len < 0 || addr + len > 0x100000000)
       throw new Error('内存地址或长度超出 32 位地址空间');
-    if (overlapsSbaFence(hpm, addr, len)){
-      const inside = hpm.memory.sbaReadForbidden.some(range => addr >= range.start && addr + len <= range.end);
+    if (len && this.sbaFence.some(range => addr < range.end && addr + len > range.start)){
+      const inside = this.sbaFence.some(range => addr >= range.start && addr + len <= range.end);
       const bytes = inside ? this.sym?.codeBytes?.(addr, len) : null;
       if (!bytes || bytes.length !== len) throw new Error('XIP/flash 数据不可用：载入的 ELF 只读段未完整覆盖请求');
       if (!this._xipFallbackLogged){
@@ -327,24 +358,39 @@ export class OpenOcdDebugSession extends DebugSession {
       }
       return bytes;
     }
-    const bytes = new Uint8Array(len);
-    for (let offset = 0; offset < len; offset += 256){
-      const count = Math.min(256,len-offset);
-      const out = await this._command(TARGET + ' read_memory ' + (addr+offset) + ' 8 ' + count);
-      const values = out.split(/\s+/).map(Number);
-      if (values.length !== count || values.some(value => !Number.isInteger(value) || value < 0 || value > 255))
-        throw new Error('OpenOCD 内存读回包不完整');
-      bytes.set(values, offset);
-    }
-    return bytes;
+    return this._withMemory(() => this.memory.readMem(addr, len), addr, len);
   }
 
   async memWrite(addr, bytes){
-    if (!(bytes instanceof Uint8Array)) throw new Error('内存写入需要字节数组');
-    assertRam(addr, bytes.length);
-    for (let offset = 0; offset < bytes.length; offset += 256){
-      const chunk = bytes.subarray(offset, offset+256);
-      await this._command(TARGET + ' write_memory ' + (addr+offset) + ' 8 {' + chunk.join(' ') + '}');
+    if (!(bytes instanceof Uint8Array)) throw Error('内存写入需要字节数组');
+    return this._withMemory(() => this.memory.writeMem(addr, bytes), addr, bytes.length);
+  }
+
+  async _withMemory(fn, address, length){
+    const task = (this._memoryTask || Promise.resolve()).then(() => this._accessMemory(fn, address, length));
+    this._memoryTask = task.catch(() => {});
+    return task;
+  }
+
+  async _accessMemory(fn, address, length){
+    const memory = this.memory;
+    if (await this._pollHalted() && !isHpm6800BulkSram(memory.cfg, address, length)) return fn();
+    const prefix = this.target + ' riscv mem_access';
+    const previous = await this._command(prefix);
+    if (!/^(?:progbuf|sysbus|abstract)(?: (?:progbuf|sysbus|abstract))*$/.test(previous))
+      throw Error('无法确认 OpenOCD RISC-V 内存访问方式');
+    await this._command(prefix + ' sysbus');
+    memory.physical = true;
+    let failure;
+    try { return await fn(); }
+    catch (error){ failure = error; throw error; }
+    finally {
+      memory.physical = false;
+      try { await this._command(prefix + ' ' + previous); }
+      catch (cleanup){
+        if (failure) throw new AggregateError([failure, cleanup], `${failure.message}；恢复内存访问方式失败：${cleanup.message}`);
+        throw cleanup;
+      }
     }
   }
 

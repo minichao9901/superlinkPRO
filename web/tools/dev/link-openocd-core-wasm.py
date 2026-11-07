@@ -62,8 +62,27 @@ def compile_webusb_cmsis_dap(source, build, scratch, emscripten, env):
     start = text.index(marker)
     end = text.index('\n}\n', start + len(marker))
     replacement = marker + '\t(void)dap;\n\tLOG_DEBUG("Skipping speculative CMSIS-DAP read on WebUSB");'
+    text = text[:start] + replacement + text[end:]
+    # Synchronize on the reply to the Info request that was just sent.
+    # A known pending reply lets WebUSB consume stale JTAG replies without
+    # speculative reads on an empty endpoint or replaying any command.
+    old = '\tuint8_t *resp = dap->response;\n\tunsigned int resp_size = retval;'
+    if text.count(old) != 1:
+        raise ValueError('CMSIS-DAP response validation changed upstream')
+    text = text.replace(old, '''\tuint8_t *resp = dap->response;
+\tif (current_cmd == CMD_DAP_INFO) {
+\t\tfor (unsigned int discarded = 0; discarded < 64 && retval > 0 &&
+\t\t\t\tresp[0] != current_cmd && resp[0] != DAP_ERROR; ++discarded) {
+\t\t\tLOG_DEBUG("Skipping stale reply 0x%02x before CMSIS-DAP Info", resp[0]);
+\t\t\tretval = dap->backend->read(dap, TIMEOUT_MS, CMSIS_DAP_BLOCKING);
+\t\t\tif (retval < 0)
+\t\t\t\treturn retval;
+\t\t\tresp = dap->response;
+\t\t}
+\t}
+\tunsigned int resp_size = retval;''')
     generated = scratch / original.name
-    generated.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
+    generated.write_text(text, encoding='utf-8')
     obj = scratch / 'cmsis-dap-webusb.o'
     subprocess.run([
         sys.executable, emscripten / 'emcc.py', '-std=gnu23', '-O1', '-DHAVE_CONFIG_H',
@@ -107,6 +126,60 @@ static void em_libusb_wait(''', 1)
         sys.executable, emscripten / 'emcc.py', '-std=gnu11', '-O2', '-pthread',
         '-DHAVE_CONFIG_H', '-I', build, '-I', source / 'libusb', '-I', original.parent,
         '-c', generated.name, '-o', obj.name,
+    ], check=True, env=env, cwd=scratch)
+    return obj
+
+
+def compile_batched_sba(source, build, scratch, emscripten, env):
+    original = source / 'src/target/riscv/riscv-013.c'
+    text = original.read_text(encoding='utf-8')
+    start = text.index('\t\tfor (uint32_t i = (next_address - address) / size; i < count - 1; i++) {')
+    end = text.index('\n\t\tuint32_t sbcs_read = 0;', start)
+    if 'riscv_batch_alloc(target, size_in_words)' not in text[start:end]:
+        raise ValueError('OpenOCD SBA read loop changed upstream; review batching')
+    # Keep the existing SBA error recovery and final read with SBREADONDATA off.
+    # Batch only contiguous words. Wider accesses and repeat reads keep their
+    # existing sequencing, including repeated reads of memory-mapped registers.
+    loop = '''\t\tfor (uint32_t i = (next_address - address) / size; i < count - 1;) {
+\t\t\tconst uint32_t size_in_words = DIV_ROUND_UP(size, 4);
+\t\t\tconst uint32_t burst = size == 4 && increment == 4
+\t\t\t\t? MIN(count - 1 - i, RISCV_BATCH_ALLOC_SIZE) : 1;
+\t\t\tstruct riscv_batch *batch = riscv_batch_alloc(target, burst * size_in_words);
+\t\t\tif (!batch)
+\t\t\t\treturn ERROR_FAIL;
+\t\t\tfor (uint32_t n = 0; n < burst; ++n) {
+\t\t\t\t/* Reading sbdata0 triggers the next SBA access. */
+\t\t\t\tfor (uint32_t j = size_in_words - 1; j > 0; --j)
+\t\t\t\t\triscv_batch_add_dm_read(batch, sbdata[j], RISCV_DELAY_BASE);
+\t\t\t\triscv_batch_add_dm_read(batch, sbdata[0], RISCV_DELAY_SYSBUS_READ);
+\t\t\t}
+
+
+\t\t\tint res = batch_run_timeout(target, batch);
+\t\t\tif (res != ERROR_OK) {
+\t\t\t\triscv_batch_free(batch);
+\t\t\t\treturn res;
+\t\t\t}
+
+
+\t\t\tfor (uint32_t n = 0; n < burst; ++n, ++i) {
+\t\t\t\tconst size_t last_key = (n + 1) * size_in_words - 1;
+\t\t\t\tfor (size_t k = 0; k < size_in_words; ++k) {
+\t\t\t\t\tsbvalue[k] = riscv_batch_get_dmi_read_data(batch, last_key - k);
+\t\t\t\t\tbuf_set_u32(buffer + i * size + k * 4, 0, MIN(32, 8 * size), sbvalue[k]);
+\t\t\t\t}
+\t\t\t\tlog_memory_access(address + i * increment, sbvalue, size, true);
+\t\t\t}
+\t\t\triscv_batch_free(batch);
+\t\t}
+'''
+    generated = scratch / original.name
+    generated.write_text(text[:start] + loop + text[end:], encoding='utf-8')
+    obj = scratch / 'riscv-013-batched-sba.o'
+    subprocess.run([
+        sys.executable, emscripten / 'emcc.py', '-std=gnu23', '-O1', '-DHAVE_CONFIG_H',
+        '-I', build, '-I', source / 'src', '-I', original.parent,
+        '-I', source / 'jimtcl', '-I', build / 'jimtcl', '-c', generated.name, '-o', obj.name,
     ], check=True, env=env, cwd=scratch)
     return obj
 
@@ -165,6 +238,7 @@ def main():
         ], check=True, env=env)
         replacements.append(bridge_obj)
         replacements.append(compile_webusb_cmsis_dap(source, build, scratch, emscripten, env))
+        replacements.append(compile_batched_sba(source, build, scratch, emscripten, env))
         replacements.append(compile_webusb_events(args.libusb_source.resolve(), args.libusb_build.resolve(),
                                                   scratch, emscripten, env))
         features.append("-Wl,--wrap=server_loop")

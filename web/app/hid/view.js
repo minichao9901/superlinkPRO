@@ -20,12 +20,12 @@ import { MockAkaLinkHid } from './mock.js';
 import { waitMs } from '../core/pace.js';
 
 const CLOCK_OPTIONS = [
-  { v: '', label: '不改（用探针当前档位）' },
+  { v: '', label: '沿用当前档位' },
   { v: '20000000', label: '20 MHz' },
   { v: '30000000', label: '30 MHz' },
   { v: '36000000', label: '36 MHz' },
-  { v: '45000000', label: '45 MHz（出厂默认）' },
-  { v: '60000000', label: '60 MHz（更快，偶发抖动）' },
+  { v: '45000000', label: '45 MHz' },
+  { v: '60000000', label: '60 MHz' },
 ];
 
 const hex = n => '0x' + (n >>> 0).toString(16);
@@ -171,7 +171,7 @@ export class RttCdcView {
   }
 
   /** 停止探针侧 RTT 桥后关闭本页 HID 会话；CDC 串口仍由串口页单独管理。 */
-  async disconnect(){
+  async disconnect({ fromManager = false } = {}){
     if (this._disconnectPromise) return await this._disconnectPromise;
     if (this._connecting || this._disconnecting) return false;
     this._disconnecting = true;
@@ -180,7 +180,7 @@ export class RttCdcView {
       const needsStop = !!(this._starting || this.last?.running || this._bridgeRequested ||
         this.probeManager?.leases?.has('hid') || this.probeManager?.failures?.has('hid'));
       if (needsStop){
-        const stopped = await this.stop();
+        const stopped = await this.stop({ fromManager });
         if (stopped === false) throw new Error('停止 RTT 转发未确认，探针连接仍保持打开');
       }
       clearInterval(this._timer);
@@ -388,12 +388,14 @@ export class RttCdcView {
    * 因为切换要避开引擎运行中（固件会回 -7）。
    */
   syncTargetTypeFromStore(){
+    if (this.last?.running || this._bridgeRequested || this._starting || this._stopPromise) return false;
     const saved = store.get('rtt.target', '');
     if (saved !== 'riscv' && saved !== 'swd') return false;
     this._targetRiscv = saved === 'riscv';
     if ($('h-target').value === saved) return false;
     $('h-target').value = saved;
     this._applyTargetUi();
+    this.onTargetConfigChanged?.();
     return true;
   }
 
@@ -640,22 +642,29 @@ export class RttCdcView {
   async loadElf(){
     const f = this._elfInput.files?.[0];
     this._elfInput.value = '';
-    if (!f) return;
+    if (f) return await this.loadElfFile(f);
+    return false;
+  }
+
+  async loadElfFile(f, bytes){
     try {
-      const buf = await f.arrayBuffer();
+      const buf = bytes ?? await f.arrayBuffer();
       const sym = findSymbol(buf, '_SEGGER_RTT');
       if (!sym){
         toast(`${f.name} 里没有 _SEGGER_RTT 符号（strip 过？）→ 只能用「自动搜控制块」`, 'warn', 6000);
-        return;
+        return false;
       }
       $('h-addr').value = hex(sym.addr);
       // 已知确切地址就不用扫 64 KB：给个 4 KB 窗口，既不越界也留点余量（固件是 512B 重叠窗块读）
       $('h-size').value = '0x1000';
       this.persist();
       this.render();
+      this.onElfLoaded?.(buf, f.name);
       toast(`从 ELF 拿到 _SEGGER_RTT = ${hex(sym.addr)}（${sym.size} B）→ 搜索长度设为 0x1000`, 'ok', 6000);
+      return true;
     } catch (e){
       toast('读 ELF 失败：' + (e?.message || e), 'err');
+      return false;
     }
   }
 
@@ -727,7 +736,7 @@ export class RttCdcView {
     } else if (st.startRc){
       setStatus(el, `未运行 · 上次启动失败：${startRcText(st.startRc, this.isRiscv)}`, 'err');
     } else {
-      setStatus(el, '未运行（点「启动转发」或「自动搜控制块」）', '');
+      setStatus(el, '未运行。可启动转发或自动搜索控制块。', '');
     }
     return this.summary();
   }

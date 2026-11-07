@@ -1,5 +1,15 @@
 /** Selected configuration only; this module never opens or controls a probe. */
-export function sessionContextBusy(t){
+export function sessionContextBusy(t,page){
+  // These pages only edit the next capture's local settings. An idle HID
+  // handle or a debugger on another page need not block preparation.
+  if(page==='rttcdc'){
+    const h=t.hid;
+    return !!(h?.last?.running||h?._bridgeRequested||h?._activeTask||h?._starting||h?._stopPromise||h?._connecting||h?._disconnecting);
+  }
+  if(page==='scope'){
+    const s=t.scope;
+    return !!(s?.running||s?._starting||s?._stopPromise||s?._hidConnectPromise||s?._usbConnectPromise||s?._releasing);
+  }
   const manager=t.probeManager?.summary();
   return !!(manager?.owners.length||manager?.pending.length||manager?.failures.length||
     t.flash?.busy||t.flash?.probe||t.rtt?.probe||t.rtt?._connectPromise||t.rtt?._disconnectPromise||

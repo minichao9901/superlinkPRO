@@ -28,12 +28,8 @@
 import { DebugSession } from './session.js';
 import { RV_ARCH } from './rv.js';
 import { DM, DMCONTROL, DMSTATUS_LAYOUT, REGNO, DCSR_EBREAK } from '../flash/hpm/jtag.js';
-import { RiscvTransport } from '../flash/hpm/riscv-dm.js';
-import { DapJtagTransport, setOutputModeData, PROBE_OUTPUT_MODE } from '../flash/hpm/dap-transport.js';
-import { AkaLinkHid } from '../hid/probe.js';
-import { WebUsbDapProbe, withTimeout } from '../rtt/dap-webusb.js';
-import { closeProbeUsbDevices } from '../core/probe-bus.js';
-import { resolveHpmTarget, assertHpmIdentity, overlapsSbaFence } from '../targets/hpm/porting.js';
+import { withTimeout } from '../core/timeout.js';
+import { resolveHpmTarget, overlapsSbaFence } from '../targets/hpm/porting.js';
 import { sleep, waitMs } from '../core/pace.js';
 import { align2 } from './fmt.js';
 
@@ -87,106 +83,10 @@ export class RiscvDebugSession extends DebugSession {
     this.dm = null;                       // RiscvTransport（DMI/SBA/抽象命令）
     this.jtag = null;
     this.caps = { numCode: 0, rev: 2, raw: 0 };
-    this.backendName = 'RISC-V/JTAG';
+    this.backendName = '历史 RISC-V 对照模型';
   }
 
-  // ---------------------------------------------------------------- 连接
-
-  /**
-   * 打开 RISC-V 通路。与 ARM 那条路的差别（`app/rtt/riscv-mem.js` 的注释里有完整版）：
-   *   · HID 必须**每次**发 `output_mode = SWD+JTAG`（读回来看是 1 也没用）；
-   *   · 还要让探针自己的 RISC-V 引擎与 RTT 桥**放开 TAP**（HID 0x33/0x31 的 action 0）；
-   *   · `WebUsbDapProbe.open` 必须 `skipTargetInit: true` —— 默认那套按 SWD 协商，RISC-V 上必 NO ACK。
-   */
-  async connect({ clockKhz = 0, all = false, bus = null, target = this.port } = {}){
-    if (this.probe) throw new Error('已经连接了（先断开）');
-    this.port = resolveHpmTarget(target);
-    if (bus?.supported){
-      const r = await bus.requestRelease({ why: '调试页要占用探针（RISC-V/JTAG）' });
-      if (r.asked) this._log(`跨页签协调：请 ${r.asked} 个其他页签让出探针，${r.acked} 个确认（等了 ${r.ms} ms）`, 'dim');
-    }
-    try { const n = await closeProbeUsbDevices(); if (n) this._log(`关掉 ${n} 个残留的探针句柄`, 'dim'); } catch {}
-
-    // ① HID：切 JTAG + 让探针侧两个"占 TAP 的家伙"让位
-    const hid = new AkaLinkHid();
-    try {
-      await withTimeout(hid.reconnect(), 8000, '连探针 HID');
-      await withTimeout(hid.xfer(0x02, setOutputModeData(PROBE_OUTPUT_MODE.SWD_JTAG)), 3000, '切输出模式');
-      this._log('探针 output_mode = SWD+JTAG', 'dim');
-    } catch (e){
-      this._log('⚠ 切 output_mode 失败（继续试 JTAG）：' + (e?.message || e), 'warn');
-    }
-    try { await withTimeout(hid.riscvStop(), 2000, 'RISC-V 引擎 stop'); this._log('已让探针 RISC-V 引擎放开 TAP', 'dim'); } catch {}
-    try { await withTimeout(hid.stop(), 2500, 'RTT 桥 stop'); } catch {}
-    try { await hid.close(); } catch {}
-
-    // ② WebUSB：认领 interface 0，**不做 SWD 目标初始化**
-    let auth = [];
-    try { auth = await withTimeout(WebUsbDapProbe.authorized(), 5000, '枚举已授权探针'); } catch {}
-    const openOpts = { skipTargetInit: true };
-    /**
-     * 🚨 **开探针要重试**（2026-10 真机统计）：这颗 akaLinkPro 在被上一个会话中途放开之后，
-     *    IN 端点里躺着**陈旧响应**，封包探测第一次会以
-     *    `响应回显 0x3 ≠ 命令 0x0` 失败（页面刷新后大约 3 次里 1 次）。
-     *    `dap-webusb` 内部已经清过一次队列，但偶尔还是会连吃两次陈旧包 ——
-     *    这里再兜一层"关掉句柄、等一会儿、重新开"，实测第二次就通。
-     *    （不重试的话表现是"偶发连不上 RISC-V"，用户只能手动再点一次连接。）
-     */
-    const openOnce = async () => {
-      if (this.probe?.disconnect){ try { await this.probe.disconnect(); } catch {} }
-      this.probe = null;
-      return auth.length
-        ? await withTimeout(WebUsbDapProbe.open(auth[0], openOpts), 20000, '连接探针（WebUSB）')
-        : await withTimeout(WebUsbDapProbe.request(all, openOpts), 60000, '等你在浏览器里选探针');
-    };
-    for (let attempt = 1; ; attempt++){
-      try { this.probe = await openOnce(); break; }
-      catch (e){
-        if (attempt >= 3) throw e;
-        this._log(`开探针失败（第 ${attempt} 次：${e?.message || e}）—— 等一下重开`, 'warn');
-        try { await this.probe?.disconnect?.(); } catch {}
-        await sleep(300 * attempt);
-      }
-    }
-    this.probe.onLog = s => this._log('   [usb] ' + s, 'dim');
-
-    // ③ JTAG → DMI → DM
-    const imported = this.port.id === 'riscv-cfg';
-    let info;
-    try {
-      if (imported && this.probe.device?.nativeService) throw new Error('导入的 CFG 仅用于浏览器 WebUSB');
-      if (Number(clockKhz) > 0){
-        try { await this.probe.setClock(Number(clockKhz) * 1000); }
-        catch (e){
-          if (imported) throw e;
-          this._log('设 JTAG 时钟失败：' + (e?.message || e), 'warn');
-        }
-      }
-      this.jtag = new DapJtagTransport(this.probe, { irLength: this.port.debug.irLength, log: s => this._log('   [jtag] ' + s, 'dim') });
-      this.dm = new RiscvTransport(this.jtag, { port: this.port, log: s => this._log('   [dm] ' + s, 'dim') });
-      info = await withTimeout(this.dm.init(), 20000, '初始化 RISC-V 调试模块');
-      assertHpmIdentity(this.port, info);
-      if (imported){
-        if (!(info.dmstatus & (1 << 7))) throw new Error('RISC-V 调试模块未通过硬件认证');
-        if (info.dmstatus & 0xf000) throw new Error(`CFG 选定的 hart ${this.port.debug.hart} 不存在或不可用`);
-        const sbcs = await this.dm.dmiRead(DM.SBCS);
-        if (!(sbcs & 4) || ((sbcs >>> 5) & 0x7f) < 32) throw new Error('CFG 目标缺少 32 位 SBA 系统总线访问');
-      }
-    } catch (e){
-      if (imported){
-        await this.probe.disconnect();
-        this.dm = null; this.jtag = null; this.probe = null;
-      }
-      throw e;
-    }
-    this.clockHz = Number(clockKhz) > 0 ? Number(clockKhz) * 1000 : 0;
-    this.idcode = info?.idcode >>> 0;
-    this.name = `RISC-V/JTAG · DM v${((info?.dmstatus ?? 0) >>> 0).toString(16)}`;
-    this._log(`已连接：RISC-V/JTAG　IDCODE=0x${this.idcode.toString(16).toUpperCase()}　dmstatus=0x${((info?.dmstatus ?? 0) >>> 0).toString(16)}`, 'ok');
-    await this.refresh();
-    await this.bpInit();
-    return this;
-  }
+  async connect(){ throw Error('RISC-V 真机连接请使用 OpenOCD Wasm 会话'); }
 
   async disconnect(){
     this.clearFrames();

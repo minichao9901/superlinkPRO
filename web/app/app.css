@@ -1290,6 +1290,10 @@ fieldset,.toolbar,.sendbar,.stats,.an-measurements,.an-plot,
 #tab-spi .scroll,#tab-panel .scroll,#tab-i2c .scroll,#tab-gen .dockpage>.scroll,
 #tab-dbg .symlist,#tab-dbg .watchlist{border-color:var(--line)}
 .hint,.workspace-help{font-size:12.5px;line-height:1.6;color:var(--fg2)}
+.hint.ok{color:var(--ok)}
+.hint.err{color:var(--err)}
+.hint.warn{color:var(--warn)}
+#tab-swo #sw-counts{margin:0}
 .rx,.termbox{background:#0a0f15}
 .rx:empty,.log[data-empty]:empty{position:relative}
 .rx:empty::before,.log[data-empty]:empty::before{

@@ -164,8 +164,8 @@ export class RttCdcStreamView {
     const prev = sel.value;
     sel.innerHTML = '';
     if (!this.ports.length){
-      sel.appendChild(new Option('（没有已授权的串口 → 点「选择…」）', ''));
-      setStatus(this.$('c-note'), '还没授权任何串口：点「选择…」在浏览器弹框里选探针的 CDC 口（第一次必须手动选一次）。', null);
+      sel.appendChild(new Option('未授权串口', ''));
+      setStatus(this.$('c-note'), '点「选择…」授权探针的 CDC 端口。', null);
       return;
     }
     this.ports.forEach((p, i) => {

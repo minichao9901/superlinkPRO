@@ -1,0 +1,1082 @@
+{
+  "date": "2026-11-07",
+  "sourceBase": "73e4b82",
+  "runtime": "8911",
+  "board": "HPM6800EVK",
+  "probe": "akaLinkPro",
+  "openocdWasmSha256": "257f4ffc396ce941e55331eb689be18a7b84a7a0dd10e12ede22fabe37a3f16e",
+  "sdkCfg": "HPM SDK 1.11.0 hpm6800_all_in_one.cfg",
+  "identity": {
+    "id": 268457533
+  },
+  "debug": {
+    "debug-stress": {
+      "backend": "openocd",
+      "clockKhz": 8000,
+      "session": "OpenOCD Wasm / WebUSB",
+      "reconnections": 0,
+      "trapCount": 0,
+      "disconnected": true,
+      "checks": {
+        "源码行断点与高亮": true,
+        "四断点同时命中": true,
+        "同一断点连续五次": true,
+        "19 步指令单步": true,
+        "19 步源码跳过": true,
+        "源码进入被调函数": true,
+        "连续五次源码跳出": true,
+        "40 轮停走压力": true,
+        "复位并停后断点重命中": true,
+        "复位并运行后断点命中": true,
+        "RAM 结构体、位域和异常路径": true,
+        "XIP 常量结构体": true,
+        "三类监视表达式": true
+      },
+      "elfSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+      "pressure40": {
+        "passed": true,
+        "evidence": {
+          "rounds": 40,
+          "pc": 2147506974
+        }
+      }
+    },
+    "random-2-debug-stress": {
+      "backend": "openocd",
+      "clockKhz": 8000,
+      "session": "OpenOCD Wasm / WebUSB",
+      "reconnections": 0,
+      "trapCount": 0,
+      "disconnected": true,
+      "checks": {
+        "源码行断点与高亮": true,
+        "四断点同时命中": true,
+        "同一断点连续五次": true,
+        "19 步指令单步": true,
+        "19 步源码跳过": true,
+        "源码进入被调函数": true,
+        "连续五次源码跳出": true,
+        "40 轮停走压力": true,
+        "复位并停后断点重命中": true,
+        "复位并运行后断点命中": true,
+        "RAM 结构体、位域和异常路径": true,
+        "XIP 常量结构体": true,
+        "三类监视表达式": true
+      },
+      "elfSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+      "pressure40": {
+        "passed": true,
+        "evidence": {
+          "rounds": 40,
+          "pc": 2147506974
+        }
+      }
+    },
+    "final-debug-stress": {
+      "backend": "openocd",
+      "clockKhz": 8000,
+      "session": "OpenOCD Wasm / WebUSB",
+      "reconnections": 0,
+      "trapCount": 0,
+      "disconnected": true,
+      "checks": {
+        "源码行断点与高亮": true,
+        "四断点同时命中": true,
+        "同一断点连续五次": true,
+        "19 步指令单步": true,
+        "19 步源码跳过": true,
+        "源码进入被调函数": true,
+        "连续五次源码跳出": true,
+        "40 轮停走压力": true,
+        "复位并停后断点重命中": true,
+        "复位并运行后断点命中": true,
+        "RAM 结构体、位域和异常路径": true,
+        "XIP 常量结构体": true,
+        "三类监视表达式": true
+      },
+      "elfSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+      "pressure40": {
+        "passed": true,
+        "evidence": {
+          "rounds": 40,
+          "pc": 2147506974
+        }
+      }
+    }
+  },
+  "sramHalted": {
+    "8000": {
+      "restored": true,
+      "measurements": [
+        {
+          "bytes": 4096,
+          "readSeconds": 0.24903159999666968,
+          "writeSeconds": 0.17551970000204165,
+          "readBps": 16447.711856867867,
+          "writeBps": 23336.41180991282
+        },
+        {
+          "bytes": 4096,
+          "readSeconds": 0.26177589999861084,
+          "writeSeconds": 0.16983479999908013,
+          "readBps": 15646.971321736402,
+          "writeBps": 24117.554235187283
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 0.5534505000032368,
+          "writeSeconds": 0.5615149000004749,
+          "readBps": 29603.370129585535,
+          "writeBps": 29178.2105870853
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 0.5308132999998634,
+          "writeSeconds": 0.5668452999962028,
+          "readBps": 30865.843037475166,
+          "writeBps": 28903.829669417304
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 1.9904304000010598,
+          "writeSeconds": 1.8620584000018425,
+          "readBps": 32925.54213398525,
+          "writeBps": 35195.458960865646
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 1.9735757999951602,
+          "writeSeconds": 1.9593537000037031,
+          "readBps": 33206.73064604902,
+          "writeBps": 33447.76392331621
+        }
+      ]
+    },
+    "10000": {
+      "restored": true,
+      "measurements": [
+        {
+          "bytes": 4096,
+          "readSeconds": 0.17105430000083288,
+          "writeSeconds": 0.26879059999919264,
+          "readBps": 23945.612591908277,
+          "writeBps": 15238.62813659519
+        },
+        {
+          "bytes": 4096,
+          "readSeconds": 0.26883449999877485,
+          "writeSeconds": 0.22529230000509415,
+          "readBps": 15236.139706840702,
+          "writeBps": 18180.825531575578
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 0.5812542999992729,
+          "writeSeconds": 0.6058228999972926,
+          "readBps": 28187.318356217744,
+          "writeBps": 27044.20714382573
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 0.5947615999975824,
+          "writeSeconds": 0.5716092999937246,
+          "readBps": 27547.171841737258,
+          "writeBps": 28662.934630664462
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 1.9969071000014083,
+          "writeSeconds": 1.8437662000069395,
+          "readBps": 32818.75255987311,
+          "writeBps": 35544.63684156556
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 2.053830700002436,
+          "writeSeconds": 1.9887368999989121,
+          "readBps": 31909.15395310931,
+          "writeBps": 32953.57973195743
+        }
+      ]
+    },
+    "20000": {
+      "restored": true,
+      "measurements": [
+        {
+          "bytes": 4096,
+          "readSeconds": 0.261784100002842,
+          "writeSeconds": 0.1713400999942678,
+          "readBps": 15646.48120323401,
+          "writeBps": 23905.67065232851
+        },
+        {
+          "bytes": 4096,
+          "readSeconds": 0.24723390000144718,
+          "writeSeconds": 0.2514609999998356,
+          "readBps": 16567.307314959737,
+          "writeBps": 16288.8082048615
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 0.5749842000004719,
+          "writeSeconds": 0.5777006999996956,
+          "readBps": 28494.696028145736,
+          "writeBps": 28360.706504265327
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 0.5627669999958016,
+          "writeSeconds": 0.5320673999958672,
+          "readBps": 29113.292002058097,
+          "writeBps": 30793.091251460366
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 1.9984557999996468,
+          "writeSeconds": 1.9354629000008572,
+          "readBps": 32793.31972216327,
+          "writeBps": 33860.63354661615
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 2.0216970999972546,
+          "writeSeconds": 1.9320662000027369,
+          "readBps": 32416.329825120192,
+          "writeBps": 33920.16277698309
+        }
+      ]
+    },
+    "25000": {
+      "restored": true,
+      "measurements": [
+        {
+          "bytes": 4096,
+          "readSeconds": 0.26561019999644486,
+          "writeSeconds": 0.23902410000300733,
+          "readBps": 15421.09452142585,
+          "writeBps": 17136.34733881841
+        },
+        {
+          "bytes": 4096,
+          "readSeconds": 0.26656970000476576,
+          "writeSeconds": 0.2484247000029427,
+          "readBps": 15365.587311411504,
+          "writeBps": 16487.89351441898
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 0.5027088999995613,
+          "writeSeconds": 0.580341100001533,
+          "readBps": 32591.426171317635,
+          "writeBps": 28231.67271791834
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 0.6065700999970431,
+          "writeSeconds": 0.574046299996553,
+          "readBps": 27010.892887862206,
+          "writeBps": 28541.25181208969
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 1.9944137999991653,
+          "writeSeconds": 2.1053443000055267,
+          "readBps": 32859.7806533566,
+          "writeBps": 31128.40023355228
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 1.9759260999999242,
+          "writeSeconds": 2.0579523000051267,
+          "readBps": 33167.23231703985,
+          "writeBps": 31845.247336314227
+        }
+      ]
+    }
+  },
+  "sramRunning": {
+    "8000": {
+      "restored": true,
+      "measurements": [
+        {
+          "bytes": 4096,
+          "readSeconds": 0.37339410000276985,
+          "writeSeconds": 0.17171789999702014,
+          "readBps": 10969.643066051702,
+          "writeBps": 23853.075305900427
+        },
+        {
+          "bytes": 4096,
+          "readSeconds": 0.3917578999971738,
+          "writeSeconds": 0.1557219999958761,
+          "readBps": 10455.436891073668,
+          "writeBps": 26303.284058183635
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 1.3229133999993792,
+          "writeSeconds": 0.23576039999898057,
+          "readBps": 12384.786487163627,
+          "writeBps": 69494.28317932462
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 1.2176254000005429,
+          "writeSeconds": 0.155935299997509,
+          "readBps": 13455.698279612676,
+          "writeBps": 105069.21781188562
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 4.8810461000030045,
+          "writeSeconds": 0.47328929999639513,
+          "readBps": 13426.630000474623,
+          "writeBps": 138469.21956718474
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 4.898345199995674,
+          "writeSeconds": 0.5451665000000503,
+          "readBps": 13379.212228664055,
+          "writeBps": 120212.81571775588
+        }
+      ]
+    }
+  },
+  "sramRunningFirstCleanup": {
+    "8000": {
+      "restored": true,
+      "error": "Error: [hpm6880.cpu0] Not halted.\n",
+      "measurements": [
+        {
+          "bytes": 4096,
+          "readSeconds": 0.48456199999782257,
+          "writeSeconds": 0.13655799999833107,
+          "readBps": 8452.994663259615,
+          "writeBps": 29994.581057499807
+        },
+        {
+          "bytes": 4096,
+          "readSeconds": 0.35823000000527827,
+          "writeSeconds": 0.14002410000102827,
+          "readBps": 11433.994919296676,
+          "writeBps": 29252.107315597248
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 1.2767259000029298,
+          "writeSeconds": 0.24883939999563154,
+          "readBps": 12832.824962634815,
+          "writeBps": 65841.66333903564
+        },
+        {
+          "bytes": 16384,
+          "readSeconds": 1.2514068000018597,
+          "writeSeconds": 0.22690300000249408,
+          "readBps": 13092.465215927909,
+          "writeBps": 72207.06645491646
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 5.007704700001341,
+          "writeSeconds": 0.5922964999990654,
+          "readBps": 13087.033666338682,
+          "writeBps": 110647.28560797406
+        },
+        {
+          "bytes": 65536,
+          "readSeconds": 4.71765890000097,
+          "writeSeconds": 0.4414575999981025,
+          "readBps": 13891.635955279964,
+          "writeBps": 148453.66803127114
+        }
+      ]
+    }
+  },
+  "flash": {
+    "final-flash-dbg": {
+      "imageSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+      "result": {
+        "bytes": 48224,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 8.910078399996564,
+      "status": "已烧录 47.1 KB，读回校验通过"
+    },
+    "flash-flood": {
+      "imageSha256": "db75ee2622de260013645eeb1133f834923c3801faeab09b905a8e2b4c2fd043",
+      "result": {
+        "bytes": 47128,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 8.946914099993592,
+      "status": "已烧录 46.0 KB，读回校验通过"
+    },
+    "flash-scope-r2": {
+      "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+      "result": {
+        "bytes": 47856,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 10.209967899994808,
+      "status": "已烧录 46.7 KB，读回校验通过"
+    },
+    "random-1-alt-flash-flood": {
+      "imageSha256": "db75ee2622de260013645eeb1133f834923c3801faeab09b905a8e2b4c2fd043",
+      "result": {
+        "bytes": 47128,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 9.499896199995419,
+      "status": "已烧录 46.0 KB，读回校验通过"
+    },
+    "random-1-alt-flash-scope": {
+      "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+      "result": {
+        "bytes": 47856,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 12.048608800003421,
+      "status": "已烧录 46.7 KB，读回校验通过"
+    },
+    "random-1-flash-flood": {
+      "imageSha256": "db75ee2622de260013645eeb1133f834923c3801faeab09b905a8e2b4c2fd043",
+      "result": {
+        "bytes": 47128,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 9.036634499992942,
+      "status": "已烧录 46.0 KB，读回校验通过"
+    },
+    "random-1-flash-scope": {
+      "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+      "result": {
+        "bytes": 47856,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 10.164740199994412,
+      "status": "已烧录 46.7 KB，读回校验通过"
+    },
+    "random-2-flash-dbg": {
+      "imageSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+      "result": {
+        "bytes": 48224,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 10.060580699995626,
+      "status": "已烧录 47.1 KB，读回校验通过"
+    },
+    "random-3-alt-flash-flood": {
+      "imageSha256": "db75ee2622de260013645eeb1133f834923c3801faeab09b905a8e2b4c2fd043",
+      "result": {
+        "bytes": 47128,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 10.000958600001468,
+      "status": "已烧录 46.0 KB，读回校验通过"
+    },
+    "random-3-alt-flash-scope": {
+      "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+      "result": {
+        "bytes": 47856,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 9.933556199997838,
+      "status": "已烧录 46.7 KB，读回校验通过"
+    },
+    "random-3-flash-flood": {
+      "imageSha256": "db75ee2622de260013645eeb1133f834923c3801faeab09b905a8e2b4c2fd043",
+      "result": {
+        "bytes": 47128,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 8.900471399996604,
+      "status": "已烧录 46.0 KB，读回校验通过"
+    },
+    "random-3-flash-scope": {
+      "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+      "result": {
+        "bytes": 47856,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 9.987513799998851,
+      "status": "已烧录 46.7 KB，读回校验通过"
+    }
+  },
+  "viewer": {
+    "viewer": {
+      "echo": false,
+      "helloCount": 5037,
+      "receivedBytes": 65534,
+      "error": "bytearray(b'\\r\\n=== HPM6800EVK RTT flood (BLOCK_IF_FIFO_FULL) ===\\r\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello wo')",
+      "backend": "openocd",
+      "windowEndStats": {
+        "bytes": 65534,
+        "corrupt": 0,
+        "hz": 0,
+        "lastBytes": 65534,
+        "lastPolls": 2,
+        "lost": 0,
+        "polls": 2,
+        "rate": 0
+      }
+    },
+    "viewer-r2": {
+      "echo": true,
+      "helloCount": 31984,
+      "receivedBytes": 415903,
+      "backend": "openocd",
+      "windowEndStats": {
+        "bytes": 317602,
+        "corrupt": 0,
+        "hz": 1.0042177144034874,
+        "lastBytes": 317602,
+        "lastPolls": 12,
+        "lost": 0,
+        "polls": 12,
+        "rate": 24595.300261170214
+      }
+    },
+    "random-1-viewer": {
+      "echo": true,
+      "nonce": "fe24100fa87f",
+      "bytesPerSec": 13162.339438463296,
+      "helloCount": 20945,
+      "receivedBytes": 272364,
+      "backend": "openocd",
+      "windowEndStats": {
+        "bytes": 272364,
+        "corrupt": 0,
+        "hz": 0.9988014382710981,
+        "lastBytes": 272364,
+        "lastPolls": 10,
+        "lost": 0,
+        "polls": 10,
+        "rate": 26605.07391122724
+      }
+    },
+    "random-3-viewer": {
+      "echo": true,
+      "nonce": "a44f0b5e95cb",
+      "bytesPerSec": 13460.174460706263,
+      "helloCount": 21346,
+      "receivedBytes": 277577,
+      "backend": "openocd",
+      "windowEndStats": {
+        "bytes": 277577,
+        "corrupt": 0,
+        "hz": 0,
+        "lastBytes": 0,
+        "lastPolls": 0,
+        "lost": 0,
+        "polls": 11,
+        "rate": 0
+      }
+    }
+  },
+  "cdc": {
+    "cdc-r2": [
+      {
+        "seconds": 5.02315880000242,
+        "hostBytes": 7340032,
+        "bytesPerSec": 1461238.2949144398,
+        "alignedBytes": 7340021,
+        "mismatchBytes": 0,
+        "readErrors": 0,
+        "bridgeStart": 49152,
+        "bridgeEnd": 10398461
+      },
+      {
+        "seconds": 5.023284499999136,
+        "hostBytes": 7340032,
+        "bytesPerSec": 1461201.729665374,
+        "alignedBytes": 7340021,
+        "mismatchBytes": 0,
+        "readErrors": 0,
+        "bridgeStart": 10398461,
+        "bridgeEnd": 17732349
+      },
+      {
+        "seconds": 8.001212499999383,
+        "hostBytes": 11665408,
+        "bytesPerSec": 1457955.0286910764,
+        "alignedBytes": 11665394,
+        "mismatchBytes": 0,
+        "readErrors": 0,
+        "bridgeStart": 17732349,
+        "bridgeEnd": 29407997
+      }
+    ],
+    "random-1-cdc": [
+      {
+        "seconds": 4.030409500002861,
+        "hostBytes": 5898240,
+        "bytesPerSec": 1463434.4227294554,
+        "alignedBytes": 5898230,
+        "mismatchBytes": 0,
+        "readErrors": 0,
+        "bridgeStart": 47104,
+        "bridgeEnd": 8889575
+      }
+    ],
+    "random-3-cdc": [
+      {
+        "seconds": 4.030576099998143,
+        "hostBytes": 5898240,
+        "bytesPerSec": 1463373.9330719293,
+        "alignedBytes": 5898217,
+        "mismatchBytes": 0,
+        "readErrors": 0,
+        "bridgeStart": 47104,
+        "bridgeEnd": 8959344
+      }
+    ]
+  },
+  "scope": {
+    "scope-final": [
+      {
+        "channels": 1,
+        "periodUs": 20,
+        "rateHz": 50000,
+        "receivedSamples": 203112,
+        "spanUs": 4062220,
+        "firstTick": 828244,
+        "lastTick": 868866,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -90
+      },
+      {
+        "channels": 1,
+        "periodUs": 5,
+        "rateHz": 199999,
+        "receivedSamples": 818152,
+        "spanUs": 4090780,
+        "firstTick": 875286,
+        "lastTick": 916194,
+        "lostProbe": 5,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -253
+      },
+      {
+        "channels": 1,
+        "periodUs": 2,
+        "rateHz": 309726,
+        "receivedSamples": 1271124,
+        "spanUs": 4104018.7741935486,
+        "firstTick": 925608,
+        "lastTick": 966649,
+        "lostProbe": 781488,
+        "lostUsb": 423,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -992
+      },
+      {
+        "channels": 3,
+        "periodUs": 30,
+        "rateHz": 33333,
+        "receivedSamples": 137842,
+        "spanUs": 4135230,
+        "firstTick": 980850,
+        "lastTick": 1022203,
+        "lostProbe": 0,
+        "lostUsb": 98,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -328
+      },
+      {
+        "channels": 3,
+        "periodUs": 10,
+        "rateHz": 52629,
+        "receivedSamples": 219227,
+        "spanUs": 4165460.975609756,
+        "firstTick": 1034492,
+        "lastTick": 1076148,
+        "lostProbe": 197615,
+        "lostUsb": 35,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -328
+      },
+      {
+        "channels": 3,
+        "periodUs": 2,
+        "rateHz": 52096,
+        "receivedSamples": 219227,
+        "spanUs": 4208106,
+        "firstTick": 1085214,
+        "lastTick": 1127304,
+        "lostProbe": 1886629,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -169
+      },
+      {
+        "channels": 8,
+        "periodUs": 100,
+        "rateHz": 10000,
+        "receivedSamples": 40455,
+        "spanUs": 4045400,
+        "firstTick": 1153218,
+        "lastTick": 1193673,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -25
+      },
+      {
+        "channels": 8,
+        "periodUs": 50,
+        "rateHz": 20000,
+        "receivedSamples": 81720,
+        "spanUs": 4085950,
+        "firstTick": 1205460,
+        "lastTick": 1246321,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -40
+      },
+      {
+        "channels": 8,
+        "periodUs": 30,
+        "rateHz": 31381,
+        "receivedSamples": 128490,
+        "spanUs": 4094548,
+        "firstTick": 1254942,
+        "lastTick": 1295889,
+        "lostProbe": 7998,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -46
+      },
+      {
+        "channels": 8,
+        "periodUs": 20,
+        "rateHz": 31376,
+        "receivedSamples": 129405,
+        "spanUs": 4124348,
+        "firstTick": 1308064,
+        "lastTick": 1349309,
+        "lostProbe": 76876,
+        "lostUsb": 16,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -105
+      },
+      {
+        "channels": 8,
+        "periodUs": 10,
+        "rateHz": 31314,
+        "receivedSamples": 129105,
+        "spanUs": 4122950,
+        "firstTick": 1357226,
+        "lastTick": 1398460,
+        "lostProbe": 283487,
+        "lostUsb": 92,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -120
+      },
+      {
+        "channels": 8,
+        "periodUs": 5,
+        "rateHz": 31230,
+        "receivedSamples": 128865,
+        "spanUs": 4126285,
+        "firstTick": 1407708,
+        "lastTick": 1448976,
+        "lostProbe": 696700,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -42
+      },
+      {
+        "channels": 8,
+        "periodUs": 2,
+        "rateHz": 31001,
+        "receivedSamples": 128010,
+        "spanUs": 4129240,
+        "firstTick": 1456271,
+        "lastTick": 1497568,
+        "lostProbe": 1937938,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -73
+      }
+    ],
+    "random-1-scope": [
+      {
+        "channels": 1,
+        "periodUs": 2,
+        "rateHz": 309717,
+        "receivedSamples": 1270876,
+        "spanUs": 4103348.7741935486,
+        "firstTick": 24214,
+        "lastTick": 65248,
+        "lostProbe": 781404,
+        "lostUsb": 739,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -992
+      },
+      {
+        "channels": 8,
+        "periodUs": 100,
+        "rateHz": 9982,
+        "receivedSamples": 40395,
+        "spanUs": 4046800,
+        "firstTick": 91698,
+        "lastTick": 132167,
+        "lostProbe": 0,
+        "lostUsb": 74,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -51
+      },
+      {
+        "channels": 8,
+        "periodUs": 20,
+        "rateHz": 31302,
+        "receivedSamples": 129180,
+        "spanUs": 4126868,
+        "firstTick": 142459,
+        "lastTick": 183729,
+        "lostProbe": 77236,
+        "lostUsb": 67,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -120
+      }
+    ],
+    "random-3-scope": [
+      {
+        "channels": 1,
+        "periodUs": 10,
+        "rateHz": 99999,
+        "receivedSamples": 413044,
+        "spanUs": 4130470,
+        "firstTick": 18533,
+        "lastTick": 59838,
+        "lostProbe": 4,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -554
+      },
+      {
+        "channels": 1,
+        "periodUs": 2,
+        "rateHz": 292813,
+        "receivedSamples": 1202552,
+        "spanUs": 4106896.7580645164,
+        "firstTick": 66855,
+        "lastTick": 107924,
+        "lostProbe": 740303,
+        "lostUsb": 110811,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -356
+      },
+      {
+        "channels": 3,
+        "periodUs": 40,
+        "rateHz": 25000,
+        "receivedSamples": 101270,
+        "spanUs": 4050760,
+        "firstTick": 122217,
+        "lastTick": 162726,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -131
+      },
+      {
+        "channels": 8,
+        "periodUs": 100,
+        "rateHz": 10000,
+        "receivedSamples": 40470,
+        "spanUs": 4046900,
+        "firstTick": 184301,
+        "lastTick": 224770,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -10
+      },
+      {
+        "channels": 8,
+        "periodUs": 40,
+        "rateHz": 25000,
+        "receivedSamples": 102285,
+        "spanUs": 4091360,
+        "firstTick": 235182,
+        "lastTick": 276097,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -116
+      },
+      {
+        "channels": 8,
+        "periodUs": 20,
+        "rateHz": 31371,
+        "receivedSamples": 129360,
+        "spanUs": 4123548,
+        "firstTick": 285504,
+        "lastTick": 326741,
+        "lostProbe": 76890,
+        "lostUsb": 32,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": -120
+      }
+    ]
+  },
+  "randomFlow": {
+    "seed": 20261005,
+    "plan": [
+      {
+        "kind": "feature",
+        "cycles": 1,
+        "alt": 1,
+        "step": 1
+      },
+      {
+        "kind": "debug",
+        "cycles": 1,
+        "alt": 0,
+        "step": 2
+      },
+      {
+        "kind": "feature",
+        "cycles": 1,
+        "alt": 1,
+        "step": 3
+      }
+    ],
+    "steps": [
+      {
+        "label": "full-identity",
+        "exitCode": 0
+      },
+      {
+        "label": "random-1-flash-flood",
+        "exitCode": 0
+      },
+      {
+        "label": "random-1-viewer",
+        "exitCode": 0
+      },
+      {
+        "label": "random-1-cdc",
+        "exitCode": 0
+      },
+      {
+        "label": "random-1-flash-scope",
+        "exitCode": 0
+      },
+      {
+        "label": "random-1-scope",
+        "exitCode": 0
+      },
+      {
+        "label": "random-1-alt-flash-flood",
+        "exitCode": 0
+      },
+      {
+        "label": "random-1-alt-flash-scope",
+        "exitCode": 0
+      },
+      {
+        "label": "random-2-flash-dbg",
+        "exitCode": 0
+      },
+      {
+        "label": "random-2-debug-stress",
+        "exitCode": 0
+      },
+      {
+        "label": "random-3-flash-flood",
+        "exitCode": 0
+      },
+      {
+        "label": "random-3-viewer",
+        "exitCode": 0
+      },
+      {
+        "label": "random-3-cdc",
+        "exitCode": 0
+      },
+      {
+        "label": "random-3-flash-scope",
+        "exitCode": 0
+      },
+      {
+        "label": "random-3-scope",
+        "exitCode": 0
+      },
+      {
+        "label": "random-3-alt-flash-flood",
+        "exitCode": 0
+      },
+      {
+        "label": "random-3-alt-flash-scope",
+        "exitCode": 0
+      },
+      {
+        "label": "final-flash-dbg",
+        "exitCode": 0
+      },
+      {
+        "label": "final-debug-stress",
+        "exitCode": 0
+      },
+      {
+        "label": "final-sram-running",
+        "exitCode": 0
+      }
+    ]
+  },
+  "scratchRunnerSha256": "82b003a780740bbacebc9fddf559fce09ae0460119127a01e8bf060cceac0ad9",
+  "echoSourceSha256": "4a4cfb02470360cce341d49001650b30f1696c0d57104ab4d5bd7b3c165cfbfa"
+}

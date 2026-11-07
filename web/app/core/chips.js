@@ -30,9 +30,10 @@ export const CHIPS = [
   { v: 'stm32c0',   label: 'STM32C0',             ram: '0x20000000-0x20003000' },
   { v: 'stm32wb',   label: 'STM32WB',             ram: '0x20000000-0x20040000' },
   { v: 'stm32wl',   label: 'STM32WL',             ram: '0x20000000-0x20010000' },
+  { v: 'rp2350',    label: 'RP2350（Cortex-M33）', ram: '0x20000000-0x20082000' },
   { v: 'esp32s31',  label: 'ESP32-S31（板载 USB-JTAG）' },
   { v: 'esp32',     label: 'ESP32（Wrover Kit）' },
-  ...HPM_BOARDS.map(b => ({ v: b.id, label: b.name + '（RISC-V，零安装）', ram: b.memory.rttRange })),
+  ...HPM_BOARDS.map(b => ({ v: b.id, label: b.name + '（RISC-V）', ram: b.memory.rttRange })),
 ];
 
 export function fillChipSelect(sel){

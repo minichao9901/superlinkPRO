@@ -48,6 +48,7 @@ python -X utf8 toolbox.py --runtime E:/trace-runs/toolbox-001 page serial state
 ```
 
 `ping` 不枚举或操作设备；`status` 沿用 Trace 工作台摘要，可能枚举已授权 USB 设备。
+ETM 联动采集的网页自动解码默认使用原生紧凑链，生成 TraceStore 与查询索引。需要先构建本仓 `etm/build-native` 的原生工具。服务把原生临时文件写到本次运行目录的 `runtime-tmp`。
 服务只绑定 `127.0.0.1`，队列要求本机地址、同源请求及 64 位十六进制令牌。
 运行时应放在仓库外或忽略的临时目录，不能公开其 `cli-token`。
 
@@ -60,14 +61,14 @@ python -X utf8 toolbox.py --runtime E:/trace-runs/toolbox-001 page serial state
 |---|---|---|
 | `serial` | 串口助手 | 端口和参数、ASCII/HEX/ANSI、时间戳、定时/快捷发送、DTR/RTS、接收/记录；`view.sendText`、`session.write` |
 | `terminal` | 终端 | 交互输入、ANSI、回显、键盘映射、粘贴、清空/保存；`event` 和共享 `session` |
-| `rtt` | RTT Viewer | WebUSB/模拟目标、RTT 搜索和通道、上下行、ELF、接收记录 |
+| `rtt` | RTT Viewer | OpenOCD Wasm / WebUSB、模拟目标、RTT 搜索和通道、上下行、ELF、接收记录 |
 | `rttcdc` | RTT 转发 | `view` 管 CDC 数据；`hid` 管目标/时钟、转发启停/状态；共享串口 `session` |
 | `spicdc` | SPI 转发 | `session` 管从机 SPI/DMA 配置与启停；`stream` 管接收显示/记录；`serial` 管 CDC |
 | `scope` | J-Scope | ELF/DWARF 变量、标量/数组/成员、1–8 通道、速率标定、采样、触发/游标、分道/缩放、CSV/原始包和质量报告 |
-| `dbg` | 调试器 | STM32 和其它 RISC-V 内置预设、Cortex-M/SWD 和 RV32/JTAG CFG 导入、源码/指令断点、暂停/继续/单步、寄存器/内存、监视/局部变量、调用栈、SVD、异常诊断、STM32F103xE / nRF52832 RAM ELF 启动。HPM6800EVK 使用 [OpenOCD Wasm / WebUSB](validation/hpm6800-wasm-parity-20261107.md)。Cortex-M 也可直接使用 `trace web command` |
-| `flash` | 烧录器 | ELF/HEX/BIN、芯片/算法、基地址、擦除/编程/校验、复位、IDCODE |
-| `swo` | SWO PC 采样 | CPU/Trace 时钟、双端速率和带宽规划、起点/采样、`.swopc`、ELF/源码、离线分析、热点/区间/回放、CSV/C/HTML 等当前页面支持的导出 |
-| `etm` | ETM 执行轨迹 | 目标 ELF/断点/时钟、LA 采样、原始/记录包导入、解码、执行流/调用/火焰/热点/包/质量、源码、全部导出；批处理优先 `trace` |
+| `dbg` | 调试器 | OpenOCD Wasm 通过 WebUSB 使用 SWD 或 JTAG，提供预设和 CFG 导入、断点、暂停/继续/单步、寄存器/内存、源码、调用栈与异常诊断 |
+| `flash` | 烧录器 | OpenOCD Wasm，支持 ELF/HEX/BIN、Flash 扇区烧录与读回、目标复位及 IDCODE |
+| `swo` | SWO PC 采样 | OpenOCD Wasm 配置目标寄存器，专用接收链路提供采样，支持离线分析、热点/区间/回放和导出 |
+| `etm` | ETM 执行轨迹 | OpenOCD Wasm 配置目标寄存器和断点，Kingst 采集高速 Trace，提供导入、解码和分析导出。批处理优先 `trace` |
 | `spi` | USB SPI/QSPI | 连接/参数/使能、单/双/四线帧、命令表、寄存器、DSL/周期脚本、实时值、NOR ID/SFDP/读写擦除/速度、回环 |
 | `panel` | SPI/QSPI 屏 | 与 `spi` 共用 `session`；面板档、初始化表解析/重放/导出、复位/背光/电源、图案/图片/动画/视频/局部更新、寄存器与 GRAM 读回 |
 | `i2c` | USB I2C | 扫描、地址/速率、读写事务/长读写、命令表、寄存器、DSL/周期任务、实时值 |
@@ -125,6 +126,8 @@ SWO 的 capture/sources、ETM 的 target、存在时的 store。以 `describe` �
 使用 describe 返回的原字符串传给 upload；这些是受控文件入口，不是任意对象访问。
 
 ## 5. 示例：参数、文件、导出
+
+在调试页通过 `upload` 上传 `describe` 返回的 CFG 文件控件，等 CFG 状态显示入口和核心后，可用 `set` 选择 CFG 调试核。烧录页与 RTT Viewer 可 `click` 各自的「沿用目标」，然后核对当前目标显示，再上传 ELF 和启动硬件操作。原版 CFG 需要提供全部脚本依赖；烧录还要求 CFG 声明 Flash bank。
 
 ### 无硬件预览 ADC/DAC 波形
 

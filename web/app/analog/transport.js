@@ -1,5 +1,5 @@
 import { UsbLease } from '../core/usb-device.js';
-import { withTimeout } from '../rtt/dap-webusb.js';
+import { withTimeout } from '../core/timeout.js';
 export const ADC_EP=0x8b, ADC_BLOCK_BYTES=4096;
 export const ADC_MAX_INFLIGHT=32;
 /** 共享缓冲 IN 侧退场的上限与单笔等待时间（端点空闲时只花一次超时）。

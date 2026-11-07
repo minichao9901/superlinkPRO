@@ -1,5 +1,9 @@
 // One Worker owns the target connection. Callers share it through ProbeManager.
 export class OpenOcdTargetSession {
+  static createWorker(){
+    return new Worker(new URL('./openocd-worker.mjs', import.meta.url), { type:'module' });
+  }
+
   constructor(onLog){
     this.onLog = onLog;
     this.worker = null;
@@ -9,7 +13,7 @@ export class OpenOcdTargetSession {
 
   async open(cfg, device){
     if (this.worker) throw new Error('OpenOCD 会话已经打开');
-    this.worker = new Worker(new URL('./openocd-worker.mjs', import.meta.url), { type:'module' });
+    this.worker = OpenOcdTargetSession.createWorker();
     this.worker.onmessage = ({ data }) => {
       if (data.id !== this.pending?.id) return;
       if (typeof data.log === 'string') {
@@ -25,9 +29,9 @@ export class OpenOcdTargetSession {
       this.worker = null;
       this.finish(new Error(event.message || 'OpenOCD Wasm 无法加载'));
     };
-    const { vendorId, productId, serialNumber } = device;
+    const usb = device && { vendorId:device.vendorId, productId:device.productId, serialNumber:device.serialNumber };
     try {
-      await this.request('open', { files:cfg.files, entry:cfg.name, streamLogs:true, device:{ vendorId, productId, serialNumber } });
+      await this.request('open', { files:cfg.files, entry:cfg.name, script:cfg.script, raw:cfg.raw, streamLogs:true, device:usb });
     } catch (error){
       await this.close().catch(() => {});
       throw error;

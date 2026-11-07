@@ -518,15 +518,15 @@
           "id": "r-target",
           "tag": "select",
           "type": null,
-          "label": "零安装通路的两种目标：ARM/Cortex-M 走 SWD + AHB-AP（浏览器里做 ADIv5）；RISC-V（HPM 等）走 JTAG + DMI + SBA 系统总线读。两者都只用 WebUSB，不需要装驱动",
+          "label": "选择目标的物理接口。OpenOCD Wasm 通过 WebUSB 驱动探针。",
           "options": [
             {
               "value": "swd",
-              "label": "SWD / ARM（Cortex-M，默认）"
+              "label": "SWD / ARM"
             },
             {
               "value": "riscv",
-              "label": "RISC-V / JTAG（HPM、CH32V…）"
+              "label": "RISC-V / JTAG"
             }
           ]
         },
@@ -534,7 +534,7 @@
           "id": "r-usb-clock",
           "tag": "select",
           "type": null,
-          "label": "SWD 时钟：自动 = 从高到低试到通为止；RISC-V/JTAG 下它是 JTAG TCK 频率（DAP_SWJ_Clock），同样留「自动」即可",
+          "label": "选择目标接口时钟，默认 SWD 1 MHz、JTAG 8 MHz",
           "options": [
             {
               "value": "0",
@@ -673,6 +673,10 @@
             {
               "value": "stm32wl",
               "label": "STM32WL"
+            },
+            {
+              "value": "rp2350",
+              "label": "RP2350（Cortex-M33）"
             },
             {
               "value": "riscv-other",
@@ -834,35 +838,35 @@
       "methodSourceHints": [
         {
           "name": "connectProbe",
-          "line": 283
+          "line": 281
         },
         {
           "name": "disconnect",
-          "line": 406
+          "line": 358
         },
         {
           "name": "onShow",
-          "line": 692
+          "line": 650
         },
         {
           "name": "resetTarget",
-          "line": 786
+          "line": 744
         },
         {
           "name": "loadElfFile",
-          "line": 812
+          "line": 770
         },
         {
           "name": "summary",
-          "line": 827
+          "line": 785
         },
         {
           "name": "saveRaw",
-          "line": 960
+          "line": 923
         },
         {
           "name": "save",
-          "line": 967
+          "line": 930
         }
       ]
     },
@@ -944,7 +948,7 @@
           "id": "h-clock",
           "tag": "select",
           "type": null,
-          "label": "运行时调参（HID 0x31 action 7），改完立刻生效",
+          "label": "45 MHz 为探针默认档。60 MHz 对链路信号质量要求更高。",
           "options": []
         },
         {
@@ -1924,19 +1928,15 @@
           "id": "d-backend",
           "tag": "select",
           "type": null,
-          "label": "调试连接方式",
+          "label": "选择 OpenOCD Wasm 使用的物理接口",
           "options": [
             {
               "value": "webusb",
               "label": "SWD / ARM"
             },
             {
-              "value": "openocd",
-              "label": "HPM6800EVK · OpenOCD Wasm / WebUSB"
-            },
-            {
               "value": "riscv",
-              "label": "其它 RISC-V / JTAG"
+              "label": "JTAG / RISC-V"
             },
             {
               "value": "mock",
@@ -2034,6 +2034,13 @@
           "tag": "select",
           "type": null,
           "label": "入口 CFG",
+          "options": []
+        },
+        {
+          "id": "d-cfg-core",
+          "tag": "select",
+          "type": null,
+          "label": "CFG 调试核",
           "options": []
         },
         {
@@ -2500,187 +2507,187 @@
       "methodSourceHints": [
         {
           "name": "initSidebar",
-          "line": 362
+          "line": 367
         },
         {
           "name": "selectSidebar",
-          "line": 376
+          "line": 381
         },
         {
           "name": "renderElfInfo",
-          "line": 382
+          "line": 387
         },
         {
           "name": "onShow",
-          "line": 391
+          "line": 396
         },
         {
           "name": "connect",
-          "line": 695
+          "line": 718
         },
         {
           "name": "disconnect",
-          "line": 780
+          "line": 790
         },
         {
           "name": "refreshAll",
-          "line": 841
+          "line": 851
         },
         {
           "name": "afterStop",
-          "line": 855
+          "line": 865
         },
         {
           "name": "renderRegs",
-          "line": 899
+          "line": 909
         },
         {
           "name": "presentBacktrace",
-          "line": 1001
+          "line": 1011
         },
         {
           "name": "presentSelectedFrame",
-          "line": 1020
+          "line": 1030
         },
         {
           "name": "presentLocals",
-          "line": 1026
+          "line": 1036
         },
         {
           "name": "renderDwt",
-          "line": 1040
+          "line": 1050
         },
         {
           "name": "renderBps",
-          "line": 1053
+          "line": 1063
         },
         {
           "name": "readMem",
-          "line": 1087
+          "line": 1097
         },
         {
           "name": "renderMem",
-          "line": 1121
+          "line": 1131
         },
         {
           "name": "writeMemEdit",
-          "line": 1179
+          "line": 1189
         },
         {
           "name": "pickImageDirectory",
-          "line": 1311
+          "line": 1321
         },
         {
           "name": "runLine",
-          "line": 1322
+          "line": 1332
         },
         {
           "name": "loadElfBuffer",
-          "line": 1483
+          "line": 1493
         },
         {
           "name": "loadBundledSvd",
-          "line": 1560
+          "line": 1570
         },
         {
           "name": "loadSvdText",
-          "line": 1586
+          "line": 1596
         },
         {
           "name": "renderSyms",
-          "line": 1740
+          "line": 1750
         },
         {
           "name": "addWatch",
-          "line": 1811
+          "line": 1821
         },
         {
           "name": "delWatch",
-          "line": 1832
+          "line": 1842
         },
         {
           "name": "watchItems",
-          "line": 1839
+          "line": 1849
         },
         {
           "name": "clearWatch",
-          "line": 1843
+          "line": 1853
         },
         {
           "name": "refreshWatch",
-          "line": 1851
+          "line": 1861
         },
         {
           "name": "renderWatch",
-          "line": 1901
+          "line": 1911
         },
         {
           "name": "pickSourceDir",
-          "line": 2007
+          "line": 2017
         },
         {
           "name": "renderSource",
-          "line": 2074
+          "line": 2084
         },
         {
           "name": "toggleSourceBp",
-          "line": 2167
+          "line": 2177
         },
         {
           "name": "runToLine",
-          "line": 2185
+          "line": 2195
         },
         {
           "name": "stepOver",
-          "line": 2222
+          "line": 2232
         },
         {
           "name": "stepInto",
-          "line": 2224
+          "line": 2234
         },
         {
           "name": "stepOut",
-          "line": 2226
+          "line": 2236
         },
         {
           "name": "showSource",
-          "line": 2235
+          "line": 2245
         },
         {
           "name": "rttStart",
-          "line": 2275
+          "line": 2285
         },
         {
           "name": "rttStop",
-          "line": 2320
+          "line": 2316
         },
         {
           "name": "rttClear",
-          "line": 2327
+          "line": 2323
         },
         {
           "name": "summary",
-          "line": 2347
+          "line": 2343
         },
         {
           "name": "for",
-          "line": 2380
+          "line": 2376
         },
         {
           "name": "if",
-          "line": 2386
+          "line": 2382
         },
         {
           "name": "if",
-          "line": 2387
+          "line": 2383
         },
         {
           "name": "if",
-          "line": 2388
+          "line": 2384
         },
         {
           "name": "if",
-          "line": 2389
+          "line": 2385
         }
       ]
     },
@@ -2710,24 +2717,24 @@
           "id": "f-chip",
           "tag": "select",
           "type": null,
-          "label": "选择与目标匹配的 WebUSB 烧录算法",
+          "label": "选择与目标匹配的 OpenOCD Flash 配置",
           "options": []
         },
         {
           "id": "f-idcode",
           "tag": "button",
           "type": null,
-          "label": "只读地认目标（不动 flash、不改运行状态）：ARM/SWD 读 DP IDCODE + CPUID + STM32 DBGMCU DEV_ID/REV_ID + flash 容量寄存器；RISC-V/JTAG 读 TAP IDCODE。选错芯片也能读 —— 这个按钮不吃「芯片」那一格（按目标类型选择 SWD 或 J"
+          "label": "通过所选物理接口读取目标身份"
         },
         {
           "id": "f-speed",
           "tag": "select",
           "type": null,
-          "label": "WebUSB Cortex-M：所选档用于 RAM 数据与 Flash 校验，执行控制保留 1 MHz；RISC-V 使用整体调试时钟。高频传输不稳定时请降低档位。",
+          "label": "选择烧录与校验使用的物理接口时钟",
           "options": [
             {
               "value": "",
-              "label": "默认（10 MHz）"
+              "label": "默认"
             },
             {
               "value": "1000",
@@ -2922,19 +2929,15 @@
       "methodSourceHints": [
         {
           "name": "flash",
-          "line": 140
+          "line": 125
         },
         {
           "name": "resetTarget",
-          "line": 179
+          "line": 164
         },
         {
           "name": "readIdcode",
-          "line": 290
-        },
-        {
-          "name": "summary",
-          "line": 927
+          "line": 239
         }
       ]
     },
@@ -4414,7 +4417,7 @@
           "id": "sp-inflight",
           "tag": "input",
           "type": null,
-          "label": "同时在飞的 IN 读条数（连接数据端点时生效）"
+          "label": "同时提交的 USB IN 读取请求数，连接数据端点时生效。"
         },
         {
           "id": "sp-sclk",
@@ -5337,13 +5340,13 @@
           "id": "pn-inflight",
           "tag": "input",
           "type": null,
-          "label": "同时在飞的 IN 读条数（连接数据端点时生效）"
+          "label": "同时提交的 USB IN 读取请求数，连接数据端点时生效。"
         },
         {
           "id": "pn-batch",
           "tag": "select",
           "type": null,
-          "label": "一次 USB 传输带多少字节。固件按 512 B 槽解析，所以攒批不改变设备看到的东西，只减少主机侧的调用次数；512 B = 老行为（每片一次 transferOut）。真机实测（AXS15352 · 档 1 · 60 MHz）：512 B → 25.7 fps / 3.6 MB/s，8 KB → 35.3 fps ",
+          "label": "每次 USB 传输合并的数据量。设备仍按 512 B 分片解析。",
           "options": [
             {
               "value": "512",

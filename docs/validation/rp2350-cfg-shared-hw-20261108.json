@@ -1,0 +1,1353 @@
+{
+  "board": "RP2350",
+  "core": "rp2350.cm0",
+  "sourceBase": "73e4b82",
+  "openocdSource": "9f2d876",
+  "cfgFileSha256": "a8530b135fcea2066ec74843a5959f736c1335e06be386394a2e7bb7c06c629d",
+  "stages": {
+    "cores": {
+      "selector": "#d-cfg-core",
+      "value": "rp2350.cm0",
+      "options": [
+        {
+          "disabled": false,
+          "label": "rp2350.cm0",
+          "value": "rp2350.cm0"
+        },
+        {
+          "disabled": false,
+          "label": "rp2350.cm1",
+          "value": "rp2350.cm1"
+        }
+      ]
+    },
+    "preserve": {
+      "stage": "preserve",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": null,
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x10000240",
+        "memLen": 128,
+        "outLines": 37,
+        "pc": 0,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": null,
+          "files": 0,
+          "ready": false,
+          "shown": 0
+        },
+        "symRows": 0,
+        "watch": [],
+        "watching": true
+      },
+      "target": {
+        "chipId": "0x20004927",
+        "cpuid": "0x411fd210",
+        "expectedDpidr": "0x4c013477"
+      },
+      "bytes": 16384,
+      "sha256": "1874f3e74596b9ebb855d431823bf1dfef760d32153585f84b19b7e10d59ae18"
+    },
+    "flash": {
+      "stage": "flash",
+      "ranges": [
+        [
+          268435456,
+          14748
+        ]
+      ],
+      "flashCfgId": "cfg:96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2:rp2350.cm0",
+      "imageSha256": "feabac1e22c17a7e5eb61f4154e0c543e9bd4defc6de600c5ad9f721ca0633c7",
+      "result": {
+        "bytes": 14748,
+        "reset": true,
+        "sectors": 4,
+        "verified": true
+      },
+      "seconds": 3.5774088999969536,
+      "status": "已烧录 14.4 KB，读回校验通过"
+    },
+    "debug": {
+      "stage": "debug",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": null,
+        "halted": true,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x10000240",
+        "memLen": 128,
+        "outLines": 73,
+        "pc": 268439086,
+        "regs": 23,
+        "rtt": null,
+        "src": {
+          "cur": null,
+          "files": 0,
+          "ready": false,
+          "shown": 0
+        },
+        "symRows": 0,
+        "watch": [],
+        "watching": false
+      },
+      "target": {
+        "chipId": "0x20004927",
+        "cpuid": "0x411fd210",
+        "expectedDpidr": "0x4c013477"
+      },
+      "checks": {
+        "Flash boot heartbeat": {
+          "pass": false,
+          "error": "target heartbeat after reset: 75"
+        }
+      },
+      "error": "target heartbeat after reset: 75",
+      "log": "调试器就绪。连上目标后按 h 看命令，Tab 补全、↑↓ 翻历史、Ctrl+C 中断。已导入 OpenOCD 原版 CFG：rp2350.cfg，SWD 1000 kHz──── 连接（OpenOCD Wasm / SWD · 1000 kHz）────Open On-Chip Debugger 0.12.0+dev-g9f2d876-dirty (2026-11-07-09:03)Licensed under GNU GPL v2For bug reports, read\thttp://openocd.org/doc/doxygen/bugs.htmlWarn : Could not determine executable path, using configured BINDIR.adapter speed: 1000 kHzInfo : [rp2350.cm0] Hardware thread awareness createdInfo : [rp2350.cm1] Hardware thread awareness created_rv_reset_initInfo : tcl server disabledInfo : telnet server disabledInfo : Using CMSIS-DAPv2 interface with VID:PID=0x0d28:0x0204, serial=[redacted]Info : CMSIS-DAP: SWD supportedInfo : CMSIS-DAP: Atomic commands supportedInfo : CMSIS-DAP: Test domain timer supportedInfo : CMSIS-DAP: UART via USB COM port supportedInfo : CMSIS-DAP: FW Version = 2.1.2Info : CMSIS-DAP: Interface Initialised (SWD)Info : SWCLK/TCK = 1 SWDIO/TMS = 1 TDI = 1 TDO = 0 nTRST = 1 nRESET = 1Info : CMSIS-DAP: Interface readyInfo : clock speed 1000 kHzInfo : SWD DPIDR 0x4c013477Info : [rp2350.cm0] Cortex-M33 r1p0 processor detectedInfo : [rp2350.cm0] target has 8 breakpoints, 4 watchpointsInfo : [rp2350.cm0] Examination succeedInfo : [rp2350.cm1] Cortex-M33 r1p0 processor detectedInfo : [rp2350.cm1] target has 8 breakpoints, 4 watchpointsInfo : [rp2350.cm1] Examination succeedInfo : [rp2350.cm0] gdb port disabledInfo : [rp2350.cm1] gdb port disabled硬件断点：8 个比较器（FPB rev2，CTRL=0x10000081）已连接：OpenOCD Wasm / WebUSB · 1000 kHz · IDCODE 0x4c013477目标正在运行已断开探针──── 连接（OpenOCD Wasm / SWD · 1000 kHz）────Open On-Chip Debugger 0.12.0+dev-g9f2d876-dirty (2026-11-07-09:03)Licensed under GNU GPL v2For bug reports, read\thttp://openocd.org/doc/doxygen/bugs.htmlWarn : Could not determine executable path, using configured BINDIR.adapter speed: 1000 kHzInfo : [rp2350.cm0] Hardware thread awareness createdInfo : [rp2350.cm1] Hardware thread awareness created_rv_reset_initInfo : tcl server disabledInfo : telnet server disabledInfo : Using CMSIS-DAPv2 interface with VID:PID=0x0d28:0x0204, serial=[redacted]Info : CMSIS-DAP: SWD supportedInfo : CMSIS-DAP: Atomic commands supportedInfo : CMSIS-DAP: Test domain timer supportedInfo : CMSIS-DAP: UART via USB COM port supportedInfo : CMSIS-DAP: FW Version = 2.1.2Info : CMSIS-DAP: Interface Initialised (SWD)Info : SWCLK/TCK = 1 SWDIO/TMS = 1 TDI = 1 TDO = 0 nTRST = 1 nRESET = 1Info : CMSIS-DAP: Interface readyInfo : clock speed 1000 kHzInfo : SWD DPIDR 0x4c013477Info : [rp2350.cm0] Cortex-M33 r1p0 processor detectedInfo : [rp2350.cm0] target has 8 breakpoints, 4 watchpointsInfo : [rp2350.cm0] Examination succeedInfo : [rp2350.cm1] Cortex-M33 r1p0 processor detectedInfo : [rp2350.cm1] target has 8 breakpoints, 4 watchpointsInfo : [rp2350.cm1] Examination succeedInfo : [rp2350.cm0] gdb port disabledInfo : [rp2350.cm1] gdb port disabled硬件断点：8 个比较器（FPB rev2，CTRL=0x10000081）已连接：OpenOCD Wasm / WebUSB · 1000 kHz · IDCODE 0x4c013477目标处于停止状态已载入符号：rp2350_workbench.elf —— 673 个符号（函数 209 · 数据 61），其中 14 个带类型变量（DWARF），行号表 2009 条　行号表：27 段 · 2009 条记录 · 176 个源文件（DWARF 4/2）源码目录建议：推荐选 E:/superlinkPRO/tmp/rp2350-wasm-hw-20261107/pico-sdk/src（覆盖 119/176 个源文件） · 要全覆盖就选 E:/superlinkPRO（127，目录更大） · e:/share/env-windows/tools/gnu_gcc/arm_gcc/mingw/arm-none-eabi/include（44）源码目录建议：推荐选 E:/superlinkPRO/tmp/rp2350-wasm-hw-20261107/pico-sdk/src（覆盖 119/176 个源文件） · 要全覆盖就选 E:/superlinkPRO（127，目录更大） · e:/share/env-windows/tools/gnu_gcc/arm_gcc/mingw/arm-none-eabi/include（44）源码：源码目录「fixture」：1 个文件　⚠ 按 ELF 的路径筛过：索引 1 个文件（ELF 引用 176 条）源码目录建议：已选「fixture」能解析 1/176 · 推荐选 E:/superlinkPRO/tmp/rp2350-wasm-hw-20261107/pico-sdk/src（覆盖 119/176 个源文件） · 要全覆盖就选 E:/superlinkPRO（127，目录更大） · e:/share/env-windows/tools/gnu_gcc/arm_gcc/mingw/arm-none-eabi/include（44）",
+      "cleanupError": "Error: [rp2350.cm1] not halted\nWarn : [rp2350.cm0] resume of a SMP target failed, trying to resume current one\nError: [rp2350.cm0] resume failed\n"
+    },
+    "flash-final": {
+      "stage": "flash-final",
+      "ranges": [
+        [
+          268435456,
+          14748
+        ]
+      ],
+      "flashCfgId": "cfg:96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2:rp2350.cm0",
+      "imageSha256": "feabac1e22c17a7e5eb61f4154e0c543e9bd4defc6de600c5ad9f721ca0633c7",
+      "result": {
+        "bytes": 14748,
+        "reset": true,
+        "sectors": 4,
+        "verified": true
+      },
+      "seconds": 3.529067599993141,
+      "status": "已烧录 14.4 KB，读回校验通过"
+    },
+    "debug-final": {
+      "stage": "debug-final",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": null,
+        "halted": false,
+        "lastStepMode": null,
+        "lastStepOk": null,
+        "memAddr": "0x10000240",
+        "memLen": 128,
+        "outLines": 37,
+        "pc": 0,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": null,
+          "files": 0,
+          "ready": false,
+          "shown": 0
+        },
+        "symRows": 0,
+        "watch": [],
+        "watching": true
+      },
+      "target": {
+        "chipId": "0x20004927",
+        "cpuid": "0x411fd210",
+        "expectedDpidr": "0x4c013477"
+      },
+      "checks": {
+        "Flash boot heartbeat": {
+          "pass": true,
+          "result": [
+            2949,
+            3098
+          ]
+        },
+        "source step over/into/out": {
+          "pass": true,
+          "result": [
+            {
+              "command": "n",
+              "pc": "0x10000242",
+              "source": {
+                "file": "E:/superlinkPRO/tmp/rp2350-cfg-hw-20261108/fixture/main.c",
+                "line": 17
+              }
+            },
+            {
+              "command": "si",
+              "pc": "0x10000244",
+              "source": {
+                "file": "E:/superlinkPRO/tmp/rp2350-cfg-hw-20261108/fixture/main.c",
+                "line": 17
+              }
+            },
+            {
+              "command": "fin",
+              "pc": "0x100002a0",
+              "source": {
+                "file": "E:/superlinkPRO/tmp/rp2350-cfg-hw-20261108/fixture/main.c",
+                "line": 31
+              }
+            }
+          ]
+        },
+        "8 instruction steps": {
+          "pass": true,
+          "result": [
+            "0x1000022c",
+            "0x10000230",
+            "0x10000234",
+            "0x10000236",
+            "0x10000238",
+            "0x1000024e",
+            "0x10000250",
+            "0x100002a0"
+          ]
+        },
+        "SRAM write and restore, registers": {
+          "pass": true,
+          "result": {
+            "address": "0x20018934",
+            "readback": "5023a55a",
+            "restored": true,
+            "registers": 23
+          }
+        },
+        "40 stop/run rounds": {
+          "pass": true,
+          "result": {
+            "rounds": 40,
+            "enabledComparators": 0
+          }
+        }
+      }
+    },
+    "viewer-final": {
+      "stage": "viewer-final",
+      "rttCfgId": "cfg:96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2:rp2350.cm0",
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 3140,
+        "clockKhz": 1000,
+        "connected": true,
+        "controlBlock": 536872828,
+        "displaySuppressed": false,
+        "error": "控制块 0x2000077c，上行缓冲 32768 B（固件声明 2 个上行通道，本页读 ch0）",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 3140,
+          "corrupt": 0,
+          "hz": 426.565874740318,
+          "lastBytes": 3130,
+          "lastPolls": 79,
+          "lost": 0,
+          "polls": 100,
+          "rate": 16900.647948572092
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 4323,
+        "clockKhz": 1000,
+        "connected": true,
+        "controlBlock": 536872828,
+        "displaySuppressed": false,
+        "error": "",
+        "pollLimit": null,
+        "running": true,
+        "stats": {
+          "bytes": 4323,
+          "corrupt": 0,
+          "hz": 799.1001564956874,
+          "lastBytes": 4163,
+          "lastPolls": 1640,
+          "lost": 0,
+          "polls": 1863,
+          "rate": 489.0453834122934
+        }
+      },
+      "bytes": 4383,
+      "heartbeats": 435,
+      "echo": true
+    },
+    "sram-final": {
+      "stage": "sram-final",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": {
+          "files": 176,
+          "lines": 2009,
+          "name": "rp2350_workbench.elf",
+          "rtt": 536872828,
+          "source": "dwarf",
+          "symbols": 673,
+          "vars": 14
+        },
+        "halted": false,
+        "lastStepMode": "openocd",
+        "lastStepOk": true,
+        "memAddr": "0x10000240",
+        "memLen": 128,
+        "outLines": 294,
+        "pc": 268436032,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/superlinkPRO/tmp/rp2350-cfg-hw-20261108/fixture/main.c",
+            "line": 16
+          },
+          "files": 1,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 280,
+        "watch": [],
+        "watching": true
+      },
+      "target": {
+        "chipId": "0x20004927",
+        "cpuid": "0x411fd210",
+        "expectedDpidr": "0x4c013477"
+      },
+      "address": "0x20008930",
+      "bytes": 65536,
+      "clocks": [
+        {
+          "requestedKHz": 1000,
+          "clock": {
+            "checked": false,
+            "hz": 1000000,
+            "ok": true
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.24889440000697505,
+              "writeSeconds": 0.21747409999807132,
+              "readBps": 32913.55691317453,
+              "writeBps": 37668.85344081272
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.14535080000496237,
+              "writeSeconds": 0.13486120000015944,
+              "readBps": 56360.19890994972,
+              "writeBps": 60743.935245944085
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.487198000002536,
+              "writeSeconds": 0.4489691999988281,
+              "readBps": 67258.07577171794,
+              "writeBps": 72984.96199758364
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.5671900999950594,
+              "writeSeconds": 0.4662412999969092,
+              "readBps": 57772.51753915562,
+              "writeBps": 70281.20417521405
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.9417772000015248,
+              "writeSeconds": 0.8956877000018721,
+              "readBps": 69587.58398471941,
+              "writeBps": 73168.35990922173
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 1.0406365000017104,
+              "writeSeconds": 0.879776399997354,
+              "readBps": 62976.841577142724,
+              "writeBps": 74491.65492527091
+            }
+          ]
+        },
+        {
+          "requestedKHz": 5000,
+          "clock": {
+            "checked": true,
+            "hz": 5000000,
+            "ok": true,
+            "seen": [
+              1245187,
+              1245187,
+              1245187
+            ]
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.12488499999744818,
+              "writeSeconds": 0.12272479999955976,
+              "readBps": 65596.34864208984,
+              "writeBps": 66750.9745383931
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.14471850000700215,
+              "writeSeconds": 0.12143869999999879,
+              "readBps": 56606.44630509322,
+              "writeBps": 67457.90262906373
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.25777889999881154,
+              "writeSeconds": 0.23502169999846956,
+              "readBps": 127116.68798397027,
+              "writeBps": 139425.42327033367
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.25582740000390913,
+              "writeSeconds": 0.14520640000409912,
+              "readBps": 128086.35822237686,
+              "writeBps": 225664.9844571243
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.34948720000102185,
+              "writeSeconds": 0.25440720000187866,
+              "readBps": 187520.458545573,
+              "writeBps": 257602.7722466819
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.37029009999969276,
+              "writeSeconds": 0.2484695999955875,
+              "readBps": 176985.55808014952,
+              "writeBps": 263758.62480224477
+            }
+          ]
+        },
+        {
+          "requestedKHz": 10000,
+          "clock": {
+            "checked": true,
+            "hz": 10000000,
+            "ok": true,
+            "seen": [
+              1245187,
+              1245187,
+              1245187
+            ]
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.17279449999477947,
+              "writeSeconds": 0.1720707999993465,
+              "readBps": 47408.91637319185,
+              "writeBps": 47608.310067897124
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.15656740000122227,
+              "writeSeconds": 0.15319579999777488,
+              "readBps": 52322.51413727282,
+              "writeBps": 53474.0508559568
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.11779980000574142,
+              "writeSeconds": 0.16912630000297213,
+              "readBps": 278166.8559573355,
+              "writeBps": 193748.69549812272
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.13589990000036778,
+              "writeSeconds": 0.15205450000212295,
+              "readBps": 241118.64688576903,
+              "writeBps": 215501.6786714139
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.2768538999953307,
+              "writeSeconds": 0.25045249999675434,
+              "readBps": 236716.9109812262,
+              "writeBps": 261670.37662171188
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.24405470000056084,
+              "writeSeconds": 0.22669730000052368,
+              "readBps": 268529.9647982579,
+              "writeBps": 289090.34205457504
+            }
+          ]
+        },
+        {
+          "requestedKHz": 20000,
+          "clock": {
+            "checked": true,
+            "hz": 20000000,
+            "ok": true,
+            "seen": [
+              1245187,
+              1245187,
+              1245187
+            ]
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.1826604000016232,
+              "writeSeconds": 0.12835810000251513,
+              "readBps": 44848.25391780157,
+              "writeBps": 63821.449521607756
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.18082119999598945,
+              "writeSeconds": 0.03659719999996014,
+              "readBps": 45304.422270075054,
+              "writeBps": 223842.261156835
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.14022339999792166,
+              "writeSeconds": 0.17043300000659656,
+              "readBps": 233684.2495652343,
+              "writeBps": 192263.2353988472
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.1551086999970721,
+              "writeSeconds": 0.15524290000030305,
+              "readBps": 211258.29821678952,
+              "writeBps": 211075.6756021437
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.2645036000030814,
+              "writeSeconds": 0.1724783000026946,
+              "readBps": 247769.78460496012,
+              "writeBps": 379966.63927564304
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.2601753999988432,
+              "writeSeconds": 0.15486309999687364,
+              "readBps": 251891.60850830397,
+              "writeBps": 423186.6726245505
+            }
+          ]
+        },
+        {
+          "requestedKHz": 25000,
+          "clock": {
+            "checked": true,
+            "hz": 25000000,
+            "ok": true,
+            "seen": [
+              1245187,
+              1245187,
+              1245187
+            ]
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.11225160000321921,
+              "writeSeconds": 0.13839870000083465,
+              "readBps": 72978.91522049633,
+              "writeBps": 59191.30743244406
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.1655088000043179,
+              "writeSeconds": 0.13381179999851156,
+              "readBps": 49495.857620780786,
+              "writeBps": 61220.31091496507
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.14078739999968093,
+              "writeSeconds": 0.18007670000224607,
+              "readBps": 232748.10103797828,
+              "writeBps": 181966.9063215357
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.14179569999396335,
+              "writeSeconds": 0.16939380000258097,
+              "readBps": 231093.04443925328,
+              "writeBps": 193442.73520932128
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.2705363999994006,
+              "writeSeconds": 0.15580279999994673,
+              "readBps": 242244.66652230607,
+              "writeBps": 420634.2889859644
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.2663678000026266,
+              "writeSeconds": 0.16431049999664538,
+              "readBps": 246035.74455829032,
+              "writeBps": 398854.6075956071
+            }
+          ]
+        },
+        {
+          "requestedKHz": 30000,
+          "clock": {
+            "hz": 1000000,
+            "ok": false,
+            "seen": [
+              3735928559,
+              1245187,
+              1245187
+            ],
+            "was": 30000000
+          },
+          "rejected": true
+        },
+        {
+          "requestedKHz": 36000,
+          "clock": {
+            "checked": true,
+            "hz": 36000000,
+            "ok": true,
+            "seen": [
+              1245187,
+              1245187,
+              1245187
+            ]
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.17138189999968745,
+              "writeSeconds": 0.14165830000274582,
+              "readBps": 47799.68012966912,
+              "writeBps": 57829.29768210695
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.15510170000197832,
+              "writeSeconds": 0.12389460000122199,
+              "readBps": 52816.958162905445,
+              "writeBps": 66120.71873930907
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.15893489999871235,
+              "writeSeconds": 0.1419776999973692,
+              "readBps": 206172.46432511348,
+              "writeBps": 230796.80823542838
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.17232479999802308,
+              "writeSeconds": 0.16518759999598842,
+              "readBps": 190152.54914194543,
+              "writeBps": 198368.4005385136
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.2763985000055982,
+              "writeSeconds": 0.1563008000011905,
+              "readBps": 237106.93074916338,
+              "writeBps": 419294.0791058064
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.24925980000261916,
+              "writeSeconds": 0.1693481000038446,
+              "readBps": 262922.4608192391,
+              "writeBps": 386989.8746930859
+            }
+          ]
+        },
+        {
+          "requestedKHz": 40000,
+          "clock": {
+            "checked": true,
+            "hz": 40000000,
+            "ok": true,
+            "seen": [
+              1245187,
+              1245187,
+              1245187
+            ]
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.15452489999734098,
+              "writeSeconds": 0.10972269999911077,
+              "readBps": 53014.109701031775,
+              "writeBps": 74660.94071752144
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.1701249000034295,
+              "writeSeconds": 0.14021230000071228,
+              "readBps": 48152.857105778516,
+              "writeBps": 58425.68733241224
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.18689960000483552,
+              "writeSeconds": 0.16890129999956116,
+              "readBps": 175324.07773559823,
+              "writeBps": 194006.79568532118
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.13527840000460856,
+              "writeSeconds": 0.1610928000009153,
+              "readBps": 242226.40125018987,
+              "writeBps": 203410.7048844754
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.2481222999995225,
+              "writeSeconds": 0.15564979999908246,
+              "readBps": 264127.81116459955,
+              "writeBps": 421047.7623510363
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.240878700002213,
+              "writeSeconds": 0.14387839999835705,
+              "readBps": 272070.54836894217,
+              "writeBps": 455495.7519735301
+            }
+          ]
+        },
+        {
+          "requestedKHz": 45000,
+          "clock": {
+            "hz": 1000000,
+            "ok": false,
+            "seen": [
+              3735928559,
+              1245187,
+              1245187
+            ],
+            "was": 45000000
+          },
+          "rejected": true
+        },
+        {
+          "requestedKHz": 50000,
+          "clock": {
+            "checked": true,
+            "hz": 50000000,
+            "ok": true,
+            "seen": [
+              1245187,
+              1245187,
+              1245187
+            ]
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.14125369999965187,
+              "writeSeconds": 0.046781600001850165,
+              "readBps": 57994.941017617166,
+              "writeBps": 175111.58232458946
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.15290549999917857,
+              "writeSeconds": 0.12473930000123801,
+              "readBps": 53575.57445640614,
+              "writeBps": 65672.96754045194
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.1687138999986928,
+              "writeSeconds": 0.14036510000005364,
+              "readBps": 194222.28992545302,
+              "writeBps": 233448.34292845926
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.13214650000008987,
+              "writeSeconds": 0.15343959999881918,
+              "readBps": 247967.2182008431,
+              "writeBps": 213556.34399628371
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.27719600000273203,
+              "writeSeconds": 0.1619933000038145,
+              "readBps": 236424.76803184056,
+              "writeBps": 404559.9416670739
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.28160639999987325,
+              "writeSeconds": 0.17000289999850793,
+              "readBps": 232721.98359138676,
+              "writeBps": 385499.3061916896
+            }
+          ]
+        },
+        {
+          "requestedKHz": 60000,
+          "error": "OpenOCD 会话已关闭"
+        }
+      ],
+      "error": "OpenOCD 会话已关闭",
+      "cleanupError": "OpenOCD 会话已关闭"
+    },
+    "sram-recovery": {
+      "stage": "sram-recovery",
+      "connection": {
+        "backend": "OpenOCD Wasm / WebUSB",
+        "bpCap": 8,
+        "bps": [],
+        "clockKhz": 1000,
+        "connected": true,
+        "elf": {
+          "files": 176,
+          "lines": 2009,
+          "name": "rp2350_workbench.elf",
+          "rtt": 536872828,
+          "source": "dwarf",
+          "symbols": 673,
+          "vars": 14
+        },
+        "halted": false,
+        "lastStepMode": "openocd",
+        "lastStepOk": true,
+        "memAddr": "0x10000240",
+        "memLen": 128,
+        "outLines": 332,
+        "pc": 268439122,
+        "regs": 0,
+        "rtt": null,
+        "src": {
+          "cur": {
+            "file": "E:/superlinkPRO/tmp/rp2350-cfg-hw-20261108/fixture/main.c",
+            "line": 16
+          },
+          "files": 1,
+          "ready": true,
+          "shown": 38
+        },
+        "symRows": 280,
+        "watch": [],
+        "watching": true
+      },
+      "target": {
+        "chipId": "0x20004927",
+        "cpuid": "0x411fd210",
+        "expectedDpidr": "0x4c013477"
+      },
+      "address": "0x20008930",
+      "bytes": 65536,
+      "clocks": [
+        {
+          "requestedKHz": 10000,
+          "clock": {
+            "checked": true,
+            "hz": 10000000,
+            "ok": true,
+            "seen": [
+              1245187,
+              1245187,
+              1245187
+            ]
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.16078360000392422,
+              "writeSeconds": 0.13889860000199405,
+              "readBps": 50950.47007157483,
+              "writeBps": 58978.27623807867
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.11489309999888064,
+              "writeSeconds": 0.1652964000022621,
+              "readBps": 71301.06159621257,
+              "writeBps": 49559.45803954528
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.14063739999983227,
+              "writeSeconds": 0.1491874999992433,
+              "readBps": 232996.3437893411,
+              "writeBps": 219643.0666119226
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.13924409999890486,
+              "writeSeconds": 0.11382640000374522,
+              "readBps": 235327.74458851555,
+              "writeBps": 287876.97756339336
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.2605970000004163,
+              "writeSeconds": 0.24992439999914495,
+              "readBps": 251484.0922953653,
+              "writeBps": 262223.29632570577
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.2560174999962328,
+              "writeSeconds": 0.25940609999815933,
+              "readBps": 255982.50119997398,
+              "writeBps": 252638.62338034852
+            }
+          ]
+        },
+        {
+          "requestedKHz": 40000,
+          "clock": {
+            "hz": 1000000,
+            "ok": false,
+            "seen": [
+              3735928559,
+              1245187,
+              1245187
+            ],
+            "was": 40000000
+          },
+          "rejected": true
+        },
+        {
+          "requestedKHz": 50000,
+          "clock": {
+            "checked": true,
+            "hz": 50000000,
+            "ok": true,
+            "seen": [
+              1245187,
+              1245187,
+              1245187
+            ]
+          },
+          "measurements": [
+            {
+              "bytes": 8192,
+              "readSeconds": 0.1297095999980229,
+              "writeSeconds": 0.04656129999784753,
+              "readBps": 63156.46644600605,
+              "writeBps": 175940.1047732496
+            },
+            {
+              "bytes": 8192,
+              "readSeconds": 0.14066850000381237,
+              "writeSeconds": 0.14999270000407705,
+              "readBps": 58236.20782035767,
+              "writeBps": 54615.99131009261
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.170035100003588,
+              "writeSeconds": 0.1405335000017658,
+              "readBps": 192713.1515746369,
+              "writeBps": 233168.60392424776
+            },
+            {
+              "bytes": 32768,
+              "readSeconds": 0.14716719999705674,
+              "writeSeconds": 0.15656830000079935,
+              "readBps": 222658.3097365129,
+              "writeBps": 209288.85348970836
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.24371380000229692,
+              "writeSeconds": 0.1796905000010156,
+              "readBps": 268905.57694879133,
+              "writeBps": 364715.9977830191
+            },
+            {
+              "bytes": 65536,
+              "readSeconds": 0.24326049999945099,
+              "writeSeconds": 0.146178000002692,
+              "readBps": 269406.6648722169,
+              "writeBps": 448330.118066967
+            }
+          ]
+        }
+      ],
+      "restored": true
+    },
+    "flood-final": {
+      "stage": "flood-final",
+      "address": "0x20018930",
+      "controlBlock": "0x2000077c",
+      "bufferBytes": 32768,
+      "usedBytes": 32755,
+      "floodMarker": true
+    },
+    "cdc-final": {
+      "stage": "cdc-final",
+      "port": "COM33",
+      "clocks": [
+        {
+          "requestedMHz": 20,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 32,
+            "rescans": 10,
+            "running": true,
+            "stall": 25,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 32 / RdOff 错 0 · 档位 20 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 20
+          },
+          "bytes": 0,
+          "connected": false
+        },
+        {
+          "requestedMHz": 30,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31397,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 32,
+            "rescans": 11,
+            "running": true,
+            "stall": 25,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 32 / RdOff 错 0 · 档位 30 MHz · 给 DAP 让路 31397 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 30
+          },
+          "bytes": 0,
+          "connected": false
+        },
+        {
+          "requestedMHz": 36,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31397,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 31,
+            "rescans": 11,
+            "running": true,
+            "stall": 25,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 31 / RdOff 错 0 · 档位 36 MHz · 给 DAP 让路 31397 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 36
+          },
+          "bytes": 0,
+          "connected": false
+        },
+        {
+          "requestedMHz": 45,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 31,
+            "rescans": 10,
+            "running": true,
+            "stall": 25,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 31 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 45
+          },
+          "bytes": 0,
+          "connected": false
+        },
+        {
+          "requestedMHz": 60,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31397,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 32,
+            "rescans": 11,
+            "running": true,
+            "stall": 25,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 32 / RdOff 错 0 · 档位 60 MHz · 给 DAP 让路 31397 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 60
+          },
+          "bytes": 0,
+          "connected": false
+        }
+      ]
+    },
+    "cdc-recheck": {
+      "stage": "cdc-recheck",
+      "port": "COM33",
+      "clocks": [
+        {
+          "requestedMHz": 20,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 32,
+            "rescans": 10,
+            "running": true,
+            "stall": 25,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 32 / RdOff 错 0 · 档位 20 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 20
+          },
+          "afterSearch": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 75,
+            "rescans": 25,
+            "running": true,
+            "stall": 35,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 75 / RdOff 错 0 · 档位 20 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 20
+          },
+          "bytes": 0,
+          "controlBlockFound": false
+        },
+        {
+          "requestedMHz": 30,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31397,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 32,
+            "rescans": 11,
+            "running": true,
+            "stall": 24,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 32 / RdOff 错 0 · 档位 30 MHz · 给 DAP 让路 31397 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 30
+          },
+          "afterSearch": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31397,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 75,
+            "rescans": 25,
+            "running": true,
+            "stall": 35,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 75 / RdOff 错 0 · 档位 30 MHz · 给 DAP 让路 31397 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 30
+          },
+          "bytes": 0,
+          "controlBlockFound": false
+        },
+        {
+          "requestedMHz": 36,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 32,
+            "rescans": 10,
+            "running": true,
+            "stall": 25,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 32 / RdOff 错 0 · 档位 36 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 36
+          },
+          "afterSearch": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 74,
+            "rescans": 24,
+            "running": true,
+            "stall": 36,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 74 / RdOff 错 0 · 档位 36 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 36
+          },
+          "bytes": 0,
+          "controlBlockFound": false
+        },
+        {
+          "requestedMHz": 45,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 32,
+            "rescans": 11,
+            "running": true,
+            "stall": 25,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 32 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 45
+          },
+          "afterSearch": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 75,
+            "rescans": 25,
+            "running": true,
+            "stall": 37,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 75 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 45
+          },
+          "bytes": 0,
+          "controlBlockFound": false
+        },
+        {
+          "requestedMHz": 60,
+          "start": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 33,
+            "rescans": 11,
+            "running": true,
+            "stall": 25,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 33 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 45
+          },
+          "afterSearch": {
+            "cbAddr": "0x0",
+            "connected": true,
+            "dapYield": 31398,
+            "info": "已连接：akaLinkPro CMSIS-DAP · FW 0.1 · SN [redacted]",
+            "label": "akaLinkPro CMSIS-DAP",
+            "mock": false,
+            "moved": 0,
+            "rdErr": 77,
+            "rescans": 25,
+            "running": true,
+            "stall": 37,
+            "startRc": 0,
+            "state": "运行中 · 还没找到 RTT 控制块（读错 77 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31398 次） —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电",
+            "supported": true,
+            "swdMhz": 45
+          },
+          "bytes": 0,
+          "controlBlockFound": false
+        }
+      ]
+    },
+    "restore-final": {
+      "stage": "restore-final",
+      "flashCfgId": "cfg:96e03a61e89c0d1eaf6360051bd7977355350ebfcc92bd9af540d6311247c3c2:rp2350.cm0",
+      "imageSha256": "1874f3e74596b9ebb855d431823bf1dfef760d32153585f84b19b7e10d59ae18",
+      "result": {
+        "bytes": 16384,
+        "reset": true,
+        "sectors": 4,
+        "verified": true
+      },
+      "seconds": 3.238850400004594,
+      "status": "已烧录 16.0 KB，读回校验通过"
+    },
+    "verify-final": {
+      "stage": "verify-final",
+      "target": {
+        "chipId": "0x20004927",
+        "cpuid": "0x411fd210",
+        "expectedDpidr": "0x4c013477"
+      },
+      "bytes": 16384,
+      "sha256": "1874f3e74596b9ebb855d431823bf1dfef760d32153585f84b19b7e10d59ae18",
+      "matched": true
+    }
+  }
+}

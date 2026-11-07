@@ -290,7 +290,7 @@ export class Rtt {
    *   level = 环里**未读数据**占缓冲容量（size-1）的比例；high = 水位 ≥ 3/4；
    *   backlog = 这一轮读完还剩多少没读（>0 说明数据比链路快，下一轮接着排）。
    */
-  async readUp(ch = 0){
+  async readUp(ch = 0, limit = MAX_READ_PER_POLL){
     const e = await this._entry(this.upBase, ch);            // 每次整项重读：WrOff/RdOff 一致，且能跟上固件重新初始化缓冲
     this.up[ch] = e;
     const empty = { bytes: new Uint8Array(0), lost: 0, full: false, high: false, level: 0, wr: e.wr, rd: e.rd, backlog: 0 };
@@ -319,7 +319,7 @@ export class Rtt {
 
     if (n === 0) return empty;
     /** 本轮实际读多少：见 MAX_READ_PER_POLL（大积压 + 慢链路时一次读完整段会直接失败）*/
-    const readNow = Math.min(n, MAX_READ_PER_POLL);
+    const readNow = Math.min(n, MAX_READ_PER_POLL, limit);
 
     let data;
     /**

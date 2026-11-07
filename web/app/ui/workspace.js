@@ -70,6 +70,8 @@ export function initWorkspaces(){
     // Fold instructions only. Named live statuses, errors and rate advice stay visible.
     for(const note of side.querySelectorAll('p.hint:not([id])')){
       if(note.closest('details'))continue;
+      const previous=note.previousElementSibling;
+      if(previous?.classList.contains('workspace-help')){previous.append(note);continue;}
       const help=document.createElement('details');help.className='helpnote workspace-help';
       const summary=document.createElement('summary');summary.textContent='使用说明';
       note.before(help);help.append(summary,note);

@@ -1,4 +1,4 @@
-"""Run the same HPM6800EVK debugger workload against both workbench backends."""
+"""Run the HPM6800EVK debugger workload through OpenOCD Wasm and the workbench CLI."""
 
 import argparse
 from pathlib import Path
@@ -80,7 +80,8 @@ class Workbench:
         self.request('upload', selector=selector, files=files)
 
 
-def stress(wb, backend, info, sdk):
+def stress(wb, info, sdk):
+    backend = 'openocd'
     report = {'backend': backend, 'checks': {}, 'reconnections': 0}
     checks = report['checks']
     known = set()
@@ -156,7 +157,7 @@ def stress(wb, backend, info, sdk):
         return seen
 
     def repeated(name, rounds):
-        audit = backend == 'openocd' and rounds == 40
+        audit = rounds == 40
         if audit:
             require(wb.invoke('verifyBreakpoints') == [], '源码步进结束后仍有 OpenOCD 断点')
         add(name)
@@ -259,19 +260,14 @@ def stress(wb, backend, info, sdk):
         desc = wb.request('describe', target='view')
         require({'#d-backend', '#d-elf-file', '#d-src-dir'} <= {row['selector'] for row in desc['controls']}, '缺少调试控件')
         require(not wb.state()['connected'], '页面已有调试连接')
-        wb.set('#d-backend', backend)
-        if backend == 'openocd':
-            files = [toolbox.pack_file(f, 'openocd/' + f.relative_to(sdk).as_posix()) for f in sorted(sdk.rglob('*')) if f.is_file()]
-            wb.upload('#d-cfg-dir', files)
-            wb.set('#d-cfg-entry', 'hpm6800_all_in_one.cfg')
-            deadline = time.monotonic() + 5
-            while '0x1000563d' not in wb.request('read', selector='#d-cfg-info')['text']:
-                require(time.monotonic() < deadline, 'Wasm CFG 未导入')
-        else:
-            wb.upload('#d-cfg-file', [toolbox.pack_file(sdk / 'boards/hpm6800evk.cfg')])
-            deadline = time.monotonic() + 5
-            while '8000 kHz' not in wb.request('read', selector='#d-cfg-info')['text']:
-                require(time.monotonic() < deadline, '内置 JTAG CFG 未导入')
+        wb.set('#d-backend', 'riscv')
+        files = [toolbox.pack_file(f, 'openocd/' + f.relative_to(sdk).as_posix())
+                 for f in sorted(sdk.rglob('*')) if f.is_file()]
+        wb.upload('#d-cfg-dir', files)
+        wb.set('#d-cfg-entry', 'hpm6800_all_in_one.cfg')
+        deadline = time.monotonic() + 5
+        while '0x1000563d' not in wb.request('read', selector='#d-cfg-info')['text']:
+            require(time.monotonic() < deadline, 'Wasm CFG 未导入')
         for selector in ('#d-rtt-on', '#d-watch-live'):
             control = wb.request('read', selector=selector)
             if control.get('value') is True:
@@ -281,7 +277,7 @@ def stress(wb, backend, info, sdk):
         connected = wb.invoke('connect', target='view') is True
         require(connected, wb.request('read', selector='#d-out')['text'][-500:])
         s = wb.state()
-        expected_backend = 'OpenOCD Wasm / WebUSB' if backend == 'openocd' else 'RISC-V/JTAG'
+        expected_backend = 'OpenOCD Wasm / WebUSB'
         require(s['clockKhz'] == 8000 and s['backend'] == expected_backend and s['src']['ready'] and s['elf']['lines'] > 0, s)
         report['session'] = s['backend']
         report['clockKhz'] = s['clockKhz']
@@ -331,7 +327,7 @@ def main():
     parser.add_argument('sdk_openocd', type=Path)
     parser.add_argument('output', type=Path)
     parser.add_argument('--lock-held', action='store_true')
-    parser.add_argument('--backend', choices=['both', 'riscv', 'openocd'], default='both')
+    parser.add_argument('--backend', choices=['openocd'], default='openocd')
     args = parser.parse_args()
     require(not args.output.exists(), '输出文件已存在')
     info = symbol_info()
@@ -342,10 +338,7 @@ def main():
         LOCK.mkdir()
     results = {'elfSha256': hashlib.sha256((FIXTURE / 'fw.elf').read_bytes()).hexdigest(), 'backends': []}
     try:
-        for backend in ('riscv', 'openocd') if args.backend == 'both' else (args.backend,):
-            results['backends'].append(stress(wb, backend, info, args.sdk_openocd))
-            if wb.unsettled:
-                break
+        results['backends'].append(stress(wb, info, args.sdk_openocd))
     finally:
         with args.output.open('x', encoding='utf-8') as out:
             json.dump(results, out, ensure_ascii=False, indent=2)

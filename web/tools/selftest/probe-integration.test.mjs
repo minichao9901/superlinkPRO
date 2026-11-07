@@ -16,6 +16,9 @@ globalThis.document = { getElementById: id => {
   return nodes.get(id);
 } };
 globalThis.window = {};
+Object.defineProperty(globalThis, 'navigator', { configurable:true, value:{ usb:{
+  getDevices:async () => [{ vendorId:0x0d28, productId:0x0204, serialNumber:'offline' }],
+} } });
 const events = [];
 const scope = Object.create(ScopeView.prototype);
 Object.assign(scope, {

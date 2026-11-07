@@ -1,7 +1,7 @@
 import { AkaLinkHid } from '../hid/probe.js';
 import { runProbeOperation } from '../core/probe-manager.js';
 import { waitMs } from '../core/pace.js';
-import { withTimeout } from '../rtt/dap-webusb.js';
+import { withTimeout } from '../core/timeout.js';
 import { DacClient } from './dac-protocol.js';
 import { dacTable } from './model.js';
 import { AdcTransport, ADC_MAX_INFLIGHT } from './transport.js';

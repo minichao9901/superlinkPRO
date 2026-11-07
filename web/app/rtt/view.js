@@ -9,16 +9,16 @@ import { constrainClockSelect } from '../ui/target-clock.js';
 import { RxBuffer } from '../core/rxview.js';
 import { FileRecorder, recordButtonState } from '../core/recorder.js';
 import { Rtt } from './protocol.js';
-import { WebUsbDapProbe, withTimeout } from './dap-webusb.js';
-import { openRiscvMem } from './riscv-mem.js';
+import { OpenOcdProbe, selectOpenOcdDevice } from '../core/openocd-probe.js';
+import { prepareOpenOcdJtag } from '../core/openocd-jtag-pins.js';
+import { makeOpenOcdProfile } from '../core/openocd-profile.js';
 import { HPM_BOARDS, hpmBoard } from '../targets/hpm/porting.js';
 import { selectedHpmBoard, rememberHpmBoard } from '../targets/hpm/select.js';
 import { MockProbe } from './mock.js';
 import { findSymbol } from './elf.js';
 import { parseRanges } from '../core/bin.js';
 import { parseHex, textToBytes } from '../core/hex.js';
-import { closeProbeUsbDevices } from '../core/probe-bus.js';
-import { sleep,waitMs,yieldTask } from '../core/pace.js';
+import { waitMs,yieldTask } from '../core/pace.js';
 import { rate as fRate, bytes as fBytes, fileStamp, download, stamp as stampOf } from '../core/format.js';
 
 const EOL = { cr: '\r', crlf: '\r\n', lf: '\n', none: '' };
@@ -51,6 +51,7 @@ const OCD_RAM = {
   stm32u5:  '0x20000000-0x20020000',
   stm32wb:  '0x20000000-0x20040000',  // WB55 256K
   stm32wl:  '0x20000000-0x20010000',  // WLE5 64K
+  rp2350:   '0x20000000-0x20082000',  // 520 KiB
 };
 
 const rvRange = id => hpmBoard(id)?.memory.rttRange || '0x01240000-0x01250000';
@@ -92,6 +93,7 @@ export class RttView {
     this.rec = new FileRecorder();      // 高速采集落文件（见 core/recorder.js）
     this._lastWasCR = false;            // 终端模式补 \r 用的跨包状态（\r\n 不能补成 \r\r\n）
     this.suppressed = false;            // 高速自动关显示（见 _highspeedGate）
+    this._ringBackpressure = false;
     this.suppManual = false;            // 用户手动恢复过显示：暂不再自动关，速率回落后重新武装
     this.suppBytes = 0;                 // 关显示期间省略渲染的字节数
     this.stats = { bytes: 0, polls: 0, lost: 0, corrupt: 0, lastBytes: 0, lastPolls: 0, rate: 0, hz: 0 };
@@ -127,14 +129,10 @@ export class RttView {
       const rv = $('r-target').value === 'riscv';
       const clkLbl = $('r-usb-clock')?.closest('label')?.querySelector('span');
       if (clkLbl) clkLbl.textContent = rv ? 'JTAG TCK' : 'SWD 时钟';
-      $('r-usb-clock').title = rv
-        ? 'RISC-V/JTAG 下它是 JTAG TCK 频率（DAP_SWJ_Clock），留「自动」即可；'
-          + '注意它与 HID 0x31 action 7 那个 clockHz 字段不是一回事（后者是 DMI idle，必须 0）'
-        : 'SWD 时钟：自动 = 从高到低试到通为止';
       $('r-reset').disabled = rv;
       $('r-reset').title = rv
-        ? 'RISC-V 下没有 Cortex-M 的 DHCSR/AIRCR 复位语义（探针的 RISC-V 引擎只管 halt/resume）—— 要复位就按板子上的复位键'
-        : '复位目标（AIRCR.SYSRESETREQ；探针没接 NRST 时靠软复位）';
+        ? '使用调试页复位 RISC-V 目标'
+        : '通过 OpenOCD Wasm 复位 Cortex-M';
 
       if (chip) chip.value = rv ? (store.get('rtt.rvChip', '') || selectedHpmBoard())
                                 : (store.get('rtt.armChip', store.get('rtt.ocdTarget', '')) || 'stm32f103');
@@ -244,11 +242,11 @@ export class RttView {
         setStatus($('r-err'), '', null);
       }
     });
-    if (!WebUsbDapProbe.supported()) setStatus($('r-err'), '这个浏览器没有 WebUSB（Chrome/Edge 桌面版才有）', 'err');
+    if (!OpenOcdProbe.supported()) setStatus($('r-err'), '这个浏览器没有 WebUSB（Chrome/Edge 桌面版才有）', 'err');
 
     // URL 参数：?backend=mock&auto=1 直接连上（做演示链接/自测用）
     const q = new URLSearchParams(location.search);
-    const b = q.get('backend') === 'mock' ? 'mock' : 'webusb';
+    const b = q.get('backend') === 'mock' ? 'mock' : 'openocd';
     this.backend = b;
     $('r-mock-box').hidden = b !== 'mock';
     if (q.get('addr')) $('r-addr').value = q.get('addr');
@@ -275,15 +273,15 @@ export class RttView {
   _applyClockLimit(){
     const target=chipSel()?.value;
     constrainClockSelect($('r-usb-clock'),target,v=>store.set('rtt.clockKhz',v));
-    $('r-usb-clock').title=isHpmClockTarget(target)?'HPM JTAG TCK 最高 25 MHz；自动使用 10 MHz'
-      : $('r-target').value==='riscv'?'其他 RISC-V JTAG TCK 最高 60 MHz':'SWD 时钟最高 60 MHz；自动从高到低协商';
+    $('r-usb-clock').title=isHpmClockTarget(target)?'HPM JTAG TCK 最高 25 MHz；默认 8 MHz'
+      : $('r-target').value==='riscv'?'其他 RISC-V JTAG TCK 最高 60 MHz':'SWD 时钟最高 60 MHz；默认 1 MHz';
   }
 
   // ================= 连接 =================
   async connectProbe(){
     if (this._connectPromise || this._disconnectPromise || this.probe) return;
     const g = this._sessionGen = (this._sessionGen || 0) + 1;
-    const backend = this.backend || 'webusb';
+    const backend = this.backend || 'openocd';
     this._probeMock = backend === 'mock';
     this._connectPromise = runProbeOperation(this, 'rtt', () => this._connectProbe(g, backend), {
       mock: this._probeMock, reason: 'RTT Viewer 要使用探针', recovery: true,
@@ -296,77 +294,31 @@ export class RttView {
     }
   }
 
-  async _connectProbe(g, b = this.backend || 'webusb'){
+  async _connectProbe(g, b = this.backend || 'openocd'){
     try {
       if (b !== 'mock'){
         await prepareProbeHandoff(this, 'rtt', 'RTT Viewer 要使用探针');
         if (g !== this._sessionGen) return;
       }
-      if (b === 'webusb'){
-        const clockKhz = webClockKhz($('r-usb-clock').value,chipSel()?.value,
-          isHpmClockTarget(chipSel()?.value)?10000:0);
-        if ($('r-target').value === 'riscv'){
-          /**
-           * RISC-V/JTAG 走另一套底层：HID 切 SWD+JTAG → WebUSB 的 DAP_JTAG_Sequence → DMI → SBA
-           * （见 app/rtt/riscv-mem.js）。它自己会把探针侧那个占着 TAP 的 RISC-V 引擎/RTT 桥停掉，
-           * 所以这里不用再管 `authorized()` 那套 ARM 的时钟协商（那套按 SWD 走，RISC-V 上必 NO ACK）。
-           */
-          const target = rvChipId();
-          const openOnce = () => openRiscvMem({ target, clockKhz, all: $('r-usb-all').checked, log: s => console.log('[riscv]', s) });
-          try {
-            this.probe = await openOnce();
-          } catch (e1){
-            setStatus($('r-err'), `RISC-V 第一次连接失败（${e1.message}）—— 等 1.2 s 重试一次…`, 'warn');
-            await sleep(1200);
-            try { await closeProbeUsbDevices(); } catch { /* 关不掉就继续试 */ }
-            this.probe = await openOnce();
-          }
-          const inf = this.probe.info();
-          toast(`RISC-V 已就绪：${this.probe.name} · IDCODE 0x${Number(inf.idcode || 0).toString(16)}`, 'ok');
-                if (g !== this._sessionGen) return;
-      this._uiConnected(true);
-          if ($('r-record-auto').checked && !this.rec.active) this._autoStartRecord();
-          await this._startRtt(g);
-          return;
-        }
-        // 已经授权过的探针**不用再弹选择框**（用户体验也好得多）；想换设备点「换设备…」
-        // 🚨 全部加超时：USB 服务被挂起传输搞脏时，getDevices()/open() 会永远不返回，
-        //    界面看着像"点了一下就没反应"（实测卡过 90 秒）。宁可 5 秒报错并给出自救提示。
-        let auth;
-        try {
-          auth = this._forcePick ? [] : await withTimeout(WebUsbDapProbe.authorized(), 5000, '枚举已授权探针');
-        } catch (e){
-          throw new Error(`${e.message} —— 浏览器 USB 服务可能被上一次中断的会话卡住了：刷新页面（或拔插一次探针）再试`);
-        }
+      if (b === 'openocd'){
+        const riscv = $('r-target').value === 'riscv';
+        const target = riscv ? rvChipId() : armChipId();
+        const imported = this.importedTarget?.id === target ? this.importedTarget.cfg : null;
+        const cfg = imported || makeOpenOcdProfile({ arch:riscv ? 'riscv' : 'arm', port:hpmBoard(target), family:target,
+          clockKhz:webClockKhz($('r-usb-clock').value, target, riscv ? 8000 : 1000) });
+        const device = await selectOpenOcdDevice({ all:$('r-usb-all').checked, forcePick:this._forcePick });
         this._forcePick = false;
-        if (auth.length){
-          /**
-           * 🚨 **刚被别的会话用过的探针，第一次常常连不上**（2026-10 真机复现多次）：
-           *    烧录器/上一个页签刚断开时，浏览器释放 USB 接口要一会儿，紧接着 open() 会拿到
-           *    脏响应（`SWD ACK=0 / ACK=5`、`响应回显 0x3 ≠ 命令 0x0`）或 `Unable to claim interface`。
-           *    界面上的提示一直是"再点一次就好了" —— 那就**自己再点一次**：等 1.2 s、
-           *    把本页签残留的探针句柄 close 掉（僵尸认领会挡住重新认领），再开一次。
-           *    只重试一次：真坏了（没插/被别的程序占着）第二次照样会报错，不会无限转。
-           */
-          const openOnce = () => withTimeout(WebUsbDapProbe.open(auth[0], { clockKhz }), 20000, '连接探针');
-          try {
-            this.probe = await openOnce();
-          } catch (e1){
-            setStatus($('r-err'), `第一次连接失败（${e1.message}）—— 等 1.2 s 重试一次…`, 'warn');
-            await sleep(1200);
-            try { await closeProbeUsbDevices(); } catch { /* 关不掉就继续试 */ }
-            this.probe = await openOnce();          // 还失败就把错抛给上层（带着第二次的原因）
-          }
-          toast('使用已授权探针：' + this.probe.name, 'ok');
-        } else {
-          this.probe = await withTimeout(WebUsbDapProbe.request($('r-usb-all').checked, { clockKhz }), 60000, '等你在浏览器里选探针');
-          toast('探针已连接：' + this.probe.name, 'ok');
-        }
+        if (g !== this._sessionGen) return;
+        if (riscv) await prepareOpenOcdJtag(device);
+        if (g !== this._sessionGen) return;
+        this.probe = await OpenOcdProbe.open(device, { cfg, runningMemory:true });
+        if (g !== this._sessionGen) return;
+        toast('探针已连接：' + this.probe.name, 'ok');
       } else if (b === 'mock'){
         this.probe = new MockProbe();
         await this.probe.connect();
         toast('模拟目标已启动（内存里有个假 RTT 控制块）', 'ok');
-      } else { throw new Error('仅支持 WebUSB 连接'); }
+      } else { throw new Error('仅支持 OpenOCD Wasm / WebUSB 连接'); }
       this._uiConnected(true);
       if ($('r-record-auto').checked && !this.rec.active) this._autoStartRecord();
       /**
@@ -515,6 +467,7 @@ export class RttView {
   _armIdleWatchdog(){
     const g = this._sessionGen, probe = this.probe;
     clearTimeout(this._idleTimer);
+    if (probe?.isRiscv) return;
     this._idleTimer = setTimeout(async () => {
       if (g !== this._sessionGen || !this.running || this.stats.bytes > 0) return;
       if (typeof this.probe?.run !== 'function') return;
@@ -541,6 +494,7 @@ export class RttView {
     if (this.probe && typeof this.probe.fast === 'boolean') this.probe.fast = true;
     this.stats.polls = 0; this.stats.bytes = 0; this.stats.lost = 0;
     this.stats.lastBytes=0;this.stats.lastPolls=0;this._lastStatsAt=performance.now();
+    this._ringBackpressure = false;
     this.fullPolls = 0; this.highPolls = 0; this.peak = 0; this._faults = 0;
     this._pollT0 = Date.now(); this._zeroHinted = false; this._zeroHintSet = false;   // 见 _stats 里的"零速率"诊断
 
@@ -549,8 +503,12 @@ export class RttView {
       if (!active()) return;
       const t0 = performance.now();
       try {
-        const { bytes, lost, high, level, corrupt } = await rtt.readUp(0);
+        const { bytes, lost, high, level, corrupt } = await rtt.readUp(0, probe.rttPollLimit);
         if (!active()) return;
+        // On the bounded Wasm path, stop feeding the renderer before it can
+        // delay the next USB read enough to hide a high rate from _stats().
+        this._ringBackpressure = Boolean(probe.rttPollLimit && high && bytes.length >= probe.rttPollLimit / 2);
+        if (this._ringBackpressure) this._highspeedGate(this.stats.rate);
         if (bytes.length) this._ingest(bytes, new Date());
         if (lost) this.stats.lost += lost;
         if (high) this.highPolls++;
@@ -779,14 +737,14 @@ export class RttView {
       if (!this.rtt) throw new Error('RTT 还没就绪（先扫描控制块）');
       const n = await this._strict(() => this.rtt.writeDown(0, bytes));
       if (n < bytes.length) toast(`下行缓冲只写进 ${n}/${bytes.length} 字节（固件没在取？）`, 'warn');
-      setStatus($('r-err'), '', null);
+      if (!this.suppressed) setStatus($('r-err'), '', null);
     } catch (e){ this._err(e); }
   }
 
   async resetTarget(){
-    if (!this.probe){ toast('先连接一个后端', 'warn'); return; }
-    if (typeof this.probe.reset !== 'function'){
-      toast('当前目标（RISC-V）没有软复位通路：探针的 RISC-V 引擎只管 halt/resume，要复位请按板子上的复位键', 'warn', 7000);
+    if (!this.probe){ toast('请先连接目标', 'warn'); return; }
+    if (this.probe.isRiscv || typeof this.probe.reset !== 'function'){
+      toast('当前连接不支持 RTT 页复位，请使用调试页', 'warn');
       return;
     }
     const probe = this.probe;
@@ -825,7 +783,8 @@ export class RttView {
 
   // ================= 统计 / 保存 =================
   summary(){
-    return {connected:!!this.probe,running:this.running,backend:this.backend || 'webusb',
+    return {connected:!!this.probe,running:this.running,backend:this.backend || 'openocd',
+      clockKhz:this.probe?.clockHz ? this.probe.clockHz / 1000 : null, pollLimit:this.probe?.rttPollLimit ?? null,
       stats:{...this.stats},controlBlock:this.rtt?.addr??null,
       bufferedBytes:this.recBytes,displaySuppressed:this.suppressed,error:$('r-err').textContent};
   }
@@ -887,18 +846,22 @@ export class RttView {
       this.suppManual = false;
       return;
     }
-    if (!this.suppressed && !this.suppManual && r > RttView.HS_OFF) this._setSuppressed(true, r);
-    else if (this.suppressed && r < RttView.HS_ON){ this._setSuppressed(false); this.suppManual = false; }
+    if (!this.suppressed && !this.suppManual && (this._ringBackpressure || r > RttView.HS_OFF))
+      this._setSuppressed(true, r);
+    else if (this.suppressed && !this._ringBackpressure && r < RttView.HS_ON){
+      this._setSuppressed(false); this.suppManual = false;
+    }
   }
 
   _setSuppressed(on, r = 0){
     if (this.suppressed === on) return;
     this.suppressed = on;
     if (on){
-      setStatus($('r-err'), `高速 ${fRate(r)}：渲染已停（收数/记录不受影响）· 点此恢复显示`, 'err');
+      const reason = this._ringBackpressure ? 'RTT 缓冲积压' : `高速 ${fRate(r)}`;
+      setStatus($('r-err'), `${reason}，渲染已停（收数/记录不受影响）· 点此恢复显示`, 'err');
       $('r-err').title = '点击恢复显示。若速率仍高于阈值会再次自动关闭';
 
-      const note = `\r\n[高速 ${fRate(r)}：已停止渲染以省 CPU —— 数据仍在收（统计、计数、记录到文件都照常）· 点状态栏可恢复显示]\r\n`;
+      const note = `\r\n[${reason}，已停止渲染。数据仍在接收和记录，点状态栏可恢复显示]\r\n`;
       if (this.mode === 'term' && this.term) this._termWrite(new TextEncoder().encode(note), new Date());
       else this.tx.push(new TextEncoder().encode(note), new Date());
     } else {

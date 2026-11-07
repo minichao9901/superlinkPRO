@@ -6,8 +6,10 @@ The ETM backend, decoder and records live in this repository's etm/ subtree.
 import argparse
 import importlib.util
 import mimetypes
+import os
 import re
 import sys
+import tempfile
 from html import escape
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
@@ -69,6 +71,18 @@ EMBEDDED_STYLE='<style>body#etm-app[data-embedded]{min-height:0}body#etm-app[dat
 EMBEDDED_DIAGNOSTICS="""<script>function etmPageError(message){var el=document.getElementById('job-state');if(el){el.textContent='页面发生错误：'+message;el.classList.add('bad');}}window.addEventListener('error',function(e){etmPageError(e.message);});window.addEventListener('unhandledrejection',function(e){etmPageError(e.reason&&e.reason.message||e.reason);});</script>"""
 
 
+def configure_source_runtime(etm_root, runtime):
+    sys.path.insert(0, str(Path(etm_root).resolve()/'tools'))
+    from trace_cli import engine_environment
+
+    engine_environment()
+    scratch = Path(runtime).resolve()/'runtime-tmp'
+    scratch.mkdir(exist_ok=True)
+    # Native helpers share this process's writable scratch area (ISSUE-029).
+    os.environ.update(TEMP=str(scratch), TMP=str(scratch))
+    tempfile.tempdir = str(scratch)
+
+
 def create_application(etm_root,serial_root=ROOT,cli_token_file=None):
     etm_root=Path(etm_root).resolve();serial_root=Path(serial_root).resolve()
     source=etm_root/'server.py'
@@ -127,5 +141,9 @@ if __name__=='__main__':
     parser.add_argument('--serial-root',type=Path,default=ROOT)
     parser.add_argument('--cli-token-file',type=Path,help='显式启用网页CLI命令队列；本机令牌文件')
     args=parser.parse_args()
-    print(f'统一工作台：http://127.0.0.1:{args.port}/#etm',flush=True)
-    run_simple('127.0.0.1',args.port,create_application(args.etm_root,args.serial_root,args.cli_token_file),threaded=True,use_reloader=False)
+    scratch_root = ROOT.parent/'tmp'
+    scratch_root.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='serve-etm-', dir=scratch_root) as runtime:
+        configure_source_runtime(args.etm_root, runtime)
+        print(f'统一工作台：http://127.0.0.1:{args.port}/#etm',flush=True)
+        run_simple('127.0.0.1',args.port,create_application(args.etm_root,args.serial_root,args.cli_token_file),threaded=True,use_reloader=False)

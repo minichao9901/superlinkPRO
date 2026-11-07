@@ -21,11 +21,11 @@ const f=Object.create(FlashView.prototype);f._log=()=>{};assert.equal(await f._c
 console.log('probe-handoff: debugger cancels queue, drains action before close; flash releases debugger before USB cleanup PASS');
 
 events.length=0;
-globalThis.window.__tools={hid:{last:{running:true},stop:async()=>events.push('STOP')}};
+globalThis.window.__tools={hid:{last:{running:true},disconnect:async()=>events.push('STOP')}};
 const fallback={bus:{supported:true,requestRelease:async()=>{events.push('remote');return {acked:1};}}};
 assert.deepEqual(await prepareProbeHandoff(fallback,'dbg','debug'),{acked:1});
 assert.deepEqual(events,['STOP','remote']);
-globalThis.window.__tools.hid.stop=async()=>{throw new Error('STOP failed');};
+globalThis.window.__tools.hid.disconnect=async()=>{throw new Error('STOP failed');};
 await assert.rejects(prepareProbeHandoff(fallback,'dbg','debug'),/STOP failed/);
 assert.deepEqual(events,['STOP','remote'],'failed local STOP never proceeds to remote acquisition');
 await prepareProbeHandoff({...fallback,probeManager:{}},'dbg','debug');

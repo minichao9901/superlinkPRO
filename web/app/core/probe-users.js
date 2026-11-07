@@ -49,7 +49,10 @@ export const PROBE_FEATURES = Object.freeze([
     id: 'hid', label: 'RTT 转发', client: t => t.hid,
     resources: ['target-engine', 'debug-pins', 'rtt-ring', 'cdc-mode'],
     active: t => !t.hid?.mock && !!(t.hid?.last?.running || t.hid?._bridgeRequested),
-    release: async t => { await t.hid.stop({ fromManager: true }); await t.hid.dev?.close?.(); },
+    release: async t => {
+      if (await t.hid.disconnect({ fromManager: true }) === false)
+        throw new Error('RTT 转发探针连接尚未释放');
+    },
   },
   {
     id: 'spi', label: 'SPI/QSPI', client: t => t.spiSession, usbKind: 'spi',

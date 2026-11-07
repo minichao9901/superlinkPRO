@@ -1,0 +1,2130 @@
+{
+  "date": "2026-11-07",
+  "board": "HPM6800EVK",
+  "sourceBase": "73e4b82",
+  "wasmSha256": "5ee31e1e56f89bb9376e120d950de1a769bf3a84a158e9cd0aa6b346d6607b9e",
+  "probeUpdate": {
+    "candidateSha256": "5d32f353f91dc8b38074179d5aed0dc0cc2c5bd7644567d9c092c5a406aac3ed",
+    "originalSha256": "0953c57df390740ec3fa5b68f6e034fd919fc136c7279ec57352165e76d55595",
+    "readbackSha256": "5d32f353f91dc8b38074179d5aed0dc0cc2c5bd7644567d9c092c5a406aac3ed",
+    "build": "2026/11/07 14:01:44",
+    "released": true
+  },
+  "nativeSram": [
+    {
+      "region": "ILM spare",
+      "requestedKHz": 8000,
+      "writeKiBps": 86.1,
+      "readKiBps": 82.7
+    },
+    {
+      "region": "ILM spare",
+      "requestedKHz": 20000,
+      "writeKiBps": 86.8,
+      "readKiBps": 82.5
+    },
+    {
+      "region": "ILM spare",
+      "requestedKHz": 25000,
+      "writeKiBps": 86.8,
+      "readKiBps": 82.7
+    },
+    {
+      "region": "AXI_SRAM spare",
+      "requestedKHz": 8000,
+      "writeKiBps": 86.8,
+      "readKiBps": 83.7
+    },
+    {
+      "region": "AXI_SRAM spare",
+      "requestedKHz": 20000,
+      "writeKiBps": 86.7,
+      "readKiBps": 82.1
+    },
+    {
+      "region": "AXI_SRAM spare",
+      "requestedKHz": 25000,
+      "writeKiBps": 83.0,
+      "readKiBps": 81.9
+    }
+  ],
+  "probeInternalSramBytesPerSec": {
+    "read": 1550641,
+    "write": 1563145
+  },
+  "originalWasm": [
+    {
+      "clock": "adapter speed: 8000 kHz"
+    },
+    {
+      "label": "halted load_image",
+      "ms": 301.7368999999999,
+      "bytes": 16384,
+      "bytesPerSec": 54299
+    },
+    {
+      "label": "halted dump_image",
+      "ms": 367.43010000000004,
+      "bytes": 16384,
+      "bytesPerSec": 44591
+    },
+    {
+      "label": "halted read_memory",
+      "ms": 410.7975000000001,
+      "bytes": 16384,
+      "bytesPerSec": 39883
+    },
+    {
+      "label": "running read_memory phys",
+      "ms": 982.5051999999996,
+      "bytes": 16384,
+      "bytesPerSec": 16676
+    },
+    {
+      "label": "running write_memory phys",
+      "ms": 81.98279999999977,
+      "bytes": 16384,
+      "bytesPerSec": 199847
+    },
+    {
+      "label": "running load_image identity mapping",
+      "ms": 76.91090000000077,
+      "bytes": 16384,
+      "bytesPerSec": 213026
+    },
+    {
+      "label": "running dump_image identity mapping",
+      "ms": 906.4696000000004,
+      "bytes": 16384,
+      "bytesPerSec": 18075
+    },
+    {
+      "clock": "adapter speed: 25000 kHz"
+    },
+    {
+      "label": "halted load_image",
+      "ms": 326.4489000000003,
+      "bytes": 16384,
+      "bytesPerSec": 50189
+    },
+    {
+      "label": "halted dump_image",
+      "ms": 355.23619999999937,
+      "bytes": 16384,
+      "bytesPerSec": 46121
+    },
+    {
+      "label": "halted read_memory",
+      "ms": 374.59459999999945,
+      "bytes": 16384,
+      "bytesPerSec": 43738
+    },
+    {
+      "label": "running read_memory phys",
+      "ms": 918.5405999999994,
+      "bytes": 16384,
+      "bytesPerSec": 17837
+    },
+    {
+      "label": "running write_memory phys",
+      "ms": 79.1925999999994,
+      "bytes": 16384,
+      "bytesPerSec": 206888
+    },
+    {
+      "label": "running load_image identity mapping",
+      "ms": 75.6185000000005,
+      "bytes": 16384,
+      "bytesPerSec": 216667
+    },
+    {
+      "label": "running dump_image identity mapping",
+      "ms": 898.4836999999989,
+      "bytes": 16384,
+      "bytesPerSec": 18235
+    },
+    {
+      "restored": true
+    }
+  ],
+  "batchedWasm": [
+    {
+      "clock": "adapter speed: 8000 kHz"
+    },
+    {
+      "label": "halted load_image",
+      "ms": 311.51059999999995,
+      "bytes": 16384,
+      "bytesPerSec": 52595
+    },
+    {
+      "label": "halted dump_image",
+      "ms": 388.3859,
+      "bytes": 16384,
+      "bytesPerSec": 42185
+    },
+    {
+      "label": "halted read_memory",
+      "ms": 402.8594999999998,
+      "bytes": 16384,
+      "bytesPerSec": 40669
+    },
+    {
+      "label": "running read_memory phys",
+      "ms": 108.26569999999992,
+      "bytes": 16384,
+      "bytesPerSec": 151331
+    },
+    {
+      "label": "running write_memory phys",
+      "ms": 94.27500000000009,
+      "bytes": 16384,
+      "bytesPerSec": 173789
+    },
+    {
+      "label": "running load_image identity mapping",
+      "ms": 78.29950000000008,
+      "bytes": 16384,
+      "bytesPerSec": 209248
+    },
+    {
+      "label": "running dump_image identity mapping",
+      "ms": 82.54539999999997,
+      "bytes": 16384,
+      "bytesPerSec": 198485
+    },
+    {
+      "clock": "adapter speed: 25000 kHz"
+    },
+    {
+      "label": "halted load_image",
+      "ms": 322.79309999999987,
+      "bytes": 16384,
+      "bytesPerSec": 50757
+    },
+    {
+      "label": "halted dump_image",
+      "ms": 313.6117999999997,
+      "bytes": 16384,
+      "bytesPerSec": 52243
+    },
+    {
+      "label": "halted read_memory",
+      "ms": 384.8346999999999,
+      "bytes": 16384,
+      "bytesPerSec": 42574
+    },
+    {
+      "label": "running read_memory phys",
+      "ms": 89.81719999999996,
+      "bytes": 16384,
+      "bytesPerSec": 182415
+    },
+    {
+      "label": "running write_memory phys",
+      "ms": 80.0344,
+      "bytes": 16384,
+      "bytesPerSec": 204712
+    },
+    {
+      "label": "running load_image identity mapping",
+      "ms": 68.42609999999968,
+      "bytes": 16384,
+      "bytesPerSec": 239441
+    },
+    {
+      "label": "running dump_image identity mapping",
+      "ms": 70.6860999999999,
+      "bytes": 16384,
+      "bytesPerSec": 231785
+    },
+    {
+      "restored": true
+    }
+  ],
+  "productionWasm64KiB": [
+    {
+      "clock": "adapter speed: 8000 kHz"
+    },
+    {
+      "label": "halted load_image",
+      "ms": 1148.5166000000002,
+      "bytes": 65536,
+      "bytesPerSec": 57061,
+      "usbIn": 5642,
+      "usbOut": 5642
+    },
+    {
+      "label": "halted dump_image",
+      "ms": 1376.0630999999998,
+      "bytes": 65536,
+      "bytesPerSec": 47626,
+      "usbIn": 5870,
+      "usbOut": 5870
+    },
+    {
+      "label": "halted read_memory",
+      "ms": 1493.5569999999998,
+      "bytes": 65536,
+      "bytesPerSec": 43879,
+      "usbIn": 6112,
+      "usbOut": 6112
+    },
+    {
+      "label": "running read_memory phys",
+      "ms": 377.5734000000002,
+      "bytes": 65536,
+      "bytesPerSec": 173572,
+      "usbIn": 1221,
+      "usbOut": 1221
+    },
+    {
+      "label": "running write_memory phys",
+      "ms": 350.08769999999913,
+      "bytes": 65536,
+      "bytesPerSec": 187199,
+      "usbIn": 1216,
+      "usbOut": 1216
+    },
+    {
+      "label": "running load_image identity mapping",
+      "ms": 309.4501,
+      "bytes": 65536,
+      "bytesPerSec": 211782,
+      "usbIn": 1154,
+      "usbOut": 1154
+    },
+    {
+      "label": "running dump_image identity mapping",
+      "ms": 303.5730000000003,
+      "bytes": 65536,
+      "bytesPerSec": 215882,
+      "usbIn": 1120,
+      "usbOut": 1120
+    },
+    {
+      "label": "worker binary load_image",
+      "ms": 309.66150000000016,
+      "bytes": 65536,
+      "bytesPerSec": 211638,
+      "usbIn": 1154,
+      "usbOut": 1154
+    },
+    {
+      "label": "worker binary dump_image",
+      "ms": 310.02450000000044,
+      "bytes": 65536,
+      "bytesPerSec": 211390,
+      "usbIn": 1120,
+      "usbOut": 1120
+    },
+    {
+      "clock": "adapter speed: 20000 kHz"
+    },
+    {
+      "label": "halted load_image",
+      "ms": 1328.1432999999997,
+      "bytes": 65536,
+      "bytesPerSec": 49344,
+      "usbIn": 5650,
+      "usbOut": 5650
+    },
+    {
+      "label": "halted dump_image",
+      "ms": 1394.0786000000007,
+      "bytes": 65536,
+      "bytesPerSec": 47010,
+      "usbIn": 5886,
+      "usbOut": 5886
+    },
+    {
+      "label": "halted read_memory",
+      "ms": 1507.9445000000014,
+      "bytes": 65536,
+      "bytesPerSec": 43460,
+      "usbIn": 6144,
+      "usbOut": 6144
+    },
+    {
+      "label": "running read_memory phys",
+      "ms": 377.0454000000009,
+      "bytes": 65536,
+      "bytesPerSec": 173815,
+      "usbIn": 1216,
+      "usbOut": 1216
+    },
+    {
+      "label": "running write_memory phys",
+      "ms": 337.9519999999993,
+      "bytes": 65536,
+      "bytesPerSec": 193921,
+      "usbIn": 1216,
+      "usbOut": 1216
+    },
+    {
+      "label": "running load_image identity mapping",
+      "ms": 308.58460000000014,
+      "bytes": 65536,
+      "bytesPerSec": 212376,
+      "usbIn": 1154,
+      "usbOut": 1154
+    },
+    {
+      "label": "running dump_image identity mapping",
+      "ms": 308.76060000000143,
+      "bytes": 65536,
+      "bytesPerSec": 212255,
+      "usbIn": 1120,
+      "usbOut": 1120
+    },
+    {
+      "label": "worker binary load_image",
+      "ms": 310.2016000000003,
+      "bytes": 65536,
+      "bytesPerSec": 211269,
+      "usbIn": 1154,
+      "usbOut": 1154
+    },
+    {
+      "label": "worker binary dump_image",
+      "ms": 305.2311000000009,
+      "bytes": 65536,
+      "bytesPerSec": 214709,
+      "usbIn": 1120,
+      "usbOut": 1120
+    },
+    {
+      "clock": "adapter speed: 25000 kHz"
+    },
+    {
+      "label": "halted load_image",
+      "ms": 1329.083700000001,
+      "bytes": 65536,
+      "bytesPerSec": 49309,
+      "usbIn": 5650,
+      "usbOut": 5650
+    },
+    {
+      "label": "halted dump_image",
+      "ms": 1395.9674000000014,
+      "bytes": 65536,
+      "bytesPerSec": 46947,
+      "usbIn": 5886,
+      "usbOut": 5886
+    },
+    {
+      "label": "halted read_memory",
+      "ms": 1496.0280999999995,
+      "bytes": 65536,
+      "bytesPerSec": 43807,
+      "usbIn": 6144,
+      "usbOut": 6144
+    },
+    {
+      "label": "running read_memory phys",
+      "ms": 377.8397999999979,
+      "bytes": 65536,
+      "bytesPerSec": 173449,
+      "usbIn": 1216,
+      "usbOut": 1216
+    },
+    {
+      "label": "running write_memory phys",
+      "ms": 328.66639999999825,
+      "bytes": 65536,
+      "bytesPerSec": 199400,
+      "usbIn": 1216,
+      "usbOut": 1216
+    },
+    {
+      "label": "running load_image identity mapping",
+      "ms": 306.83729999999923,
+      "bytes": 65536,
+      "bytesPerSec": 213586,
+      "usbIn": 1154,
+      "usbOut": 1154
+    },
+    {
+      "label": "running dump_image identity mapping",
+      "ms": 307.72710000000006,
+      "bytes": 65536,
+      "bytesPerSec": 212968,
+      "usbIn": 1120,
+      "usbOut": 1120
+    },
+    {
+      "label": "worker binary load_image",
+      "ms": 311.7475000000013,
+      "bytes": 65536,
+      "bytesPerSec": 210221,
+      "usbIn": 1154,
+      "usbOut": 1154
+    },
+    {
+      "label": "worker binary dump_image",
+      "ms": 309.367000000002,
+      "bytes": 65536,
+      "bytesPerSec": 211839,
+      "usbIn": 1120,
+      "usbOut": 1120
+    },
+    {
+      "restored": true
+    }
+  ],
+  "workbenchSram": {
+    "sram": {
+      "8000": {
+        "measurements": [
+          {
+            "bytes": 4096,
+            "readSeconds": 0.14330599999811966,
+            "writeSeconds": 0.139059900000575,
+            "readBps": 28582.194744489025,
+            "writeBps": 29454.932730305885
+          },
+          {
+            "bytes": 4096,
+            "readSeconds": 0.1334936999992351,
+            "writeSeconds": 0.14848730000085197,
+            "readBps": 30683.09590657439,
+            "writeBps": 27584.85069077624
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.13742450000427198,
+            "writeSeconds": 0.24007900000287918,
+            "readBps": 119221.82725417001,
+            "writeBps": 68244.2029490439
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.15911149999737972,
+            "writeSeconds": 0.14366100000188453,
+            "readBps": 102971.81536387888,
+            "writeBps": 114046.26168399966
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.519075200005318,
+            "writeSeconds": 0.5015768000012031,
+            "readBps": 126255.309441346,
+            "writeBps": 130659.95077890925
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.5154598000008264,
+            "writeSeconds": 0.45242080000025453,
+            "readBps": 127140.85560095072,
+            "writeBps": 144856.29307928178
+          }
+        ],
+        "restored": true
+      },
+      "10000": {
+        "measurements": [
+          {
+            "bytes": 4096,
+            "readSeconds": 0.14137599999958184,
+            "writeSeconds": 0.15328919999592472,
+            "readBps": 28972.385694970257,
+            "writeBps": 26720.734403394985
+          },
+          {
+            "bytes": 4096,
+            "readSeconds": 0.13577839999925345,
+            "writeSeconds": 0.12073899999813875,
+            "readBps": 30166.80119976757,
+            "writeBps": 33924.41547522459
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.1298453999988851,
+            "writeSeconds": 0.13860600000043632,
+            "readBps": 126180.82735422801,
+            "writeBps": 118205.56108644954
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.17168169999786187,
+            "writeSeconds": 0.2516734999953769,
+            "readBps": 95432.4194145564,
+            "writeBps": 65100.21913431872
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.4573536999960197,
+            "writeSeconds": 0.4633070999989286,
+            "readBps": 143293.9101631196,
+            "writeBps": 141452.6131806561
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.4837358000004315,
+            "writeSeconds": 0.44272380000620615,
+            "readBps": 135478.91224908625,
+            "writeBps": 148029.08720760283
+          }
+        ],
+        "restored": true
+      },
+      "20000": {
+        "measurements": [
+          {
+            "bytes": 4096,
+            "readSeconds": 0.15743939999811118,
+            "writeSeconds": 0.17487480000272626,
+            "readBps": 26016.35931062453,
+            "writeBps": 23422.471390595696
+          },
+          {
+            "bytes": 4096,
+            "readSeconds": 0.15354340000340017,
+            "writeSeconds": 0.1205569999947329,
+            "readBps": 26676.496677221527,
+            "writeBps": 33975.6297865653
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.1566328999979305,
+            "writeSeconds": 0.13977700000395998,
+            "readBps": 104601.26831729778,
+            "writeBps": 117215.27861905628
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.15494680000119843,
+            "writeSeconds": 0.15560460000415333,
+            "readBps": 105739.51833708912,
+            "writeBps": 105292.5170564539
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.4913194000037038,
+            "writeSeconds": 0.4516749999966123,
+            "readBps": 133387.77178248196,
+            "writeBps": 145095.47794429964
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.4853880000009667,
+            "writeSeconds": 0.48940220000076806,
+            "readBps": 135017.75898841643,
+            "writeBps": 133910.3093527106
+          }
+        ],
+        "restored": true
+      },
+      "25000": {
+        "measurements": [
+          {
+            "bytes": 4096,
+            "readSeconds": 0.1598809999995865,
+            "writeSeconds": 0.13391889999911655,
+            "readBps": 25619.05417160634,
+            "writeBps": 30585.67536043845
+          },
+          {
+            "bytes": 4096,
+            "readSeconds": 0.15718979999655858,
+            "writeSeconds": 0.1575650000013411,
+            "readBps": 26057.670409210237,
+            "writeBps": 25995.620854664026
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.14205429999856278,
+            "writeSeconds": 0.21061529999860795,
+            "readBps": 115336.17778670383,
+            "writeBps": 77791.11963902095
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.16934780000156024,
+            "writeSeconds": 0.16013440000097034,
+            "readBps": 96747.64006292996,
+            "writeBps": 102314.05619217808
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.4686583000002429,
+            "writeSeconds": 0.4856664999970235,
+            "readBps": 139837.4892751628,
+            "writeBps": 134940.3345719782
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.5018016999965766,
+            "writeSeconds": 0.4631346999958623,
+            "readBps": 130601.39094874947,
+            "writeBps": 141505.26833896383
+          }
+        ],
+        "restored": true
+      }
+    },
+    "final-sram-running": {
+      "8000": {
+        "measurements": [
+          {
+            "bytes": 4096,
+            "readSeconds": 0.15718419999757316,
+            "writeSeconds": 0.15598709999903804,
+            "readBps": 26058.59876541815,
+            "writeBps": 26258.581639284657
+          },
+          {
+            "bytes": 4096,
+            "readSeconds": 0.15835090000473429,
+            "writeSeconds": 0.15576680000231136,
+            "readBps": 25866.60385180975,
+            "writeBps": 26295.718984656687
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.14574049999646377,
+            "writeSeconds": 0.18340899999748217,
+            "readBps": 112418.9912920399,
+            "writeBps": 89330.4036346358
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.12711449999915203,
+            "writeSeconds": 0.1659397000039462,
+            "readBps": 128891.66853592073,
+            "writeBps": 98734.66084131991
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.5269564999980503,
+            "writeSeconds": 0.4248946000006981,
+            "readBps": 124367.00183078201,
+            "writeBps": 154240.6046108666
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.46696130000054836,
+            "writeSeconds": 0.47250699999858625,
+            "readBps": 140345.67746818214,
+            "writeBps": 138698.4743087321
+          }
+        ],
+        "restored": true
+      }
+    },
+    "final3-sram-running": {
+      "8000": {
+        "measurements": [
+          {
+            "bytes": 4096,
+            "readSeconds": 0.15353199999663047,
+            "writeSeconds": 0.14452399999572663,
+            "readBps": 26678.477451540355,
+            "writeBps": 28341.313554296263
+          },
+          {
+            "bytes": 4096,
+            "readSeconds": 0.12522870000248076,
+            "writeSeconds": 0.1545267000037711,
+            "readBps": 32708.157155020046,
+            "writeBps": 26506.74608271606
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.11363310000160709,
+            "writeSeconds": 0.14311170000291895,
+            "readBps": 144183.3409435128,
+            "writeBps": 114484.00095635666
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.13795820000086678,
+            "writeSeconds": 0.2424689000035869,
+            "readBps": 118760.61009709506,
+            "writeBps": 67571.55247439003
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.5722058000028483,
+            "writeSeconds": 0.48405609999463195,
+            "readBps": 114532.21900175388,
+            "writeBps": 135389.26583246607
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.5661611999967135,
+            "writeSeconds": 0.525253599997086,
+            "readBps": 115755.01818277272,
+            "writeBps": 124770.20624011636
+          }
+        ],
+        "restored": true
+      }
+    },
+    "final4-sram-running": {
+      "8000": {
+        "measurements": [
+          {
+            "bytes": 4096,
+            "readSeconds": 0.14193510000040988,
+            "writeSeconds": 0.13884929999767337,
+            "readBps": 28858.25986657403,
+            "writeBps": 29499.608568920656
+          },
+          {
+            "bytes": 4096,
+            "readSeconds": 0.12221680000220658,
+            "writeSeconds": 0.15765549999923678,
+            "readBps": 33514.214084528874,
+            "writeBps": 25980.69842168417
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.15894619999744464,
+            "writeSeconds": 0.2154951999982586,
+            "readBps": 103078.90342935789,
+            "writeBps": 76029.53569328875
+          },
+          {
+            "bytes": 16384,
+            "readSeconds": 0.21655509999982314,
+            "writeSeconds": 0.23519949999899836,
+            "readBps": 75657.41928965598,
+            "writeBps": 69660.01203263516
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.45676880000246456,
+            "writeSeconds": 0.5028297000026214,
+            "readBps": 143477.40038208914,
+            "writeBps": 130334.38557757894
+          },
+          {
+            "bytes": 65536,
+            "readSeconds": 0.470382100000279,
+            "writeSeconds": 0.4331067000020994,
+            "readBps": 139325.02958756534,
+            "writeBps": 151316.06137628978
+          }
+        ],
+        "restored": true
+      }
+    }
+  },
+  "rawRttChunks": {
+    "8192": {
+      "bytes": 1515520,
+      "corrupt": 0,
+      "lost": 0,
+      "polls": 185,
+      "bytesPerSec": 189103.79472715204,
+      "calls": {
+        "readSmall": {
+          "count": 238,
+          "ms": 966.2852999999955,
+          "maxMs": 16.2512999999999,
+          "bytes": 103692
+        },
+        "readBulk": {
+          "count": 185,
+          "ms": 6868.622400000001,
+          "maxMs": 57.12880000000001,
+          "bytes": 1416436
+        },
+        "write": {
+          "count": 185,
+          "ms": 181.4137000000007,
+          "maxMs": 1.6004000000002634,
+          "bytes": 740
+        }
+      }
+    },
+    "16384": {
+      "bytes": 1474560,
+      "corrupt": 0,
+      "lost": 0,
+      "polls": 90,
+      "bytesPerSec": 182524.65554623256,
+      "calls": {
+        "readSmall": {
+          "count": 97,
+          "ms": 191.4909000000002,
+          "maxMs": 7.069999999999993,
+          "bytes": 2328
+        },
+        "readBulk": {
+          "count": 135,
+          "ms": 7788.964099999998,
+          "maxMs": 134.70600000000013,
+          "bytes": 1474560
+        },
+        "write": {
+          "count": 90,
+          "ms": 102.7497000000011,
+          "maxMs": 2.1815000000005966,
+          "bytes": 360
+        }
+      }
+    },
+    "32768": {
+      "error": "Error: error reading USB data\nError: CMSIS-DAP command CMD_DAP_JTAG_SEQ failed.\nError: [workbench.cpu] Unable to execute JTAG queue\nWarn : [workbench.cpu] Failed to read memory via system bus.\nError: [workbench.cpu] Failed to read memory (addr=0x1247318)\n  progbuf=disabled, sysbus=skipped (sysbus access failed), abstract=disabled\n"
+    }
+  },
+  "viewer": {
+    "viewer": {
+      "echo": true,
+      "bytesPerSec": 40156.930484098266,
+      "elapsedSeconds": 8.598060500000429,
+      "receivedBytes": 364950,
+      "helloCount": 28067,
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 32767,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": false,
+        "error": "控制块 0x1240000，上行缓冲 32768 B（固件声明 3 个上行通道，本页读 ch0）",
+        "running": true,
+        "stats": {
+          "bytes": 32767,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 1,
+          "rate": 0
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 364950,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": false,
+        "error": "",
+        "running": true,
+        "stats": {
+          "bytes": 364950,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 364950,
+          "lastPolls": 18,
+          "lost": 0,
+          "polls": 18,
+          "rate": 0
+        }
+      },
+      "error": "{'mode': 'viewer', 'before': {'backend': 'openocd', 'bufferedBytes': 32767, 'connected': True, 'controlBlock': 19136512, 'displaySuppressed': False, 'error': '控制块 0x1240000，上行缓冲 32768 B（固件声明 3 个上行通道，本页读 ch0）', 'running': True, 'stats': {'bytes': 32767, 'corrupt': 0, 'hz': 0, 'lastBytes': 0, 'lastPolls': 0, 'lost': 0, 'polls': 1, 'rate': 0}}, 'nonce': '1ea24a548c77', 'after': {'backend': 'openocd', 'bufferedBytes': 364950, 'connected': True, 'controlBlock': 19136512, 'displaySuppressed': False, 'error': '', 'running': True, 'stats': {'bytes': 364950, 'corrupt': 0, 'hz': 0, 'lastBytes': 364950, 'lastPolls': 18, 'lost': 0, 'polls': 18, 'rate': 0}}, 'bytesPerSec': 40156.930484098266, 'elapsedSeconds': 8.598060500000429, 'echo': True, 'helloCount': 28067, 'receivedBytes': 364950}"
+    },
+    "viewer-full-0": {
+      "clockSelection": "0",
+      "echo": false,
+      "bytesPerSec": 6836.297773494312,
+      "elapsedSeconds": 8.604719599999953,
+      "receivedBytes": 89389,
+      "helloCount": 6872,
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 32767,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": false,
+        "error": "控制块 0x1240000，上行缓冲 32768 B（固件声明 3 个上行通道，本页读 ch0）",
+        "running": true,
+        "stats": {
+          "bytes": 32767,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 1,
+          "rate": 0
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 89389,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": false,
+        "error": "",
+        "running": true,
+        "stats": {
+          "bytes": 89389,
+          "corrupt": 0,
+          "hz": 0.7242178447279546,
+          "lastBytes": 89389,
+          "lastPolls": 3,
+          "lost": 0,
+          "polls": 3,
+          "rate": 21579.03630746238
+        }
+      },
+      "error": "bytearray(b'\\r\\n=== HPM6800EVK RTT flood (BLOCK_IF_FIFO_FULL) ===\\r\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello wo')"
+    },
+    "viewer-full-25000": {
+      "clockSelection": "25000",
+      "error": "Wasm RTT up not running: {'backend': 'openocd', 'bufferedBytes': 0, 'connected': False, 'controlBlock': None, 'displaySuppressed': False, 'error': '连接失败：OpenOCD 操作超时：Info : Using CMSIS-DAPv2 interface with VID:PID=0x0d28:0x0204, serial=[redacted]', 'running': False, 'stats': {'bytes': 89389, 'corrupt': 0, 'hz': 0.7242178447279546, 'lastBytes': 89389, 'lastPolls': 3, 'lost': 0, 'polls': 3, 'rate': 21579.03630746238}}"
+    },
+    "final2-viewer": {
+      "clockSelection": "0",
+      "echo": false,
+      "bytesPerSec": 4541.186348349794,
+      "elapsedSeconds": 7.366932400000223,
+      "receivedBytes": 40960,
+      "helloCount": 3150,
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 8192,
+        "clockKhz": 8000,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": false,
+        "error": "控制块 0x1240000，上行缓冲 32768 B（固件声明 3 个上行通道，本页读 ch0）",
+        "pollLimit": 8192,
+        "running": true,
+        "stats": {
+          "bytes": 8192,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 1,
+          "rate": 0
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 40960,
+        "clockKhz": 8000,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": false,
+        "error": "",
+        "pollLimit": 8192,
+        "running": true,
+        "stats": {
+          "bytes": 40960,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 40960,
+          "lastPolls": 5,
+          "lost": 0,
+          "polls": 5,
+          "rate": 0
+        }
+      },
+      "error": "bytearray(b'hello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello wor')"
+    },
+    "final3-viewer-diag": {
+      "clockSelection": "0",
+      "echo": false,
+      "bytesPerSec": 137326.66724332873,
+      "elapsedSeconds": 19.57634649999818,
+      "receivedBytes": 2097152,
+      "helloCount": 161318,
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 8192,
+        "clockKhz": 8000,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": false,
+        "error": "控制块 0x1240000，上行缓冲 32768 B（固件声明 3 个上行通道，本页读 ch0）",
+        "pollLimit": 8192,
+        "running": true,
+        "stats": {
+          "bytes": 8192,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 1,
+          "rate": 0
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 2097152,
+        "clockKhz": 8000,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": true,
+        "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示",
+        "pollLimit": 8192,
+        "running": true,
+        "stats": {
+          "bytes": 2678784,
+          "corrupt": 0,
+          "hz": 17.971246006496724,
+          "lastBytes": 2637824,
+          "lastPolls": 322,
+          "lost": 0,
+          "polls": 327,
+          "rate": 147220.44728522116
+        }
+      },
+      "series": [
+        {
+          "seconds": 1.4051993000030052,
+          "bytes": 155648,
+          "polls": 19,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 2.4375179999988177,
+          "bytes": 311296,
+          "polls": 38,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 3.4778212000019266,
+          "bytes": 450560,
+          "polls": 55,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 4.508404300002439,
+          "bytes": 589824,
+          "polls": 72,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 5.632205000001704,
+          "bytes": 737280,
+          "polls": 90,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 6.651804300003278,
+          "bytes": 884736,
+          "polls": 108,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 7.6838171999988845,
+          "bytes": 1032192,
+          "polls": 126,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 8.806723699999566,
+          "bytes": 1171456,
+          "polls": 143,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 9.836929899996903,
+          "bytes": 1327104,
+          "polls": 162,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 10.95371989999694,
+          "bytes": 1458176,
+          "polls": 178,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 11.971825499997067,
+          "bytes": 1613824,
+          "polls": 197,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 13.001160500003607,
+          "bytes": 1744896,
+          "polls": 213,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 14.058661199997005,
+          "bytes": 1900544,
+          "polls": 232,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 15.075792099996761,
+          "bytes": 2056192,
+          "polls": 251,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 16.199939700003597,
+          "bytes": 2203648,
+          "polls": 269,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 17.326296999999613,
+          "bytes": 2351104,
+          "polls": 287,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 18.454681700000947,
+          "bytes": 2514944,
+          "polls": 307,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        },
+        {
+          "seconds": 19.576315500002238,
+          "bytes": 2678784,
+          "polls": 327,
+          "error": "高速 143.2 KB/s：渲染已停（收数/记录不受影响）· 点此恢复显示"
+        }
+      ],
+      "error": "bytearray(b'orld!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhello world!\\nhel')"
+    },
+    "final4-viewer": {
+      "clockSelection": "0",
+      "echo": true,
+      "bytesPerSec": 155617.92900932743,
+      "elapsedSeconds": 7.178944999999658,
+      "receivedBytes": 1122304,
+      "helloCount": 86325,
+      "before": {
+        "backend": "openocd",
+        "bufferedBytes": 8192,
+        "clockKhz": 8000,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": true,
+        "error": "RTT 缓冲积压，渲染已停（收数/记录不受影响）· 点此恢复显示",
+        "pollLimit": 8192,
+        "running": true,
+        "stats": {
+          "bytes": 8192,
+          "corrupt": 0,
+          "hz": 0,
+          "lastBytes": 0,
+          "lastPolls": 0,
+          "lost": 0,
+          "polls": 1,
+          "rate": 0
+        }
+      },
+      "after": {
+        "backend": "openocd",
+        "bufferedBytes": 1122304,
+        "clockKhz": 8000,
+        "connected": true,
+        "controlBlock": 19136512,
+        "displaySuppressed": true,
+        "error": "RTT 缓冲积压，渲染已停（收数/记录不受影响）· 点此恢复显示",
+        "pollLimit": 8192,
+        "running": true,
+        "stats": {
+          "bytes": 1122304,
+          "corrupt": 0,
+          "hz": 18.990504747626186,
+          "lastBytes": 1105920,
+          "lastPolls": 135,
+          "lost": 0,
+          "polls": 137,
+          "rate": 155570.21489255372
+        }
+      }
+    }
+  },
+  "scope": {
+    "scope-resync": [
+      {
+        "channels": 1,
+        "periodUs": 20,
+        "rateHz": 50000,
+        "receivedSamples": 200394,
+        "lostProbe": 1,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 1,
+        "periodUs": 5,
+        "rateHz": 199997,
+        "receivedSamples": 801598,
+        "lostProbe": 12,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 1,
+        "periodUs": 2,
+        "rateHz": 305430,
+        "receivedSamples": 1224178,
+        "lostProbe": 779850,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 3,
+        "periodUs": 30,
+        "rateHz": 33333,
+        "receivedSamples": 133868,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 3,
+        "periodUs": 10,
+        "rateHz": 52633,
+        "receivedSamples": 211375,
+        "lostProbe": 190229,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 3,
+        "periodUs": 2,
+        "rateHz": 52114,
+        "receivedSamples": 208866,
+        "lostProbe": 1795159,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 100,
+        "rateHz": 10000,
+        "receivedSamples": 40080,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 50,
+        "rateHz": 20000,
+        "receivedSamples": 80160,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 30,
+        "rateHz": 31425,
+        "receivedSamples": 125953,
+        "lostProbe": 7648,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 20,
+        "rateHz": 31394,
+        "receivedSamples": 125829,
+        "lostProbe": 74572,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 10,
+        "rateHz": 31339,
+        "receivedSamples": 125480,
+        "lostProbe": 274921,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 5,
+        "rateHz": 31264,
+        "receivedSamples": 125302,
+        "lostProbe": 676305,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 2,
+        "rateHz": 31024,
+        "receivedSamples": 124341,
+        "lostProbe": 1879667,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      }
+    ],
+    "final3-scope": [
+      {
+        "channels": 1,
+        "periodUs": 10,
+        "rateHz": 99999,
+        "receivedSamples": 400797,
+        "lostProbe": 5,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 1,
+        "periodUs": 2,
+        "rateHz": 306071,
+        "receivedSamples": 1225524,
+        "lostProbe": 776505,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 3,
+        "periodUs": 40,
+        "rateHz": 25000,
+        "receivedSamples": 100201,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 100,
+        "rateHz": 10000,
+        "receivedSamples": 40080,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 40,
+        "rateHz": 25000,
+        "receivedSamples": 100201,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 20,
+        "rateHz": 31389,
+        "receivedSamples": 125809,
+        "lostProbe": 74592,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      }
+    ],
+    "final4-scope": [
+      {
+        "channels": 1,
+        "periodUs": 10,
+        "rateHz": 99999,
+        "receivedSamples": 400797,
+        "lostProbe": 5,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 1,
+        "periodUs": 2,
+        "rateHz": 306046,
+        "receivedSamples": 1225422,
+        "lostProbe": 776605,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 3,
+        "periodUs": 40,
+        "rateHz": 25000,
+        "receivedSamples": 100201,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 100,
+        "rateHz": 10000,
+        "receivedSamples": 40080,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 40,
+        "rateHz": 25000,
+        "receivedSamples": 100301,
+        "lostProbe": 0,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      },
+      {
+        "channels": 8,
+        "periodUs": 20,
+        "rateHz": 31402,
+        "receivedSamples": 125735,
+        "lostProbe": 74466,
+        "lostUsb": 0,
+        "lostGap": 0,
+        "readErrors": 0,
+        "tailCountDelta": 0,
+        "metricsError": null
+      }
+    ]
+  },
+  "flash": {
+    "flash-flood-full": {
+      "imageSha256": "db75ee2622de260013645eeb1133f834923c3801faeab09b905a8e2b4c2fd043",
+      "result": {
+        "bytes": 47128,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 9.859908200000064,
+      "status": "已烧录 46.0 KB，读回校验通过"
+    },
+    "flash-scope-resync": {
+      "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+      "result": {
+        "bytes": 47856,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 24.950718699998106,
+      "status": "已烧录 46.7 KB，读回校验通过"
+    },
+    "final2-flash-scope": {
+      "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+      "status": "OpenOCD 操作超时：Info : Using CMSIS-DAPv2 interface with VID:PID=0x0d28:0x0204, serial=[redacted]",
+      "error": "OpenOCD 操作超时：Info : Using CMSIS-DAPv2 interface with VID:PID=0x0d28:0x0204, serial=[redacted]"
+    },
+    "final3-flash-scope": {
+      "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+      "result": {
+        "bytes": 47856,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 11.28716720000375,
+      "status": "已烧录 46.7 KB，读回校验通过"
+    },
+    "final3-flash-dbg": {
+      "imageSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+      "result": {
+        "bytes": 48224,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 9.777026299998397,
+      "status": "已烧录 47.1 KB，读回校验通过"
+    },
+    "final4-flash-flood": {
+      "imageSha256": "db75ee2622de260013645eeb1133f834923c3801faeab09b905a8e2b4c2fd043",
+      "result": {
+        "bytes": 47128,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 11.427965899994888,
+      "status": "已烧录 46.0 KB，读回校验通过"
+    },
+    "final4-flash-scope": {
+      "imageSha256": "e5124ca35a872c2c54f210df99c5cfc3ca7a0d8f6a64f1cfa29a907aeb9b73a9",
+      "result": {
+        "bytes": 47856,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 9.959740300000703,
+      "status": "已烧录 46.7 KB，读回校验通过"
+    },
+    "final4-flash-dbg": {
+      "imageSha256": "f76305dbb023612d114585fb6152a95949a5768988014084a051341a238124da",
+      "result": {
+        "bytes": 48224,
+        "reset": true,
+        "sectors": 13,
+        "verified": true
+      },
+      "seconds": 10.341532500002359,
+      "status": "已烧录 47.1 KB，读回校验通过"
+    }
+  },
+  "fullFlow": {
+    "final2-flow": [
+      {
+        "phase": "viewer",
+        "exitCode": 1
+      },
+      {
+        "phase": "cdc",
+        "exitCode": 0
+      },
+      {
+        "phase": "flash-scope",
+        "exitCode": 1
+      }
+    ],
+    "final3-flow": [
+      {
+        "phase": "flash-scope",
+        "exitCode": 0
+      },
+      {
+        "phase": "scope",
+        "exitCode": 0
+      },
+      {
+        "phase": "flash-dbg",
+        "exitCode": 0
+      },
+      {
+        "phase": "sram-running",
+        "exitCode": 0
+      },
+      {
+        "phase": "debug-stress",
+        "exitCode": 0
+      }
+    ],
+    "final4-flow": [
+      {
+        "phase": "flash-flood",
+        "exitCode": 0
+      },
+      {
+        "phase": "viewer",
+        "exitCode": 0
+      },
+      {
+        "phase": "cdc",
+        "exitCode": 0
+      },
+      {
+        "phase": "flash-scope",
+        "exitCode": 0
+      },
+      {
+        "phase": "scope",
+        "exitCode": 0
+      },
+      {
+        "phase": "flash-dbg",
+        "exitCode": 0
+      },
+      {
+        "phase": "sram-running",
+        "exitCode": 0
+      },
+      {
+        "phase": "debug-stress",
+        "exitCode": 0
+      }
+    ]
+  },
+  "debug": {
+    "final3-debug": {
+      "clockKhz": 8000,
+      "session": "OpenOCD Wasm / WebUSB",
+      "reconnections": 0,
+      "disconnected": true,
+      "checks": {
+        "源码行断点与高亮": {
+          "passed": true,
+          "evidence": [
+            {
+              "pc": 2147506060,
+              "source": {
+                "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/engine.c",
+                "line": 22
+              }
+            },
+            {
+              "pc": 2147508372,
+              "source": {
+                "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/model.c",
+                "line": 123
+              }
+            }
+          ]
+        },
+        "四断点同时命中": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506594,
+            2147506920,
+            2147508372,
+            2147506060,
+            2147506594,
+            2147506920,
+            2147508372
+          ]
+        },
+        "同一断点连续五次": {
+          "passed": true,
+          "evidence": {
+            "rounds": 5,
+            "pc": 2147506744
+          }
+        },
+        "19 步指令单步": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506062,
+            2147506064,
+            2147506066,
+            2147506068,
+            2147506070,
+            2147506072,
+            2147506074,
+            2147506076,
+            2147506078,
+            2147506080,
+            2147506082,
+            2147506086,
+            2147506090,
+            2147506092,
+            2147506094,
+            2147506096,
+            2147506098,
+            2147506100,
+            2147506102
+          ]
+        },
+        "19 步源码跳过": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506068,
+            2147506074,
+            2147506080,
+            2147506094,
+            2147506098,
+            2147506102,
+            2147506116,
+            2147506120,
+            2147506124,
+            2147506132,
+            2147506136,
+            2147506140,
+            2147506152,
+            2147506156,
+            2147506160,
+            2147506166,
+            2147506172,
+            2147506176,
+            2147506180
+          ]
+        },
+        "源码进入被调函数": {
+          "passed": true,
+          "evidence": [
+            2147506126,
+            2147506128,
+            2147506018
+          ]
+        },
+        "连续五次源码跳出": {
+          "passed": true,
+          "evidence": [
+            2147506454,
+            2147506496,
+            2147506532,
+            2147506572,
+            2147506604
+          ]
+        },
+        "40 轮停走压力": {
+          "passed": true,
+          "evidence": {
+            "rounds": 40,
+            "pc": 2147506974
+          }
+        },
+        "复位并停后断点重命中": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506060
+          ]
+        },
+        "复位并运行后断点命中": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506060
+          ]
+        },
+        "RAM 结构体、位域和异常路径": {
+          "passed": true,
+          "evidence": [
+            "g_model @ 0x01240060  :  struct（352 字节，97 行）",
+            "g_model.flags.bits.level @ 0x0124006c  :  long unsigned int 位域[bit 1 · 3 位] = 3  (0x3)",
+            "g_model.flags.sbits.bias @ 0x01240074  :  long int 位域[bit 0 · 6 位] 有符号 = -3  (0x3d)",
+            "g_model.nodes[1].cell.scale @ 0x012400c8  :  double = 1.00000",
+            "g_model.word.halves.hi @ 0x0124007e  :  short unsigned int = 16256  (0x3f80)",
+            "g_model.tag @ 0x012401b6  :  array（8 字节，9 行）",
+            "「g_model.nodes[9]」：下标 [9] 越界（数组只有 4 项）",
+            "「g_model.nosuchmember」：没有成员「nosuchmember」（model_t 里有：magic · mode · flags · word · nodes · head · grid · matrix · label · blob · delta · tag）"
+          ]
+        },
+        "XIP 常量结构体": {
+          "passed": true,
+          "evidence": [
+            2147508372,
+            "g_model_const @ 0x8000d540  :  struct（352 字节，97 行）"
+          ]
+        },
+        "三类监视表达式": {
+          "passed": true,
+          "evidence": [
+            {
+              "addr": 19136608,
+              "error": null,
+              "expr": "g_model",
+              "value": "{magic=1297040453, mode=2, word=2445500261, on : 1=1  (0x1), …}"
+            },
+            {
+              "addr": 19136620,
+              "error": null,
+              "expr": "g_model.flags.bits.level",
+              "value": "2  (0x2)"
+            },
+            {
+              "addr": 19136752,
+              "error": null,
+              "expr": "g_model.nodes[2].cell.scale",
+              "value": "2.02062"
+            }
+          ]
+        }
+      }
+    },
+    "final4-debug": {
+      "clockKhz": 8000,
+      "session": "OpenOCD Wasm / WebUSB",
+      "reconnections": 0,
+      "disconnected": true,
+      "checks": {
+        "源码行断点与高亮": {
+          "passed": true,
+          "evidence": [
+            {
+              "pc": 2147506060,
+              "source": {
+                "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/engine.c",
+                "line": 22
+              }
+            },
+            {
+              "pc": 2147508372,
+              "source": {
+                "file": "E:/web-serial-rtt-tools/tools/target-firmware/hpm6800evk_dbgstress/src/model.c",
+                "line": 123
+              }
+            }
+          ]
+        },
+        "四断点同时命中": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506594,
+            2147506920,
+            2147508372,
+            2147506060,
+            2147506594,
+            2147506920,
+            2147508372
+          ]
+        },
+        "同一断点连续五次": {
+          "passed": true,
+          "evidence": {
+            "rounds": 5,
+            "pc": 2147506744
+          }
+        },
+        "19 步指令单步": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506062,
+            2147506064,
+            2147506066,
+            2147506068,
+            2147506070,
+            2147506072,
+            2147506074,
+            2147506076,
+            2147506078,
+            2147506080,
+            2147506082,
+            2147506086,
+            2147506090,
+            2147506092,
+            2147506094,
+            2147506096,
+            2147506098,
+            2147506100,
+            2147506102
+          ]
+        },
+        "19 步源码跳过": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506068,
+            2147506074,
+            2147506080,
+            2147506094,
+            2147506098,
+            2147506102,
+            2147506116,
+            2147506120,
+            2147506124,
+            2147506132,
+            2147506136,
+            2147506140,
+            2147506152,
+            2147506156,
+            2147506160,
+            2147506166,
+            2147506172,
+            2147506176,
+            2147506180
+          ]
+        },
+        "源码进入被调函数": {
+          "passed": true,
+          "evidence": [
+            2147506126,
+            2147506128,
+            2147506018
+          ]
+        },
+        "连续五次源码跳出": {
+          "passed": true,
+          "evidence": [
+            2147506454,
+            2147506496,
+            2147506532,
+            2147506572,
+            2147506604
+          ]
+        },
+        "40 轮停走压力": {
+          "passed": true,
+          "evidence": {
+            "rounds": 40,
+            "pc": 2147506974
+          }
+        },
+        "复位并停后断点重命中": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506060
+          ]
+        },
+        "复位并运行后断点命中": {
+          "passed": true,
+          "evidence": [
+            2147506060,
+            2147506060
+          ]
+        },
+        "RAM 结构体、位域和异常路径": {
+          "passed": true,
+          "evidence": [
+            "g_model @ 0x01240060  :  struct（352 字节，97 行）",
+            "g_model.flags.bits.level @ 0x0124006c  :  long unsigned int 位域[bit 1 · 3 位] = 3  (0x3)",
+            "g_model.flags.sbits.bias @ 0x01240074  :  long int 位域[bit 0 · 6 位] 有符号 = -3  (0x3d)",
+            "g_model.nodes[1].cell.scale @ 0x012400c8  :  double = 1.00000",
+            "g_model.word.halves.hi @ 0x0124007e  :  short unsigned int = 16256  (0x3f80)",
+            "g_model.tag @ 0x012401b6  :  array（8 字节，9 行）",
+            "「g_model.nodes[9]」：下标 [9] 越界（数组只有 4 项）",
+            "「g_model.nosuchmember」：没有成员「nosuchmember」（model_t 里有：magic · mode · flags · word · nodes · head · grid · matrix · label · blob · delta · tag）"
+          ]
+        },
+        "XIP 常量结构体": {
+          "passed": true,
+          "evidence": [
+            2147508372,
+            "g_model_const @ 0x8000d540  :  struct（352 字节，97 行）"
+          ]
+        },
+        "三类监视表达式": {
+          "passed": true,
+          "evidence": [
+            {
+              "addr": 19136608,
+              "error": null,
+              "expr": "g_model",
+              "value": "{magic=1297040453, mode=2, word=2445500261, on : 1=1  (0x1), …}"
+            },
+            {
+              "addr": 19136620,
+              "error": null,
+              "expr": "g_model.flags.bits.level",
+              "value": "2  (0x2)"
+            },
+            {
+              "addr": 19136752,
+              "error": null,
+              "expr": "g_model.nodes[2].cell.scale",
+              "value": "2.02062"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "cdc": {
+    "cdc": {
+      "mode": "cdc",
+      "windows": [
+        {
+          "seconds": 5.0232643999988795,
+          "hostBytes": 7340032,
+          "bytesPerSec": 1461207.5764918202,
+          "alignedBytes": 7340021,
+          "mismatchBytes": 0,
+          "bridgeStart": 14336,
+          "bridgeEnd": 10389098,
+          "readErrors": 0,
+          "status": "运行中 · 控制块 0x1240000 · 上行缓冲 0x1240018 · 通道 0 · 已搬运 10146 KB（5074 次）· 轮询 13395 · 读错 0 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31390 次"
+        },
+        {
+          "seconds": 5.023263100003533,
+          "hostBytes": 7340032,
+          "bytesPerSec": 1461207.9546450272,
+          "alignedBytes": 7340021,
+          "mismatchBytes": 0,
+          "bridgeStart": 10389098,
+          "bridgeEnd": 17706602,
+          "readErrors": 0,
+          "status": "运行中 · 控制块 0x1240000 · 上行缓冲 0x1240018 · 通道 0 · 已搬运 17292 KB（8647 次）· 轮询 59840 · 读错 0 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31390 次"
+        },
+        {
+          "seconds": 8.001503300001787,
+          "hostBytes": 11665408,
+          "bytesPerSec": 1457902.0419822105,
+          "alignedBytes": 11665394,
+          "mismatchBytes": 0,
+          "bridgeStart": 17706602,
+          "bridgeEnd": 29374058,
+          "readErrors": 0,
+          "status": "运行中 · 控制块 0x1240000 · 上行缓冲 0x1240018 · 通道 0 · 已搬运 28686 KB（14345 次）· 轮询 29360 · 读错 0 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31390 次"
+        }
+      ]
+    },
+    "final2-cdc": {
+      "mode": "cdc",
+      "windows": [
+        {
+          "seconds": 4.033322400006,
+          "hostBytes": 5898240,
+          "bytesPerSec": 1462377.517847625,
+          "alignedBytes": 5898230,
+          "mismatchBytes": 0,
+          "bridgeStart": 2428302,
+          "bridgeEnd": 8883598,
+          "readErrors": 0,
+          "status": "运行中 · 控制块 0x1240000 · 上行缓冲 0x1240018 · 通道 0 · 已搬运 8675 KB（4338 次）· 轮询 16148 · 读错 0 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31394 次"
+        }
+      ]
+    },
+    "final4-cdc": {
+      "mode": "cdc",
+      "windows": [
+        {
+          "seconds": 4.027308899996569,
+          "hostBytes": 5898240,
+          "bytesPerSec": 1464561.1117649863,
+          "alignedBytes": 5898230,
+          "mismatchBytes": 0,
+          "bridgeStart": 47104,
+          "bridgeEnd": 8923136,
+          "readErrors": 0,
+          "status": "运行中 · 控制块 0x1240000 · 上行缓冲 0x1240018 · 通道 0 · 已搬运 8714 KB（4357 次）· 轮询 10401 · 读错 0 / RdOff 错 0 · 档位 45 MHz · 给 DAP 让路 31398 次"
+        }
+      ]
+    }
+  }
+}

@@ -138,13 +138,13 @@ def serve(args):
     if not 1024 <= args.port <= 65535:
         raise ValueError('端口须为1024～65535')
     # Reuse the existing full application, ETM API and authenticated loopback queue.
-    sys.path.insert(0, str(ROOT / 'etm/tools'))
     spec = importlib.util.spec_from_file_location('toolbox_service', ROOT / 'web/tools/dev/serve-etm.py')
     service = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(service)
     from werkzeug.serving import make_server
     folder = Path(args.runtime).resolve()
     folder.mkdir(parents=True, exist_ok=False)
+    service.configure_source_runtime(ROOT / 'etm', folder)
     token = secrets.token_hex(32)
     (folder / 'cli-token').write_text(token, encoding='ascii')
     app = service.create_application(ROOT / 'etm', ROOT / 'web', folder / 'cli-token')
