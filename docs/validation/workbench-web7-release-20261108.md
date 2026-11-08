@@ -16,3 +16,7 @@
 构建和验收均在本次 `/tmp` 专用目录。通过后对账候选包输入与已提交的 Git 文件，将正式源码提交写入包清单。ZIP 中的 EXE、运行时和网页文件逐项核对为验收时的相同字节。
 
 正式 ZIP 为 103,184,777 字节，SHA-256 为 `2c3207450d37d76c0d3f5fd452cdfad565f47e7a5ab112a83b3c3a7e5a183a56`。包内文件身份为 `e1545be7ef9094627e2a8594dc981b7544814a2b4297f0959b3f2a0214df5570`。
+
+发布提交 `13cd56ac5ecfa038f6174413359fa0117f9d23ea` 的 Pages 部署成功。线上清单与本地正式清单一致，完整下载的 ZIP 字节数和 SHA-256 一致，网页合并脚本 SHA-256 为 `87c115d375fce4924e69e9716ed5c43b24a907b7e67a0c36a9df0bf0954efdaf`。[Pages 工作流](https://github.com/minichao9901/superlinkPRO/actions/runs/42461348410) · [线上清单](https://minichao9901.github.io/superlinkPRO/downloads/manifest.json)
+
+验收 Chrome 和 EXE 服务已退出，临时工作树及其中的构建与测试副本已移除。自动审批以 `blocked by policy` 拒绝删除剩余的 `tmp/release-web7-20261108/`，也拒绝删除其中单独列出的旧包备份。该目录仍有 2,960 个文件，逻辑大小 399,178,636 字节。发布所需 ZIP 与清单均在正式 `dist/`，结论见本报告。
