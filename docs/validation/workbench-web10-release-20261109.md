@@ -35,4 +35,10 @@
 
 八路 372 tick 第三次 8 秒窗发生 16,785 组 USB 缓冲丢样，读错、包缺口、尾差均为零。首轮结束后执行了完整固件回退，并用同一候选镜像复测默认八路 100 µs 长窗及三次高速短窗。默认长窗通过。高速短窗复验三次均通过，USB 丢样分别为 0／0／0 组。八路 372 tick 仍按高速边界记录，突发 USB 完成延迟保持跟踪。 [ISSUE-119](../项目问题跟踪列表.md)
 
-F103ZE 全片 Flash 恢复并独立回读 SHA-256 `48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499`，RCC 回到原 48 MHz 配置，目标正常运行，COM34 PING/PONG 成功。探针保留本次已读回的新固件。ETM 侧完成冻结原生示例验证，物理 NRST 脉宽、目标软件复位及其他专项仍按各 ISSUE 跟踪。 [夜间验收](f103ze-night-acceptance-20261108.md)
+F103ZE 全片 Flash 恢复并独立回读 SHA-256 `48f226217497607c696a156addbb363925577499b00ee64f187bd5eea7a94499`，RCC 回到原 48 MHz 配置，目标正常运行。COM34 再次报 Windows 错误 31，仅重启目标 USB 实例后 PING/PONG 成功。探针保留本次已读回的新固件。ETM 侧完成冻结原生示例验证，物理 NRST 脉宽、目标软件复位及其他专项仍按各 ISSUE 跟踪。 [夜间验收](f103ze-night-acceptance-20261108.md)
+
+## Pages 部署与清理
+
+发布提交 `47dfd1aeeb2ebdc4f5eb82b5d9a85477b907f315` 已推送到 `main`。Pages 工作流通过。取回线上清单及完整 Windows ZIP，版本、长度和 SHA-256 与本机发布包一致。线上合并脚本 SHA-256 `0ff078657920ee5282c95fdf437cd06a6ab678c394427ea27cb428ca6a0de3bc`，OpenOCD Wasm SHA-256 `098be8c32791c5a24573a605292aec2cfe7d1a7d2d0dacc030006a723b5918dc`，均与源码发布字节一致。GitHub 上的 EVKLite DFU 包下载后也通过指纹核对。 [Pages 工作流](https://github.com/minichao9901/superlinkPRO/actions/runs/42535357784) · [Windows 下载](https://minichao9901.github.io/superlinkPRO/downloads/superlinkPRO-win64.zip)
+
+按清单回收 13 个旧打包目录、2 个本轮候选目录和 1 个仓库外验收目录，共 22,423 个普通文件，逻辑大小 3,899,359,959 B。已保留本机工作台用户数据、固件回退备份、历史基准及未核定用途的目录。临时工作台与测试服务均退出。
