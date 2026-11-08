@@ -1,3 +1,4 @@
+import { SHARED_DRIVERS } from '../dev/sync-shared-drivers.mjs';
 /**
  * ETM 线上页副本 + 跨源桥接的自测（纯离线，不需要硬件/浏览器）：
  *   node tools/selftest/etm-page-copy.test.mjs     （已并入 make test）
@@ -28,7 +29,7 @@ console.log('== 1. 副本与源一致（生成规则可复现） ==');
   ok(problems.length === 0, `sync-etm-page 副本一致（${count} 个文件 / 磁盘 ${actual} 个）`, problems.join(' · '));
   ok(count === actual, '期望文件数 == 磁盘文件数');
   const expected = buildPageFiles();
-  ok(expected.has('index.html') && expected.has('app/view.js') && expected.has('app/shared/rtt/dap-webusb.js'),
+  ok(expected.has('index.html') && expected.has('app/view.js') && expected.has('app/shared/core/probe-bus.js') && !expected.has('app/shared/rtt/dap-webusb.js'),
     '副本覆盖 index.html + app/view.js + shared 驱动');
 }
 
@@ -96,16 +97,16 @@ for (const file of [join(REPO, 'etm', 'server.py'), join(WEB, 'bridge', 'etm', '
 }
 
 // ==================================================================== 6
-console.log('== 6. 副本里的共享驱动与真源一致（8 个） ==');
+console.log('== 6. 副本里的共享驱动与真源一致 ==');
 {
-  const drivers = ['rtt/dap-webusb.js', 'core/usb-device.js', 'core/probe-bus.js', 'core/pace.js', 'core/bin.js', 'core/operation-budget.js', 'dbg/bp.js', 'dbg/source.js'];
+  const drivers = SHARED_DRIVERS;
   let same = 0;
   for (const rel of drivers){
     const truth = readFileSync(join(WEB, 'app', rel));
     const copy = readFileSync(join(DEST_DIR, 'app', 'shared', rel));
     if (truth.equals(copy)) same++; else console.log(`        差异：${rel}`);
   }
-  ok(same === drivers.length, `8/8 副本与 web/app 真源逐字节一致（实际 ${same}/8）`);
+  ok(same === drivers.length, `共享副本与 web/app 真源逐字节一致（实际 ${same}/${drivers.length}）`);
 }
 
 console.log(`\n${fail ? '❌' : '✅'} etm-page-copy.test: ${pass} 通过 / ${fail} 失败`);

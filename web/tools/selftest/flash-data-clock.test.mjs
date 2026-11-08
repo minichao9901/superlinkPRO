@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { FlashDataClock } from '../../app/flash/data-clock.js';
-import { FlashRunner } from '../../app/flash/runner.js';
+import { FlashDataClock } from '../../app/legacy/flash/data-clock.js';
+import { FlashRunner } from '../../app/legacy/flash/runner.js';
 
 function probe({corrupt=false,failWrite=false,failRestore=false}={}){
   let memory=new Uint8Array(),hz=1000000;

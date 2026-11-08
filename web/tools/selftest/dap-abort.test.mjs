@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {WebUsbDapProbe,CMD} from '../../app/rtt/dap-webusb.js';
+import {WebUsbDapProbe,CMD} from '../../app/legacy/rtt/dap-webusb.js';
 let frame;
 const p=Object.create(WebUsbDapProbe.prototype);
 p._ctrl=async(cmd,payload)=>{frame=Uint8Array.of(cmd,...payload);return Uint8Array.of(0);};

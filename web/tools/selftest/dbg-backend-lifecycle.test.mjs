@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {DebugSession} from '../../app/dbg/session.js';
-import {RiscvDebugSession} from '../../app/dbg/riscv.js';
+import {RiscvDebugSession} from '../../app/legacy/dbg/riscv.js';
 import {OpenOcdDebugSession} from '../../app/dbg/openocd-session.js';
 import {DbgView} from '../../app/dbg/view.js';
 import {ProbeManager} from '../../app/core/probe-manager.js';

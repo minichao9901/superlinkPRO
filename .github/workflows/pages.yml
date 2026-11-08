@@ -49,10 +49,13 @@ jobs:
       - name: Stage verified Windows workbench download
         run: python tools/stage_workbench_download.py
 
-      - name: Upload web/ as the site artifact
+      - name: Stage public site files
+        run: rsync -a --exclude='/app/legacy/' web/ "$RUNNER_TEMP/workbench-site/"
+
+      - name: Upload the public site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./web
+          path: ${{ runner.temp }}/workbench-site
 
   deploy:
     needs: build

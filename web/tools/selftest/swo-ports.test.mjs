@@ -4,7 +4,6 @@ import {coreInfo,targetInfo,inspectTarget} from '../../app/swo/target.js';
 import {tracePlan,bandwidth,periodForRate} from '../../app/swo/planning.js';
 import {simulate} from '../../app/swo/matching.js';
 import {SwoCapture} from '../../app/swo/capture.js';
-import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';
 const f4={cr:0x03020003,cfgr:0xa,pll:8|(336<<6)|(1<<22)};
 const h7={cr:0x03020005,cfgr:0x1b,domain:8,pllSource:2|(4<<4),pllConfig:(1<<16)|(1<<18),pllDiv:479|(1<<9)|(5<<24),pllFrac:0};
 assert.equal(coreInfo(0x410fc241).core,'Cortex-M4');assert.equal(coreInfo(0x410fc271).core,'Cortex-M7');
@@ -34,8 +33,7 @@ assert.equal(bandwidth({coreHz:72e6,periodCycles:512,timestamps:true,exceptions:
 assert.equal(simulate({coreHz:480e6,traceHz:160e6,periodCycles:4096,timestamps:true}).matched.baudRate,16e6);
 
 // Simulate physically gated H7 registers. Restore must finish before closing debug gates.
-const original={authorized:WebUsbDapProbe.authorized,open:WebUsbDapProbe.open};
-try{for(const id of ['stm32f4','stm32h743','stm32h7b0']){
+for(const id of ['stm32f4','stm32h743','stm32h7b0']){
   const h=id.startsWith('stm32h7'),port=targetPort(id),registers=id==='stm32f4'?f4:id==='stm32h743'?h7:b0,memory=new Map(),writes=[];
   memory.set(0xe000ed00,h?0x410fc271:0x410fc241);memory.set(h?0x5c001000:0xe0042000,id==='stm32f4'?0x413:id==='stm32h743'?0x450:0x480);
   for(const [name,offset]of Object.entries(port.clockRegisters))memory.set(port.rcc+offset,registers[name]);
@@ -44,8 +42,7 @@ try{for(const id of ['stm32f4','stm32h743','stm32h7b0']){
   const before=new Map(memory);let failed=false,closed=0;
   const read=async a=>{if(h&&a>=0x5c003000&&a<0x5c005000&&!(memory.get(0x5c001004)&0x400000))throw Error('debug gate closed');const b=new Uint8Array(4);new DataView(b.buffer).setUint32(0,memory.get(a)||0,true);return b;};
   const probe={device:{serialNumber:'test'},isHalted:async()=>false,readMemDiagnostic:read,writeMem:async(a,b)=>{if(failed&&a===(h?0x5c003010:0xe0040010))throw Error('injected restore failure');writes.push(a);memory.set(a,new DataView(b.buffer,b.byteOffset,4).getUint32(0,true));},disconnect:async()=>closed++};
-  WebUsbDapProbe.authorized=async()=>[{}];WebUsbDapProbe.open=async()=>probe;
-  const capture=new SwoCapture();capture.serial.open=async()=>capture.serial.isOpen=true;capture.serial.close=async()=>capture.serial.isOpen=false;
+  const capture=new SwoCapture();capture.openProbe=async()=>{capture.probe=probe;};capture.serial.open=async()=>capture.serial.isOpen=true;capture.serial.close=async()=>capture.serial.isOpen=false;
   await capture.start({autoClock:true,hseHz:id==='stm32h7b0'?25e6:8e6,baudRate:h?20e6:14e6,periodCycles:4096,seconds:1,port:{},allowUnboundedStart:true});
   assert.equal(capture.running,true);assert.equal(capture.metadata.plan.traceHz,id==='stm32h7b0'?140e6:id==='stm32h743'?160e6:168e6);
   assert.ok(!writes.some(a=>Object.values(port.clockRegisters).some(off=>a===port.rcc+off)),'target CPU/PLL configuration is read-only');
@@ -54,6 +51,5 @@ try{for(const id of ['stm32f4','stm32h743','stm32h7b0']){
   memory.set(gpio,memory.get(gpio)^1);failed=true;await assert.rejects(capture.stop(),/恢复失败/);assert.equal(closed,0);if(h)assert.equal(memory.get(0x5c001004)&0x700000,0x700000);
   failed=false;await capture.stop();assert.equal(capture.metadata.restored,true);assert.equal(closed,1);assert.equal(memory.get(gpio),(before.get(gpio)^1)>>>0);
   for(const [a,v]of before)if(a!==gpio)assert.equal(memory.get(a),v,`${id} restore ${a.toString(16)}`);
-}}
-finally{Object.assign(WebUsbDapProbe,original);}
+}
 console.log('SWO ports: F407/H743/H7B0 clocks, fractional PLL, independent PLL1_R, unknown chips, bandwidth and gated restore/retry PASS');

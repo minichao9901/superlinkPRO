@@ -15,7 +15,7 @@
  *    真机现象就是用户说的"烧录非常慢，每一步都要好几秒钟"（1.4 s → 47 s）。
  *    `yieldTask` = 让一步（不受节流）；`sleep` 只用在"算法真的要跑很久"的兜底节奏上。
  */
-import { sleep, yieldTask } from '../core/pace.js';
+import { sleep, yieldTask } from '../../core/pace.js';
 import { FlashDataClock, DEFAULT_FLASH_CLOCK_KHZ } from './data-clock.js';
 
 export function b64ToBytes(b64){

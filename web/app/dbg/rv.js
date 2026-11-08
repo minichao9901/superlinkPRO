@@ -31,22 +31,24 @@ const sext = (v, bits) => { const m = 1 << (bits - 1); return ((v & ((1 << bits)
 /** JAL（opcode 1101111）：{target, rd}；不是 JAL 返回 null */
 export function decodeJal(hw1, hw2, pc){
   if ((hw1 & 0x7f) !== 0x6f) return null;
+  const insn = (hw2 << 16) | hw1;
   const rd = (hw1 >>> 7) & 0x1f;
-  const imm = (((hw2 >>> 31) & 1) << 20) | (((hw2 >>> 12) & 0xff) << 12) | (((hw2 >>> 20) & 1) << 11)
-            | (((hw2 >>> 21) & 0x3ff) << 1);
+  const imm = ((insn >>> 31) << 20) | (insn & 0xff000) | (((insn >>> 20) & 1) << 11)
+            | (((insn >>> 21) & 0x3ff) << 1);
   return { rd, target: align2((pc >>> 0) + sext(imm, 21)), kind: 'jal' };
 }
 
 /** JALR（opcode 1100111）：{rd, rs1, imm}；目标要读寄存器才能算 */
 export function decodeJalr(hw1, hw2){
   if ((hw1 & 0x7f) !== 0x67 || (hw1 & 0x7000) !== 0) return null;
-  return { rd: (hw1 >>> 7) & 0x1f, rs1: (hw1 >>> 15) & 0x1f, imm: sext(hw2 >>> 20, 12), kind: 'jalr' };
+  const insn = (hw2 << 16) | hw1;
+  return { rd: (hw1 >>> 7) & 0x1f, rs1: (insn >>> 15) & 0x1f, imm: insn >> 20, kind: 'jalr' };
 }
 
 /** AUIPC（opcode 0010111）：{rd, imm}（高位立即数，要 <<12） */
 export function decodeAuipc(hw1, hw2){
   if ((hw1 & 0x7f) !== 0x17) return null;
-  return { rd: (hw1 >>> 7) & 0x1f, imm: (hw2 & 0xfffff000) | 0 };
+  return { rd: (hw1 >>> 7) & 0x1f, imm: (hw2 << 16) | (hw1 & 0xf000) };
 }
 
 /**
@@ -140,7 +142,7 @@ export async function nextAddrsOf(pc, { readHalf, readReg } = {}){
     return out([target], why);
   }
   if (opcode === 0x63){                                               // 条件分支
-    const imm = (((hw2 >>> 31) & 1) << 12) | (((hw2 >>> 7) & 1) << 11) | (((hw2 >>> 25) & 0x3f) << 5)
+    const imm = (((hw2 >>> 15) & 1) << 12) | (((hw1 >>> 7) & 1) << 11) | (((hw2 >>> 9) & 0x3f) << 5)
               | (((hw2 >>> 8) & 0xf) << 1);
     return out([(p + sext(imm, 13)) >>> 0, fb], '条件分支（两个落点都放比较器）');
   }
@@ -163,8 +165,24 @@ export async function nextAddrsOf(pc, { readHalf, readReg } = {}){
  */
 export async function callEndingAt(readBytes, R){
   const r = align2(R);
+  // Bits at R-2 may be the upper half of a 32-bit instruction. In particular
+  // GCC emits AUIPC ra + JALR ra,imm(ra) even on a core without compressed ISA.
+  const four = await readBytes((r - 4) >>> 0, 4).catch(() => null);
+  if (four?.length === 4){
+    const hw1 = four[0] | (four[1] << 8), hw2 = four[2] | (four[3] << 8);
+    const jal = decodeJal(hw1, hw2, r - 4);
+    if (jal?.rd === 1) return jal.target;
+    const jalr = decodeJalr(hw1, hw2);
+    if (jalr?.rd === 1){
+      const prev = await readBytes((r - 8) >>> 0, 4).catch(() => null);
+      if (prev?.length === 4){
+        const au = decodeAuipc(prev[0] | (prev[1] << 8), prev[2] | (prev[3] << 8));
+        if (au?.rd === jalr.rs1) return align2(r - 8 + au.imm + jalr.imm);
+      }
+    }
+  }
   const two = await readBytes((r - 2) >>> 0, 2).catch(() => null);
-  if (two){
+  if (two?.length === 2){
     const hw = two[0] | (two[1] << 8);
     if ((hw & 3) !== 3){                                   // 2 字节指令结尾
       /**
@@ -182,9 +200,9 @@ export async function callEndingAt(readBytes, R){
                   | (((hw >>> 3) & 0x7) << 1) | (((hw >>> 2) & 1) << 5);
         return align2((r - 2) + sext(imm, 12));
       }
-      if (((hw >>> 12) & 0xf) === 0x9){                    // c.jalr rs1
+      if ((hw & 0xf07f) === 0x9002){                      // c.jalr rs1
         const rs1 = (hw >>> 7) & 0x1f;
-        if (rs1 === 1) return null;                        // 目标 = ra 当时的值：算不出来
+        if (!rs1) return null;                            // c.ebreak
         const four = await readBytes((r - 6) >>> 0, 4).catch(() => null);
         if (four){
           const a1 = four[0] | (four[1] << 8), a2 = four[2] | (four[3] << 8);
@@ -193,21 +211,6 @@ export async function callEndingAt(readBytes, R){
         }
       }
       return null;
-    }
-  }
-  const four = await readBytes((r - 4) >>> 0, 4).catch(() => null);
-  if (!four) return null;
-  const hw1 = four[0] | (four[1] << 8), hw2 = four[2] | (four[3] << 8);
-  const jal = decodeJal(hw1, hw2, (r - 4) >>> 0);
-  if (jal && jal.rd === 1) return jal.target;
-  const jalr = decodeJalr(hw1, hw2);
-  if (jalr && jalr.rd === 1){
-    if (jalr.rs1 === 1) return null;                       // jalr ra, imm(ra)：目标 = 当时的 ra，算不出来
-    const prev = await readBytes((r - 8) >>> 0, 4).catch(() => null);
-    if (prev){
-      const p1 = prev[0] | (prev[1] << 8), p2 = prev[2] | (prev[3] << 8);
-      const au = decodeAuipc(p1, p2);
-      if (au && au.rd === jalr.rs1) return align2((r - 8) + au.imm + jalr.imm);
     }
   }
   return null;
@@ -219,6 +222,7 @@ export const RV_ARCH = {
   LR: 'ra', SP: 'sp', PC: 'pc',
   insnLen: rvLen,
   decodeCall,
+  isRet,
   nextAddrsOf,
   callEndingAt,
   /** RV 的"不像返回地址"判据：0（从没调用过）/ 全 1 / 低位不是 0（RISC-V 没有 Thumb 位）*/

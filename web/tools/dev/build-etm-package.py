@@ -9,10 +9,20 @@ ROOT=Path(__file__).resolve().parents[2]
 VERSION='1.0.14-native.15'
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
+RETIRED_ETM_ASSETS = {
+    'web/app/shared/rtt/dap-webusb.js',
+    'web/app/shared/core/bin.js',
+    'web/app/shared/core/operation-budget.js',
+}
+
+def public_app_files(root):
+    return [p.relative_to(root).as_posix() for p in (root/'app').rglob('*')
+            if p.is_file() and not p.is_relative_to(root/'app/legacy') and p.suffix != '.map']
+
 def tracked_samples(root):
     # -z preserves UTF-8, spaces and Git's otherwise C-quoted filenames.
     return [p for p in subprocess.check_output(['git','ls-files','-z','--','samples'],cwd=root).decode('utf8').split('\0') if p]
-def package_cli(package,toolbox,node):
+def package_cli(package,toolbox,node,backend):
     """Ship the Web command sources and pinned dependencies, not an SDK."""
     repo=ROOT.parent;cli=package/'cli'
     # The frozen host serves package/toolbox (trace_cli_paths.toolbox_root).
@@ -29,7 +39,7 @@ def package_cli(package,toolbox,node):
     shutil.copyfile(ROOT/'package.json',cli/'web/package.json')
     service=cli/'web/tools/dev/serve-etm.py';service.parent.mkdir(parents=True)
     shutil.copyfile(ROOT/'tools/dev/serve-etm.py',service)
-    shutil.copytree(ROOT/'bridge/etm/backend/web',cli/'etm/web')
+    shutil.copytree(backend/'web',cli/'etm/web')
     (cli/'package.json').write_text('{"private":true,"type":"module"}\n',encoding='utf8')
     transport=cli/'etm/tools/node-transport';transport.parent.mkdir(parents=True,exist_ok=True)
     shutil.copytree(repo/'etm/tools/node-transport',transport,ignore=shutil.ignore_patterns('__pycache__','.git'))
@@ -62,9 +72,11 @@ def main(argv=None):
         if sha(snapshot/name)!=expected:raise ValueError('ETM 快照与来源清单不一致：'+name)
     work=ROOT/'tmp'/('etm-package-'+uuid.uuid4().hex[:8]);work.mkdir(parents=True)
     payload=work/'backend'
-    for name in provenance['packagedHashes']:
+    packaged_hashes={name:digest for name,digest in provenance['packagedHashes'].items()
+                     if name not in RETIRED_ETM_ASSETS}
+    for name in packaged_hashes:
         target=payload/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(snapshot/name,target)
-    command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name',args.app_name,'--contents-directory','runtime','--distpath',str(work/'dist'),'--workpath',str(work/'build'),'--specpath',str(work),'--add-data',str(payload)+';backend','--add-data',str(ROOT/'tools/dev/serve-etm.py')+';.','--paths',str(snapshot),'--paths',str(snapshot/'tools'),'--paths',str(snapshot/'tools/la'),'--collect-all','capstone','--collect-all','elftools',
+    command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name',args.app_name,'--contents-directory','runtime','--distpath',str(work/'dist'),'--workpath',str(work/'build'),'--specpath',str(work),'--add-data',str(payload)+';backend','--add-data',str(ROOT/'tools/dev/serve-etm.py')+';.','--add-data',str(ROOT.parent/'etm/tools/web_cli_queue.py')+';.','--add-data',str(ROOT.parent/'docs/toolbox-cli-reference.json')+';docs','--paths',str(ROOT.parent),'--paths',str(snapshot),'--paths',str(snapshot/'tools'),'--paths',str(snapshot/'tools/la'),'--collect-all','capstone','--collect-all','elftools',
                # numpy 2.x 的 `numpy._core._exceptions` 等子模块不会被默认 hook 完整收进 PYZ，
                # 冻结后首次 import 就 ModuleNotFoundError → 前端静默回退纯 Python（审查 F02）。
                # 用 collect-submodules/binaries（不用 collect-all）：后者会把 numpy 测试数据也带进包。
@@ -91,9 +103,12 @@ def main(argv=None):
     subprocess.run(command,cwd=ROOT,check=True)
     package=work/'dist'/args.app_name;toolbox=package/'toolbox';toolbox.mkdir()
     shutil.copyfile(ROOT/'index.html',toolbox/'index.html')
-    public_files=[p.relative_to(ROOT).as_posix() for p in (ROOT/'app').rglob('*') if p.is_file()]
+    public_files=public_app_files(ROOT)
     # A pre-commit build must also ship newly introduced bundle source modules.
-    public_files+=list(json.loads((ROOT/'app/site/manifest.json').read_text(encoding='utf8'))['inputs'])
+    bundle_inputs=json.loads((ROOT/'app/site/manifest.json').read_text(encoding='utf8'))['inputs']
+    if any(name.startswith('app/legacy/') for name in bundle_inputs):
+        raise ValueError('生产 bundle 引用了旧版诊断模块')
+    public_files+=list(bundle_inputs)
     public_files+=['docs/etm-integration.md','docs/etm-online-bridge.md']
     public_files+=tracked_samples(ROOT)
     for name in sorted(set(public_files)):
@@ -124,17 +139,20 @@ def main(argv=None):
                 original=Path(dist.locate_file(member))
                 if original.is_file():
                     destination=licenses/name/member.name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(original,destination)
-    distributions['Node.js']=package_cli(package,toolbox,node)
+    distributions['Node.js']=package_cli(package,toolbox,node,payload)
     # Keep the established offline Trace CLI regardless of the desktop EXE name.
     (package/'etm-trace.cmd').write_text('@echo off\n"%~dp0'+args.app_name+'.exe" --cli %*\nexit /b %errorlevel%\n',encoding='ascii')
-    shutil.copyfile(ROOT/'bridge/etm/provenance.json',package/'source-provenance.json')
+    (package/'workbench-cli.cmd').write_text('@echo off\n"%~dp0'+args.app_name+'.exe" --workbench-cli %*\nexit /b %errorlevel%\n',encoding='ascii')
+    shutil.copyfile(ROOT.parent/'docs/toolbox-cli-ai.md',package/'Workbench-CLI-中文说明.md')
+    (package/'source-provenance.json').write_text(
+        json.dumps({**provenance,'packagedHashes':packaged_hashes},ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     files=[dict(name=p.relative_to(package).as_posix(),bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(package.rglob('*')) if p.is_file()]
     identity=hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     workspace_dirty=bool(subprocess.check_output(['git','status','--porcelain','--untracked-files=normal'],cwd=ROOT,text=True).strip())
-    source_scope=['web/app','web/index.html','web/samples','web/tools/dev','web/bridge/etm/etm_bridge.py','web/bridge/etm/backend','web/bridge/etm/provenance.json','etm','tools/build_workbench.py','tools/verify_workbench_package.py']
+    source_scope=['web/app','web/index.html','web/samples','web/tools/dev','web/bridge/etm/etm_bridge.py','web/bridge/etm/backend','web/bridge/etm/provenance.json','etm','toolbox.py','docs/toolbox-cli-ai.md','docs/toolbox-cli-reference.json','tools/build_workbench.py','tools/verify_workbench_package.py']
     dirty=bool(subprocess.check_output(['git','status','--porcelain','--untracked-files=normal','--',*source_scope],cwd=ROOT.parent,text=True).strip())
-    inputs={name:sha(ROOT/name) for name in sorted(set(public_files+['index.html','tools/dev/serve-etm.py','tools/dev/build-etm-package.py','bridge/etm/etm_bridge.py','../tools/build_workbench.py','../tools/verify_workbench_package.py'])) if (ROOT/name).is_file()}
+    inputs={name:sha(ROOT/name) for name in sorted(set(public_files+['index.html','tools/dev/serve-etm.py','tools/dev/build-etm-package.py','bridge/etm/etm_bridge.py','../toolbox.py','../docs/toolbox-cli-ai.md','../docs/toolbox-cli-reference.json','../etm/tools/web_cli_queue.py','../tools/build_workbench.py','../tools/verify_workbench_package.py'])) if (ROOT/name).is_file()}
     manifest=dict(version=args.version,platform='windows-x64',launcher=args.app_name+'.exe',archiveRoot='superlinkPRO' if args.app_name=='superlinkPRO' else 'etm-bridge-kit',packageId=identity,sourceRevision=revision,sourceDirty=dirty,workspaceDirty=workspace_dirty,sourceScope=source_scope,runtimeSourceRevision=provenance['sourceRevision'],sourceInputs=inputs,python=sys.version,dependencies=distributions,files=files)
     (package/'package-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     args.output.mkdir(parents=True,exist_ok=True);archive=args.output/(args.app_name+'-win64.zip')

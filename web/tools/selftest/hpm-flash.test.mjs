@@ -5,7 +5,7 @@
  *
  * 这一份测的不是"打桩常量"，而是把**真实代码**跑在**模拟目标**上：
  *   tools/selftest/hpm-sim.mjs 实现了 TAP 状态机 + DTM/DMI + Debug Module + SBA + XPI flash，
- *   并且真的按位解释 app/flash/hpm/jtag.js 生成的 JTAG 序列 —— 所以位序、DMI 流水线、
+ *   并且真的按位解释 app/legacy/flash/hpm/jtag.js 生成的 JTAG 序列 —— 所以位序、DMI 流水线、
  *   SBA 自增、抽象命令这些协议细节都会被验到。
  *
  * ⚠️ 覆盖不到的（真机 bring-up 才能验）：真实 JTAG 时钟/时序、DMI busy 的真实时序、
@@ -20,12 +20,12 @@ const url = p => 'file://' + join(root, p).replace(/\\/g, '/');
 
 globalThis.atob = globalThis.atob || (s => Buffer.from(s, 'base64').toString('binary'));
 
-const J = await import(url('app/flash/hpm/jtag.js'));
-const { RiscvTransport } = await import(url('app/flash/hpm/riscv-dm.js'));
-const { HpmFlasher, hpmStatusText } = await import(url('app/flash/hpm/flash.js'));
-const { HPM_ALGO, hpmAlgoBytes } = await import(url('app/flash/hpm/algo.js'));
-const E = await import(url('app/flash/hpm/entry.js'));
-const C = await import(url('app/flash/hpm/chips.js'));
+const J = await import(url('app/legacy/flash/hpm/jtag.js'));
+const { RiscvTransport } = await import(url('app/legacy/flash/hpm/riscv-dm.js'));
+const { HpmFlasher, hpmStatusText } = await import(url('app/legacy/flash/hpm/flash.js'));
+const { HPM_ALGO, hpmAlgoBytes } = await import(url('app/legacy/flash/hpm/algo.js'));
+const E = await import(url('app/legacy/flash/hpm/entry.js'));
+const C = await import(url('app/legacy/flash/hpm/chips.js'));
 const { SimTarget } = await import(url('tools/selftest/hpm-sim.mjs'));
 
 let pass = 0, fail = 0;
@@ -225,7 +225,7 @@ console.log('== 4b. verify 走 XIP 窗口（2026-10 LA 解码 OpenOCD 波形定�
    * （CPU 自己走 XIP 窗口），`sbcs/sbaddress0/sbdata0` 写入次数为 0，而且**从不调算法的 read 入口**。
    * 所以 verify 改成"内核拷贝例程从 XIP 窗口搬"。这一节把这个决定钉死。
    */
-  const XC = await import(url('app/flash/hpm/xip-copy.js'));
+  const XC = await import(url('app/legacy/flash/hpm/xip-copy.js'));
   const dec = XC.XIP_COPY_WORDS.map(XC.decodeXipCopyWord);
   ok(dec.length === 7 && dec[0].mnemonic === 'lw' && dec[0].rd === 5 && dec[0].rs1 === 10 && dec[0].imm === 0,
      'xip-copy 第 1 条反解 = lw t0, 0(a0)（源地址在 a0）');
@@ -327,7 +327,7 @@ console.log('== 5. 板级参数与状态码文案 ==');
 // ------------------------------------------------------------------ 6
 console.log('== 6. DAP 封包/解包（照探针固件 DAP.c 的 DAP_JTAG_Sequence）==');
 {
-  const D = await import(url('app/flash/hpm/dap-transport.js'));
+  const D = await import(url('app/legacy/flash/hpm/dap-transport.js'));
   const seqs = [...J.tapReset(), ...J.tapLoadIR(0x11)];
   const packed = D.packJtagSequences(seqs);
   ok(packed[0] === seqs.length, `请求第 0 字节 = 序列条数（${packed[0]}）`);
@@ -381,7 +381,7 @@ console.log('== 7. 出错路径要"说人话"（真机 bring-up 时靠这些定�
 // ------------------------------------------------------------------ 8
 console.log('== 8. SBA 批量读（一条 DAP 命令塞多拍：USB 往返从"每字两次"降到"每批一次"）==');
 {
-  const D = await import(url('app/flash/hpm/dap-transport.js'));
+  const D = await import(url('app/legacy/flash/hpm/dap-transport.js'));
   const sim = new SimTarget();
   const dm = new RiscvTransport(sim, { idle: 7 });
   await dm.init();

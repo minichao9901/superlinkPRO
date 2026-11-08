@@ -1,6 +1,6 @@
 // Exclusive F103ZE/Kingst acceptance. Real toolbox driver over raw USB bytes; no flashing.
 import {readFile,writeFile} from 'node:fs/promises';import assert from 'node:assert/strict';import {resolve} from 'node:path';
-import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';import {EtmTarget} from '../../bridge/etm/backend/web/app/target.js';
+import {WebUsbDapProbe} from '../../app/legacy/rtt/dap-webusb.js';import {EtmTarget} from '../../bridge/etm/backend/web/app/target.js';
 const out=process.env.VALIDATION_DIR;if(!out)throw Error('Set VALIDATION_DIR');const base=(process.env.APP||'http://127.0.0.1:8886')+'/etm/api/';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function usb(op,more={}){const r=await fetch('http://127.0.0.1:8768',{method:'POST',body:JSON.stringify({op,...more})});const d=await r.json();if(d.error)throw Error(d.error);return d.value;}

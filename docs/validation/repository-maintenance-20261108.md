@@ -12,11 +12,17 @@
 
 | 型号 | 保留的常用结果 | 理由 |
 | --- | --- | --- |
-| STM32H743 | `capture-477f0c8526af4c8c9de9b6538566cfce`（200 ms）、`capture-83af7022ef054155ac5bb9889e381f02`（1000 ms） | 默认与完整长窗各一份；2026-11-07 工作台原生自动解码，两份都录满 |
-| STM32F103ZE | `capture-2d6da5829a8c4811b7c5ed2ca9e08cc3`（10 ms） | 唯一找到的可严格验证的真实 ETMv3.4 记录；保留协议兼容回归 |
-| STM32H7B0 | `capture-926a4f2b899542f5b566e68a1d1eb631`（1 ms）及 [10 ms SPI 封存包](../../etm/baselines/spi-70-35-v1/README.md) | 短窗复验与完整业务窗；10 ms 包在独立目录导入后重新解码 |
+| STM32H743 | `capture-stm32h743-cdc-200ms`、`capture-stm32h743-cdc-1s` | 默认与完整长窗各一份。2026-11-07 工作台原生自动解码，两份都录满 |
+| STM32F103ZE | `capture-stm32f103ze-etmv3-10ms` | 唯一找到的可严格验证的真实 ETMv3.4 记录，用于协议兼容回归 |
+| STM32H7B0 | `capture-stm32h7b0-spi-1ms` 及 [10 ms SPI 封存包](../../etm/baselines/spi-70-35-v1/README.md) | 短窗复验与完整业务窗。10 ms 包在独立目录导入后重新解码 |
 
 五份记录均以 `toolbox.py trace verify --require-decoded` 离线通过。工作台记录放在 `etm/records/`。早期两份 H743 固定测试输入转入 `etm/records/baselines/legacy-h743/`，三段合成输入和 Python 对照 Store 转入 `etm/records/baselines/regression/`；它们与原有 steady/boundary、绑定探针及四份 TCP/UDP 原件一起保留为独立回归夹具。H743 已完成的四档真机报告和输入指纹继续保留。归档轮换不改变未来四档验收要求。
+
+四份常用记录的目录名已改为板型、用途和时长，机器摘要保留原采集 ID 与当前路径的对照。目录里的 `native-config.txt` 是带有当时绝对路径和绑定哈希的解码凭证。重解时使用 `toolbox.py trace decode --record <当前记录目录> --out <新目录>`，由 CLI 在新目录生成对应配置。
+
+旧 `record-55d22567fe5b4f2885255e3365388998` 没有任何文件，改名为 `empty-record-20261017` 以便区分。回归输入目录 `baselines` 继续按原位置索引。
+
+改名后，8899 工作台列出四个新 ID，回读的 ELF 哈希与清单一致。四份实录严格离线校验通过，五份固定性能输入清单核对通过，F103ZE 二进制与文本展开一致性测试通过。用新路径把 H743 200 ms 记录重解到独立目录也通过严格校验。H7B0 新路径下的示例输入与已打包示例逐项一致。
 
 ## 源码、产物与验证
 
@@ -40,6 +46,13 @@ Web 与 CLI 定向回归通过（Node 40 项、Python CLI/打包 12 项），Web
 
 该轮合计移除约 5.17 GiB 的文件。清理后按文件逻辑大小盘点，整个工作区约 17.29 GiB，`docs/` 约 7.23 GiB，`etm/records/` 约 4.25 GiB。主要剩余资产是固定回归输入的原始 CSV、KVDAT、匹配 ELF、旧版事件流与查询加速边车，以及当前保留的 TraceStore。精确对照仍会读这些数据。原先因政策保留的重复 OpenOCD checkout 仍在。
 
+## ELF 上传缓存复核
+
+ETM 工作台每次上传 ELF 或选择内置固件时会生成独立的 `elf-<ID>`，供当前页面定位符号和准备采集。采集保存时会把匹配 ELF 和已提交源码复制到记录目录。2026-11-08 复查发现 62 个旧上传目录，每个只有一个 `firmware.elf`。按 SHA-256 分成三组，每组都在正式固件目录或保留记录中有完全相同的副本。确认 8899 的 CLI 执行页已断开且服务空闲后，按本机清单删除全部 62 个目录，逻辑体积 134,084,188 字节。
+
+清理后核对清单与删除日志，`elf-<ID>` 目录剩余 0 个。五份保留结果的文件指纹复核通过。四份常用记录都能经 8899 的 HTTP 接口读取自带 ELF，哈希与验收清单一致。若先前打开的页面还持有旧上传编号，需要重新载入 ELF。核验范围为本机文件和离线 HTTP 读取。
+
 ## 发布
+
 
 发布提交 `ef1227606b8a6b7bedc00be517e1a464920bac8a` 推送时一并删除了远程已合入的 `codex/hss-stop-offline`，远端分支只剩 `main`。[Pages 工作流 42397232085](https://github.com/minichao9901/superlinkPRO/actions/runs/42397232085) 部署成功。[线上工作台](https://minichao9901.github.io/superlinkPRO/)在 Edge 启动后有 15 个工具页，调试、烧录和 RTT Viewer 的共享目标入口均在。线上页面入口、合并脚本、CLI 模块、Wasm 和 ETM 页面副本与本地发布文件一致；[线上 Windows ZIP](https://minichao9901.github.io/superlinkPRO/downloads/superlinkPRO-win64.zip)完整读取后，大小和 SHA-256 与发布清单一致。

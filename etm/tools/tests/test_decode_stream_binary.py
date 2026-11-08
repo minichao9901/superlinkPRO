@@ -21,7 +21,7 @@ from decode_trace import Image  # noqa: E402
 ETM_ROOT = Path(__file__).resolve().parents[2]
 DECODER = ETM_ROOT / 'build-native/etm_decode.exe'
 RECORD_ETMV4 = ETM_ROOT / 'records/baselines/legacy-h743/capture-4395612c313f47ce97af1e1c17e0a0d5'
-RECORD_ETMV3 = ETM_ROOT / 'records/capture-2d6da5829a8c4811b7c5ed2ca9e08cc3'
+RECORD_ETMV3 = ETM_ROOT / 'records/capture-stm32f103ze-etmv3-10ms'
 
 
 def sidecar_body(path):

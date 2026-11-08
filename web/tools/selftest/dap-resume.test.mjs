@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../../app/legacy/rtt/dap-webusb.js';
 async function resume(before,states,reasons){
  let writes=0,reads=0;const queue=[...reasons];
  const p={_clearMaskintsIfSet:async()=>{},_dhcsr:async()=>writes++,

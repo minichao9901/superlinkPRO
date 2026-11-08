@@ -7,6 +7,14 @@ spec=importlib.util.spec_from_file_location('workbench_package',Path(__file__).r
 builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
 
 class PackagingTests(unittest.TestCase):
+    def test_public_app_selection_keeps_wasm_and_excludes_legacy_diagnostics(self):
+        root=Path(__file__).resolve().parents[2]/'web'
+        paths=set(builder.public_app_files(root))
+        self.assertIn('app/core/openocd-probe.js',paths)
+        self.assertIn('app/core/openocd-runtime/openocd-core.wasm',paths)
+        self.assertTrue((root/'app/legacy/rtt/dap-webusb.js').is_file())
+        self.assertFalse(any(path.startswith('app/legacy/') for path in paths))
+
     def test_tracked_samples_preserve_utf8_and_spaces(self):
         wire='samples/anim/花园.mp4\0samples/panel/带 空格.png\0'.encode('utf8')
         with patch.object(builder.subprocess,'check_output',return_value=wire) as command:
@@ -23,7 +31,7 @@ class PackagingTests(unittest.TestCase):
                 p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(data)
             (package/'licenses').mkdir()
             with patch.object(builder,'ROOT',web),patch.object(builder.subprocess,'check_output',return_value='v24.13.1\n'):
-                builder.package_cli(package,toolbox,root/'node.exe')
+                builder.package_cli(package,toolbox,root/'node.exe',web/'bridge/etm/backend')
             self.assertEqual((package/'cli/web/app/core.js').read_text(),'module')
             self.assertEqual((package/'cli/web/index.html').read_text(),'page')
             self.assertEqual((toolbox/'samples/image.bmp').read_text(),'sample')

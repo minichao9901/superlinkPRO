@@ -14,9 +14,9 @@
  * 真实 flash 的擦写时间与 SFDP 探测。
  */
 
-import { DM, DMI_OP, sbcsBlock, REGNO, DCSR_EBREAK } from '../../app/flash/hpm/jtag.js';
-import { parseAlgoEntryTable, ENTRY_ORDER } from '../../app/flash/hpm/entry.js';
-import { XIP_COPY_ADDR } from '../../app/flash/hpm/xip-copy.js';
+import { DM, DMI_OP, sbcsBlock, REGNO, DCSR_EBREAK } from '../../app/legacy/flash/hpm/jtag.js';
+import { parseAlgoEntryTable, ENTRY_ORDER } from '../../app/legacy/flash/hpm/entry.js';
+import { XIP_COPY_ADDR } from '../../app/legacy/flash/hpm/xip-copy.js';
 
 const STATUS = { success: 0, invalidArgument: 1, outOfRange: 2, timeout: 3, noFlash: 4 };
 
@@ -395,7 +395,7 @@ export class SimTarget {
       return false;
     };
     /**
-     * 🚨 **XIP 拷贝例程**（`app/flash/hpm/xip-copy.js`，装载在 0x600）：
+     * 🚨 **XIP 拷贝例程**（`app/legacy/flash/hpm/xip-copy.js`，装载在 0x600）：
      *    主机侧 verify 靠它让**内核自己走 XIP 窗口**把 flash 搬进 RAM —— 与 OpenOCD 同路
      *    （2026-10 LA 解码 OpenOCD 波形定因：它读内存全靠 progbuf 跑 `lw s1,0(s1)`，
      *      `sbcs/sbaddress0/sbdata0` 写入次数为 0，且**从不调算法的 read 入口**）。
@@ -535,7 +535,7 @@ export class SimTarget {
     return STATUS.success;
   }
 
-  /** XIP 拷贝例程的语义（内核走 XPI 窗口读，见 app/flash/hpm/xip-copy.js）*/
+  /** XIP 拷贝例程的语义（内核走 XPI 窗口读，见 app/legacy/flash/hpm/xip-copy.js）*/
   _xipCopy(src, dst, len){
     const XIP_BASE = this.flashBase;
     if (len === 0 || (len >>> 0) % 4) return STATUS.invalidArgument;

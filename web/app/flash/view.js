@@ -15,6 +15,7 @@ import { rememberHpmBoard } from '../targets/hpm/select.js';
 import { DBGMCU_BASES, FLASH_SIZE_REGS, decodeCpuid, decodeDpIdcode, decodeStm32Dev, refineByFlash, saneFlashKb } from './devid.js';
 import { parseFirmware } from './image.js';
 import { programOpenOcdFlash } from './openocd-program.js';
+import { OpenOcdResetSession } from './target-reset.js';
 import { FirmwareInspector } from './inspector-view.js';
 import { bytes as fBytes } from '../core/format.js';
 
@@ -124,14 +125,18 @@ export class FlashView {
 
   async flash(){
     if (this.busy) return;
-    if (!this.file) return await this._flashOnce();
-    return await this._withProbeOwnership(() => this._flashOnce(), '烧录器要使用探针');
+    if (!this.file){ toast('请选择或拖入固件文件', 'warn'); return; }
+    const request = this._flashRequest();
+    return await this._withProbeOwnership(() => this._flashOnce(request), '烧录器要使用探针');
   }
 
   /** Flash and identification share reservation, retry cleanup and button state. */
   async _withProbeOwnership(fn, reason){
     this.busy = true;
-    for (const id of ['f-flash', 'f-idcode', 'btn-global-reset']) if ($(id)) $(id).disabled = true;
+    const controls = ['f-flash', 'f-idcode', 'btn-global-reset', 'f-chip', 'f-speed',
+      'f-base', 'f-verify', 'f-reset', 'f-pick'].map($).filter(Boolean);
+    const disabled = controls.map(control => control.disabled);
+    for (const control of controls) control.disabled = true;
     try {
       return await runProbeOperation(this, 'flash', async () => {
         // Retry the retained close before opening another native handle.
@@ -141,7 +146,7 @@ export class FlashView {
     } finally {
       this.busy = false;
       if (!this._probeCloseFailed && !this.probeManager?.failures.has('flash')) this.probeManager?.forget('flash');
-      for (const id of ['f-flash', 'f-idcode', 'btn-global-reset']) if ($(id)) $(id).disabled = false;
+      controls.forEach((control, i) => { control.disabled = disabled[i]; });
     }
   }
 
@@ -164,20 +169,29 @@ export class FlashView {
   async resetTarget(){
     if (this.busy) throw Error('探针当前正忙，请等当前操作结束后再复位');
     return await this._withProbeOwnership(async () => {
-      await this._clearProbeUsers('复位目标');
-      return this._usingTarget(false, async probe => {
-        await probe.reset();
-        this._status('目标已复位运行', 'ok');
-        toast('目标已复位运行', 'ok');
-        return true;
-      });
-    }, '复位目标板');
+      if (!(await this._clearProbeUsers('全局硬复位'))) return false;
+      const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice();
+      this.probe = new OpenOcdResetSession(line => this._log(line));
+      let failure;
+      try {
+        await this.probe.connect(device);
+        await this.probe.pulse();
+      } catch (error){
+        failure = error;
+        throw error;
+      } finally {
+        await this._closeProbe(failure);
+      }
+      this._status('NRST 脉冲已发送并释放（需连接目标 NRST）', 'ok');
+      toast('NRST 硬复位脉冲已发送', 'ok');
+      return true;
+    }, '全局硬复位目标板');
   }
 
-  async _usingTarget(flash, operation){
+  async _usingTarget(flash, operation, cfg){
     let failure;
     try {
-      this.probe = await this._openTarget(flash);
+      this.probe = await this._openTarget(flash, cfg);
       return await operation(this.probe);
     } catch (error){
       failure = error;
@@ -187,12 +201,15 @@ export class FlashView {
     }
   }
 
-  async _openTarget(flash){
+  _targetProfile(flash){
     const family = $('f-chip').value;
     const port = hpmBoard(family);
     const imported = this.importedTarget?.id === family ? this.importedTarget.cfg : null;
-    const cfg = imported || makeOpenOcdProfile({ arch:port ? 'riscv' : 'arm', port, family, flash,
+    return imported || makeOpenOcdProfile({ arch:port ? 'riscv' : 'arm', port, family, flash,
       clockKhz:webClockKhz($('f-speed').value, family, port ? 8000 : 1000) });
+  }
+
+  async _openTarget(flash, cfg = this._targetProfile(flash)){
     const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice();
     if (cfg.arch === 'riscv') await prepareOpenOcdJtag(device);
     return OpenOcdProbe.open(device, { cfg, onLog:line => this._log(line) });
@@ -204,15 +221,17 @@ export class FlashView {
     return programOpenOcdFlash(probe, regions, { verify, progress:fraction => this._bar(fraction * 99) });
   }
 
-  async _flashOnce(){
-    if (!this.file){ toast('请选择或拖入固件文件', 'warn'); return; }
+  _flashRequest(){
     const { name, dataB64 } = this.file;
     const base = /\.bin$/i.test(name) ? Number($('f-base').value) : 0;
     if (/\.bin$/i.test(name) && (!$('f-base').value.trim() || !Number.isInteger(base) || base < 0 || base > 0xffffffff))
       throw Error('请输入有效的 BIN 烧录基地址');
     const regions = parseFirmware(name, Uint8Array.from(atob(dataB64), ch => ch.charCodeAt(0)), base);
-    const verify = $('f-verify').checked;
-    const reset = $('f-reset').checked;
+    return { name, regions, cfg:structuredClone(this._targetProfile(true)),
+      verify:$('f-verify').checked, reset:$('f-reset').checked };
+  }
+
+  async _flashOnce({ name, regions, cfg, verify, reset }){
     this.inspector?.show('log');
     if (!(await this._clearProbeUsers(name))) return;
     this.lastFlash = null;
@@ -223,7 +242,7 @@ export class FlashView {
         const result = await this._program(probe, regions, verify);
         if (reset) await probe.reset();
         return { ...result, reset };
-      });
+      }, cfg);
       this._bar(100);
       setStatus($('f-result'), `已烧录 ${fBytes(this.lastFlash.bytes)}${verify ? '，读回校验通过' : ''}`, 'ok');
       return this.lastFlash;
@@ -238,6 +257,7 @@ export class FlashView {
 
   async readIdcode(){
     if (this.busy) throw Error('正在烧录或读取目标身份');
+    const cfg = structuredClone(this._targetProfile(false));
     return await this._withProbeOwnership(async () => {
       if (!(await this._clearProbeUsers('读取目标身份'))) return;
       return this._usingTarget(false, async probe => {
@@ -270,7 +290,7 @@ export class FlashView {
         if (device) this._log(refineByFlash(device.devId, flashKb) || device.text);
         if (flashKb) this._log(`Flash ${flashKb} KiB`);
         return { id, cpuid, devId:device?.devId, flashKb };
-      });
+      }, cfg);
     }, '读取目标身份');
   }
 

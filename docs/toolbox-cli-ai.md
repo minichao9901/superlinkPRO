@@ -126,9 +126,11 @@ SWO 的 capture/sources、ETM 的 target、存在时的 store。以 `describe` �
 会以 `@file:view._fileInput`、`@file:hid._elfInput` 等虚拟 selector 出现在 controls 中，
 使用 describe 返回的原字符串传给 upload；这些是受控文件入口，不是任意对象访问。
 
+顶栏 `#btn-global-reset` 通过 OpenOCD Wasm 初始化 CMSIS-DAP 探针并发送 NRST 硬复位脉冲。目标调试口无法连接时仍可发脉冲，实际复位需要接通探针和目标的 NRST。探针回读确认引脚电平，调试器和烧录后的软件复位沿用各自的目标配置。
+
 ## OpenOCD 目标与 CFG
 
-调试、烧录和 RTT Viewer 共用 OpenOCD Wasm / CMSIS-DAP WebUSB。预设由工作台生成配置；使用板厂或上游脚本时，先在调试页导入一次，再明确让其它页沿用。使用源码入口 `toolbox.py` 和已启动的 `serve`；Windows 包的 `etm-trace.cmd` 是独立 Trace CLI。
+调试、烧录和 RTT Viewer 共用 OpenOCD Wasm / CMSIS-DAP WebUSB。预设由工作台生成配置；使用板厂或上游脚本时，先在调试页导入一次，再明确让其它页沿用。源码用 `toolbox.py` 和已启动的 `serve`；Windows 桥包同样支持这些命令。
 
 ```powershell
 $runtime = 'E:/trace-runs/toolbox-001'
@@ -142,6 +144,21 @@ python -X utf8 toolbox.py --runtime $runtime target info
 入口应是板厂或上游为这块板提供的可信配置，须选择 CMSIS-DAP、声明目标和调试时钟；若只提供 target 脚本而未配置适配器，请改用匹配的 board CFG 或包含接口与 target 的入口 CFG。单文件导入省略 `--entry`；目录导入使用相对路径和 `/`，仅上传 CFG/Tcl，浏览器断开 USB 解析配置。指定不存在的核心、解析失败、调试已连接或沿用不适用的目标都会让命令失败；查看返回的 `job` 和错误。常规原版 CFG 会返回核心列表、选核、Flash bank 有无及配置指纹；HPM6800EVK 使用已核对的 SDK 入口。
 
 `target use` 会等待页面采用配置，换目标时会清掉本页的旧固件、RTT 地址等；如果已一致，返回 `changed:false`。烧录要求原版 CFG 声明 Flash bank；兼容导入不提供原版脚本的跨页能力。操作实际硬件前，再 `page … describe/state` 获取按钮、方法和当前状态。硬件身份、烧录校验和 RTT 收发仍分别核对。支持范围和复现入口见 [调试器 CFG 手册](../web/docs/dbg-page.md#内置芯片与-openocd-cfg)。
+
+### Windows 桥包默认队列
+
+双击 `superlinkPRO.exe` 或 `etm-bridge.exe` 后，保持自动打开的工作台标签页运行。从解压目录运行：
+
+```powershell
+.\workbench-cli.cmd ping
+.\workbench-cli.cmd page dbg describe
+.\workbench-cli.cmd page dbg state
+.\workbench-cli.cmd batch actions.json
+```
+
+也可以用 `superlinkPRO.exe --workbench-cli` 后接同样的参数。默认运行时是 EXE 旁的 `data/workbench-cli/<配置端口>`；服务用 `--port` 或 `--data-dir` 启动时，客户端可用 `--runtime <实际运行时路径>`。用 `--no-browser` 启动后，执行 `.\workbench-cli.cmd open-browser --runtime <实际运行时路径>` 打开执行页，默认路径可省略。队列只在本机服务上接受令牌认证，浏览器首次 USB/HID/串口授权仍由浏览器管理。需要纯 GUI 时可用 `--no-workbench-cli` 启动；`etm-trace.cmd` 仍用于独立 Trace CLI。
+
+通用 RV32 CFG 连接后，用 `page dbg invoke configureRamWindow --args '[2147483648,131072]'` 声明板卡的可写 RAM（这里以 Zynq BRAM 为例）。然后用 `page dbg invoke launchRamElf --args-file ram-elf.json` 等待下载校验和停机；`ram-elf.json` 例如 `[{"$file":"E:/project/debug_demo.elf","kind":"file"},"auto"]`，可把 `auto` 改为 `entry` 或 `main`。该入口无需镜像目录。`runLine` 命令出错会使 CLI 操作失败；先核对结果与目标状态再继续。
 
 ## 5. 示例：参数、文件、导出
 

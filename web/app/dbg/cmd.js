@@ -158,8 +158,7 @@ async function runCmdInner(p, session, opts = {}){
 
     case 'c': case 'cont': case 'continue': case 'g':
       need();
-      await S.cont();
-      return { lines: [L('继续运行（遇到断点或暂停为止）', 'ok'), L(statusLine(S), 'dim')] };
+      return { lines: [L(await S.cont() === false && S.isRiscv ? '目标已在运行' : '继续运行（遇到断点或暂停为止）', 'ok'), L(statusLine(S), 'dim')] };
 
     case 's': case 'step':
       need();
@@ -443,10 +442,11 @@ async function runCmdInner(p, session, opts = {}){
 
     case 'b': case 'break': {
       need();
-      if (!args.length) throw new Error('用法：b <地址|符号|文件:行|函数:行>（例：b main / b main.c:192 / b 0x08000123 / b +5）');
+      if (!args.length || args.length > 2 || (args.length === 2 && (!S.isRiscv || !['hw','sw'].includes(args[1]))))
+        throw new Error('用法：b <地址|符号|文件:行|函数:行>' + (S.isRiscv ? ' [hw|sw]' : ''));
       const spec = breakSpecOf(S, args[0]);
-      const r = await S.bpAdd(spec.addr, spec.label || '');
-      return { lines: [L(`断点 #${r.index + 1} @ ${hex32(spec.addr)}  ${atOf(S, spec.addr)}${spec.label && spec.via !== 'sym' ? `　[${spec.label}]` : ''}`, r.warn ? 'warn' : 'ok'),
+      const r = await S.bpAdd(spec.addr, spec.label || '', {hw:'hardware',sw:'software'}[args[1]]);
+      return { lines: [L(`${r.kind === 'software' ? '软件' : r.kind === 'hardware' ? '硬件' : ''}断点 #${r.index + 1} @ ${hex32(spec.addr)}  ${atOf(S, spec.addr)}${spec.label && spec.via !== 'sym' ? `　[${spec.label}]` : ''}`, r.warn ? 'warn' : 'ok'),
                        ...(r.warn ? [L('   ' + r.warn, 'warn')] : [])] };
     }
 
@@ -476,8 +476,13 @@ async function runCmdInner(p, session, opts = {}){
       list.forEach((b, i) => {
         const where = b.loc || b.sym || '';
         const note = b.note && !String(where).includes(b.note) ? `　(${b.note})` : '';
-        lines.push(L(`  #${i + 1}  ${hex32(b.addr)}  ${where ? where.padEnd(22, ' ') : ''.padEnd(22, ' ')}比较器 ${b.slot}${note}`, 'ok'));
+        const kind = b.kind === 'software' ? '软件' : b.kind === 'hardware' ? '硬件' : `比较器 ${b.slot}`;
+        lines.push(L(`  #${i + 1}  ${hex32(b.addr)}  ${where.padEnd(22,' ')}${kind}${note}`, 'ok'));
       });
+      if (S.isRiscv){
+        lines.push(L(`共 ${list.length} 个；硬件触发器 ${S.caps.numCode ?? '未确认'} 个，硬件断点与观察点共享`, 'dim'));
+        return { lines };
+      }
       const cap = S.caps?.numCode || 0;
       lines.push(L(`共 ${list.length} 个 / 硬件上限 ${cap} 个（FPB rev${S.caps?.rev ?? '?'}）—— 源码行上点行号也能下/删`, 'dim'));
       if (cap && list.length >= cap) lines.push(L('⚠ 比较器已用完：源码级单步（n / si / fin）需要临时占一个 —— 先删掉一个再单步', 'warn'));
@@ -518,17 +523,17 @@ async function runCmdInner(p, session, opts = {}){
       need(); if (!args.length || args.length>3) throw new Error('用法：wp <地址|符号> [r|w|rw] [字节数]');
       const size=args[2] == null ? 4 : parseNum(args[2]);
       const item=await S.dwt.add(parseNum(args[0]) ?? addrOf(args[0],{session:S}).addr,size,args[1]||'w');
-      return {lines:[L(`DWT #${item.slot+1} ${hex32(item.addr)} ${item.size} B ${item.mode}（数据访问时停止）`,'ok')]};
+      return {lines:[L(`${S.isRiscv ? '硬件观察点' : 'DWT'} #${item.slot+1} ${hex32(item.addr)} ${item.size} B ${item.mode}（数据访问时停止）`,'ok')]};
     }
     case 'wpl': {
-      need(); await S.dwt.init();
+      need(); if (!S.isRiscv) await S.dwt.init();
       for (const x of S.dwt.items) lines.push(L(`#${x.slot+1} ${hex32(x.addr)} ${x.size} B ${x.mode}`));
-      lines.push(L(`${S.dwt.items.length} 个观察点；硬件 ${S.dwt.capacity} 个槽位`,'dim')); return {lines};
+      lines.push(L(`${S.dwt.items.length} 个观察点；硬件 ${S.dwt.capacity ?? '未确认'} 个槽位`,'dim')); return {lines};
     }
     case 'wpd': {
       need(); if(args.length!==1) throw new Error('用法：wpd <编号|all>');
       if(args[0]==='all') await S.dwt.clear(); else await S.dwt.remove(parseNum(args[0].replace(/^#/,'')));
-      return {lines:[L('DWT 观察点已删除','ok')]};
+      return {lines:[L('观察点已删除','ok')]};
     }
 
     case 'info': {

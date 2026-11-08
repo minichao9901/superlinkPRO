@@ -3,7 +3,7 @@
  *   node tools/selftest/shared-drivers.test.mjs      （已并入 make test 与 make check）
  *
  * 咬四件事：
- *   ① **唯一真源**：`web/app/**` 的 7 个驱动是手写源；`etm/web/app/shared/**` 的副本必须与它
+ *   ① **唯一真源**：`web/app/**` 的 共享模块是手写源；`etm/web/app/shared/**` 的副本必须与它
  *      **逐字节相同**（改完真源忘了跑 `node tools/dev/sync-shared-drivers.mjs` = 这里红）；
  *   ② **合并成果没丢**：toolbox 独有（OperationBudget / DAP_SESSION_LOST / 5 字节 WriteABORT）
  *      与 ETM 独有（resetDevice 永不抛 / 禁短超时 drain / 响应回显≠命令 时清队列重试）都要在；
@@ -28,7 +28,7 @@ let pass = 0, fail = 0;
 const ok = (c, name, extra = '') => { if (c){ pass++; console.log(`  PASS  ${name}`); } else { fail++; console.log(`  FAIL  ${name}${extra ? '  → ' + extra : ''}`); } };
 
 // ==================================================================== 1
-console.log('== 1. 7 个驱动：真源 vs ETM 副本（逐字节） ==');
+console.log('== 1. 共享模块：真源 vs ETM 副本（逐字节） ==');
 for (const rel of SHARED_DRIVERS){
   const srcPath = join(web, 'app', rel), dstPath = join(etmShared, rel);
   const src = readFileSync(srcPath);
@@ -44,7 +44,7 @@ console.log('== 2. 副本目录里没有多余的手写 .js ==');
   const extras = readdirSync(etmShared, { recursive: true })
     .map(p => String(p).replace(/\\/g, '/'))
     .filter(p => p.endsWith('.js') && !SHARED_DRIVERS.includes(p));
-  ok(extras.length === 0, '只有那 7 个 .js', extras.join(' · '));
+  ok(extras.length === 0, '共享目录无多余模块', extras.join(' · '));
   ok(readFileSync(join(etmShared, 'README.md'), 'utf8').includes('sync-shared-drivers.mjs'),
     '副本目录有 README 指向生成脚本（新人不会手改副本）');
 }
@@ -52,7 +52,7 @@ console.log('== 2. 副本目录里没有多余的手写 .js ==');
 // ==================================================================== 3
 console.log('== 3. 合并成果都在（toolbox 独有 + ETM 独有） ==');
 {
-  const src = readFileSync(join(web, 'app', 'rtt', 'dap-webusb.js'), 'utf8');
+  const src = readFileSync(join(web, 'app', 'legacy', 'rtt', 'dap-webusb.js'), 'utf8');
   const pins = [
     ['OperationBudget', '分阶段超时预算（toolbox 独有）'],
     ['DAP_SESSION_LOST', 'DAP 会话失效错误码（toolbox 独有）'],
@@ -89,7 +89,7 @@ console.log('== 4. ETM 页不做跨子树 import ==');
     }
   }
   ok(crossTree.length === 0, '没有 import 指回 web/app（跨子树）', crossTree.join(' · '));
-  ok(sharedImporters.size >= 3 && sharedSpecs >= 6,
+  ok(sharedImporters.size === 3 && sharedSpecs === SHARED_DRIVERS.length,
     `ETM 页确实在消费这些副本（${sharedImporters.size} 个模块 / ${sharedSpecs} 条 import：${[...sharedImporters].sort().join(', ')}）`);
   // 副本里的相对 import 必须自我闭合（shared/core/bin.js 等互引不能爬出 shared/）
   const outside = [];

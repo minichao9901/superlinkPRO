@@ -5,7 +5,7 @@ import {AnsiDisplay} from '../../app/core/display-stream.js';
 import {MockSpiTransport} from '../../app/spi/transport.js';
 import {usbResourceConflict,isUsbResourceConflict} from '../../app/core/usb-device.js';
 import {initDockNavigation} from '../../app/ui/dock-navigation.js';
-import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../../app/legacy/rtt/dap-webusb.js';
 const tick=()=>new Promise(r=>setImmediate(r));
 {
  const probe=new WebUsbDapProbe(),logs=[];probe.onLog=text=>logs.push(text);

@@ -55,7 +55,7 @@ function fixture(){
 {
   const {s}=fixture(),serial=new SerialSession(),events=[];
   const port={getInfo:()=>({usbVendorId:0xd28,usbProductId:0x204}),async open(){events.push('open');this.readable=new ReadableStream();this.writable=new WritableStream();},async setSignals(){},async close(){events.push('close');}};
-  const hid={last:{running:false},async stop(){this.last.running=false;}};
+  const hid={last:{running:false},async disconnect(){this.last.running=false;}};
   const dbg={session:{connected:false},async disconnect(){this.session.connected=false;}};
   const spiSession={connected:false,async teardown(){this.connected=false;}};
   const tools={spiCdc:{session:s},session:serial,hid,dbg,spiSession};const m=createProbeManager(tools,{locks:null});serial.probeManager=s.probeManager=m;

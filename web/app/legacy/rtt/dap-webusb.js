@@ -8,22 +8,18 @@
  *   · DAP_TransferBlock 响应 = [回显, count_lo, count_hi, ack, data...]
  *   · DAP_ResetTarget 响应 = [回显, DAP_OK, 执行标志]
  *
- * ⚠️ **本文件是探针驱动的唯一真源**（7 个共享驱动之一，见 web/docs/driver-unification.md）。
- *    ETM 页用的副本 `etm/web/app/shared/rtt/dap-webusb.js` 由
- *    `node tools/dev/sync-shared-drivers.mjs` 生成 —— **不要手改副本**（漂移会被
- *    `node tools/selftest/shared-drivers.test.mjs` 的 sha256 对账拦下）。
- *    不做跨子树 import 的理由：ETM 页必须能独立启动（etm/start-web.ps1），也要能进便携桥包。
+ * 旧版驱动保留给源码诊断和协议回归。当前 Web 与 ETM 页面使用 OpenOCD Wasm。
  */
-import { u32le, u32leBytes } from '../core/bin.js';
-import { UsbLease } from '../core/usb-device.js';
-import { OperationBudget } from '../core/operation-budget.js';
+import { u32le, u32leBytes } from '../../core/bin.js';
+import { UsbLease } from '../../core/usb-device.js';
+import { OperationBudget } from '../../core/operation-budget.js';
 /**
  * 等待原语（见 core/pace.js 的整段说明）：
  * 🚨 轮询间隔**不能用 setTimeout** —— 页面不可见时浏览器把短延时钳到 ≥1 s，
  *    一次烧录里几十处 2~5 ms 的轮询于是各花 1 秒，1.4 s 变成 47 s（真机定因）。
  *    `yieldTask` = 让一步（不受节流）；`waitMs` = 至少等 ms（短等待同样不受节流）；`sleep` = 真定时器。
  */
-import { sleep, waitMs } from '../core/pace.js';
+import { sleep, waitMs } from '../../core/pace.js';
 
 export const CMD = {
   Info: 0x00, Connect: 0x02, Disconnect: 0x03, TransferConfigure: 0x04,

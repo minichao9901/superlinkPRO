@@ -1,6 +1,6 @@
 /** Read target identity/clocks and optional Flash SHA; never halts or resets CPU. */
 import fs from 'node:fs/promises';import {createRequire} from 'node:module';import {createHash} from 'node:crypto';
-import {WebUsbDapProbe} from '../web/app/rtt/dap-webusb.js';import {navigatorUsb} from '../etm/tools/node-transport/usb-adapter.mjs';
+import {WebUsbDapProbe} from '../web/app/legacy/rtt/dap-webusb.js';import {navigatorUsb} from '../etm/tools/node-transport/usb-adapter.mjs';
 const require=createRequire(new URL('../etm/tools/node-transport/package.json',import.meta.url)),{WebUSB}=require('usb');
 const [output,expectedFlashSha]=process.argv.slice(2);if(!output)throw Error('Pass a new JSON output path');
 const usb=navigatorUsb(new WebUSB({allowedDevices:[{vendorId:0x0d28,productId:0x0204}],deviceTimeout:3000}));Object.defineProperty(globalThis,'navigator',{configurable:true,value:{usb}});let p;

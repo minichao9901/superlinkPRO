@@ -959,12 +959,12 @@ export class SpiBusView {
     const n = kb * 1024;
     if (s.busy) return;
     s.setBusy(true); this.refreshButtons();
-    const mode = this.flMode();
-    const addr = this.flAddr();
     try {
+      const mode = this.flMode();
+      const addr = this.flAddr();
       s.log('i', `读测速：${kb} KB @0x${addr.toString(16)} · ${mode.name}`, this.tag);
       const t0 = performance.now();
-      const r = await this.flRead(n, { onProgress: (done, total) => {
+      const r = await this.flRead(n, { addr, mode, onProgress: (done, total) => {
         if (done === total || done % 64 === 0) this.flOut(`读测速 ${done}/${total} 包…`);
       } });   // dummy 由 flRead 内部取面板上的值（见 flRead）
       const dt = performance.now() - t0;
@@ -1091,7 +1091,7 @@ export class SpiBusView {
       const w = await this.flWaitReady(8000);
       const dt = performance.now() - t0;
       if (bad || noRsp) throw new Error(`${bad} 条非 OK / ${noRsp} 条没应答`);
-      const vr = await this.flRead(data.length, { quiet: true });
+      const vr = await this.flRead(data.length, { addr, quiet: true });
       const same = bytesEqual(vr.bytes, data);
       s.log(same ? 'g' : 'e', `写 + 校验：${data.length} B · ${dt.toFixed(0)} ms · ${rate(data.length, dt)} · ` +
         (same ? '回读一致 ✔' : `回读不一致（前 16 B：${hexDump(vr.bytes.subarray(0, 16))}）`), this.tag);
@@ -1117,6 +1117,10 @@ export class SpiBusView {
     const kb = Math.max(1, Math.min(64, +$('sp-fl-benchkb').value || 16));
     const n = kb * 1024;
     const addr = this.flAddr();
+    FL.checkAddressRange(addr, n);
+    const firstSec = FL.sectorOf(addr);
+    const lastSec = FL.sectorOf(addr + n - 1);
+    FL.checkAddressRange(firstSec, lastSec - firstSec + FL.SECTOR_SIZE);
     const tpp = Math.max(0, Math.min(100, +$('sp-fl-tpp').value || 0));
     if (confirm(`写测速会把 0x${addr.toString(16)} 起的 ${kb} KB 先擦掉再写入（破坏原有数据），继续？`) === false) return;
     s.setBusy(true); this.refreshButtons();
@@ -1133,8 +1137,7 @@ export class SpiBusView {
        *   ② 每条 SE 之间不等 BUSY。扇区擦除要几十~几百 ms，连发等于白发。
        *   现在：按扇区走（一直到 `addr+n-1` 所在的扇区，起始地址不对齐时也不会漏最后一个），
        *   并且**每条之后都等 BUSY 清**再发下一条。 */
-      const lastSec = FL.sectorOf(addr + n - 1);
-      for (let a = FL.sectorOf(addr); a <= lastSec; a += FL.SECTOR_SIZE){
+      for (let a = firstSec; a <= lastSec; a += FL.SECTOR_SIZE){
         await s.sendFrames(FL.eraseItems(a, { opcode: FL.OP.SE }), { tag: this.tag, quiet: true });
         const w = await this.flWaitReady(20000);
         if (!w.ok) throw new Error(`擦除扇区 0x${a.toString(16)} 等 BUSY 超时（器件一直忙？）`);
@@ -1146,7 +1149,7 @@ export class SpiBusView {
       await this.flWaitReady(20000);
       const dt = performance.now() - t0;
       if (bad) throw new Error(`${bad} 条非 OK`);
-      const vr = await this.flRead(n, { quiet: true });
+      const vr = await this.flRead(n, { addr, quiet: true });
       const same = bytesEqual(vr.bytes, data);
       const line = `${kb} KB 写入 ${dt.toFixed(0)} ms → ${rate(n, dt)}（擦除另用 ${tErase.toFixed(0)} ms）· 回读${same ? '一致 ✔' : '不一致 ✘'}`;
       s.log(same ? 'g' : 'e', '写测速：' + line, this.tag);

@@ -10,8 +10,8 @@
  * 这个用例把顺序钉死：任何人再把触发器写到"放开复位之前"，这里立刻红。
  */
 import assert from 'node:assert/strict';
-import { RiscvDebugSession } from '../../app/dbg/riscv.js';
-import { DMCONTROL } from '../../app/flash/hpm/jtag.js';
+import { RiscvDebugSession } from '../../app/legacy/dbg/riscv.js';
+import { DMCONTROL } from '../../app/legacy/flash/hpm/jtag.js';
 
 const seq = [];
 const dm = {
@@ -61,7 +61,7 @@ console.log('dbg-riscv-reset: 复位并跑 = 先放开复位并停住 → 再写
  * 要求：**抛错就走人，一个 DMI 命令都不许发**。
  */
 {
-  const { RiscvTransport } = await import('../../app/flash/hpm/riscv-dm.js');
+  const { RiscvTransport } = await import('../../app/legacy/flash/hpm/riscv-dm.js');
   const sent = [];
   const t = Object.create(RiscvTransport.prototype);
   t.dmiWrite = async () => { sent.push('write'); };

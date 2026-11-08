@@ -1982,7 +1982,5 @@ export class ScopeView {
 }
 
 function numToCsv(v){
-  if (Number.isInteger(v)) return String(v);
-  if (!Number.isFinite(v)) return '';
-  return v.toPrecision(9).replace(/0+$/, '').replace(/\.$/, '');
+  return Number.isFinite(v) ? String(v) : '';
 }

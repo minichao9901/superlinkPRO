@@ -8,7 +8,7 @@ try{
   await c.connect();
   for(const clockKhz of [1000,4000,20000,36000,45000,60000]){
     const r=await c.eval(`
-      const {WebUsbDapProbe:P}=await import('./app/rtt/dap-webusb.js');
+      const {WebUsbDapProbe:P}=await import('./app/legacy/rtt/dap-webusb.js');
       const p=await P.open((await P.authorized())[0],{clockKhz:1000});
       let wasHalted;
       try{

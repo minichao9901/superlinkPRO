@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { FlashView } from '../../app/flash/view.js';
 import { createProbeManager } from '../../app/core/probe-users.js';
-const nodes=new Map(['f-flash','f-idcode','f-path','f-backend','f-bar','f-chip','f-result','f-base','f-verify','f-reset'].map(id=>[id,{value:id==='f-base'?'0x08000000':'',hidden:false}]));
+const nodes=new Map(['f-flash','f-idcode','f-path','f-backend','f-bar','f-chip','f-speed','f-result','f-base','f-verify','f-reset'].map(id=>[id,{value:id==='f-base'?'0x08000000':id==='f-chip'?'stm32f103':id==='f-speed'?'1000':'',hidden:false,disabled:false}]));
 globalThis.document={getElementById:id=>nodes.get(id)||null};
 const tick=()=>new Promise(r=>setImmediate(r));
 const gate=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};

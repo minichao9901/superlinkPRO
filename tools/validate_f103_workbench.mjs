@@ -2,7 +2,7 @@
 import fs from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
-import {WebUsbDapProbe} from '../web/app/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../web/app/legacy/rtt/dap-webusb.js';
 import {DebugSession} from '../web/app/dbg/session.js';
 import {navigatorUsb} from '../etm/tools/node-transport/usb-adapter.mjs';
 const require=createRequire(new URL('../etm/tools/node-transport/package.json',import.meta.url));

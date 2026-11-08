@@ -68,6 +68,12 @@ export const SECTOR_SIZE = 4096;
  */
 export const ADDR_MAX = 0xffffff;
 
+export function checkAddressRange(addr, length){
+  if (!Number.isSafeInteger(addr) || addr < 0 || addr > ADDR_MAX ||
+      !Number.isSafeInteger(length) || length < 0 || length > ADDR_MAX + 1 - addr)
+    throw new RangeError('Flash 操作范围超出三字节地址上限 0xFFFFFF');
+}
+
 // ============================================================================
 // JEDEC ID 解析
 // ============================================================================
@@ -293,6 +299,7 @@ export const wrdiItems = () => [cmdFrame(OP.WRDI)];
  * 且它只影响**首帧**（续读帧靠 CS_HOLD 让 flash 自己往下数）。
  */
 export function readItems(addr, len, { mode = OP.QIOR, chunk = XFER_TX_MAX, dummy } = {}){
+  checkAddressRange(addr, len);
   const m = READ_MODES.find(x => x.v === mode) || READ_MODES[0];
   const dm = Number.isFinite(dummy) ? Math.max(0, Math.min(4, dummy | 0)) : m.dummy;
   const c = Math.max(1, Math.min(XFER_TX_MAX, chunk | 0));
@@ -319,13 +326,18 @@ export function eraseItems(addr, { opcode = OP.SE } = {}){
   const m = ERASE_MODES.find(x => x.v === opcode) || ERASE_MODES[0];
   const items = [cmdFrame(OP.WREN)];
   if (m.size === 0) items.push(cmdFrame(m.v));
-  else items.push(writeFrame({ opcode: m.v, addr: addr >>> 0, addrLen: 3 }));
+  else {
+    checkAddressRange(addr, 1);
+    checkAddressRange(Math.floor(addr / m.size) * m.size, m.size);
+    items.push(writeFrame({ opcode: m.v, addr, addrLen: 3 }));
+  }
   return items;
 }
 
 /** 按页切分（不跨 256 B 边界）—— 编程计划的纯数据部分，页面与自测共用 */
 export function programPages(addr, data){
   const d = data instanceof Uint8Array ? data : new Uint8Array(data || 0);
+  checkAddressRange(addr, d.length);
   const pages = [];
   let off = 0;
   while (off < d.length){

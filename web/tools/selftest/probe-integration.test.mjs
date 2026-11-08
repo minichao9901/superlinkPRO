@@ -73,7 +73,7 @@ assert.equal(scope.running, true, 'cancelled pending bridge sends no STOP to the
 assert.equal(scope.transport.running, true, 'control queue does not quiesce an independent live stream');
 held.resolve(); await control;
 
-const burning = gate(); flash._flashOnce = async () => { events.push('flash:write'); await burning.promise; };
+const burning = gate(); flash._flashRequest = () => ({}); flash._flashOnce = async () => { events.push('flash:write'); await burning.promise; };
 const burn = flash.flash();
 await tick(); assert.equal(scope.running, false); assert.equal(i2c.connected, true, 'independent I2C stays connected during target flash');
 assert.equal(events.at(-1), 'flash:write');

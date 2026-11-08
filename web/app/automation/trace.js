@@ -80,11 +80,11 @@ export function createTraceAutomation(tools, win=globalThis.window){
       const s=await debugConnect(m);tools.dbg.cancelFlag=false;
       const commands=m.commands||[];if(!commands.length||commands.length>1000)throw Error('命令数须为1～1000');
       const results=[];
-      for(const line of commands){
+      for(const [index,line] of commands.entries()){
         const result=await tools.dbg.runLine(line);
         results.push({command:line,...result});
         const failedLine=result.lines?.find(line=>line.c==='err');
-        if(result.error||result.cancelled||failedLine)throw Object.assign(Error(result.error||failedLine?.t||'命令已中断'),{results});
+        if(result.error||result.cancelled||failedLine)throw Object.assign(Error(result.error||failedLine?.t||'命令已中断'),{results,notExecuted:commands.slice(index+1)});
       }
       return {results,status:s.statusInfo(),breakpoints:s.bpList()};
     }
@@ -220,24 +220,29 @@ export function browserWorkerId(token,env=globalThis){
 }
 
 /** Opt-in browser worker; one authorized page, explicit commands, no eval. */
-export async function startWorker(){
-  const token=new URLSearchParams(location.search).get('trace-cli');
+export async function startWorker(token=new URLSearchParams(location.search).get('trace-cli')){
   if(!/^[0-9a-f]{64}$/.test(token||''))throw Error('CLI令牌无效');
   if(!['127.0.0.1','localhost','[::1]'].includes(location.hostname))throw Error('CLI只允许本地工作台');
   const worker=browserWorkerId(token);
   const call=async(path,value)=>{
     const response=await fetch('/trace-cli/'+path,{method:'POST',headers:{'Content-Type':'application/json','X-Trace-CLI':token},body:JSON.stringify(value)});
-    if(!response.ok)throw Error('CLI队列HTTP '+response.status);
+    if(!response.ok)throw Object.assign(Error('CLI队列HTTP '+response.status),{status:response.status});
     return response.json();
   };
   // Polling continues while a command runs so cancellation can reach that command.
   for(;;){
-    const {job}=await call('poll',{worker});
+    let job;
+    try{ ({job}=await call('poll',{worker})); }
+    catch(e){
+      if(e.status!==409)throw e;
+      await new Promise(resolve=>setTimeout(resolve,2000));
+      continue;
+    }
     if(!job)continue;
     (async()=>{
       let result;
       try{result={ok:true,value:await automation.dispatch(job.request)};}
-      catch(e){result={ok:false,error:e.message,results:e.results};}
+      catch(e){result={ok:false,error:e.message,results:e.results,notExecuted:e.notExecuted};}
       await call('complete/'+job.id,{worker,result});
     })().catch(e=>console.error('CLI结果回传失败；请检查目标状态',e));
   }

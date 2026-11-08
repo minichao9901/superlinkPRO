@@ -19,6 +19,7 @@ test('HPM XIP ELF includes both ROM headers and excludes untouched sector 2', ()
 test('failed Flash readback cannot authorize boot, and omitted sector bytes are preserved', async () => {
   const session = new OpenOcdDebugSession();
   session.probe = {};
+  session.hpmSdk = true;
   session.ensureHalted = async () => {};
   const info = '#0 : hpm_xpi at 0x80000000, size 0x01000000, buswidth 1, chipwidth 1\n' +
     Array.from({ length:14 }, (_, i) => `\t#${i}: 0x${(0x1000 * i).toString(16)} (0x1000 4kB)`).join('\n');

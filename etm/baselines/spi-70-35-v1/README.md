@@ -46,7 +46,7 @@
 
 需要重建源码流时，在网页导入 `capture-10ms.etmrecord` 并单独解码，再从“文件”页导出完整源码或简化 C。Git 保存压缩记录和解码 JSON，不保存约 110 MB 的源码导出文件。
 
-10 ms 原始工作记录的历史 ID 为 `capture-8365b3adb65b4f0cb281e55aef2c89c7`，当前从本目录的 `capture-10ms.etmrecord` 恢复。1 ms 复验保存在本机 `../../records/capture-926a4f2b899542f5b566e68a1d1eb631/`。`records/` 属于本地运行数据，不纳入 Git。
+10 ms 原始工作记录的历史 ID 为 `capture-8365b3adb65b4f0cb281e55aef2c89c7`，当前从本目录的 `capture-10ms.etmrecord` 恢复。1 ms 复验保存在本机 `../../records/capture-stm32h7b0-spi-1ms/`。`records/` 属于本地运行数据，不纳入 Git。
 
 ## 网页与后续操作
 

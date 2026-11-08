@@ -178,33 +178,18 @@ export async function runUiSelfTest(tools){
     return 'OK';
   });
 
-  await step('SWD 速度下拉（默认 + 1M~60M 九档）就位', async () => {
-    const want = ['1000', '5000', '10000', '20000', '30000', '40000', '45000', '50000', '60000'];
-    const label = v => v >= 1000 ? (v / 1000) + ' MHz' : v + ' kHz';
-    const opts = id => [...(document.getElementById(id)?.options || [])];
-    // 四个字段都必须是原生下拉（不是 datalist —— value/label 会被 Edge 画成两行）。
-    // 结构：r-usb-clock / r-ocd-speed / f-speed = 「默认」+ 九档；
-    //       r-jlink-speed 特殊 —— J-Link 的默认就是一个具体值（50MHz），所以它只有九档。
-    const withDefault = ['r-usb-clock', 'r-ocd-speed', 'f-speed'];
-    for (const id of [...withDefault, 'r-jlink-speed']){
+  await step('Wasm 目标速度使用原生下拉', async () => {
+    for (const id of ['r-usb-clock', 'f-speed', 'd-clock']){
       const el = $(id);
-      if (!el) throw new Error('找不到 ' + id);
-      if (el.tagName !== 'SELECT') throw new Error(`${id} 应该是原生下拉，实际 ${el.tagName}`);
-      if (el.getAttribute('list')) throw new Error(`${id} 还挂着 datalist`);
-      const all = opts(id);
-      const nine = (withDefault.includes(id) ? all.slice(1, 10) : all).map(o => o.value);
-      if (want.join(',') !== nine.join(',')) throw new Error(`${id} 九档 = ${nine.join(',')}`);
-      if (withDefault.includes(id)){
-        const d = all[0];
-        if (d.value !== '' && d.value !== '0') throw new Error(`${id} 第一条不是默认项：${d.outerHTML}`);
-      }
-      const bad = all.filter(o => !/^(0)?$/.test(o.value) && o.textContent.trim() !== label(+o.value));
-      if (bad.length) throw new Error(`${id} 选项文案不对：${bad.map(o => o.textContent).join(' / ')}`);
-      if (all.length > nine.length + 1 && !/^\d+$/.test(all[nine.length + 1].value)) throw new Error(`${id} 末尾的补丁项不对`);
+      if (el?.tagName !== 'SELECT' || el.hasAttribute('list')) throw new Error(id + ' 应为原生下拉');
+      const speeds = [...el.options].map(o => Number(o.value));
+      for (const required of [1000, 10000, 25000, 36000, 60000])
+        if (!speeds.includes(required)) throw new Error(id + ' 缺少 ' + required + ' kHz');
+      if (speeds.some((speed, i) => !Number.isFinite(speed) || speed > 60000 || (i && speed <= speeds[i - 1])))
+        throw new Error(id + ' 时钟列表无效');
     }
-    // J-Link 那格必须永远有个具体速度（它没有"不设"这个语义）；其余三格可以是 不设/自动
-    if ($('r-jlink-speed').value === '') throw new Error('J-Link 速度不该为空');
-    return '4 个字段 = 原生下拉（3 个带默认项 + 九档）';
+    if ($('r-ocd-speed') || $('r-jlink-speed')) throw new Error('仍显示旧 RTT 后端时钟');
+    return 'RTT、烧录和调试均提供 Wasm 时钟档位';
   });
 
   await step('RTT 转发页：接收链路 + 假探针面板', async () => {
@@ -312,9 +297,9 @@ export async function runUiSelfTest(tools){
     const f = tools.flash;
     if (!f) throw new Error('没有 flash 视图对象');
     if (typeof f._openTarget !== 'function') throw new Error('烧录页没有 Wasm 目标入口');
-    const chips = await import('/app/flash/hpm/chips.js');
+    const chips = await import('/app/targets/hpm/porting.js');
     const b = chips.hpmBoard('hpm6800evk');
-    if (!b || b.flashBase !== 0x80000000 || b.xpiBase !== 0xF3000000) throw new Error('HPM6800EVK 的板级参数不对');
+    if (!b || b.flash.flashBase !== 0x80000000 || b.flash.xpiBase !== 0xF3000000) throw new Error('HPM6800EVK 的板级参数不对');
     sel.value = keep;                       // 复原，别把共享的测试 profile 带偏
     sel.dispatchEvent(new Event('change'));
     return `HPM 选项 ${hpm.length} 个 · ${b.name}（芯片选择已复原为 ${keep}）`;
@@ -361,7 +346,7 @@ export async function runUiSelfTest(tools){
     if (!groups.arm?.length || !groups.riscv?.length) throw new Error('芯片下拉该有 arm / riscv 两个 optgroup（现有 ' + Object.keys(groups).join('/') + '）');
     for (const id of ['hpm6800evk', 'hpm6750evk2', 'hpm6300evk', 'hpm6200evk', 'hpm6e00evk', 'hpm5300evk', 'riscv-other'])
       if (!groups.riscv.includes(id)) throw new Error(`RISC-V 组少了 ${id}（现有 ${groups.riscv.join('/')}）`);
-    for (const id of ['stm32f103', 'stm32h7b0', 'custom'])
+    for (const id of ['stm32f103', 'stm32h7b0', 'rp2350'])
       if (!groups.arm.includes(id)) throw new Error(`ARM 组少了 ${id}（现有 ${groups.arm.join('/')}）`);
     if (!groups.riscv.includes(chip.value)) throw new Error('目标类型 = RISC-V 时，芯片下拉该自动停在 RISC-V 组那颗，实际 ' + chip.value);
     const keepRvChip = chip.value;              // 复原用（这一颗是 RISC-V 组"上次选的"）

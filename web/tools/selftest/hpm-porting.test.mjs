@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { HPM_BOARDS, HPM_CHIPS, createHpmTarget, resolveHpmTarget, hpmWorkLayout,
   assertHpmIdentity, GENERIC_RISCV_PORT } from '../../app/targets/hpm/porting.js';
-import { hpmInitArgs, hpmCheckRange } from '../../app/flash/hpm/chips.js';
-import { HpmFlasher } from '../../app/flash/hpm/flash.js';
-import { RiscvTransport } from '../../app/flash/hpm/riscv-dm.js';
-import { HPM_ALGO, hpmAlgoBytes } from '../../app/flash/hpm/algo.js';
-import { xipCopyBytes } from '../../app/flash/hpm/xip-copy.js';
-import { RiscvDebugSession } from '../../app/dbg/riscv.js';
+import { hpmInitArgs, hpmCheckRange } from '../../app/legacy/flash/hpm/chips.js';
+import { HpmFlasher } from '../../app/legacy/flash/hpm/flash.js';
+import { RiscvTransport } from '../../app/legacy/flash/hpm/riscv-dm.js';
+import { HPM_ALGO, hpmAlgoBytes } from '../../app/legacy/flash/hpm/algo.js';
+import { xipCopyBytes } from '../../app/legacy/flash/hpm/xip-copy.js';
+import { RiscvDebugSession } from '../../app/legacy/dbg/riscv.js';
 import { SimTarget } from './hpm-sim.mjs';
 import { CHIPS } from '../../app/core/chips.js';
 import { store } from '../../app/core/store.js';
@@ -170,7 +170,7 @@ await test('custom SBA fence catches crossing and aligned spans before the wire'
 
 
 await test('GOT relocations reject corrupt metadata and retain canonical bytes', async () => {
-  const {relocateAlgoBytes}=await import('../../app/flash/hpm/entry.js');
+  const {relocateAlgoBytes}=await import('../../app/legacy/flash/hpm/entry.js');
   assert.deepEqual(HPM_ALGO.relocations,[{offset:0x554,target:0x440},{offset:0x558,target:0x438},{offset:0x55c,target:0x43c},{offset:0x560,target:0x434}]);
   assert.throws(()=>relocateAlgoBytes(bytes,{loadAddr:0},0x4000),/缺少 GOT/);
   assert.throws(()=>relocateAlgoBytes(bytes,{loadAddr:0,relocations:[{offset:0x554,target:0x444}]},0x4000),/不一致/);

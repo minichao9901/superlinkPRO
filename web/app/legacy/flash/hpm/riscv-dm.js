@@ -1,5 +1,5 @@
-import { waitMs, yieldTask } from '../../core/pace.js';
-import { resolveHpmTarget, overlapsSbaFence, assertHpmIdentity } from '../../targets/hpm/porting.js';
+import { waitMs, yieldTask } from '../../../core/pace.js';
+import { resolveHpmTarget, overlapsSbaFence, assertHpmIdentity } from '../../../targets/hpm/porting.js';
 /**
  * RISC-V 调试模块访问（DMI + SBA），跑在 CMSIS-DAP 的 JTAG 序列之上。
  *

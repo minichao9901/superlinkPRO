@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {Elf} from '../../app/elf/elf.js';
 import {SymTab} from '../../app/dbg/symbols.js';
-import {RiscvDebugSession} from '../../app/dbg/riscv.js';
-import {RiscvTransport} from '../../app/flash/hpm/riscv-dm.js';
-import {SBCS,DM,DMI_OP,DMI_STATUS,dmiRequest} from '../../app/flash/hpm/jtag.js';
+import {RiscvDebugSession} from '../../app/legacy/dbg/riscv.js';
+import {RiscvTransport} from '../../app/legacy/flash/hpm/riscv-dm.js';
+import {SBCS,DM,DMI_OP,DMI_STATUS,dmiRequest} from '../../app/legacy/flash/hpm/jtag.js';
 
 const elf=Object.create(Elf.prototype);
 elf.b=Uint8Array.of(11,12,21,22,31,32);

@@ -30,7 +30,7 @@ import { InspectorTable, flashValue } from '../ui/inspector-table.js';
 import { waitMs } from '../core/pace.js';
 import { DebugSession, DEFAULT_CLOCK_KHZ } from './session.js';
 import { selectOpenOcdDevice } from '../core/openocd-probe.js';
-import { prepareOpenOcdJtag } from '../core/openocd-jtag-pins.js';
+import { prepareOpenOcdJtag, requestOpenOcdJtagHid } from '../core/openocd-jtag-pins.js';
 import { makeOpenOcdProfile } from '../core/openocd-profile.js';
 import { OpenOcdDebugSession } from './openocd-session.js';
 import { HPM_WASM_BOARD, hpmOpenOcdFiles, isHpmOpenOcdEntry } from '../core/openocd-hpm-profile.js';
@@ -203,9 +203,12 @@ export class DbgView {
     on('d-ram-elf', 'change', e => {
       const file = e.target.files?.[0];
       e.target.value = '';
-      if (file) void this._launchRamElf(file);
+      if (file) void this.launchRamElf(file).catch(() => {});
     });
+    on('d-ram-apply','click',() => this.configureRamWindow($('d-ram-start').value,$('d-ram-length').value).catch(e => this._out(e.message,'err')));
+    on('d-jtag-hid','click',() => this.authorizeJtagProbe().catch(e => this._out(e.message,'err')));
     on('d-image-pick', 'click', () => this.pickImageDirectory());
+    window.addEventListener('focus',() => { void this.imageDirectoryStatus(); });
     on('d-svd-pick', 'click', () => $('d-svd-file')?.click());
     on('d-svd-file', 'change', e => this._loadSvdFile(e.target.files?.[0]));
     on('d-svd-default', 'click', () => this.loadBundledSvd());
@@ -535,6 +538,12 @@ export class DbgView {
     this._syncCfgControls(c);
     const ram = $('d-ram-debug');
     if (ram) ram.disabled = !c || !this._ramDebugFamily();
+    const customRam = c && this.session instanceof OpenOcdDebugSession && this.session.importedCfg && !this.session.hpm6800;
+    if ($('d-ram-range')) $('d-ram-range').hidden = !customRam;
+    if ($('d-ram-range-status')){
+      const w = customRam && this.session.ramWindow;
+      $('d-ram-range-status').textContent = w ? `可写 RAM：${hex32(w.start)} 起 ${w.end-w.start} 字节` : '先声明板卡的可写 RAM 范围，再下载或设置软件断点';
+    }
     if ($('d-hpm-target')) $('d-hpm-target').disabled = c || !!this._connecting;
     const h = halted ?? this.session.halted;
     for (const id of ['d-cont', 'd-step', 'd-halt', 'd-mem-read']){
@@ -553,14 +562,19 @@ export class DbgView {
     const cont = $('d-cont');
     if (cont) cont.disabled = !c || !h;
     for (const id of ['d-disconnect', 'd-reset-halt', 'd-reset-run', 'd-rtt-locate', 'd-wp-add', 'd-wp-clear', 'd-bt', 'd-bt-scan']){ const el = $(id); if (el) el.disabled = !c; }
+    if (this.session.isRiscv && $('d-wp-add')) $('d-wp-add').disabled = !c || this.session.caps.numCode === 0;
     for(const id of ['d-bt','d-bt-scan']){ const el=$(id); if(el) el.disabled=!c||!h; }
-    setFlag($('d-state'), !c ? '未连接' : (h ? '已停止' : '运行中'), !c ? null : (h ? 'warn' : 'on'));
+    setFlag($('d-state'), !c ? '未连接' : this.session.stateKnown === false ? '目标状态未知' : (h ? '已停止' : '运行中'), !c ? null : (h || this.session.stateKnown === false ? 'warn' : 'on'));
   }
 
   _syncCfgControls(connected = this.session.connected){
     const cfg = this._activeCfg();
     const busy = this._connecting || this._disconnecting || this._cfgImporting;
     const backend = $('d-backend');
+    if ($('d-jtag-hid')){
+      $('d-jtag-hid').hidden = backend?.value !== 'riscv';
+      $('d-jtag-hid').disabled = !!(connected || busy);
+    }
     const pick = $('d-cfg-pick'), clear = $('d-cfg-clear'), info = $('d-cfg-info');
     const arm = $('d-arm-target');
     const cfgDisabled = !!(connected || busy || backend?.value === 'mock');
@@ -622,7 +636,7 @@ export class DbgView {
   }
 
   _ramDebugFamily(){
-    if (this.session instanceof OpenOcdDebugSession) return $('d-hpm-target')?.value === HPM_WASM_BOARD ? 'hpm6800' : null;
+    if (this.session instanceof OpenOcdDebugSession) return this.session.ramWindow ? 'riscv' : null;
     if (this.session.backendName !== 'OpenOCD Wasm / WebUSB') return null;
     const cfg = this._activeCfg();
     if (cfg) return ['stm32f1', 'nrf52'].includes(cfg.family) ? cfg.family : null;
@@ -725,6 +739,13 @@ export class DbgView {
 
   // ================================================================ 连接
 
+  async authorizeJtagProbe(){
+    if (this.session.connected || this._connecting || this._disconnecting) throw Error('请先断开当前调试连接');
+    await requestOpenOcdJtagHid();
+    this._out('已授权探针 HID；点「连接」后会按序列号匹配并回读 JTAG 模式', 'ok');
+    return true;
+  }
+
   async connect(){
     if (this._connecting || this._disconnecting || this._cfgImporting) return false;
     const generation = this._connectionGen = (this._connectionGen || 0) + 1;
@@ -766,7 +787,7 @@ export class DbgView {
     try {
       if (!mock) await prepareProbeHandoff(this, 'dbg', '调试器要使用探针');
       if (this._disconnecting || generation !== this._connectionGen) return false;
-      if (riscv) await prepareOpenOcdJtag(device);
+      if (riscv && await prepareOpenOcdJtag(device)) this._out('探针已确认处于 SWD + JTAG 模式', 'ok');
       if (this._disconnecting || generation !== this._connectionGen) return false;
       this._connectionTask = this.session.exclusive(() => this.session.connect({
         mock, cfg, device,
@@ -774,8 +795,10 @@ export class DbgView {
       await this._connectionTask;
       if (this._disconnecting || generation !== this._connectionGen) return false;
     } catch (e){
-      this._out('✗ 连接失败：' + (e?.message || e), 'err');
-      toast('连接失败：' + (e?.message || e), 'err', 7000);
+      const msg = String(e?.message || e) + (riscv && /JTAG not supported/i.test(e?.message || '')
+        ? '。akaLinkPro 请先点「授权 JTAG 探针…」，再重新连接' : '');
+      this._out('✗ 连接失败：' + msg, 'err');
+      toast('连接失败：' + msg, 'err', 7000);
       return false;
     }
     /**
@@ -803,7 +826,7 @@ export class DbgView {
     if (this._disconnectPromise) return await this._disconnectPromise;
     this._disconnecting = true;
     this.cancelFlag = true;
-    this.queue = [];
+    this._skipQueuedCommands('已断开');
     this._disconnectPromise = this._disconnectNow();
     try {
       const result = await this._disconnectPromise;
@@ -1067,13 +1090,21 @@ export class DbgView {
       const del=document.createElement('button'); del.textContent='×'; del.title='删除数据观察点';
       del.addEventListener('click',()=>this.runLine(`wpd ${item.slot+1}`)); row.append(text,del); box.append(row);
     }
-    if(!this.session.dwt.items.length) box.textContent='无观察点';
+    if(!this.session.dwt.items.length) box.textContent=this.session.isRiscv && this.session.connected
+      ? (this.session.caps.numCode === 0 ? '目标没有硬件触发器' : this.session.caps.numCode == null ? '暂停目标后确认硬件触发器' : '无观察点；与硬件断点共享触发器') : '无观察点';
   }
 
   renderBps(){
     this.renderDwt();
     const used=this.session.bps.length,cap=$('d-bp-cap'),badge=$('d-side-break-count'),total=used+this.session.dwt.items.length;
-    if(cap){cap.textContent=this.session.connected?this.session.bpCapacity?`${used} / ${this.session.bpCapacity}`:'不可用':'未连接';cap.title=this.session.connected?`${this.session.arch.name==='riscv'?'硬件触发器':`FPB rev${this.session.caps.rev}`} · ${used} / ${this.session.bpCapacity} 个硬件断点`:'';}
+    if(cap){
+      if (!this.session.connected) cap.textContent='未连接';
+      else if (this.session.isRiscv){
+        const software = this.session.bpList().filter(b => b.kind === 'software').length;
+        cap.textContent = `软件 ${software} · 硬件 ${used-software}/${this.session.caps.numCode ?? '?'}`;
+      } else cap.textContent=this.session.bpCapacity ? `${used} / ${this.session.bpCapacity}` : '不可用';
+      cap.title=this.session.connected ? (this.session.isRiscv ? '硬件触发器由断点与数据观察点共享' : `FPB rev${this.session.caps.rev}`) : '';
+    }
     if(badge){badge.textContent=String(total);badge.hidden=!total;}
     const box = $('d-bp-list');
     if (!box) return;
@@ -1092,7 +1123,7 @@ export class DbgView {
       const t = document.createElement('span');
       t.className = 'mono';
       const loc = b.addr ? this.sym?.locText?.(b.addr) : '';
-      t.textContent = `#${i + 1} ${hex32(b.addr)}${b.sym ? ' ' + b.sym : ''}${loc ? '  ' + loc : ''}`;
+      t.textContent = `#${i + 1} ${hex32(b.addr)}${b.kind === 'software' ? ' 软件' : ''}${b.sym ? ' ' + b.sym : ''}${loc ? '  ' + loc : ''}`;
       const del = document.createElement('button');
       del.textContent = '×';
       del.title = '删掉这个断点';
@@ -1246,7 +1277,7 @@ export class DbgView {
       e.preventDefault();
       this.cancelFlag = true;
       this._stopWatch();
-      this.queue = [];
+      this._skipQueuedCommands('已中断');
       cmd.value = '';
       this._out('^C', 'warn');
       return;
@@ -1273,6 +1304,7 @@ export class DbgView {
     if (!lines.length) return;
     const cmd = e.currentTarget;
     this.queue.push(...lines);
+    if (!this.runningQueue) this.cancelFlag = false;
     cmd.value = '';
     this._out(`（粘贴了 ${lines.length} 行，排队执行）`, 'dim');
     this._drainQueue();
@@ -1284,10 +1316,20 @@ export class DbgView {
     try {
       while (this.queue.length && !this.cancelFlag){
         const line = this.queue.shift();
-        await this.runLine(line);
+        const result = await this.runLine(line);
+        if (result.error || result.cancelled || result.lines?.some(entry => entry.c === 'err')){
+          this._skipQueuedCommands('前一条命令未完成');
+          break;
+        }
       }
-      if (this.cancelFlag && this.queue.length){ this._out(`（已中断，丢弃剩余 ${this.queue.length} 行）`, 'warn'); this.queue = []; }
+      if (this.cancelFlag) this._skipQueuedCommands('已中断');
     } finally { this.runningQueue = false; }
+  }
+
+  _skipQueuedCommands(reason){
+    const remaining = this.queue?.splice(0) || [];
+    if (remaining.length) this._out(`（${reason}，${remaining.length} 条未执行）`, 'warn');
+    for (const line of remaining) this._out('未执行：' + line, 'warn');
   }
 
   _complete(cmd){
@@ -1331,12 +1373,20 @@ export class DbgView {
   async pickImageDirectory(){
     try {
       const name = await this.imageFiles.pick();
-      const label = $('d-image-dir'); if (label) label.textContent = name;
+      await this.imageDirectoryStatus();
       const progress = $('d-image-progress'); if (progress) progress.textContent = '可使用此目录下的文件名或相对路径';
       this._out(`镜像工作目录：${name}；load_image / dump_image 使用此目录下的相对路径`, 'ok');
     } catch (e){
       if (e.name !== 'AbortError') this._out('✗ 选择镜像目录失败：' + e.message, 'err');
     }
+  }
+
+  async imageDirectoryStatus(){
+    const status = await this.imageFiles.status();
+    this.imageDirectory = status;
+    const label = $('d-image-dir');
+    if (label) label.textContent = status.name ? `${status.name} · 当前标签页${({granted:'已授权读写',prompt:'需重新授权',denied:'无读写权限'})[status.permission] || '权限未确认'}` : '当前标签页未选择镜像目录';
+    return status;
   }
 
   async runLine(text){
@@ -1348,6 +1398,7 @@ export class DbgView {
     if (/^(c|cont|continue|g|s|step|n|next|si|fin|finish|out|rc|runto|halt|stop|pause|reset|mw|ms|fill_ram|fill_inc|load_image)(\s|$)/i.test(line) || /^(r|reg|regs)\s+\S+\s+\S+/i.test(line))
       this.faultPanel?.invalidate('目标控制或写入命令，现场转为历史记录');
     this._out('> ' + line, 'cmd');
+    if (/^(load_image|dump_image)(\s|$)/i.test(line)) await this.imageDirectoryStatus();
     if (line !== this.hist[this.hist.length - 1]) this.hist.push(line);
     this.histIdx = -1;
     this.cancelFlag = false;
@@ -1481,8 +1532,19 @@ export class DbgView {
     }
   }
 
-  async _launchRamElf(file){
-    return await this._act('下载到 RAM 并调试', async () => {
+  async configureRamWindow(start,length){
+    const number = v => typeof v === 'string' && !/^(0x[\da-f]+|\d+)$/i.test(v.trim()) ? NaN : Number(v);
+    if (!(this.session instanceof OpenOcdDebugSession)) throw Error('当前会话不支持声明可写 RAM');
+    const range = await this.session.exclusive(() => this.session.configureRamWindow(number(start),number(length)));
+    this._syncButtons();
+    this._out(`已声明可写 RAM：${hex32(range.start)} 起 ${range.end-range.start} 字节`, 'ok');
+    return range;
+  }
+
+  async launchRamElf(file, stop = 'auto'){
+    let result, failure;
+    const ok = await this._act('下载到 RAM 并调试', async () => {
+      try {
       const family = this._ramDebugFamily();
       if (!this.session.connected || !family)
         throw new Error('请先通过 WebUSB 连接支持 RAM 调试的目标');
@@ -1490,13 +1552,18 @@ export class DbgView {
       const sym = SymTab.fromBuffer(buf);
       this.faultPanel?.invalidate('RAM 下载将切换正在执行的程序，现场转为历史记录');
       this._out(`RAM 下载：${file.name}，检查目标与 SRAM 镜像…`);
-      const main = await this.session._startRamDebug(buf, sym, family);
+      const address = await this.session._startRamDebug(buf, sym, family === 'riscv' ? {stop} : family);
       this._setElf(buf, file.name, sym);
-      this._out(`RAM 下载完成，已停在 main（${hex32(main)}）`, 'ok');
+      const location = sym.find('main')?.addr === address ? 'main' : '入口';
+      result = { file:file.name, address, location, verified:true };
+      this._out(`RAM 下载已通过逐字节读回校验，停在 ${location}（${hex32(address)}）`, 'ok');
       await this.session.refreshRegs();
       this.renderRegs();
       await this.afterStop();
+      } catch (error){ failure=error; throw error; }
     });
+    if (!ok) throw failure || Error('当前调试会话正忙，RAM 下载未执行');
+    return result;
   }
 
   /** 供自测直接喂 ArrayBuffer（页面里也能用 fetch 拿到 fixture） */
@@ -1515,6 +1582,7 @@ export class DbgView {
     this.sym = st;
     this.session.sym = st;
     this.elfName = name;
+    this.elfBytes = buf.byteLength;
     this.faultPanel?.invalidate('ELF 已变更，源码关联保留为历史记录');
     this._retireStaleMemAddr(st);
     /**
@@ -2159,7 +2227,7 @@ export class DbgView {
       const n = document.createElement('span');
       n.className = 'ln';
       n.textContent = String(ln);
-      n.title = '点一下在这行下硬件断点（要有地址信息）；再点一下删掉';
+      n.title = '点一下在这行下断点（要有地址信息）；再点一下删掉';
       const t = document.createElement('span');
       t.className = 'srctx';                       // 🚨 不能叫 `.tx`：那条全局规则是给"文本发送"输入框的（min-height:52px）
       if (syntax){
@@ -2356,6 +2424,7 @@ export class DbgView {
       connected: s.connected,
       backend: s.backendName,
       halted: s.halted,
+      targetState: !s.connected ? 'disconnected' : s.stateKnown === false ? 'unknown' : s.halted ? 'halted' : 'running',
       pc: s.pc >>> 0,
       clockKhz: (s.clockHz / 1000) | 0,
       regs: s.regList().length,
@@ -2363,7 +2432,10 @@ export class DbgView {
       lastStepMode: s.lastStepMode || null,     // 原生握手 / 断点兜底 / 源码步进
       lastStepOk: s.lastStepOk ?? null,
       bpCap: s.bpCapacity,
-      elf: this.sym ? { name: this.elfName, symbols: this.sym.size, vars: this.sym.varCount, source: this.sym.source,
+      breakpoints: s.bpList(), hardwareTriggers: s.isRiscv ? s.caps.numCode : null,
+      ramWindow: s.ramWindow ?? null,
+      imageDirectory: this.imageDirectory ?? {name:null,permission:'unselected'},
+      elf: this.sym ? { name: this.elfName, bytes: this.elfBytes, symbols: this.sym.size, vars: this.sym.varCount, source: this.sym.source,
         lines: this.sym.lines ? this.sym.lines.size : 0, files: this.sym.lines ? this.sym.lines.fileCount : 0,
         rtt: this.sym.rttSym()?.addr ?? null } : null,
       rtt: this.rtt ? { addr: this.rtt.addr, maxUp: this.rtt.maxUp } : null,

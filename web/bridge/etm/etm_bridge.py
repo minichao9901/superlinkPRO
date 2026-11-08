@@ -1,5 +1,5 @@
 """Portable ETM workbench. Runtime and assets are bundled; user data stays beside the EXE."""
-import argparse,gzip,hashlib,importlib.util,json,os,socket,sys,tempfile,threading,time,uuid,webbrowser,zipfile
+import argparse,gzip,hashlib,importlib.util,json,os,secrets,socket,sys,tempfile,threading,time,uuid,webbrowser,zipfile
 from pathlib import Path
 from urllib.request import urlopen
 from flask import send_file,request
@@ -25,6 +25,14 @@ def configure_engine(cli_engine,config):
 def load_module(name,path):
     spec=importlib.util.spec_from_file_location(name,path);module=importlib.util.module_from_spec(spec)
     sys.modules[name]=module;spec.loader.exec_module(module);return module
+
+def load_current_web_queue():
+    if getattr(sys,'frozen',False):
+        # The ETM provenance snapshot may have an older queue module. The
+        # build ships this workbench's authoritative queue separately.
+        return load_module('web_cli_queue',Path(sys._MEIPASS)/'web_cli_queue.py')
+    from etm.tools import web_cli_queue
+    return web_cli_queue
 
 _seed_guard=threading.Lock()
 def valid_demo(folder):
@@ -88,12 +96,21 @@ def package_archive(home,data):
         archive.writestr(archive_root+'/package-manifest.json',json.dumps(manifest,ensure_ascii=False,indent=2))
     staging.replace(destination);stamp.write_text(signature);return destination
 
+def cli_runtime(data,port):
+    return data/'workbench-cli'/str(port)
+
+def cli_browser_url(folder,entry):
+    state=json.loads((folder/'toolbox-runtime.json').read_text(encoding='utf8'))
+    token=(folder/'cli-token').read_text(encoding='ascii')
+    return state['url']+'/'+(entry or '#flash')+'?trace-cli='+token
+
 def main():
     home=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else HERE
     runtime=Path(sys._MEIPASS) if getattr(sys,'frozen',False) else HERE
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port',type=int);parser.add_argument('--config',type=Path,default=home/'etm.config.json')
     parser.add_argument('--data-dir',type=Path,default=home/'data');parser.add_argument('--check',action='store_true');parser.add_argument('--no-browser',action='store_true')
+    parser.add_argument('--no-workbench-cli',action='store_true',help='关闭本机工作台 CLI 队列')
     parser.add_argument('--engine',choices=['python','native','auto'],help='解码引擎：默认 native（完整优化链路），python 用于对照排查；auto 同 native')
     args=parser.parse_args();config=json.loads(args.config.read_text(encoding='utf-8-sig')) if args.config.exists() else {}
     engine=configure_engine(args.engine,config)
@@ -117,8 +134,10 @@ def main():
     package_id=package_manifest['packageId'];version=package_manifest.get('version',VERSION)
     workbench=package_manifest.get('launcher')=='superlinkPRO.exe'
     entry='' if workbench else '#etm'
+    cli_enabled=not args.no_workbench_cli
+    folder=cli_runtime(data,port)
     app=application.app
-    app.view_functions['launcher_info']=lambda:dict(protocol=1,portable=True,version=version,packageId=package_id,port=port,dataDirectory=str(data),engine=engine)
+    app.view_functions['launcher_info']=lambda:dict(protocol=1,portable=True,version=version,packageId=package_id,port=port,dataDirectory=str(data),engine=engine,workbenchCli=cli_enabled)
     archive_guard=threading.Lock()
     def download_package():
         with archive_guard:return send_file(package_archive(home,data),as_attachment=True)
@@ -139,26 +158,53 @@ def main():
     except Exception:existing={}
     if existing.get('portable') and existing.get('packageId')==package_id and existing.get('dataDirectory')==str(data):
         if existing.get('engine')!=engine:raise ValueError('已有工作台使用不同解码引擎，请先退出已有工作台再重新启动；不会停止已有服务')
+        if existing.get('workbenchCli',False)!=cli_enabled:raise ValueError('已有工作台的 CLI 开关不同，请先退出后再重新启动')
         print('同版本工作台已运行：'+url+entry,flush=True)
-        if not args.no_browser:webbrowser.open(url+entry)
+        if not args.no_browser:webbrowser.open(cli_browser_url(folder,entry) if cli_enabled else url+entry)
         return
     try:http=make_server('127.0.0.1',port,application,threaded=True)
     except (OSError,SystemExit):raise ValueError(f'端口 {port} 已被占用，请修改 etm.config.json 的 port；不会停止已有服务')
-    seed_demo(backend,records)
-    print('KingstVIS 需开启 Socket 并使能五路通道。',flush=True)
-    print('工作台：'+url+entry+'（退出按 Ctrl+C）',flush=True)
-    if not args.no_browser:webbrowser.open(url+entry)
-    try:http.serve_forever()
+    try:
+        if cli_enabled:
+            folder.mkdir(parents=True,exist_ok=True)
+            # A new process must not accept commands from tabs authorized by an old process.
+            staging=folder/('cli-token-'+uuid.uuid4().hex)
+            staging.write_text(secrets.token_hex(32),encoding='ascii')
+            staging.replace(folder/'cli-token')
+            load_current_web_queue().install_web_cli(app,folder/'cli-token')
+            (folder/'toolbox-runtime.json').write_text(json.dumps(dict(protocol='workbench/1',url=url.rstrip('/'),pid=os.getpid())),encoding='utf8')
+        seed_demo(backend,records)
+        print('KingstVIS 需开启 Socket 并使能五路通道。',flush=True)
+        print('工作台：'+url+entry+'（退出按 Ctrl+C）',flush=True)
+        if cli_enabled:print('工作台 CLI 运行时：'+str(folder),flush=True)
+        if not args.no_browser:webbrowser.open(cli_browser_url(folder,entry) if cli_enabled else url+entry)
+        http.serve_forever()
     except KeyboardInterrupt:pass
     finally:http.server_close()
 
 if __name__=='__main__':
     try:
-        if len(sys.argv)>1 and sys.argv[1] in ('--cli','--cli-host'):
+        if len(sys.argv)>1 and sys.argv[1]=='--workbench-cli':
+            import toolbox
+            home=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else HERE
+            config=home/'etm.config.json'
+            port=int(json.loads(config.read_text(encoding='utf-8-sig')).get('port',8878)) if config.exists() else 8878
+            options=sys.argv[2:]
+            default=cli_runtime(home/'data',port)
+            if options and options[0]=='open-browser':
+                parser=argparse.ArgumentParser(description='为已启动的本机 CLI 队列打开执行页面')
+                parser.add_argument('--runtime',type=Path,default=default)
+                args=parser.parse_args(options[1:])
+                toolbox.Client(args.runtime).http('health')
+                webbrowser.open(cli_browser_url(args.runtime,'#flash'))
+            else:
+                sys.exit(toolbox.main(options,portable_runtime=default))
+        elif len(sys.argv)>1 and sys.argv[1] in ('--cli','--cli-host'):
             runtime=Path(sys._MEIPASS) if getattr(sys,'frozen',False) else HERE
             for path in (runtime/'backend/tools',runtime/'backend/tools/la'):
                 sys.path.insert(0,str(path))
             if sys.argv[1]=='--cli-host':
+                if getattr(sys,'frozen',False):load_current_web_queue()
                 from trace_cli_runtime import host
                 host(sys.argv[2])
             else:

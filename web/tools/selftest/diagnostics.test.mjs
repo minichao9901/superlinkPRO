@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { captureFault, decodeArm, decodeRiscv, faultData } from '../../app/dbg/fault.js';
 import { ARM_ARCH } from '../../app/dbg/thumb.js';
 import { backtrace } from '../../app/dbg/backtrace.js';
-import { WebUsbDapProbe } from '../../app/rtt/dap-webusb.js';
+import { WebUsbDapProbe } from '../../app/legacy/rtt/dap-webusb.js';
 import { DiagnosticHistory, makeReport, reportMarkdown } from '../../app/diagnostics/report.js';
 import { scopeQuality, rttQuality } from '../../app/diagnostics/quality.js';
 

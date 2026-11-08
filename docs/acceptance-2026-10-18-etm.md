@@ -29,7 +29,7 @@
 | 异常 / gaps / **包问题** | 12 / 1 / **0** · `decodeStatus=done` |
 | 热点 | `cdc_poll` 77,488 · `main` 77,483 · `USBD_IRQHandler` 276 |
 
-记录：`etm/records/capture-2d6da5829a8c4811b7c5ed2ca9e08cc3`
+记录现存于 `etm/records/capture-stm32f103ze-etmv3-10ms`，原采集 ID 为 `capture-2d6da5829a8c4811b7c5ed2ca9e08cc3`。
 
 ## 3. H743 周期计数（ETMv4 独有）
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {WebUsbDapProbe} from '../../web/app/shared/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../../../web/app/legacy/rtt/dap-webusb.js';
 import {EtmTarget} from '../../web/app/target.js';
 import {withCleanup} from '../../web/app/operation.js';
 

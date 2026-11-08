@@ -13,7 +13,7 @@
 自动化使用 `toolbox.py target import / use / info`，等待导入或沿用完成后返回核心、目标和配置指纹。已通过 F103ZE、H743 和 HPM6800EVK 的 Wasm 调试、烧录与 RTT Viewer 真机回归；RP2350 另以原版 CFG 跑过三页联动。见 [CLI 示例](../../docs/toolbox-cli-ai.md#openocd-目标与-cfg)、[F103ZE](../../docs/validation/f103ze-wasm-hw-20261107.md)、[H743](../../docs/validation/h743-wasm-hw-20261107.md)、[HPM6800EVK](../../docs/validation/hpm6800-wasm-full-hw-20261107.md)和 [RP2350](../../docs/validation/rp2350-cfg-shared-hw-20261108.md)。
 
 - **Cortex-M / SWD** 使用 CFG 的调试时钟并核对预期 DPIDR。支持单目标配置，以及引用内置 STM32F1 或 Nordic nRF52 target 的 board 文件。
-- **RV32 / JTAG** 使用单 TAP 的预期 IDCODE、IR 长度、所选 hart 和 JTAG 时钟。需要标准 DTM、0.13 调试模块和 32 位 SBA。确认目标的实际 SRAM 地址后，可用镜像目录中的 `load_image` 下载，再设 PC 和必要的启动寄存器，配合 ELF 符号进行源码调试。
+- **RV32 / JTAG** 使用单 TAP 的预期 IDCODE、IR 长度、所选 hart 和 JTAG 时钟。需要标准 DTM、0.13 调试模块和 SBA。akaLinkPro 如果报 `JTAG not supported`，点「授权 JTAG 探针…」后重连，页面会按序列号匹配已授权的 HID 与 WebUSB 设备并回读 JTAG 模式。
 
 HPM6800EVK 可直接导入 SDK v1.11.0 原名 `boards/openocd/boards/hpm6800evk.cfg`。该文件为板级片段，工作台补齐同一 SDK 的 HPM6880 TAP 参数和 CMSIS-DAP 8 MHz 时钟，并保留 HPM 内存访问约束。 [HPM6800EVK 真机验收](../../docs/validation/hpm6800-cfg-hw-20261107.md)
 
@@ -21,9 +21,13 @@ HPM6800EVK 可直接导入 SDK v1.11.0 原名 `boards/openocd/boards/hpm6800evk.
 
 工作台 CLI 的 `page dbg describe --target session` 可发现 `programFlashElf`、`verifyFlashElf` 和 `bootVerifiedFlash`。烧录接受带 HPM ROM 启动头的 XIP ELF，校验 bank 和扇区布局后擦写启动区，保留受影响扇区中镜像未覆盖的字节，再整扇区读回。也可单独读回既有 ELF。复位操作要求当前会话已校验镜像，并检查新的系统复位标志与运行状态。 [验收脚本](../tools/selftest/dbg-hpm6800-wasm-flash-hw.py)
 
-兼容导入仍可从旧格式脚本提取受支持的调试参数；其跳过的 Flash bank、外围初始化和擦除解锁过程不作为原版 CFG 的跨页配置。HPM6800EVK 保留已核对的 SDK 入口。一键 RAM 启动仍由专用芯片身份和容量校验决定。 [Web 端到端验收](../../docs/validation/dbg-cfg-e2e-20261107.md)
+兼容导入仍可从旧格式脚本提取受支持的调试参数；其跳过的 Flash bank、外围初始化和擦除解锁过程不作为原版 CFG 的跨页配置。HPM6800EVK 保留已核对的 SDK 入口。 [Web 端到端验收](../../docs/validation/dbg-cfg-e2e-20261107.md)
 
 ## 下载到 RAM 并调试
+
+使用通用 RV32 CFG 时，连接后在「符号文件」声明板卡实际可写的 RAM 起始地址和字节数，例如 Zynq 软核为 `0x80000000`、`0x20000`。声明只在当前连接生效。选择链接到该区域的小端 RV32 ELF32。页面在写入前检查全部 `PT_LOAD` 段、BSS、入口和重叠范围；写入后逐块回读比对，校验通过才设置 PC。可执行段的加载和运行地址必须一致；数据段的两个地址都须位于声明范围内，入口负责复制有独立加载地址的数据。默认有有效 `main` 时停在那里，否则停在入口。CLI 也可明确指定停点。该流程不复位目标，ELF 的入口需要自行完成运行所需初始化。
+
+声明的 RAM 内支持软件断点，包括点击源码行号与源码步进的临时断点。`b <位置>` 自动选择，RV32 也可加 `sw` 或 `hw` 指定类型。暂停后页面显示检测到的硬件触发器数量，硬件断点与数据观察点共享资源。清除软件断点或正常断开时会回读核对原指令；运行中断开需要先暂停以恢复指令。
 
 通过 WebUSB 连接 STM32F103xE 后，或导入 nRF52 CFG 并连接 nRF52832 后，在「符号文件」点击「下载到 RAM 并调试」，选择带 DWARF 行号的 RAM 版 ELF。页面检查芯片和 ELF，复位并停核，写入、回读校验片上 SRAM，设置向量表、初始栈和复位入口，然后运行到 `main`。下载过程只写 SRAM、核心寄存器和调试控制寄存器。选择源码目录后，可看到当前源码并用「跳过」（F10）逐行调试。
 
@@ -47,7 +51,7 @@ fill_inc 0x20001000 1024 0xFC
 
 ## 镜像加载与导出
 
-在调试器侧栏点击“选择镜像目录…”并授予读写权限，该目录就是镜像命令的工作目录。文件名与子目录使用相对路径；包含空格时用双引号或大括号。目录授权由浏览器管理，支持桌面 Chrome / Edge 的 localhost 与 HTTPS 页面。
+在调试器侧栏点击“选择镜像目录…”并授予读写权限，该目录就是镜像命令的工作目录。状态显示当前标签页所选目录和读写授权；另开标签页需要重新选择。文件名与子目录使用相对路径；包含空格时用双引号或大括号。目录授权由浏览器管理，支持桌面 Chrome / Edge 的 localhost 与 HTTPS 页面。
 
 命令参数遵循 [OpenOCD 镜像加载命令](https://openocd.org/doc/html/General-Commands.html#Image-loading-commands)：
 

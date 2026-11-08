@@ -1,5 +1,5 @@
 /** Compatibility exports; HPM target data/functions live in app/targets/hpm/porting.js. */
-export { HPM_COMMON, HPM_BOARDS, hpmBoard } from '../../targets/hpm/porting.js';
+export { HPM_COMMON, HPM_BOARDS, hpmBoard } from '../../../targets/hpm/porting.js';
 
 /** RV32 flashloader 的入口签名（a0..a4 入参，a0 返回；细节见 tools/target-firmware/hpm_flash_algo/README.md）*/
 export const HPM_ALGO_ABI = {

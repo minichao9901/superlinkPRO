@@ -122,6 +122,7 @@ test: test-stability test-dbg-features test-board-matrix test-random-flow test-e
 	$(NODE) tools/selftest/scope-transport.test.mjs
 	$(NODE) tools/selftest/scope-store-batch.test.mjs
 	$(NODE) tools/selftest/flash-image.test.mjs
+	$(NODE) tools/selftest/target-reset.test.mjs
 	$(NODE) tools/selftest/shared-drivers.test.mjs
 	$(NODE) tools/selftest/etm-page-copy.test.mjs
 	$(NODE) tools/selftest/hpm-flash.test.mjs
@@ -781,8 +782,10 @@ test-probe:
 test-stability: test-probe
 	$(NODE) tools/selftest/web-review-fixes.test.mjs
 	$(NODE) tools/selftest/web-review-maintenance.test.mjs
-	$(NODE) tools/selftest/bridge-memory.test.mjs
-	$(NODE) tools/selftest/bridge-rpc.test.mjs
+	$(NODE) tools/selftest/web-functional-regressions.test.mjs
+	$(NODE) --test tools/selftest/openocd-target-transport.test.mjs tools/selftest/dbg-openocd-session.test.mjs tools/selftest/dbg-openocd-flash.test.mjs tools/selftest/dbg-openocd-cfg.test.mjs
+	$(NODE) --test tools/selftest/download-view.test.mjs tools/selftest/workbench-cli.test.mjs tools/selftest/trace-cli-automation.test.mjs tools/selftest/session-context.test.mjs tools/selftest/reset-io-ui.test.mjs
+	$(NODE) tools/selftest/flash-data-clock.test.mjs
 	$(NODE) tools/selftest/spi-runner-lifecycle.test.mjs
 	$(NODE) tools/selftest/i2c-lifecycle.test.mjs
 	$(NODE) tools/selftest/recorder-lifecycle.test.mjs

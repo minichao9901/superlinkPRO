@@ -71,7 +71,7 @@ const rows = [];
 for (const khz of CLOCKS){
   try {
     const res = await evalJs(`(async () => {
-      const { WebUsbDapProbe } = await import('/app/rtt/dap-webusb.js');
+      const { WebUsbDapProbe } = await import('/app/legacy/rtt/dap-webusb.js');
       const { Rtt } = await import('/app/rtt/protocol.js');
       const { parseRanges } = await import('/app/core/bin.js');
       const dev = (await navigator.usb.getDevices())[0];

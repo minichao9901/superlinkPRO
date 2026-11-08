@@ -12,8 +12,8 @@
  * 这个用例把纪律钉死：**dmstatus 说在跑时，一条抽象命令都不许下发**，而且不许抛错。
  */
 import assert from 'node:assert/strict';
-import { RiscvDebugSession } from '../../app/dbg/riscv.js';
-import { DMCONTROL } from '../../app/flash/hpm/jtag.js';
+import { RiscvDebugSession } from '../../app/legacy/dbg/riscv.js';
+import { DMCONTROL } from '../../app/legacy/flash/hpm/jtag.js';
 
 const DMSTATUS_HALTED = 0x4c03a2;   // bits[9:8] = 3 → allhalted|anyhalted（HPM 实测布局）
 const DMSTATUS_RUNNING = 0x4f0ca2;  // bits[9:8] = 0、bits[11:10] = 3 → allrunning|anyrunning

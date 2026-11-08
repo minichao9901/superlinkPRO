@@ -29,7 +29,7 @@ try {
     // Configure vector catch, then let the existing firmware run before pressing reset.
     await c.eval(`
       await window.__tools.hid.dev.close();
-      const {WebUsbDapProbe:P}=await import('./app/rtt/dap-webusb.js');
+      const {WebUsbDapProbe:P}=await import('./app/legacy/rtt/dap-webusb.js');
       const p=await P.open((await P.authorized())[0],{clockKhz:1000});
       const write=async(a,v)=>{const b=new Uint8Array(4);new DataView(b.buffer).setUint32(0,v>>>0,true);await p.writeMem(a,b);};
       try {
@@ -44,7 +44,7 @@ try {
       return true;`);
     assert.equal(await c.eval('return await window.__tools.flash.resetTarget();'), true);
     const evidence = await c.eval(`
-      const {WebUsbDapProbe:P}=await import('./app/rtt/dap-webusb.js');
+      const {WebUsbDapProbe:P}=await import('./app/legacy/rtt/dap-webusb.js');
       const p=await P.open((await P.authorized())[0],{clockKhz:1000});
       const ev=window.__resetEvidence;
       try {
@@ -77,7 +77,7 @@ finally {
   if(report.result==='failed'){
     try { await c.eval(`
       if(window.__resetEvidence){
-        const {WebUsbDapProbe:P}=await import('./app/rtt/dap-webusb.js');
+        const {WebUsbDapProbe:P}=await import('./app/legacy/rtt/dap-webusb.js');
         const p=await P.open((await P.authorized())[0],{clockKhz:1000});
         try {
           const b=new Uint8Array(4);new DataView(b.buffer).setUint32(0,window.__resetEvidence.demcr,true);

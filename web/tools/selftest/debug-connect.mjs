@@ -34,7 +34,7 @@ await send('Page.enable'); await send('Runtime.enable');
 try { await send('Network.enable'); await send('Network.setCacheDisabled', { cacheDisabled: true }); } catch {}
 await send('Page.navigate', { url: APP });
 await sleep(900);
-console.log('页面里的模块含最新修复标记:', await evalJs(`fetch('/app/rtt/dap-webusb.js',{cache:'reload'}).then(r=>r.text()).then(t=>t.includes('位计数只有 1 个字节') + ' | ' + t.length + ' 字节')`));
+console.log('页面里的模块含最新修复标记:', await evalJs(`fetch('/app/legacy/rtt/dap-webusb.js',{cache:'reload'}).then(r=>r.text()).then(t=>t.includes('位计数只有 1 个字节') + ' | ' + t.length + ' 字节')`));
 console.log('getDevices:', await evalJs('navigator.usb.getDevices().then(d=>JSON.stringify(d.map(x=>({n:x.productName,v:x.vendorId,p:x.productId,opened:x.opened}))))'));
 console.log('后端选择框值:', await evalJs(`document.getElementById('r-backend').value`));
 await evalJs(`document.getElementById('r-range').value='0x20000000-0x20005000'`);

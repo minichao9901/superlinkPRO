@@ -1,21 +1,4 @@
-/**
- * 调试会话：把 CMSIS-DAP 探针包装成"一个简单调试器该有的动作"（**不碰 DOM**）。
- *
- * 底座全部是已有的东西（`app/rtt/dap-webusb.js` 的 WebUsbDapProbe）：
- *   halt/run/isHalted/_dhcsr、regRead/regWrite（DCRSR/DCRDR）、readMem/writeMem。
- * 这一层新增的只有三样：
- *   ① **硬件断点**（FPB，见 app/dbg/bp.js）—— 网页侧原来没有；
- *   ② **单步**与"跨过断点继续"（C_STEP + C_MASKINTS，命中后必须先摘比较器再单步）；
- *   ③ **抢占纪律**：连之前先请别的页签让出探针、停掉探针侧 RTT 桥（它每毫秒轮询目标内存，
- *      和寄存器访问抢同一条 SWD，实测会把每一步拖慢十倍）。
- *
- * 🚨 三条本项目踩过的硬约束（照做，别改）：
- *   1) **PPB（0xE0000000 那一片）要 ≤1 MHz**：DHCSR/DCRSR/FPB 都在这片，
- *      高时钟下读回 0（本仓烧录/身份识别早就是 1 MHz）。所以时钟默认 1000 kHz，别"顺手调高"。
- *   2) **写 DP CTRL/STAT 只写上电位，绝不"先掉电再上电"**（见 dap-webusb.js 的整段说明）。
- *   3) **WebUSB 没有取消接口**：任何一步超时都会留下挂起传输 —— 超时即把设备标脏，
- *      由 dap-webusb 在 disconnect 时做端口复位。所以这里所有等待都带超时。
- */
+/** ARM 调试会话。实体探针使用 OpenOCD Wasm，模拟目标保留寄存器与断点模型。 */
 
 import { withTimeout } from '../core/timeout.js';
 import { OpenOcdProbe } from '../core/openocd-probe.js';
@@ -186,7 +169,9 @@ export class DebugSession {
       try { seen.push((await this.probe._readWord(DHCSR)) >>> 0); }
       catch { seen.push(0xdeadbeef); }
     }
-    const bad = seen.some(v => v === 0 || v === 0xffffffff || v === 0xdeadbeef) || new Set(seen).size > 1;
+    // DHCSR.S_* and S_SDE can change between reads. Compare only control bits.
+    const controls = seen.map(v => v & 0x2f);
+    const bad = seen.some(v => v === 0 || v === 0xffffffff || v === 0xdeadbeef) || new Set(controls).size > 1;
     if (!bad) return { ok: true, hz: this.clockHz, checked: true, seen };
     const was = this.clockHz;
     await this.probe.setClock(PPB_SAFE_HZ);
@@ -216,9 +201,15 @@ export class DebugSession {
     // Retain the backend and ownership until hardware cleanup and USB close succeed.
     if (p instanceof OpenOcdProbe && this.bps.length){
       const halted = await p.isHalted();
-      if (!halted) await p.halt();
+      if (!halted){
+        await p.halt();
+        this._resumeAfterBpCleanup = true;
+      }
       await this.bpClear();
-      if (!halted) await p.run();
+    }
+    if (this._resumeAfterBpCleanup){
+      await p.run();
+      this._resumeAfterBpCleanup = false;
     }
     if (p?.disconnect) await p.disconnect();
     this.dwt = new DwtWatchpoints(this);
@@ -617,13 +608,13 @@ export class DebugSession {
       if (mine){
         try { await this.bpAdd(target); }
         catch (e){
-          throw new Error(`${what}：无法在 ${hex32(target)} 设置临时硬件断点（${e.message}）`);
+          throw new Error(`${what}：无法在 ${hex32(target)} 设置临时断点（${e.message}）`);
         }
       }
       try {
         return await runUntilStop();
       } finally {
-        if (mine) await this.bpDel(target).catch(() => {});
+        if (mine) await this.bpDel(target);
       }
     };
     return clearAt != null ? await this._withBpCleared(clearAt, go) : await go();
@@ -825,15 +816,23 @@ export class DebugSession {
    */
   async _stepOutByFrame(sp0, self, pc0){
     const MAX = 400;                              // 上限：够走完任何正常函数的剩余部分
+    let previous = pc0;
     for (let i = 1; i <= MAX; i++){
+      let returning = false;
+      if (this.arch.isRet && this.sym?.funcAt?.(previous)?.addr === self.addr){
+        const hw1 = await this._readHalfword(previous).catch(() => 0);
+        const hw2 = this.arch.insnLen(hw1) === 4 ? await this._readHalfword(previous+2).catch(() => 0) : 0;
+        returning = this.arch.isRet(hw1,hw2);
+      }
       try { await this.step(); }
       catch (e){ return { steps: i, pc: this.pc >>> 0, error: `单步跳出：单步失败（${e?.message || e}）` }; }
       const pc = align2(await this.readReg(this.arch.PC));
       const sp = (await this.readReg(this.arch.SP)) >>> 0;
       const at = this.sym?.funcAt?.(pc) || null;
       const inSelf = !!at && at.addr === self.addr;
+      previous = pc;
       if (inSelf) continue;
-      if (sp > sp0) return { hit: pc, steps: i };          // 帧弹掉了 → 已经回到调用者
+      if (sp > sp0 || (returning && sp === sp0)) return { hit: pc, steps: i };
       /**
        * 还在别人的代码里、SP 却没升高 —— 这是**调用或中断**（不是返回）：
        * 用 LR 放个临时比较器跨过去，别一条条钻。异常里的 LR 是 EXC_RETURN，跨不了，只能让它自己走完。
@@ -842,9 +841,10 @@ export class DebugSession {
       if (this.arch.retLooksValid(lr)){
         const hit = await this._tempBpRun(align2(lr), { clearAt: pc, what: '单步跳出（跨过调用）', timeoutMs: 2000 });
         if (hit != null){
+          previous = hit;
           const sp2 = (await this.readReg(this.arch.SP)) >>> 0;
           if (sp2 > sp0) return { hit: align2(await this.readReg(this.arch.PC)), steps: i };
-        }
+        } else if (this.arch.name === 'riscv') return { steps:i, pc:this.pc, error:'单步跳出：未命中调用返回地址，已暂停目标' };
       }
     }
     return { steps: MAX, pc: align2(await this.readReg(this.arch.PC)) };
@@ -1129,18 +1129,19 @@ export class DebugSession {
   async bpDel(addr){
     addr = align2(addr);
     const n = this.bps.length;
-    this.bps = this.bps.filter(b => align2(b) !== addr);
-    if (this.bps.length === n) return false;
+    const remaining = this.bps.filter(b => align2(b) !== addr);
+    if (remaining.length === n) return false;
+    await this._programFpb(remaining, { verify: true });
+    this.bps = remaining;
     this.bpNotes.delete(addr);
-    await this._programFpb();
     return true;
   }
 
   async bpClear(){
     const n = this.bps.length;
+    await this._programFpb([], { verify: true });
     this.bps = [];
     this.bpNotes.clear();
-    await this._programFpb();
     return n;
   }
 
@@ -1161,20 +1162,23 @@ export class DebugSession {
   }
 
   /** 把断点表写进比较器（每次都整体重排：第 i 个断点 = 第 i 号比较器，顺序稳定好排查） */
-  async _programFpb(){
-    const { slots, overflow, bad } = planComparators(this.bps, this.caps.numCode, this.caps.rev);
+  async _programFpb(breakpoints = this.bps, { verify = false } = {}){
+    const { slots, overflow, bad } = planComparators(breakpoints, this.caps.numCode, this.caps.rev);
     if (overflow.length) this._log(`⚠ ${overflow.length} 个断点装不下（比较器只有 ${this.caps.numCode} 个）`, 'err');
     if (bad.length) this._log(`⚠ ${bad.length} 个断点地址超出 FPB rev${this.caps.rev} 的匹配范围`, 'err');
     for (let i = 0; i < slots.length; i++){
       await this.probe.writeMem(compAddr(i), u32leBytes(slots[i] || 0));
     }
-    const enable = this.bps.length && this.caps.numCode ? 1 : 0;
+    const enable = breakpoints.length && this.caps.numCode ? 1 : 0;
     await this.probe.writeMem(FPB.CTRL, u32leBytes(FP_CTRL_KEY | enable));
     // 回读对账：这颗探针的 PPB 写偶发不落地，断点静默失效最难查
     for (let i = 0; i < slots.length; i++){
       const want = slots[i] || 0;
       const got = (await this.probe._readWord(compAddr(i))) >>> 0;
+      if (verify && got !== want) throw Error(`FPB 比较器 ${i} 回读不一致`);
       if (got !== want) this._log(`⚠ 比较器 ${i} 回读 0x${got.toString(16)} ≠ 写入 0x${want.toString(16)}（断点可能不生效）`, 'warn');
     }
+    if (verify && slots.length && ((await this.probe._readWord(FPB.CTRL)) & 1) !== enable)
+      throw Error('FPB 控制位回读不一致');
   }
 }

@@ -190,7 +190,7 @@ def serve(args):
     server = make_server('127.0.0.1', args.port, app, threaded=True)
     state = {'protocol': 'workbench/1', 'url': 'http://127.0.0.1:' + str(args.port), 'pid': os.getpid(), 'status': 'serving'}
     emit(state, folder / 'toolbox-runtime.json')
-    emit({**state, 'browserUrl': state['url'] + '/?trace-cli=' + token + '#flash',
+    emit({**state, 'browserUrl': state['url'] + '/#flash?trace-cli=' + token,
           'note': '在Chrome/Edge打开browserUrl，保持页面打开；首次硬件授权需在网页完成。Ctrl+C退出服务。'})
     try:
         server.serve_forever()
@@ -204,7 +204,7 @@ def serve(args):
 
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--runtime', help='serve创建的工作台运行时目录（不是trace native运行时）')
+    p.add_argument('--runtime', help='工作台运行时目录（不是 trace native 运行时）')
     p.add_argument('--timeout', type=float, default=60, help='等待结果秒数；超时不取消/不重试')
     p.add_argument('--out', help='JSON结果文件，拒绝覆盖')
     sub = p.add_subparsers(dest='command', required=True)
@@ -270,9 +270,9 @@ def parser():
     return p
 
 
-def main(argv=None):
+def main(argv=None, *, portable_runtime=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0] == 'trace':
+    if argv and argv[0] == 'trace' and portable_runtime is None:
         return subprocess.call([sys.executable, '-X', 'utf8', str(ROOT / 'etm/trace.py'), *argv[1:]])
     p = parser()
     args = p.parse_args(argv)
@@ -284,6 +284,10 @@ def main(argv=None):
         if args.command == 'catalog':
             emit({'ok': True, 'value': load_json(ROOT / 'docs/toolbox-cli-reference.json') if args.full else catalog()}, args.out)
             return 0
+        if portable_runtime is not None:
+            if args.command in ('serve', 'bridge-build'):
+                raise ValueError('此命令需要源码仓库；启动已打包的工作台请直接运行 EXE')
+            args.runtime = args.runtime or portable_runtime
         if args.command == 'bridge-build':
             command=[sys.executable,'-X','utf8',str(ROOT/'tools/build_workbench.py'),'--out',str(args.install_dir)]
             if args.candidate_only:command.append('--candidate-only')
@@ -308,14 +312,27 @@ def main(argv=None):
             requests = [expand_arguments(v) for v in requests]
             if any(not isinstance(v, dict) for v in requests):
                 raise ValueError('batch每项必须为请求对象')
-            for request in requests:
-                value = client.request(request)
+            error_text, attempted = None, 0
+            for attempted, request in enumerate(requests, 1):
+                try:
+                    value = client.request(request)
+                except Exception as error:
+                    # Preserve the completed prefix and any job ID in the error.
+                    error_text = str(error)
+                    break
                 results.append(value)
                 if not value.get('ok'):
                     break
-                client.http('ack/' + value['job'], {})
-            result = {'ok': all(v.get('ok') for v in results), 'results': results,
-                      'completed': len(results), 'total': len(requests), 'transactional': False}
+                try:
+                    client.http('ack/' + value['job'], {})
+                except Exception as error:
+                    error_text = '已执行，结果回收失败：' + str(error)
+                    break
+            result = {'ok': error_text is None and all(v.get('ok') for v in results), 'results': results,
+                      'completed': len(results), 'total': len(requests),
+                      'notSubmitted': list(range(attempted + 1, len(requests) + 1)), 'transactional': False}
+            if error_text is not None:
+                result.update(error=error_text, interruptedAt=attempted)
         else:
             payload = {'action': args.command}
             if args.command == 'request':

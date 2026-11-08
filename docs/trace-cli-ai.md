@@ -327,14 +327,15 @@ python -X utf8 etm/trace.py query --record E:/trace-runs/capture-001 --view wind
 ```powershell
 python -X utf8 etm/trace.py export --record E:/trace-runs/capture-001 --format simplified --out E:/trace-runs/simplified.c
 python -X utf8 etm/trace.py export --record E:/trace-runs/capture-001 --format html --out E:/trace-runs/flow.html
-python -X utf8 etm/trace.py export --record E:/trace-runs/capture-001 --format record --out E:/trace-runs/capture.etmrecord
+python -X utf8 etm/trace.py export --record E:/trace-runs/capture-001 --format record --out E:/trace-runs/capture-001/capture-001.etmrecord
 ```
 
 十种格式：`simplified/source/html/csv/json/events-jsonl/raw/etm/elf/record`。
 前四种与网页导出同义；简化 C 按连续源码位置合并，完整 C 按执行指令保留重复源码行，均不是可编译程序。
 `json` 是摘要/分析/源码 JSON；逐事件输出用 `events-jsonl`。
 C/HTML/CSV/JSONL 可按完整序号区间导出，其余格式拒绝执行序号裁剪。
-`.etmrecord` 保存原始输入、匹配固件、配置、源码和已有解码存储，可再次离线重解，也可由网页导入。
+`.etmrecord` 是按需导出的可导入归档，含原始输入、匹配 ELF、采集配置和可用的配套源码。导出也可携带已有的解码数据。采集和自动解码直接保存记录目录，源码工作台通常写入 `etm/records/`，便携工作台默认写入程序旁的 `data/records/`。
+网页的「保存可重解码记录包」使用浏览器下载位置。需要和原记录放在一起时，可以在保存时选择记录目录，或用 CLI 的 `--out` 指向该目录下的新文件。已存在的包不会被 CLI 覆盖，同目录下已有的包也不会被纳入下一次导出。
 
 ## 8. 验证边界
 

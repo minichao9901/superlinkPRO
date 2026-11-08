@@ -2,7 +2,7 @@
 import fs from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
-import {WebUsbDapProbe} from '../web/app/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../web/app/legacy/rtt/dap-webusb.js';
 import {navigatorUsb} from '../etm/tools/node-transport/usb-adapter.mjs';
 const require=createRequire(new URL('../etm/tools/node-transport/package.json',import.meta.url)),{WebUSB}=require('usb');
 const folder=process.argv[2];if(!folder)throw Error('Pass a new output directory');await fs.mkdir(folder,{recursive:false});

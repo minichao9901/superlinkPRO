@@ -282,7 +282,7 @@ console.log('== 8. 内存访问锁：外部并发调用必须排队（审查：�
   // WebUSB 那条路有两条并发来源：RTT 轮询循环 + 用户下行发送（还有看门狗/复位）。
   // 老代码 `if (this._locked) return await fn();` 让**外部**并发调用直接插进锁内 ——
   // TAR / AP 挂起读流水线 / posted 写照样交错，正是"命令写丢（页面发送成功、固件没收到）"的成因。
-  const { WebUsbDapProbe } = await import('file://' + join(app, 'rtt', 'dap-webusb.js').replace(/\\/g, '/'));
+  const { WebUsbDapProbe } = await import('file://' + join(app, 'legacy', 'rtt', 'dap-webusb.js').replace(/\\/g, '/'));
   const p = new WebUsbDapProbe();
   const order = [];
   let releaseA = null;

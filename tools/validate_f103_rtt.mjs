@@ -1,6 +1,6 @@
 /** Real RTT Viewer protocol over the production WebUSB memory adapter. */
 import fs from 'node:fs/promises';import {createRequire} from 'node:module';import {createHash} from 'node:crypto';
-import {WebUsbDapProbe} from '../web/app/rtt/dap-webusb.js';import {Rtt} from '../web/app/rtt/protocol.js';import {navigatorUsb} from '../etm/tools/node-transport/usb-adapter.mjs';
+import {WebUsbDapProbe} from '../web/app/legacy/rtt/dap-webusb.js';import {Rtt} from '../web/app/rtt/protocol.js';import {navigatorUsb} from '../etm/tools/node-transport/usb-adapter.mjs';
 const require=createRequire(new URL('../etm/tools/node-transport/package.json',import.meta.url)),{WebUSB}=require('usb');
 const [folder,cb,speed='45000000',duration='8',pattern='seq',idle='0']=process.argv.slice(2);if(!folder||!cb)throw Error('Pass new output, control-block address, Hz, seconds, pattern, idle cycles');if(!['seq','hello'].includes(pattern)||!(Number(duration)>0)||!Number.isInteger(Number(idle))||Number(idle)<0||Number(idle)>255)throw Error('Invalid measurement');await fs.mkdir(folder,{recursive:false});
 const usb=navigatorUsb(new WebUSB({allowedDevices:[{vendorId:0x0d28,productId:0x0204}],deviceTimeout:3000}));Object.defineProperty(globalThis,'navigator',{configurable:true,value:{usb}});

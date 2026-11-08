@@ -4,7 +4,8 @@
   "hardwareAccessed": false,
   "retained": {
     "h743-200ms": {
-      "path": "etm/records/capture-477f0c8526af4c8c9de9b6538566cfce",
+      "path": "etm/records/capture-stm32h743-cdc-200ms",
+      "originalRecordId": "capture-477f0c8526af4c8c9de9b6538566cfce",
       "files": {
         "capture.kvdat": {
           "bytes": 64267109,
@@ -28,7 +29,8 @@
       }
     },
     "h743-1000ms": {
-      "path": "etm/records/capture-83af7022ef054155ac5bb9889e381f02",
+      "path": "etm/records/capture-stm32h743-cdc-1s",
+      "originalRecordId": "capture-83af7022ef054155ac5bb9889e381f02",
       "files": {
         "capture.kvdat": {
           "bytes": 321313265,
@@ -52,7 +54,8 @@
       }
     },
     "f103ze": {
-      "path": "etm/records/capture-2d6da5829a8c4811b7c5ed2ca9e08cc3",
+      "path": "etm/records/capture-stm32f103ze-etmv3-10ms",
+      "originalRecordId": "capture-2d6da5829a8c4811b7c5ed2ca9e08cc3",
       "files": {
         "capture.kvdat": {
           "bytes": 4304647,
@@ -76,7 +79,8 @@
       }
     },
     "h7b0-1ms": {
-      "path": "etm/records/capture-926a4f2b899542f5b566e68a1d1eb631",
+      "path": "etm/records/capture-stm32h7b0-spi-1ms",
+      "originalRecordId": "capture-926a4f2b899542f5b566e68a1d1eb631",
       "files": {
         "capture.kvdat": {
           "bytes": 555480,

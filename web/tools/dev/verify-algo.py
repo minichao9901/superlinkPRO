@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""校验 app/flash/algos.js 里的 flash 算法条目是否自洽（不连板子也能查掉一批低级错）。
+"""校验 app/legacy/flash/algos.js 里的 flash 算法条目是否自洽（不连板子也能查掉一批低级错）。
 
 查什么：
   1. code 能 base64 解码、长度是 4 的倍数；
@@ -22,7 +22,7 @@ try:
 except Exception:
     pass
 
-ALGOS = pathlib.Path('app/flash/algos.js')
+ALGOS = pathlib.Path('app/legacy/flash/algos.js')
 
 
 def load_algos():

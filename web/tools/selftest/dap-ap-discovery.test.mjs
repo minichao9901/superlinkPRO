@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {WebUsbDapProbe,CMD} from '../../app/rtt/dap-webusb.js';
+import {WebUsbDapProbe,CMD} from '../../app/legacy/rtt/dap-webusb.js';
 
 function transport(candidates,final=0x411fc271){
   const p=new WebUsbDapProbe();let selected=0,csw=0;const visited=[];

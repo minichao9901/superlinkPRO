@@ -183,6 +183,7 @@ export function createWorkbenchAutomation(tools,win=globalThis.window){
         ...Array.from(fileControls,([key,e])=>({...control(e,e.ownerDocument.body,key),detachedFromPage:true}))],
       methods:Array.from(methods(target),([name,fn])=>({name,signature:fn.toString().split('{')[0].trim().slice(0,400),
         note:'原网页方法；参数含 DOM/回调的接口应改用控件接口'}))};
+    if(m.op==='state'&&m.page==='dbg') await view.imageDirectoryStatus?.();
     if(m.op==='state')return {page:m.page,summary:typeof view.summary==='function'?jsonValue(await view.summary()):null,
       errors:tools.errors?.slice(-20)||[],text:root.textContent.slice(0,100000)};
     if(m.op==='show'){
@@ -194,6 +195,10 @@ export function createWorkbenchAutomation(tools,win=globalThis.window){
       if(!Array.isArray(m.args||[]))throw Error('args 必须为 JSON 数组');
       const start=tools.errors?.length||0;
       const value=await fn.apply(target,(m.args||[]).map(v=>argument(v,c)));
+      if(m.page==='dbg'&&m.method==='runLine'){
+        const failure=value?.error||value?.lines?.find(line=>line.c==='err')?.t;
+        if(failure||value?.cancelled) throw Error(failure||'调试命令已中断');
+      }
       const errors=tools.errors?.slice(start)||[];
       return {returned:true,value:jsonValue(value),errors,verificationRequired:true};
     }

@@ -1,16 +1,12 @@
 # etm/web/app/shared —— **生成副本，别手改**
 
-这里放的 **8 个** `.js` 是 `web/app/**` 里探针驱动的**逐字节副本**（ETM 页通过 `./shared/...` 引用它们）：
-7 个驱动 + 1 个驱动依赖（`core/operation-budget.js`，toolbox 版 `dap-webusb.js` 的 OperationBudget）。
+这里保留 ETM 页面需要的五个共享模块。目标访问通过 OpenOCD Wasm，旧 DAP 驱动位于 `web/app/legacy/`，供源码诊断使用。
 
 | 副本路径 | 真源（唯一手写） |
 | --- | --- |
-| `rtt/dap-webusb.js` | `web/app/rtt/dap-webusb.js` |
 | `core/usb-device.js` | `web/app/core/usb-device.js` |
 | `core/probe-bus.js` | `web/app/core/probe-bus.js` |
 | `core/pace.js` | `web/app/core/pace.js` |
-| `core/bin.js` | `web/app/core/bin.js` |
-| `core/operation-budget.js` | `web/app/core/operation-budget.js`（dap-webusb 的依赖） |
 | `dbg/bp.js` | `web/app/dbg/bp.js` |
 | `dbg/source.js` | `web/app/dbg/source.js` |
 

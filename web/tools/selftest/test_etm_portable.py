@@ -54,7 +54,7 @@ class PortableTests(unittest.TestCase):
             with urlopen(self.base+path) as response:self.assertEqual(response.status,200)
         # The embedded page injects the toolbox driver, not ETM's standalone copy.
         # Both source mode and the default bundle must contain the control contract.
-        for path in ['app/rtt/dap-webusb.js','app/site/main.js']:
+        for path in ['app/core/openocd-probe.js','app/site/main.js']:
             with urlopen(self.base+path) as response:driver=response.read().decode()
             for method in ['writeMemDiagnostic','recoverDebugPort']:self.assertIn(method,driver)
         # 审查 F02：冻结包里 numpy/pandas 必须真的能 import（否则前端会静默回退纯 Python）。

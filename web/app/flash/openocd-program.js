@@ -4,6 +4,23 @@ const TIMEOUT = 180000;
 const bankRows = /^#(\d+)\s*:\s*[^\n]+?\bat\s+(0x[\da-f]+),\s*size\s+(0x[\da-f]+)/gim;
 const sectorRows = /^\s*#\s*(\d+):\s*(0x[\da-f]+)\s+\((0x[\da-f]+)\s/gim;
 
+export async function readFlashRange(command, link, { bank = 0, offset, length }){
+  await command(`flash read_bank ${bank} /flash-readback.bin ${offset} ${length}`, TIMEOUT);
+  const { bytes } = await link.request('flashFile', { read:true });
+  if (bytes.length !== length) throw Error('Flash 回读长度不匹配');
+  return bytes;
+}
+
+export async function writeFlashRange(command, link, { bank = 0, first, last, offset }, data){
+  await link.request('flashFile', { input:data });
+  try {
+    await command(`flash erase_sector ${bank} ${first} ${last}`, TIMEOUT);
+    await command(`flash write_bank ${bank} /flash-input.bin ${offset}`, TIMEOUT);
+  } finally {
+    await link.request('flashFile').catch(() => {});
+  }
+}
+
 export async function programOpenOcdFlash(probe, regions, { verify, progress }){
   const command = (line, timeout) => probe.command(line, timeout);
   const banks = Array.from((await command('capture {flash banks}')).matchAll(bankRows),
@@ -44,12 +61,7 @@ export async function programOpenOcdFlash(probe, regions, { verify, progress }){
 
   const plan = banks.flatMap(bank => (bank.sectors || []).filter(s => s.patches.length).map(s => ({ ...s, bank:bank.index })));
   if (!plan.length) throw Error('固件没有可烧录的数据');
-  async function read(sector){
-    await command(`flash read_bank ${sector.bank} /flash-readback.bin ${sector.offset} ${sector.length}`, TIMEOUT);
-    const { bytes } = await probe.link.request('flashFile', { read:true });
-    if (bytes.length !== sector.length) throw Error('Flash 回读长度不匹配');
-    return bytes;
-  }
+  const read = sector => readFlashRange(command, probe.link, sector);
 
   // Build every affected sector before the first erase. Preserve holes and edges.
   for (const sector of plan){
@@ -58,13 +70,7 @@ export async function programOpenOcdFlash(probe, regions, { verify, progress }){
     for (const patch of sector.patches) sector.data.set(patch.bytes, patch.offset);
   }
   for (const [i, sector] of plan.entries()){
-    await probe.link.request('flashFile', { input:sector.data });
-    try {
-      await command(`flash erase_sector ${sector.bank} ${sector.index} ${sector.index}`, TIMEOUT);
-      await command(`flash write_bank ${sector.bank} /flash-input.bin ${sector.offset}`, TIMEOUT);
-    } finally {
-      await probe.link.request('flashFile').catch(() => {});
-    }
+    await writeFlashRange(command, probe.link, { ...sector, first:sector.index, last:sector.index }, sector.data);
     if (verify){
       const actual = await read(sector);
       if (!sector.data.every((byte, offset) => byte === actual[offset])) throw Error(`Flash 扇区 ${sector.index} 读回校验失败`);

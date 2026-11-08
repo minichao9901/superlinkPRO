@@ -24,7 +24,7 @@ usage: toolbox.py [-h] [--runtime RUNTIME] [--timeout TIMEOUT] [--out OUT]
 | 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
 |---|---|---|---|---|---|
 | -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
-| --runtime | serve创建的工作台运行时目录（不是trace native运行时） | str | 否 | 未指定 | — |
+| --runtime | 工作台运行时目录（不是 trace native 运行时） | str | 否 | 未指定 | — |
 | --timeout | 等待结果秒数；超时不取消/不重试 | float | 否 | 60 | — |
 | --out | JSON结果文件，拒绝覆盖 | str | 否 | 未指定 | — |
 

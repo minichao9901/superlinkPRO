@@ -7,7 +7,7 @@ let checks = 0;
 const check = (value, label) => { assert.ok(value, label); checks++; };
 async function waitFor(expression){
   for (let i=0;i<100;i++){
-    if (await c.eval('return ' + expression + ';')) return;
+    if (await c.eval('return ' + expression + ';').catch(() => false)) return;
     await sleep(50);
   }
   throw Error('等待页面状态超时：' + expression);
@@ -15,7 +15,7 @@ async function waitFor(expression){
 try {
   await c.connect();
   await c.send('Page.navigate', { url: (process.env.APP || 'http://127.0.0.1:8899/index.html') + '?analog-connect=' + Date.now() + '#analog' });
-  await sleep(500);
+  await waitFor('!!window.__tools?.analog');
   await c.eval(`
     const { AkaLinkHid } = await import('./app/hid/probe.js');
     window.__anFixture = { hold: true, fail: false };

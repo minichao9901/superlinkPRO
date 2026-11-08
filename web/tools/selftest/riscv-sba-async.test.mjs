@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {RiscvTransport} from '../../app/flash/hpm/riscv-dm.js';
-import {DM, SBCS, DMI_STATUS, drScan} from '../../app/flash/hpm/jtag.js';
+import {RiscvTransport} from '../../app/legacy/flash/hpm/riscv-dm.js';
+import {DM, SBCS, DMI_STATUS, drScan} from '../../app/legacy/flash/hpm/jtag.js';
 import {SimTarget} from './hpm-sim.mjs';
-import {DapJtagTransport} from '../../app/flash/hpm/dap-transport.js';
-import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';
+import {DapJtagTransport} from '../../app/legacy/flash/hpm/dap-transport.js';
+import {WebUsbDapProbe} from '../../app/legacy/rtt/dap-webusb.js';
 
 let passed=0, failed=0;
 async function check(name, fn){

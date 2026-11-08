@@ -3,8 +3,8 @@
  * 不连硬件 —— 专门用来在没有板子的时候把"参数级"错误挑出来。
  * 用法：node tools/dev/check-flash-plan.mjs [firmware.elf|.hex|.bin ...]
  */
-import { ALGOS, SERIES_MAX_KB, F1_DEV, checkFlashRange } from '../../app/flash/algos.js';
-import { FlashRunner } from '../../app/flash/runner.js';
+import { ALGOS, SERIES_MAX_KB, F1_DEV, checkFlashRange } from '../../app/legacy/flash/algos.js';
+import { FlashRunner } from '../../app/legacy/flash/runner.js';
 import { parseFirmware } from '../../app/flash/image.js';
 import fs from 'node:fs';
 import path from 'node:path';

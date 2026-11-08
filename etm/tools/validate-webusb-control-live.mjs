@@ -1,7 +1,7 @@
 // Actual production WebUsbDapProbe protocol over a byte-only USB bulk bridge.
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import {WebUsbDapProbe} from '../web/app/shared/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../../web/app/legacy/rtt/dap-webusb.js';
 import {EtmTarget} from '../web/app/target.js';
 import {api,capture} from './spi-hardware.mjs';
 async function usb(op,more={}){const response=await fetch('http://127.0.0.1:8768',{method:'POST',body:JSON.stringify({op,...more})}),data=await response.json();if(data.error)throw Error(data.error);return data.value;}

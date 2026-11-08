@@ -15,7 +15,7 @@
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=1000d6ca63f8dde2';
+  window.__webBundleUrl = 'app/site/main.js?v=87c115d375fce492';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -72,7 +72,7 @@
          连接后 app/hid/view.js 的 _setResetIoUi() 会按 HID 0x3A 的真实状态清掉 indeterminate。 */
       (function(){ var c = document.getElementById('global-nrst-open-drain'); if (c) c.indeterminate = true; })();
     </script>
-    <button id="btn-global-reset" class="mini" type="button" title="通过 OpenOCD Wasm 复位烧录页所选目标">全局复位</button>
+    <button id="btn-global-reset" class="mini" type="button" title="通过探针发出 NRST 硬复位脉冲（需接目标 NRST，无需连接目标调试口）">全局复位</button>
     <button id="btn-fullscreen" class="mini" type="button" aria-pressed="false" title="全屏显示工作台">全屏</button>
     <span id="probe-flag" class="flag flag-off" role="status">探针：未使用</span>
     <details class="app-more" id="app-more">
@@ -803,6 +803,7 @@
         <div class="row btnrow">
           <button id="d-connect" class="primary">连接</button>
           <button id="d-disconnect" disabled>断开</button>
+          <button id="d-jtag-hid" hidden title="为 akaLinkPro 授权 HID；连接时切换并回读探针模式">授权 JTAG 探针…</button>
         </div>
       </fieldset>
 
@@ -813,8 +814,16 @@
           <input type="file" id="d-elf-file" accept=".elf,.axf,.out,.bin" hidden>
         </div>
         <div class="row btnrow">
-          <button id="d-ram-debug" disabled title="将 RAM 版 ELF 下载到已验证的片上 SRAM，并停在 main">下载到 RAM 并调试</button>
+          <button id="d-ram-debug" disabled title="将 ELF 下载到可写 RAM，回读校验后停在 main 或入口">下载到 RAM 并调试</button>
           <input type="file" id="d-ram-elf" accept=".elf,.axf,.out" hidden>
+        </div>
+        <div id="d-ram-range" hidden>
+          <div class="row btnrow">
+            <input id="d-ram-start" size="11" placeholder="0x80000000" aria-label="可写 RAM 起始地址">
+            <input id="d-ram-length" size="8" placeholder="0x20000" aria-label="可写 RAM 字节数">
+            <button id="d-ram-apply">声明 RAM</button>
+          </div>
+          <p id="d-ram-range-status" class="hint" role="status"></p>
         </div>
         <p class="hint" id="d-elf-info">未载入 ELF</p>
       </fieldset>
@@ -822,7 +831,7 @@
       <fieldset>
         <legend>镜像文件</legend>
         <div class="row btnrow"><button id="d-image-pick" title="授权 load_image 和 dump_image 读写此目录下的镜像文件">选择镜像目录…</button></div>
-        <p class="hint" id="d-image-dir">未选择目录</p>
+        <p class="hint" id="d-image-dir">当前标签页未选择镜像目录</p>
         <p class="hint" id="d-image-progress" role="status" aria-live="polite">load_image / dump_image 使用此目录下的相对路径；输入 h 查看用法。</p>
       </fieldset>
 
@@ -836,7 +845,7 @@
       </div>
       <div id="d-side-breaks-panel" role="tabpanel" aria-labelledby="d-side-breaks-tab" hidden>
       <fieldset>
-        <legend>硬件断点 <span id="d-bp-cap" class="hint">未连接</span></legend>
+        <legend>断点 <span id="d-bp-cap" class="hint">未连接</span></legend>
         <div id="d-bp-list" class="bplist"></div>
         <div class="row btnrow"><button id="d-bp-clear">清空断点</button></div>
       </fieldset>

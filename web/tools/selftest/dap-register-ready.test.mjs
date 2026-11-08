@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../../app/legacy/rtt/dap-webusb.js';
 const p=Object.create(WebUsbDapProbe.prototype);let reads=0,dataReads=0,ready=false;
 p.writeMem=async()=>{};p.readMem=async addr=>{
  if(addr===0xe000edf8){dataReads++;return Uint8Array.of(0x78,0x56,0x34,0x12);}

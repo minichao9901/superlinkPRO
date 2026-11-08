@@ -2,6 +2,7 @@
 import argparse,hashlib,json,os,socket,subprocess,sys,time,zipfile
 from pathlib import Path
 from urllib.request import Request,urlopen
+from urllib.error import HTTPError
 from urllib.parse import quote
 ROOT=Path(__file__).resolve().parents[1]
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -53,6 +54,43 @@ def main():
             try:result['launcher']=api('etm-launcher.json');break
             except OSError:time.sleep(.2)
         else:raise TimeoutError('冻结服务启动超时')
+        assert result['launcher']['workbenchCli'] is True
+        runtime=out/'data/workbench-cli'/str(port)
+        token=(runtime/'cli-token').read_text(encoding='ascii')
+        try:api('trace-cli/health');raise AssertionError('CLI accepted a request without its token')
+        except HTTPError as error:assert error.code==403
+        def queue(path,data=None):
+            req=Request(base+'trace-cli/'+path,data=json.dumps(data).encode() if data is not None else None,
+                        headers={'Content-Type':'application/json','X-Trace-CLI':token})
+            with urlopen(req,timeout=15) as response:return json.load(response)
+        assert queue('health')['ready'] is False
+        worker='f'*32
+        assert queue('poll',{'worker':worker})['job'] is None
+        command=[str(exe),'--workbench-cli','--runtime',str(runtime)]
+        catalog=subprocess.run([*command,'catalog','--full'],cwd=out,env=cli_env,capture_output=True,text=True,encoding='utf8',timeout=20)
+        assert catalog.returncode==0 and json.loads(catalog.stdout)['ok'],catalog.stderr
+        with subprocess.Popen([*command,'ping'],cwd=out,env=cli_env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf8') as ping:
+            for _ in range(8):
+                job=queue('poll',{'worker':worker})['job']
+                if job is not None:break
+            assert job is not None,'frozen CLI did not submit ping'
+            assert job['request']=={'action':'ping'},job
+            queue('complete/'+job['id'],{'worker':worker,'result':{'ok':True,'value':'frozen-queue'}})
+            stdout,stderr=ping.communicate(timeout=15)
+            assert ping.returncode==0 and json.loads(stdout)['value']=='frozen-queue',stderr
+        assert queue('ack/'+job['id'],{})['removed']
+        result['defaultWorkbenchCli']={'authenticated':True,'frozenClientRoundTrip':True,'completedResultReclaimed':True}
+        reset_assets = {
+            'index.html': 'NRST 硬复位脉冲',
+            'app/site/main.js': 'cmsis-dap cmd 0x10',
+            'app/flash/view.js': 'new OpenOcdResetSession',
+            'app/flash/target-reset.js': 'cmsis-dap cmd 0x10',
+        }
+        for name, marker in reset_assets.items():
+            with urlopen(base + name, timeout=15) as response:
+                content = response.read()
+            assert content == (home/'toolbox'/name).read_bytes() and marker.encode('utf-8') in content, name
+        result['frozenGlobalReset'] = 'Wasm SWJ_Pins assets verified over HTTP'
         records=api('etm/api/records');assert records;sid=records[0]['id']
         job=api('etm/api/decode/'+sid,{})['job']
         for _ in range(300):

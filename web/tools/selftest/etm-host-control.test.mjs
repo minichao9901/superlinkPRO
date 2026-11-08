@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../../app/legacy/rtt/dap-webusb.js';
 import {EtmTarget} from '../../bridge/etm/backend/web/app/target.js';
 
 test('embedded ETM uses parent diagnostic transport: keyed reset is sent once',async()=>{

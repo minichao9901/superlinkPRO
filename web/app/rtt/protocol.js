@@ -69,8 +69,13 @@ export const MAX_READ_PER_POLL = 64 * 1024;
 const sleepMs = waitMs;
 const allZero = b => b.length > 0 && b.every(x => x === 0);
 const hasCbId = b => b.length >= CB_ID.length && latin1(b.subarray(0, CB_ID.length)) === CB_ID;
+const isLinkError = error => /FAULT|NO ACK|OpenOCD.*(?:关闭|超时)/i.test(error.message);
 /** 后端提供恢复钩子时尝试一次；没有钩子时只重读。 */
-async function recoverMem(mem){ try { await mem?.recover?.(); } catch {} }
+async function recoverMem(mem){
+  if (typeof mem.recoverDebugPort !== 'function') return false;
+  await mem.recoverDebugPort();
+  return true;
+}
 
 export class Rtt {
   constructor(mem, opts = {}){
@@ -86,7 +91,18 @@ export class Rtt {
     this._high = new Map();
     this.peak = 0;
     this._names = new Map();
+    this._pending = Promise.resolve();
   }
+
+  _transaction(operation){
+    const result = this._pending.then(operation);
+    this._pending = result.catch(() => {});
+    return result;
+  }
+
+  drain(){ return this._pending; }
+
+  recoverDebugPort(){ return this._transaction(() => recoverMem(this.mem)); }
 
   // ---------------- 定位控制块 ----------------
   /**
@@ -151,13 +167,18 @@ export class Rtt {
        *    探针的 RISC-V/SBA 读会**偶发返回全 0**（同一地址连读 20 次全对，但中间会插一次全 0；
        *    实测还见过 `sbcs.sbbusy` 常驻的挂起事务），一次就把"控制块好好的目标"判成
        *    「没有 "SEGGER RTT" 标识」—— 界面表现正是用户说的"Viewer 时好时坏、连不上"。
-       *    读失败或读到全 0 就**重启一次链路再读**，最多 3 次；3 次都不行才认账。
+       *    最多读取三次。连续传输错误时尝试恢复调试口，标识不匹配时只重读。
        */
-      let hdr = await budget.step('读取标识', () => mem.readMem(addr, 24));
-      for (let i = 0; i < 2 && !hasCbId(hdr); i++){
-        await budget.step('恢复读取链路', () => recoverMem(mem));
-        await sleepMs(80);
-        hdr = await budget.step('重新读取标识', () => mem.readMem(addr, 24));
+      let hdr;
+      for (let attempt = 0; attempt < 3; attempt++){
+        try {
+          hdr = await budget.step('读取标识', () => mem.readMem(addr, 24));
+          if (hasCbId(hdr)) break;
+        } catch (error){
+          if (attempt === 2 || !isLinkError(error)) throw error;
+          if (attempt === 1) await budget.step('恢复调试口', () => recoverMem(mem));
+        }
+        if (attempt < 2) await sleepMs(80);
       }
       if (!hasCbId(hdr)) return { ok: false, reason: `没有 "SEGGER RTT" 标识${allZero(hdr) ? '（读到全 0，重试 3 次仍如此）' : ''}` };
       const maxUp = u32le(hdr, 16), maxDown = u32le(hdr, 20);
@@ -216,7 +237,7 @@ export class Rtt {
    *    （后者把 RTT 吞吐砍掉一半，实测 330 → 154 KB/s）。
    *
    * 🚨 2026-10 HPM6800EVK 追加：RISC-V/SBA 那条路会**偶发读回全 0 / 挂起**，
-   *    第二次失败时顺手让链路自愈一次（`mem.recover()` = 复位调试模块）再试 —— 用户看到的现象
+   *    连续传输错误时，通过后端恢复调试口再试 —— 用户看到的现象
    *    是"轮询在跑但一个字节都不来 / 一会儿好一会儿坏"，重试+自愈能把它拉回来。
    */
   async _entry(base, i){
@@ -226,7 +247,8 @@ export class Rtt {
       try { return await this._entryOnce(base, i); }
       catch (e){
         lastErr = e;
-        if (attempt === 1) await recoverMem(this.mem);
+        if (attempt === 1 && isLinkError(e))
+          await recoverMem(this.mem);
       }
     }
     throw lastErr;
@@ -287,7 +309,11 @@ export class Rtt {
    *   level = 环里**未读数据**占缓冲容量（size-1）的比例；high = 水位 ≥ 3/4；
    *   backlog = 这一轮读完还剩多少没读（>0 说明数据比链路快，下一轮接着排）。
    */
-  async readUp(ch = 0, limit = MAX_READ_PER_POLL){
+  readUp(ch = 0, limit = MAX_READ_PER_POLL){
+    return this._transaction(() => this._readUp(ch, limit));
+  }
+
+  async _readUp(ch, limit){
     const e = await this._entry(this.upBase, ch);            // 每次整项重读：WrOff/RdOff 一致，且能跟上固件重新初始化缓冲
     this.up[ch] = e;
     const empty = { bytes: new Uint8Array(0), lost: 0, full: false, high: false, level: 0, wr: e.wr, rd: e.rd, backlog: 0 };
@@ -395,7 +421,11 @@ export class Rtt {
 
   // ---------------- 下行（主机 → 目标） ----------------
   /** 写多少算多少（目标不来取就只能写满缓冲）；返回实际写入字节数 */
-  async writeDown(ch, bytes){
+  writeDown(ch, bytes){
+    return this._transaction(() => this._writeDown(ch, bytes));
+  }
+
+  async _writeDown(ch, bytes){
     const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     if (!data.length) return 0;
     const e = await this._entry(this.downBase, ch);

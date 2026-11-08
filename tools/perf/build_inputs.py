@@ -52,7 +52,7 @@ RECORDS = {
                  '也是 USB 初始化寄存器扫描的业务语义/顺序核对样本。',
     },
     'etm-v3-10ms': {
-        'path': 'etm/records/capture-2d6da5829a8c4811b7c5ed2ca9e08cc3',
+        'path': 'etm/records/capture-stm32f103ze-etmv3-10ms',
         'role': 'ETMv3 兼容样本：F103ZE 10 ms（172,596 条指令，ETMv3.4）',
         'notes': 'ETMv3/ETMv4 双协议冒烟；不用于 H743 性能外推。',
     },

@@ -136,6 +136,19 @@ await ev(`document.querySelector('#sc-plan').closest('details').open = true; ret
 
 console.log('== 3. 开始采样（假探针 → 包流 → 解码 → 缓冲）==');
 {
+  // Bound the simulated USB batch independently of browser scheduling. A delayed
+  // timer otherwise turns all missed polls into one synchronous burst at STOP.
+  await ev(`
+    const probe = window.__tools.scope.mockProbe;
+    const poll = probe.poll.bind(probe);
+    let sampleClock = 0;
+    probe.poll = elapsed => {
+      sampleClock = elapsed === 0 ? 0 : Math.min(elapsed, sampleClock + 40000);
+      return poll(sampleClock);
+    };
+    window.__restoreScopePoll = () => { probe.poll = poll; };
+    return true;
+  `);
   await ev(`document.getElementById('sc-period').value='100'; document.getElementById('sc-seconds').value='5'; return true;`);
   await ev(`document.getElementById('sc-start').click(); return true;`);
   await sleep(400);
@@ -395,6 +408,8 @@ console.log('== 7. 停止 / 导出 CSV / 记录原始包 ==');
     const d = { state: sc.state, stopAfter: sc._stopAfterUs, cap: st.capacity, count: st.count, full: st.full, tsN: st.tsN,
                 spanS: +((st.timeAt(st.count - 1) - st.timeAt(0)) / 1e6).toFixed(3), over: st.overrun, running: sc.running };
     await sc.stop();
+    window.__restoreScopePoll();
+    delete window.__restoreScopePoll;
     const after = { state: sc.state, count: sc.store.count, buf: document.getElementById('sc-buf').textContent,
                     over: document.getElementById('sc-over').textContent };
     return { d, after };`);

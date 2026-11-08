@@ -29,7 +29,7 @@ await send('Page.navigate', { url: APP });
 await sleep(900);
 
 const out = await evalJs(`(async () => {
-  const { WebUsbDapProbe } = await import('/app/rtt/dap-webusb.js');
+  const { WebUsbDapProbe } = await import('/app/legacy/rtt/dap-webusb.js');
   const dev = (await navigator.usb.getDevices())[0];
   if (!dev) return '没有已授权设备（先在页面上连接过一次探针）';
   const CMD = { Connect:0x02, CFG:0x04, XFER:0x05, CLK:0x11, SEQ:0x12, SWDC:0x13 };

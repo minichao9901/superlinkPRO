@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { UsbLease } from '../../app/core/usb-device.js';
 import { closeProbeUsbDevices } from '../../app/core/probe-bus.js';
-import { WebUsbDapProbe } from '../../app/rtt/dap-webusb.js';
+import { WebUsbDapProbe } from '../../app/legacy/rtt/dap-webusb.js';
 const ep = (endpointNumber, direction) => ({endpointNumber, direction, type:'bulk', packetSize:512});
 const iface = (interfaceNumber, endpoints) => ({interfaceNumber, alternates:[{endpoints}]});
 export function fakeUsb(){

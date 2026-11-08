@@ -13,8 +13,8 @@
  * 纯 Node 模型，不碰硬件。
  */
 import assert from 'node:assert/strict';
-import {RiscvDebugSession} from '../../app/dbg/riscv.js';
-import {DMCONTROL} from '../../app/flash/hpm/jtag.js';
+import {RiscvDebugSession} from '../../app/legacy/dbg/riscv.js';
+import {DMCONTROL} from '../../app/legacy/flash/hpm/jtag.js';
 
 const PC0 = 0x80003000;
 const DMSTATUS_HALTED = 0x4c03a2;          // bits[9:8]=3，HPM 实测布局

@@ -3,7 +3,7 @@
   "id": "spi-70-35-v1",
   "profile": "spi-70",
   "record": "capture-8365b3adb65b4f0cb281e55aef2c89c7",
-  "previewRecord": "capture-926a4f2b899542f5b566e68a1d1eb631",
+  "previewRecord": "capture-stm32h7b0-spi-1ms",
   "frequencyOptimization": "paused by user; no scheduled follow-up",
   "firmware": "firmware\\stm32h7b0_spi_trace\\stable-70-35-v1\\fw.elf",
   "parameters": {

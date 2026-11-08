@@ -87,7 +87,7 @@ try{
     const d=__tools.dbg,s=d.session;const result=await d.runLine('load_image hpm6800_ram.elf');
     if(result.error)throw Error(result.error);
     const bytes=await s.exclusive(()=>s.memRead(${base},${end-base}));
-    const {PROGBUF_FENCE}=await import('/app/flash/hpm/jtag.js');
+    const {PROGBUF_FENCE}=await import('/app/legacy/flash/hpm/jtag.js');
     await s.exclusive(()=>s.dm.execProgbuf(PROGBUF_FENCE));
     return {bytes:[...bytes],lines:result.lines.map(l=>l.t)};
   `);
@@ -122,7 +122,7 @@ finally{
           await s.bpClear();await s.memWrite(${base},h.ram);
           const check=await s.memRead(${base},h.ram.length);
           if(check.length!==h.ram.length || !h.ram.every((b,i)=>b===check[i]))throw Error('ILM restoration mismatch');
-          const {PROGBUF_FENCE}=await import('/app/flash/hpm/jtag.js');
+          const {PROGBUF_FENCE}=await import('/app/legacy/flash/hpm/jtag.js');
           await s.dm.execProgbuf(PROGBUF_FENCE);
           for(const reg of ['a0','dcsr','pc'])await s.writeReg(reg,h.regs[reg]);
           for(const reg of ['a0','pc'])if(await s.readReg(reg)!==h.regs[reg])throw Error('Register restoration mismatch: '+reg);

@@ -25,13 +25,13 @@
  *      （0x7b0=dcsr、0x7b1=dpc、0x7a0=tselect…），GPR 是 0x1000+n。
  *   ④ **`dcsr.step` 这颗核不会自动清**（规范说会）—— 单步完必须手工清，否则"继续"会一直单步。
  */
-import { DebugSession } from './session.js';
-import { RV_ARCH } from './rv.js';
+import { DebugSession } from '../../dbg/session.js';
+import { RV_ARCH } from '../../dbg/rv.js';
 import { DM, DMCONTROL, DMSTATUS_LAYOUT, REGNO, DCSR_EBREAK } from '../flash/hpm/jtag.js';
-import { withTimeout } from '../core/timeout.js';
-import { resolveHpmTarget, overlapsSbaFence } from '../targets/hpm/porting.js';
-import { sleep, waitMs } from '../core/pace.js';
-import { align2 } from './fmt.js';
+import { withTimeout } from '../../core/timeout.js';
+import { resolveHpmTarget, overlapsSbaFence } from '../../targets/hpm/porting.js';
+import { sleep, waitMs } from '../../core/pace.js';
+import { align2 } from '../../dbg/fmt.js';
 
 /** `dcsr.step`（bit2）：置上它 + resume = 执行一条指令后再进调试模式 */
 const DCSR_STEP = 1 << 2;

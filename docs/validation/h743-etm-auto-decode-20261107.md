@@ -15,7 +15,7 @@
 
 四档都生成 `native.bin`、原生 TraceStore 和紧凑查询索引。清单引擎版本 `2ca380ab6cf9`，回退为 `false`，没有旧 SQLite 索引。四份 KVDAT 实际深度均与请求一致，严格质量校验通过，包问题均为 0。整轮 CDC 14,296 发、14,296 收，无序号缺口、CRC 错误、重复或串口错误。四份轨迹均含 `handle_command`、`cdc_write` 和 USB 中断路径。原始 KVDAT、ELF 和解码结果保存在工作台记录目录 `etm/records/`，按表中 ID 查找。
 
-2026-11-08 存储轮换：长期保留表中 200 ms 和 1000 ms 两份完整实录；10 ms 与 500 ms 保留本报告、机器证据和输入指纹。见 [整理报告](repository-maintenance-20261108.md)。
+2026-11-08 存储轮换后长期保留表中 200 ms 和 1000 ms 两份完整实录，目录分别为 `etm/records/capture-stm32h743-cdc-200ms` 和 `etm/records/capture-stm32h743-cdc-1s`。10 ms 与 500 ms 保留本报告、机器证据和输入指纹。见 [整理报告](repository-maintenance-20261108.md)。
 
 上次同板的旧自动链路在 200/500 ms 分别约 82.60 / 191.25 s。旧 500 ms 的 CDC 线程曾退出，所以耗时只作流程对照。此次 1 s 的 30.48 s 是采集联动、保存、解码和页面装载的总耗时，15.81 s 是其中服务端自动解码和索引，和历史仅计紧凑离线处理的数字分开。
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从本机 pyOCD 的 STM32H7B0xx target 定义里抽出 FLASH_ALGO，转成 app/flash/algos.js 的条目格式。
+"""从本机 pyOCD 的 STM32H7B0xx target 定义里抽出 FLASH_ALGO，转成 app/legacy/flash/algos.js 的条目格式。
 
 为什么这么做：algos.js 里那 7 个系列的算法本来就是从 pyOCD 抄的（见其文件头注释），
 新加 H7B0 也照同一规矩来 —— 手抄 base64 必错，直接 import 出来转最稳。
@@ -67,7 +67,7 @@ def main() -> int:
                             'name': getattr(r, 'name', '')})
     print('// ==== pyOCD 抽出的 flash 区域（核对用，不进 algos.js）====')
     print(json.dumps({'regions': regions, 'sector_sizes': list(algo.get('sector_sizes', []))}, indent=2))
-    print('// ==== 可直接粘进 app/flash/algos.js 的条目 ====')
+    print('// ==== 可直接粘进 app/legacy/flash/algos.js 的条目 ====')
     body = json.dumps(out, indent=4)
     print(f'  "{name}": {body},'.replace('\n', '\n  '))
     pathlib.Path('tmp').mkdir(exist_ok=True)

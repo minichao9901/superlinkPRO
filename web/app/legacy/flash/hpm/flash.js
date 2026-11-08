@@ -15,7 +15,7 @@
 import { HPM_ALGO, hpmAlgoBytes } from './algo.js';
 import { algoEntries } from './entry.js';
 import { hpmInitArgs, hpmCheckRange } from './chips.js';
-import { resolveHpmTarget, hpmWorkLayout, assertHpmIdentity } from '../../targets/hpm/porting.js';
+import { resolveHpmTarget, hpmWorkLayout, assertHpmIdentity } from '../../../targets/hpm/porting.js';
 import { xipCopyBytes } from './xip-copy.js';
 
 /** flashloader 调用 ROM API 的返回码（`hpm_stat_t`，只列常见的）*/

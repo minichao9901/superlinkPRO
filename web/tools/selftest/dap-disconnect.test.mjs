@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../../app/legacy/rtt/dap-webusb.js';
 let release;const held=new Promise(r=>release=r),events=[];
 const p=Object.create(WebUsbDapProbe.prototype);Object.assign(p,{_ready:true,_lockChain:held,device:{releaseInterface:async()=>events.push('release'),close:async()=>events.push('close')},_unwatchUsb(){}});
 const ctrl=p._ctrl;p._ctrl=async()=>events.push('disconnect');

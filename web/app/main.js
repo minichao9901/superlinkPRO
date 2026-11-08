@@ -72,8 +72,26 @@ const probeManager = installProbeManager(tools, { bus: probeBus });
 initProbeStatus(tools);
 initEventLogs();
 window.__tools = tools;
-if(new URLSearchParams(location.search).has('trace-cli')){
-  import('./automation/trace.js').then(m=>m.startWorker()).catch(e=>console.error('CLI工作台：',e));
+// The packaged launcher passes authorization in the fragment so it never
+// reaches the HTTP access log. Keep it scoped to this tab across reloads.
+if(['127.0.0.1','localhost','[::1]'].includes(location.hostname)){
+  const url=new URL(location.href);
+  const [page,fragmentQuery]=url.hash.split('?',2);
+  const fragment=new URLSearchParams(fragmentQuery);
+  let token=fragment.get('trace-cli') ?? url.searchParams.get('trace-cli');
+  if(token!==null){
+    fragment.delete('trace-cli');
+    url.hash=page+(fragment.size?'?'+fragment:'');
+    url.searchParams.delete('trace-cli');
+    history.replaceState(null,'',url);
+  }
+  try{
+    if(/^[0-9a-f]{64}$/.test(token||'')) sessionStorage.setItem('workbench-cli-token',token);
+    else if(token===null) token=sessionStorage.getItem('workbench-cli-token');
+  }catch{}
+  if(/^[0-9a-f]{64}$/.test(token||'')){
+    import('./automation/trace.js').then(m=>m.startWorker(token)).catch(e=>console.error('CLI工作台：',e));
+  }
 }
 const workspace = initWorkspaces();
 initSidebarTabs();

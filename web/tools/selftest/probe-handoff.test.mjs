@@ -17,7 +17,7 @@ assert.equal(await v._act('late',()=>assert.fail()),false);
 held.resolve();await Promise.all([operation,disconnect]);assert.deepEqual(events,['operation-end','disconnect']);assert.equal(s.connected,false);
 let closed=0;Object.defineProperty(globalThis,'navigator',{value:{usb:{getDevices:async()=>[{vendorId:0x0d28,close:async()=>{assert.deepEqual(events,['debug-release']);closed++;}}]}},configurable:true});
 globalThis.window={__tools:{dbg:{session:{connected:true},disconnect:async()=>events.push('debug-release')}}};events.length=0;
-const f=Object.create(FlashView.prototype);f._log=()=>{};assert.equal(await f._clearProbeUsers('fw.bin'),true);assert.equal(closed,1);
+const f=Object.create(FlashView.prototype);f._log=()=>{};assert.equal(await f._clearProbeUsers('fw.bin'),true);assert.deepEqual(events,['debug-release']);assert.equal(closed,0,'handoff closes through the registered owner');
 console.log('probe-handoff: debugger cancels queue, drains action before close; flash releases debugger before USB cleanup PASS');
 
 events.length=0;

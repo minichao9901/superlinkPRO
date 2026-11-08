@@ -48,7 +48,8 @@ def install_web_cli(app, token_file):
                 if now-jobs[key]['created'] > 3600 and jobs[key]['state'] == 'done':
                     del jobs[key]
             if len(pending) >= 20 or len(jobs) >= 200:
-                abort(429)
+                return jsonify(error='CLI 队列已满；请等待执行，或保存已完成结果后用 ack 回收。连续操作请用 batch',
+                               pending=len(pending), retained=len(jobs)),429
             if not worker['id'] or now-worker['seen'] > 15:
                 return jsonify(error='工作台CLI执行页面未连接；请打开带CLI授权的本地工作台'),409
             jid = secrets.token_hex(16)
@@ -64,6 +65,12 @@ def install_web_cli(app, token_file):
             value = jobs.get(jid)
             if value is None:abort(404)
             return jsonify(id=jid,state=value['state'],result=value.get('result'))
+
+    @app.get('/trace-cli/health')
+    def health():
+        with condition:
+            return jsonify(ready=bool(worker['id'] and time.monotonic()-worker['seen'] <= 15),
+                           pending=len(pending),retained=len(jobs))
 
     @app.post('/trace-cli/ack/<jid>')
     def acknowledge(jid):
@@ -82,7 +89,8 @@ def install_web_cli(app, token_file):
         with condition:
             now=time.monotonic()
             if worker['id'] and worker['id'] != wid:
-                return jsonify(error='已有另一工作台CLI执行页面；关闭服务后再更换'),409
+                if now-worker['seen'] <= 15 or any(job['state'] != 'done' for job in jobs.values()):
+                    return jsonify(error='另一标签页仍持有 CLI 会话；未完成任务不会移交给新标签页'),409
             worker.update(id=wid,seen=now)
             if not pending:condition.wait(timeout=2)
             worker['seen']=time.monotonic()

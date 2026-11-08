@@ -846,27 +846,27 @@
         },
         {
           "name": "onShow",
-          "line": 650
+          "line": 664
         },
         {
           "name": "resetTarget",
-          "line": 744
+          "line": 748
         },
         {
           "name": "loadElfFile",
-          "line": 770
+          "line": 783
         },
         {
           "name": "summary",
-          "line": 785
+          "line": 798
         },
         {
           "name": "saveRaw",
-          "line": 923
+          "line": 936
         },
         {
           "name": "save",
-          "line": 930
+          "line": 943
         }
       ]
     },
@@ -1873,14 +1873,6 @@
         {
           "name": "summary",
           "line": 1939
-        },
-        {
-          "name": "if",
-          "line": 1985
-        },
-        {
-          "name": "if",
-          "line": 1986
         }
       ]
     },
@@ -2056,6 +2048,12 @@
           "label": "断开"
         },
         {
+          "id": "d-jtag-hid",
+          "tag": "button",
+          "type": null,
+          "label": "为 akaLinkPro 授权 HID；连接时切换并回读探针模式"
+        },
+        {
           "id": "d-elf-pick",
           "tag": "button",
           "type": null,
@@ -2071,13 +2069,31 @@
           "id": "d-ram-debug",
           "tag": "button",
           "type": null,
-          "label": "将 RAM 版 ELF 下载到已验证的片上 SRAM，并停在 main"
+          "label": "将 ELF 下载到可写 RAM，回读校验后停在 main 或入口"
         },
         {
           "id": "d-ram-elf",
           "tag": "input",
           "type": "file",
           "label": ""
+        },
+        {
+          "id": "d-ram-start",
+          "tag": "input",
+          "type": null,
+          "label": "可写 RAM 起始地址"
+        },
+        {
+          "id": "d-ram-length",
+          "tag": "input",
+          "type": null,
+          "label": "可写 RAM 字节数"
+        },
+        {
+          "id": "d-ram-apply",
+          "tag": "button",
+          "type": null,
+          "label": "声明 RAM"
         },
         {
           "id": "d-image-pick",
@@ -2507,187 +2523,203 @@
       "methodSourceHints": [
         {
           "name": "initSidebar",
-          "line": 367
+          "line": 370
         },
         {
           "name": "selectSidebar",
-          "line": 381
+          "line": 384
         },
         {
           "name": "renderElfInfo",
-          "line": 387
+          "line": 390
         },
         {
           "name": "onShow",
-          "line": 396
+          "line": 399
+        },
+        {
+          "name": "authorizeJtagProbe",
+          "line": 742
         },
         {
           "name": "connect",
-          "line": 728
+          "line": 749
         },
         {
           "name": "disconnect",
-          "line": 800
+          "line": 823
         },
         {
           "name": "refreshAll",
-          "line": 861
+          "line": 884
         },
         {
           "name": "afterStop",
-          "line": 875
+          "line": 898
         },
         {
           "name": "renderRegs",
-          "line": 919
+          "line": 942
         },
         {
           "name": "presentBacktrace",
-          "line": 1021
+          "line": 1044
         },
         {
           "name": "presentSelectedFrame",
-          "line": 1040
+          "line": 1063
         },
         {
           "name": "presentLocals",
-          "line": 1046
+          "line": 1069
         },
         {
           "name": "renderDwt",
-          "line": 1060
+          "line": 1083
         },
         {
           "name": "renderBps",
-          "line": 1073
+          "line": 1097
         },
         {
           "name": "readMem",
-          "line": 1107
+          "line": 1138
         },
         {
           "name": "renderMem",
-          "line": 1141
+          "line": 1172
         },
         {
           "name": "writeMemEdit",
-          "line": 1199
+          "line": 1230
         },
         {
           "name": "pickImageDirectory",
-          "line": 1331
+          "line": 1373
+        },
+        {
+          "name": "imageDirectoryStatus",
+          "line": 1384
         },
         {
           "name": "runLine",
-          "line": 1342
+          "line": 1392
+        },
+        {
+          "name": "configureRamWindow",
+          "line": 1535
+        },
+        {
+          "name": "launchRamElf",
+          "line": 1544
         },
         {
           "name": "loadElfBuffer",
-          "line": 1503
+          "line": 1570
         },
         {
           "name": "loadBundledSvd",
-          "line": 1580
+          "line": 1648
         },
         {
           "name": "loadSvdText",
-          "line": 1606
+          "line": 1674
         },
         {
           "name": "renderSyms",
-          "line": 1760
+          "line": 1828
         },
         {
           "name": "addWatch",
-          "line": 1831
+          "line": 1899
         },
         {
           "name": "delWatch",
-          "line": 1852
+          "line": 1920
         },
         {
           "name": "watchItems",
-          "line": 1859
+          "line": 1927
         },
         {
           "name": "clearWatch",
-          "line": 1863
+          "line": 1931
         },
         {
           "name": "refreshWatch",
-          "line": 1871
+          "line": 1939
         },
         {
           "name": "renderWatch",
-          "line": 1921
+          "line": 1989
         },
         {
           "name": "pickSourceDir",
-          "line": 2027
+          "line": 2095
         },
         {
           "name": "renderSource",
-          "line": 2094
+          "line": 2162
         },
         {
           "name": "toggleSourceBp",
-          "line": 2187
-        },
-        {
-          "name": "runToLine",
-          "line": 2205
-        },
-        {
-          "name": "stepOver",
-          "line": 2242
-        },
-        {
-          "name": "stepInto",
-          "line": 2244
-        },
-        {
-          "name": "stepOut",
-          "line": 2246
-        },
-        {
-          "name": "showSource",
           "line": 2255
         },
         {
+          "name": "runToLine",
+          "line": 2273
+        },
+        {
+          "name": "stepOver",
+          "line": 2310
+        },
+        {
+          "name": "stepInto",
+          "line": 2312
+        },
+        {
+          "name": "stepOut",
+          "line": 2314
+        },
+        {
+          "name": "showSource",
+          "line": 2323
+        },
+        {
           "name": "rttStart",
-          "line": 2295
+          "line": 2363
         },
         {
           "name": "rttStop",
-          "line": 2326
-        },
-        {
-          "name": "rttClear",
-          "line": 2333
-        },
-        {
-          "name": "summary",
-          "line": 2353
-        },
-        {
-          "name": "for",
-          "line": 2386
-        },
-        {
-          "name": "if",
-          "line": 2392
-        },
-        {
-          "name": "if",
-          "line": 2393
-        },
-        {
-          "name": "if",
           "line": 2394
         },
         {
+          "name": "rttClear",
+          "line": 2401
+        },
+        {
+          "name": "summary",
+          "line": 2421
+        },
+        {
+          "name": "for",
+          "line": 2458
+        },
+        {
           "name": "if",
-          "line": 2395
+          "line": 2464
+        },
+        {
+          "name": "if",
+          "line": 2465
+        },
+        {
+          "name": "if",
+          "line": 2466
+        },
+        {
+          "name": "if",
+          "line": 2467
         }
       ]
     },
@@ -2929,15 +2961,15 @@
       "methodSourceHints": [
         {
           "name": "flash",
-          "line": 125
+          "line": 126
         },
         {
           "name": "resetTarget",
-          "line": 164
+          "line": 169
         },
         {
           "name": "readIdcode",
-          "line": 239
+          "line": 258
         }
       ]
     },
@@ -5250,19 +5282,19 @@
         },
         {
           "name": "loopbackTest",
-          "line": 1171
+          "line": 1174
         },
         {
           "name": "renderLoopRows",
-          "line": 1231
+          "line": 1234
         },
         {
           "name": "onShow",
-          "line": 1242
+          "line": 1245
         },
         {
           "name": "summary",
-          "line": 1249
+          "line": 1252
         }
       ]
     },

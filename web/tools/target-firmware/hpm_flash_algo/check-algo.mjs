@@ -107,7 +107,7 @@ export function findSuspiciousLoops(bytes){
   return bad;
 }
 
-/** 顺带把入口表也认一遍（与 app/flash/hpm/entry.js 同源逻辑，这里只做形状检查） */
+/** 顺带把入口表也认一遍（与 app/legacy/flash/hpm/entry.js 同源逻辑，这里只做形状检查） */
 export function entryOffsets(bytes, max = 16){
   const out = [];
   let off = 0;

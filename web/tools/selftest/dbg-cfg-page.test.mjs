@@ -71,9 +71,9 @@ try{
   await c.eval(`
     if((await navigator.usb.getDevices()).length) throw Error('Use an isolated browser profile without USB authorization');
     const {SimTarget}=await import('/tools/selftest/hpm-sim.mjs');
-    const {WebUsbDapProbe:P}=await import('/app/rtt/dap-webusb.js');
+    const {WebUsbDapProbe:P}=await import('/app/legacy/rtt/dap-webusb.js');
     const {AkaLinkHid}=await import('/app/hid/probe.js');
-    const {DAP}=await import('/app/flash/hpm/jtag.js');
+    const {DAP}=await import('/app/legacy/flash/hpm/jtag.js');
     const sim=window.cfgTarget=new SimTarget({idcode:0x12345679,ramBase:0x20000000});
     sim.dtmcs=0x6061;
     let tdata1=0x21800000,tdata2=0;

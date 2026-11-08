@@ -18,6 +18,13 @@ export function imagePath(filename){
 export class ImageFiles {
   constructor(){ this.root = null; }
 
+  async status(){
+    const root = this.root;
+    if (!root) return { name:null, permission:'unselected' };
+    try { return { name:root.name, permission:await root.queryPermission?.({mode:'readwrite'}) || 'unknown' }; }
+    catch { return { name:root.name, permission:'unknown' }; }
+  }
+
   async pick(){
     if (!globalThis.showDirectoryPicker) throw new Error('镜像目录需要桌面版 Chrome / Edge，请通过 localhost 或 HTTPS 打开页面');
     const root = await globalThis.showDirectoryPicker({ id: 'debug-images', mode: 'readwrite' });
@@ -29,6 +36,8 @@ export class ImageFiles {
     const parts = imagePath(filename);
     if (!this.root) throw new Error('请先在调试器侧栏选择“镜像目录”');
     try {
+      const {permission} = await this.status();
+      if (permission === 'denied' || permission === 'prompt') throw Error('当前标签页没有镜像目录读写权限，请重新选择镜像目录');
       let directory = this.root;
       for (const part of parts.slice(0, -1)) directory = await directory.getDirectoryHandle(part);
       return await directory.getFileHandle(parts.at(-1), { create });

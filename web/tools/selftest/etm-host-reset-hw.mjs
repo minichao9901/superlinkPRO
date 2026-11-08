@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
-import {WebUsbDapProbe} from '../../app/rtt/dap-webusb.js';
+import {WebUsbDapProbe} from '../../app/legacy/rtt/dap-webusb.js';
 import {EtmTarget} from '../../bridge/etm/backend/web/app/target.js';
 const output=process.env.VALIDATION_DIR;if(!output)throw Error('Set VALIDATION_DIR');
 const base=(process.env.APP||'http://127.0.0.1:8884')+'/etm/api/';

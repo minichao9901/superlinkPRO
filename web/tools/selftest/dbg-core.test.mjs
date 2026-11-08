@@ -1169,7 +1169,7 @@ console.log('== 23. ≥0x80000000 的地址：断点表比对不能踩"有符号
   ok(await s.bpDel(0x80005ae8) === false, '删不存在的断点回 false（命令层据此说"没有这个断点"）');
 
   // RISC-V 侧同一套逻辑（触发器）：bpAdd/bpDel 与 _bpAt 共用基类实现
-  const RV = await import(url('dbg/riscv.js'));
+  const RV = await import(url('legacy/dbg/riscv.js'));
   const rv = new RV.RiscvDebugSession();
   rv.log = () => {};
   rv.caps = { numCode: 8, rev: 2, raw: 8 };

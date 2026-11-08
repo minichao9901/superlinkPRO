@@ -161,7 +161,7 @@ await cdp.navigate(APP);
 await cdp.waitFor('window.__tools', 8000, '页面加载');
 ok(true, `页面加载完成（${APP}）`);
 // 确认跑的是磁盘上最新的模块（否则后面所有结论都不可信）
-const modInfo = await cdp.evalJson(`fetch('/app/rtt/dap-webusb.js',{cache:'reload'}).then(r=>r.text()).then(t=>({len:t.length, hasActivation:t.includes('SWD 激活序列'), hasPad:t.includes('补齐到整包再发')}))`);
+const modInfo = await cdp.evalJson(`fetch('/app/legacy/rtt/dap-webusb.js',{cache:'reload'}).then(r=>r.text()).then(t=>({len:t.length, hasActivation:t.includes('SWD 激活序列'), hasPad:t.includes('补齐到整包再发')}))`);
 console.log(`        dap-webusb.js ${modInfo.len} 字节 · 含激活序列修复: ${modInfo.hasActivation} · 含整包发送: ${modInfo.hasPad}`);
 ok(modInfo.hasActivation && modInfo.hasPad, '页面加载到的是最新模块（不是缓存里的旧版）');
 

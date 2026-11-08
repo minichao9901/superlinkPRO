@@ -9,7 +9,7 @@ function fakePort(vendorId=0xd28){
  return {port,events};
 }
 const session=new SerialSession(),{port,events}=fakePort();
-const hid={last:{running:false},_bridgeRequested:false,async stop(){this.last.running=false;this._bridgeRequested=false;}};
+const hid={last:{running:false},_bridgeRequested:false,async disconnect(){this.last.running=false;this._bridgeRequested=false;}};
 const scope={running:false}; const tools={session,hid,scope};const manager=createProbeManager(tools,{locks:null});session.probeManager=manager;
 await session.open(port,{owner:'assistant'});assert.equal(port.openOptions.bufferSize,4096);assert.deepEqual(manager.summary().owners,['serial']);
 await session.write(Uint8Array.of(1));assert.ok(events.includes('tx:1'));
