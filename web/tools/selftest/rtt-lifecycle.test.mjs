@@ -32,6 +32,21 @@ console.log('rtt-lifecycle: stale successful/failed polls cannot publish, stop r
 }
 console.log('rtt-lifecycle: a full Wasm ring pauses rendering before ingest and resumes after the backlog clears PASS');
 {
+ const v=new RttView(), rendered=[], recorded=[], callbacks=[];
+ Object.assign(v,{probe:{rttLivePreview:true},rec:{push:bytes=>recorded.push(bytes[0])},
+  term:{write(bytes,done){rendered.push(bytes);if(done)callbacks.push(done);}},_updateEmptyHint(){}});
+ v._highspeedGate(200*1024);
+ assert.equal(v.suppressed,false,'a fast generic RISC-V feed should keep its ANSI preview live');
+ v._ingest(Uint8Array.of(65));v._ingest(Uint8Array.of(66));
+ assert.equal(rendered.length,1,'slow ANSI processing must not queue the next block');
+ callbacks.shift()();v._ingest(Uint8Array.of(67));
+ assert.deepEqual(recorded,[65,66,67]);
+ assert.deepEqual(v.records.map(r=>r.b[0]),recorded);
+ assert.deepEqual([rendered[0][0],rendered.at(-1)[0]],[65,67]);
+ assert.match(new TextDecoder().decode(rendered[1]),/省略 1 B/);
+}
+console.log('rtt-lifecycle: ANSI preview backpressure leaves full acquisition and recording intact PASS');
+{
  const old=(()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};})(),events=[];
  const v=Object.create(RttView.prototype);v.probe={reset:async()=>{events.push('reset');return 'mock';}};
  v.running=true;v._pollTask=old.promise;globalThis.document={getElementById:()=>null};

@@ -51,9 +51,10 @@ export class OpenOcdProbe {
     this.isRiscv = cfg.arch === 'riscv';
     this.physical = this.isRiscv && runningMemory;
     this.skipNames = this.isRiscv;
-    // Release the producer cursor between shorter transfers while its
-    // noncacheable AXI ring is being written by the running HPM6800.
-    this.rttPollLimit = this.physical && cfg.boardId === 'hpm6800evk' ? 8192 : undefined;
+    // Commit the read cursor between shorter reads on the generic
+    // RISC-V and HPM6800 RTT paths, even when the whole ring is full.
+    this.rttLivePreview = this.physical && !cfg.boardId;
+    this.rttPollLimit = (this.rttLivePreview || this.physical && cfg.boardId === 'hpm6800evk') ? 8192 : undefined;
   }
 
   get _faulted(){ return !!this.link && !this.link.worker; }

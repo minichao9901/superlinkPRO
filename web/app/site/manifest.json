@@ -24,7 +24,7 @@
     "app/core/log-search.js": "aa125c1d3f8e13370c3950c0852d18871efa780a5067a158e6b4571bbacb4a9f",
     "app/core/openocd-hpm-profile.js": "739be61ba63aa5567d694979c4c6dcd4ca7bba57785415535cdc8e79d6feac06",
     "app/core/openocd-jtag-pins.js": "c306ba27b0e930f8134c35503468aa1b92cd0f273f36ec6ad4fa91ff9a9a84b1",
-    "app/core/openocd-probe.js": "a8ab1b8390146a17e103d8418971d75c0000836e33408f209c87aeb7cfbe6a66",
+    "app/core/openocd-probe.js": "4fc22fa816d4670578df1fbd6800668bb77093b6e37db0012bc0718f9664d315",
     "app/core/openocd-profile.js": "29199f94b78d584cf660c1ff49b535e722c298b0da28080fdc129cd0495a4625",
     "app/core/openocd-session.js": "8fd9ee6edd028164a4032883f8410ee4d74ffa447ed79986aeb4b24b4f04bb30",
     "app/core/operation-budget.js": "92c3c1a9c97f4cf9321df9b17caf72463d15b1ca9e98fb8ee78a4a151f7d2d41",
@@ -103,7 +103,7 @@
     "app/rtt/elf.js": "76a6278965724f52133467f8f07d4472077c5a9c35ca187fece59abad42405c7",
     "app/rtt/mock.js": "713da5c0c48d4a912ed9da57dbaf5decf824e57be3b185adc70023e02a1c072d",
     "app/rtt/protocol.js": "ba92dbcda2170431db1e5d1cc0fc1a6ad5f092e60aab5db43bd1cf98c35f69c2",
-    "app/rtt/view.js": "0d627a500b2befd072d2673723ea19438354296233ca02391dc331cdbae9489f",
+    "app/rtt/view.js": "4902cfc46e17aedf5b2fb013b95d10ad6f68b3f0965cb804c99dccee10de653f",
     "app/scope/array-vars.js": "acef3efbffe7e2c70958e06c8dc8d0ea3fe123db3928a4baa6463f5ea9cafb5b",
     "app/scope/mock.js": "06cd937bb48f81dee9c7a1d5753e8dd1b3b177c4823f21e0f67d4b71484d4ef6",
     "app/scope/protocol.js": "382afcce7dd771b92781167e73d4ff5dc6ca0b7d284113fa9d93ea7f38b8964e",
@@ -170,6 +170,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "87c115d375fce4924e69e9716ed5c43b24a907b7e67a0c36a9df0bf0954efdaf",
-  "outputBytes": 1179732
+  "outputSha256": "852c4166ec81abed70495d125a4b75d5e21f1816f6ad2abc5e15ec373e602012",
+  "outputBytes": 1180359
 }

@@ -92,6 +92,8 @@ export class RttView {
     this.histIdx = -1;
     this.rec = new FileRecorder();      // 高速采集落文件（见 core/recorder.js）
     this._lastWasCR = false;            // 终端模式补 \r 用的跨包状态（\r\n 不能补成 \r\r\n）
+    this._terminalBusy = false;
+    this._skippedTerminalBytes = 0;
     this.suppressed = false;            // 高速自动关显示（见 _highspeedGate）
     this._ringBackpressure = false;
     this.suppManual = false;            // 用户手动恢复过显示：暂不再自动关，速率回落后重新武装
@@ -619,11 +621,29 @@ export class RttView {
     }
     if(this.suppressed){this.suppBytes+=bytes.length;return;}
     if (this.paused) return;
-    if (this.mode === 'term') this._termWrite(bytes, t);
-    else this.tx.push(bytes, t);
+    if (this.mode === 'term'){
+      if (this.probe?.rttLivePreview) this._previewTerminal(bytes, t);
+      else this._termWrite(bytes, t);
+    } else this.tx.push(bytes, t);
   }
 
-  _termWrite(bytes, t){
+  _previewTerminal(bytes, t){
+    if (!this.term) return;
+    if (this._terminalBusy){
+      this._skippedTerminalBytes += bytes.length;
+      return;
+    }
+    this._terminalBusy = true;
+    if (this._skippedTerminalBytes){
+      // Cancel any ANSI sequence cut short by skipped display data.
+      this.term.write(textToBytes(`\x18\x1b[0m\r\n[显示跟不上，省略 ${fBytes(this._skippedTerminalBytes)}；接收和记录继续]\r\n`));
+      this._lastWasCR = false;
+      this._skippedTerminalBytes = 0;
+    }
+    this._termWrite(bytes, t, () => { this._terminalBusy = false; });
+  }
+
+  _termWrite(bytes, t, done){
     if (!this.term) return;
     if (this.ts) this.term.write(`\x1b[90m[${stampOf(t)}]\x1b[0m `);
     // 很多固件只发 \n 不发 \r，直接塞给 xterm 会变成阶梯状 → 按字节自动补 \r
@@ -635,7 +655,7 @@ export class RttView {
       out.push(b);
       this._lastWasCR = (b === 0x0d);
     }
-    this.term.write(Uint8Array.from(out));
+    this.term.write(Uint8Array.from(out), done);
   }
 
   _ensureTerm(){
@@ -701,6 +721,7 @@ export class RttView {
 
   _clear(){
     this.records = []; this.recBytes = 0; this.truncated = false;
+    this._skippedTerminalBytes = 0;
     this.tx.clear();
     this.term?.clear();
     this._updateEmptyHint();
@@ -854,7 +875,7 @@ export class RttView {
   static HS_ON  = 50 * 1024;    // 降到 50KB/s 以下才自动恢复（回滞）
 
   _highspeedGate(r){
-    if (!this.probe){
+    if (!this.probe || this.probe.rttLivePreview && this.mode === 'term'){
       if (this.suppressed) this._setSuppressed(false);
       this.suppManual = false;
       return;
