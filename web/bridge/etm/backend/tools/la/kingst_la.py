@@ -458,6 +458,16 @@ def read_glitch_settings(path, rate=None):
                 sampleRate=rate, nativeSocketControl=False)
 
 
+def clock_glitch_filter_error(settings, clock):
+    """Report an enabled filter from the capture snapshot, not the disk preset."""
+    for channel in settings.get('channels', ()):
+        if channel['channel'] == clock and channel['enabled']:
+            return (f"KingstVIS 的 TRACECLK 通道 CH{clock} 开启了硬件毛刺过滤"
+                    f"（{channel['samples']} 个采样周期）。请在「毛刺过滤设置」中关闭该通道滤波后重新采集。"
+                    "本次原始波形已保存。")
+    return None
+
+
 def glitch_preset_bytes(original, channels, samples=1, enabled=True, keep=True):
     """仅替换两个 ASCII 字段，保留 Kingst 文件中其它字节（包含本地编码）。"""
     matches = re.findall(rb'<glitchFilterSettings>([^<]*)</glitchFilterSettings>', original)

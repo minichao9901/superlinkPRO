@@ -172,6 +172,16 @@ console.log('== 3. 开始采样（假探针 → 包流 → 解码 → 缓冲）=
 
 console.log('== 4. 画布上真的有波形 ==');
 {
+  // The first LOD level covers 32 samples per bucket. Wait for the full
+  // view to reach that density before asserting the renderer uses it.
+  for (let i = 0; i < 10; i++){
+    const enough = await ev(`
+      const sc = window.__tools.scope;
+      sc.drawFrame();
+      return sc.store.count >= sc.renderer.plotW * sc.store.channel(0).levels[0].factor;`);
+    if (enough) break;
+    await sleep(250);
+  }
   const px = await ev(`
     const sc = window.__tools.scope;
     sc.drawFrame();
