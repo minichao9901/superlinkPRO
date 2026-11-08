@@ -31,4 +31,4 @@
 
 42 个有效窗口累计接收 **31,054,444** 帧（含预热及停止排空）。逐档生成数和接收数相等，停采尾差、无效样本、包序缺口、倒序和数据校验错误为 0。采集结束后释放专用 Chrome 标签页及探针连接，完整回读核对原 131,072 B BRAM（SHA-256 `fe23bdacdb982222dd3648212e9b0d86a019f2056614822e2c6d991501748e69`）和 33 项寄存器。目标恢复为暂停、PC `0x80000000`，探针 idle 恢复到 8。
 
-计数原件在 `tmp/rv32-jscope-20261108/`。三个结果 SHA-256 依次为默认 `309793f5407fa65b0b1ad39c14b6e2e1eab6fc736dbfb533a1a1823afd0f3eda`、idle=1 `fc53791312c62f3a67dd665dc42972afb1d122c3e8fbb8287285a4b2de3bf1e9`、默认复测 `210702347e67acc430b3f5e553925c65dc4632745eb74d4620aa59b98eaaf0aa`。
+计数原件已在 web.8 收尾时清理。三个结果 SHA-256 依次为默认 `309793f5407fa65b0b1ad39c14b6e2e1eab6fc736dbfb533a1a1823afd0f3eda`、idle=1 `fc53791312c62f3a67dd665dc42972afb1d122c3e8fbb8287285a4b2de3bf1e9`、默认复测 `210702347e67acc430b3f5e553925c65dc4632745eb74d4620aa59b98eaaf0aa`。[收尾记录](workbench-web8-release-20261108.md)
