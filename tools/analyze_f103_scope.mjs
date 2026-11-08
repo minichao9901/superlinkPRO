@@ -19,7 +19,13 @@ for(const packet of stream.push(raw)){
  }
 }
 const reply=Uint8Array.from(Buffer.from(record.statusReply,'hex')),status=P.parseScopeStatus(reply.subarray(4));
-const result={definition,counts,samples,first,last,seq,stat,status,trailingBytes:stream.buf.length,resyncs:stream.resyncs,tailDifference:status.produced-samples,rateHz:first&&last&&last.time>first.time?(samples-1)*1e6/(last.time-first.time):0,contract:contractIndex===null?null:contract};
+const invalidSamples=record.finalMetrics?.invalidSamples??0;
+const produced=record.finalMetrics?.produced??status.produced;
+const result={definition,counts,samples,first,last,seq,stat,status,trailingBytes:stream.buf.length,resyncs:stream.resyncs,tailDifference:produced-samples-invalidSamples,rateHz:first&&last&&last.time>first.time?(samples-1)*1e6/(last.time-first.time):0,contract:contractIndex===null?null:contract};
 result.passed=!!samples&&!status.running&&seq.gaps===0&&seq.dup===0&&seq.reordered===0&&stream.resyncs===0&&status.swdErr===0&&status.usbErr===0;
+if(record.tailDrain){
+ result.passed=result.passed&&result.tailDifference===0&&invalidSamples===0&&!status.stopping&&!status.stopAborted&&
+   record.finalMetrics?.usb===0&&record.finalMetrics?.errors===0;
+}
 if(contractIndex!==null)result.passed=result.passed&&contract.checked===samples&&!contract.bad&&!contract.backwards;
 await fs.writeFile(folder+'/decoded.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));if(!result.passed)process.exitCode=1;

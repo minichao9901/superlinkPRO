@@ -9,6 +9,9 @@ class BulkReader:
         self.lib=device._ctx.backend.lib;self.ctx=device._ctx.backend.ctx
         self.lib.libusb_cancel_transfer.argtypes=[C.POINTER(_libusb_transfer)]
         self.errors=[];self.active={};self.transfers=[];self.buffers=[];self.next_submit=0;self.next_emit=0;self.completed={};self.running=True;self.small=False;self.tail_ready=threading.Event()
+        self.draining = False
+        self.eof = threading.Event()
+        self.eof_remaining = 0
         self.callback=_libusb_transfer_cb_fn_p(self._complete)
         for _ in range(depth):
             t=self.lib.libusb_alloc_transfer(0);b=C.create_string_buffer(size)
@@ -22,9 +25,22 @@ class BulkReader:
         if rc<0:self.active.pop(key);raise RuntimeError('libusb_submit_transfer '+str(rc))
     def _complete(self,t):
         try:
-            key=C.addressof(t.contents);seq,_=self.active.pop(key);v=t.contents
-            self.completed[seq]=C.string_at(v.buffer,v.actual_length)
-            while self.next_emit in self.completed:self.output.extend(self.completed.pop(self.next_emit));self.next_emit+=1
+            key=C.addressof(t.contents);seq,requested=self.active.pop(key);v=t.contents
+            self.completed[seq]=(C.string_at(v.buffer,v.actual_length),v.status,requested)
+            while self.next_emit in self.completed:
+                data,status,size=self.completed.pop(self.next_emit)
+                self.next_emit+=1
+                if self.eof.is_set():
+                    if data or status != 0:
+                        self.errors.append('Read after Scope EOF was not empty and successful')
+                    continue
+                self.output.extend(data)
+                if self.draining and status == 0 and len(data) < size:
+                    if len(data) % 512:
+                        raise RuntimeError('Scope EOF is not packet-aligned')
+                    self.running = False
+                    self.eof_remaining = len(self.active)
+                    self.eof.set()
             if v.status not in (0,2,3):self.errors.append('libusb transfer status '+str(v.status));self.running=False
             if self.running:self._submit(t)
             if self.small and all(size==512 for _,size in self.active.values()):self.tail_ready.set()
@@ -36,6 +52,16 @@ class BulkReader:
     def finite_tail(self):
         self.small=True
         if not self.tail_ready.wait(3):raise TimeoutError('Native read window did not switch to packet-sized tail')
+    def begin_drain(self):
+        self.draining = True
+    def wait_eof(self):
+        if not self.eof.wait(2):
+            raise TimeoutError('Native Scope EOF was not received')
+        return self.eof_remaining
+    def wait_retired(self):
+        self.thread.join(2)
+        if self.thread.is_alive() or self.errors:
+            raise RuntimeError(f'Native Scope reads failed to retire: {self.errors}')
     def stop(self):
         self.running=False
         for t in self.transfers:

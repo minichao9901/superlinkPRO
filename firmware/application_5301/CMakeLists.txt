@@ -82,6 +82,7 @@ if(BOARD STREQUAL "hpm5301evklite")
         -DJTAG_PIN_JTMS_SHIFT=7
         -DJTAG_PIN_JTDI_SHIFT=5
         -DJTAG_PIN_JTDO_SHIFT=4
+        -DSCOPE_TX_BUFS_BOARD_DEFAULT=32
     )
 endif()
 

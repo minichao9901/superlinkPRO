@@ -26,11 +26,13 @@
  * __STATIC_FORCEINLINE and the DAP_SWD/DAP_JTAG switches DAP.h relies on. */
 #include "usb_composite.h"
 #include "DAP.h"
+#include "SW_DP.h"
 #include "cdc_interface.h"
 #include "rtt_bridge.h"
 #include "riscv_jtag.h"
 #include "swd_host.h"   /* ARM DAPLink 官方 SWD 访问层（见 src/swd_host/） */
 #include "hpm_clock_drv.h" /* clock_cpu_delay_ms() */
+#include "hpm_mchtmr_drv.h"
 
 /* Authoritative service flags: cold gate reads words, producers write bytes. */
 service_gate_t rtt_bridge_gate;
@@ -81,8 +83,8 @@ service_gate_t rtt_bridge_gate;
 #define RTT_CB_SCAN_INTERVAL_MS 20U
 
 /* 启动失败时自动降档的候选（只在低于请求频率时使用）。 */
-#define RTT_CLOCK_LADDER {60000000UL, 45000000UL, 36000000UL, 30000000UL, 20000000UL, 10000000UL}
-#define RTT_CLOCK_LADDER_LEN 6U
+static const uint32_t rtt_clock_ladder[] = {60000000U, 45000000U, 36000000U, 30000000U, 20000000U, 10000000U};
+#define RTT_CLOCK_LADDER_LEN (sizeof(rtt_clock_ladder) / sizeof(rtt_clock_ladder[0]))
 
 /* MCHTMR runs at 24 MHz (osc24m). */
 #define RTT_MCHTMR_HZ 24000000UL
@@ -105,7 +107,7 @@ static uint32_t s_cb_addr;
 static uint32_t s_search_addr;
 static uint32_t s_search_size;
 static uint32_t s_up_addr;
-static uint32_t s_last_dap;
+static uint64_t s_last_dap;
 static uint32_t s_backoff_until;
 /* 上次没写成功、待幂等补写的 RdOff（0 值有效，用 valid 标志区分） */
 static uint32_t s_rd_pending;
@@ -115,7 +117,8 @@ static uint8_t s_rd_pending_valid;
  * 块读越大，每块的固定开销（CSW/TAR/prime/RDBUFF 共 5 次传输）摊得越薄。 */
 static uint32_t s_chunk = RTT_SWD_CHUNK;
 static uint32_t s_swd_clock_req = RTT_SWD_CLOCK_HZ; /* 用户请求的档位 */
-static uint32_t s_swd_clock_hz = RTT_SWD_CLOCK_HZ;  /* 当前实际使用的档位 */
+static uint32_t s_swd_clock_hz = RTT_SWD_CLOCK_HZ;  /* 当前下发到 SWJ_Clock 的频率 */
+static uint32_t s_swd_applied_hz;                   /* 最近成功装载的档位 */
 static uint8_t s_discard;
 static uint8_t s_swd_ready;
 static uint8_t s_delay_override = 0xFFU; /* 0xFF = 用 Set_Clock_Delay() 的档位值 */
@@ -236,7 +239,10 @@ static int rtt_swd_set_clock(uint32_t hz)
     /* SWJ_Clock 的响应是 [0]=命令回显、[1]=状态 —— 状态字节不是 [2]。
      * 早先写成 s_resp[2]（靠静态零初始化恒等于 DAP_OK）→ 恒判成功，
      * 换挡失败被静默吞掉，斜坡逻辑失去失败感知。 */
-    return (s_resp[1] == DAP_OK) ? 0 : -1;
+    if (s_resp[1] != DAP_OK) { return -1; }
+    const uint32_t nominal_hz = swd_blob_nominal_clock_hz();
+    s_swd_applied_hz = nominal_hz != 0U ? nominal_hz : hz;
+    return 0;
 }
 
 /* 换档后的静默期（缺陷 1 修复，2026-10-18）：SWD 换频后目标端的采样窗口需要重新同步，
@@ -296,15 +302,13 @@ static int rtt_swd_init(void)
      * 等于 4 MHz 直跳 60 MHz，而固件自己的注释就写了那条路"头几次访问就失败"）。
      */
     {
-        static const uint32_t climb[] = RTT_CLOCK_LADDER;   /* {60,45,36,30,20,10} 降序 */
-
         for (int i = (int)RTT_CLOCK_LADDER_LEN - 1; i >= 0; i--)
         {
-            if (climb[i] >= s_swd_clock_hz)
+            if (rtt_clock_ladder[i] >= s_swd_clock_hz)
             {
                 continue;                      /* 只爬**低于**目标的档 */
             }
-            if (rtt_swd_set_clock(climb[i]) != 0)
+            if (rtt_swd_set_clock(rtt_clock_ladder[i]) != 0)
             {
                 return -1;
             }
@@ -529,13 +533,11 @@ static int rtt_poll_once(uint32_t *moved)
 /* 链路变差时自愈：降一档（只降不升，避免来回抖）。返回 1 表示档位变了。 */
 static int rtt_clock_step_down(void)
 {
-    static const uint32_t ladder[RTT_CLOCK_LADDER_LEN] = RTT_CLOCK_LADDER;
-
     for (uint32_t i = 0U; i < RTT_CLOCK_LADDER_LEN; i++)
     {
-        if (ladder[i] < s_swd_clock_hz)
+        if (rtt_clock_ladder[i] < s_swd_clock_hz)
         {
-            s_swd_clock_hz = ladder[i];
+            s_swd_clock_hz = rtt_clock_ladder[i];
             return 1;
         }
     }
@@ -624,7 +626,6 @@ int rtt_bridge_start(uint32_t addr, uint32_t size, uint8_t channel)
     uint32_t req_hz = s_swd_clock_hz;
     uint32_t try_hz[RTT_CLOCK_LADDER_LEN];
     uint32_t ntry = 0U;
-    static const uint32_t ladder[RTT_CLOCK_LADDER_LEN] = RTT_CLOCK_LADDER;
 
     /* 高频档在这条链路上是间歇性的：同样的 36 MHz，长块读能跑满而控制块扫描
      * 会失败（blob 是固定时序，短读/字节读的余量小得多）。与其赌一个档位，
@@ -633,7 +634,7 @@ int rtt_bridge_start(uint32_t addr, uint32_t size, uint8_t channel)
     try_hz[ntry++] = req_hz;
     for (uint32_t i = 0U; i < RTT_CLOCK_LADDER_LEN && ntry < RTT_CLOCK_LADDER_LEN; i++)
     {
-        uint32_t x = ladder[i];
+        uint32_t x = rtt_clock_ladder[i];
         if (x < req_hz)
         {
             try_hz[ntry++] = x;
@@ -676,7 +677,7 @@ int rtt_bridge_start(uint32_t addr, uint32_t size, uint8_t channel)
     /* The UART must not feed the same CDC ringbuffer while RTT does. */
     uartx_set_cdc_source(1);
 
-    s_last_dap = mchtmr_now();
+    s_last_dap = mchtmr_get_count(HPM_MCHTMR);
     s_backoff_until = 0U;
     s_running = 1U;
     return 0;
@@ -768,9 +769,12 @@ int rtt_bridge_read(uint32_t addr, uint8_t *dst, uint32_t len)
     return rtt_read_bytes(addr, dst, len);
 }
 
-uint32_t rtt_bridge_last_dap_ticks(void)
+int rtt_bridge_dap_recent(uint32_t now)
 {
-    return s_last_dap;
+    /* The low word rejects the hot path. Check the full timer only when
+     * the low word would otherwise make an old DAP command look recent. */
+    if ((uint32_t)(now - (uint32_t)s_last_dap) >= RTT_IDLE_TICKS) { return 0; }
+    return s_last_dap != 0U && mchtmr_get_count(HPM_MCHTMR) - s_last_dap < RTT_IDLE_TICKS;
 }
 
 void rtt_bridge_set_swd_clock(uint32_t hz)
@@ -789,12 +793,12 @@ void rtt_bridge_set_swd_clock(uint32_t hz)
 
 uint32_t rtt_bridge_swd_clock_hz(void)
 {
-    return s_swd_clock_hz;
+    return s_target == 0U && s_swd_ready && s_swd_applied_hz != 0U ? s_swd_applied_hz : s_swd_clock_hz;
 }
 
 void rtt_bridge_note_dap_activity(void)
 {
-    s_last_dap = mchtmr_now();
+    s_last_dap = mchtmr_get_count(HPM_MCHTMR);
     /* 主机用过 DAP（例如 OpenOCD 刚连过），DP 的时钟档/供电状态就不再由我们
      * 掌握：下次启动或基准测试必须重新初始化，不能复用旧状态。 */
     s_swd_ready = 0U;
@@ -1158,7 +1162,7 @@ void rtt_bridge_poll(void)
     }
 
     uint32_t now = mchtmr_now();
-    if ((uint32_t)(now - s_last_dap) < RTT_IDLE_TICKS)
+    if (rtt_bridge_dap_recent(now))
     {
         s_gate_hits++;
         return; /* the host is debugging: leave the SWD bus alone */
@@ -1225,8 +1229,9 @@ uint32_t rtt_bridge_status(uint32_t *out, uint32_t words)
     w[8] = s_last_cmd;
     w[9] = s_last_rsp; /* [0]=id [1]=count_lo [2]=count_hi/port [3]=response value */
     w[10] = 0U;        /* 调用方（api_param）会把它覆盖成 start_rc */
+    const uint32_t status_hz = s_target == 0U ? s_swd_applied_hz : s_swd_clock_hz;
     w[11] = s_chunk | ((uint32_t)s_discard << 16) |
-            ((uint32_t)(s_swd_clock_hz / 1000000U) << 24); /* 低16=块字节, bit16=丢弃, 高8=时钟MHz */
+            ((status_hz / 1000000U) << 24); /* 低16=块字节, bit16=丢弃, 高8=最近生效的档位MHz */
 
     for (uint32_t i = 0; i < words && i < 12U; i++)
     {

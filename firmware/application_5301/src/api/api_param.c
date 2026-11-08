@@ -565,20 +565,20 @@ void api_param_proc_hid(uint8_t *req_hid, uint8_t *res_hid)
             {
                 err = -1;                      /* 还没测过 */
             }
-            res_hid[1] = 1U + 1U + 12U;
+            res_hid[1] = 1U + 1U + 24U;
             res_hid[2] = CMD_SCOPE;
             res_hid[3] = 0U;
             memcpy(&res_hid[4], &ticks, 4U);
             memcpy(&res_hid[8], &iters, 4U);
             memcpy(&res_hid[12], &err, 4U);
-            /* 标定响应的字 3/4 平时用不到，拿来回报"实际装载了哪个 SWD blob"和
-             * clock_delay —— 否则分辨不出"时钟命令被忽略"和"生效了但没差别"。
-             * 偏移对照表见 SW_DP.h。 */
+            /* 诊断字段依次是读 blob 偏移、clock_delay 和选中的名义频率。 */
             {
                 uint32_t blob = swd_blob_read_offset();
                 uint32_t cdelay = swd_blob_clock_delay();
+                uint32_t nominal = swd_blob_nominal_clock_hz();
                 memcpy(&res_hid[16], &blob, 4U);
                 memcpy(&res_hid[20], &cdelay, 4U);
+                memcpy(&res_hid[24], &nominal, 4U);
             }
             break;
         }

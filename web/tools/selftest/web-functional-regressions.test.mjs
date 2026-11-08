@@ -122,6 +122,29 @@ test('DHCSR retirement and reset flags do not cause a clock downgrade', async ()
   assert.equal((await session.verifyClock()).ok, true);
 });
 
+test('F103 high-speed tuning verifies intermediate SWD clocks and stops on a failed stage', async () => {
+  for (const failAt of [null, 36000000]){
+    const session = new DebugSession();
+    const probe = Object.create(OpenOcdProbe.prototype);
+    probe.cfg = { family:'stm32f103' };
+    session.probe = probe;
+    session.clockHz = 1000000;
+    const clocks = [];
+    const checks = [];
+    probe.setClock = async hz => { clocks.push(hz); probe.clockHz = hz; };
+    probe._readWord = async () => {
+      checks.push(probe.clockHz);
+      return probe.clockHz === failAt ? 0 : 0x00030003;
+    };
+    const result = await session.setAdapterClock(60000);
+    const expected = failAt ? [10000000, 20000000, failAt] : [10000000, 20000000, 36000000, 45000000, 60000000];
+    assert.deepEqual(checks, expected.flatMap(hz => [hz, hz, hz]));
+    assert.deepEqual(clocks, failAt ? [...expected, 1000000] : expected);
+    assert.equal(result.hz, failAt ? 1000000 : 60000000);
+    assert.equal(result.ok, failAt === null);
+  }
+});
+
 test('invalid SPI read benchmark input releases the shared busy flag', async () => {
   globalThis.document = { getElementById:() => ({value:'bad!'}) };
   const view = Object.create(SpiBusView.prototype);

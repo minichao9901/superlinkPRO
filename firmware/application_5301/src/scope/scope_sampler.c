@@ -79,7 +79,6 @@ _Static_assert((SCOPE_MAX_VARS * 8U) <= SCOPE_PAYLOAD, "帧装不进一个包");
  * 我们这边略保守；DEF 包里会回报 span 数，不一致时主机会立刻发现）。 */
 #define SCOPE_MERGE_GAP        12U
 #define SCOPE_STAT_EVERY       64U            /* 每多少个包插一个 STAT */
-#define SCOPE_YIELD_TICKS      (SCOPE_MCHTMR_HZ / 50U) /* 20 ms 内有 DAP 活动就让路一拍 */
 #define SCOPE_BENCH_MAX_ITERS  100000UL
 
 /* 传输后端（见文件后半的 scope_be_* 分派） */
@@ -850,10 +849,10 @@ static int scope_link_try(uint8_t be)
             s_swd_ready = 0U;
             return -4;
         }
-        /* 恢复路径可能降了一档：状态字要报**实际**生效的档位，不然网页会以为还是原档。 */
-        s_clock_hz = rtt_bridge_swd_clock_hz();
     }
 
+    /* 初次换档与故障恢复都可能落在低于请求值的实际时序。 */
+    s_clock_hz = rtt_bridge_swd_clock_hz();
     s_swd_ready = 1U;
     return 0;
 }
@@ -1070,17 +1069,13 @@ void scope_sampler_poll(void)
     uint32_t now = mchtmr_now();
     if ((int32_t)(now - s_next_tick) < 0) { return; }       /* 还没到点 */
 
-    /* 让路：最近 SCOPE_YIELD_TICKS 内有 DAP 命令 → 跳过这一拍（周期会豁一个口，
+    /* 让路：最近 20 ms 内有 DAP 命令 → 跳过这一拍（周期会豁一个口，
      * 但不会把正在调试的会话打断）。要绝对稳的周期就设 SCOPE_FLAG_NO_YIELD。 */
-    if (!(s_flags & SCOPE_FLAG_NO_YIELD))
+    if (!(s_flags & SCOPE_FLAG_NO_YIELD) && rtt_bridge_dap_recent(now))
     {
-        uint32_t last_dap = rtt_bridge_last_dap_ticks();
-        if ((last_dap != 0U) && ((uint32_t)(now - last_dap) < SCOPE_YIELD_TICKS))
-        {
-            s_yield++;
-            s_next_tick = now + s_period_ticks;
-            return;
-        }
+        s_yield++;
+        s_next_tick = now + s_period_ticks;
+        return;
     }
 
     /* Keep interrupts enabled. Only amortize main-loop services for an explicitly

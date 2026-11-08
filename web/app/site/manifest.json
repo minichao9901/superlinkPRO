@@ -24,7 +24,7 @@
     "app/core/log-search.js": "aa125c1d3f8e13370c3950c0852d18871efa780a5067a158e6b4571bbacb4a9f",
     "app/core/openocd-hpm-profile.js": "739be61ba63aa5567d694979c4c6dcd4ca7bba57785415535cdc8e79d6feac06",
     "app/core/openocd-jtag-pins.js": "c306ba27b0e930f8134c35503468aa1b92cd0f273f36ec6ad4fa91ff9a9a84b1",
-    "app/core/openocd-probe.js": "4fc22fa816d4670578df1fbd6800668bb77093b6e37db0012bc0718f9664d315",
+    "app/core/openocd-probe.js": "f5d8f1d4ff55a8642a05da79cb18312c9eba76cb1f64ce126545f73100c18120",
     "app/core/openocd-profile.js": "29199f94b78d584cf660c1ff49b535e722c298b0da28080fdc129cd0495a4625",
     "app/core/openocd-session.js": "8fd9ee6edd028164a4032883f8410ee4d74ffa447ed79986aeb4b24b4f04bb30",
     "app/core/operation-budget.js": "92c3c1a9c97f4cf9321df9b17caf72463d15b1ca9e98fb8ee78a4a151f7d2d41",
@@ -59,7 +59,7 @@
     "app/dbg/ram-fill.js": "ac366a556451f3c9eb89302c9e6e3206a445b45007ed529cd64be1eb3512f508",
     "app/dbg/regs.js": "89de3e7d1b210f997bd82469343721b4fe8e7745cec11cdc1f49ff047c33b0a0",
     "app/dbg/rv.js": "91181df64c016b6d4f26c434cab16d04ff94c3a76295097f27503e722896c8bb",
-    "app/dbg/session.js": "eee1c133fd7b1e1f49b81b8665081508f437f2f785c8d6e8930f3432364c22bd",
+    "app/dbg/session.js": "6b77b96403ec354ca731fede28656337807157b05f842e933303b8356fce5a9c",
     "app/dbg/source-syntax.js": "91f2c67733931f051511371a20bb93aa9aebfd17018db5e331a4638accde197c",
     "app/dbg/source.js": "a50f0f7a29dbce9dd016ba711c905ef0070c110e729d291d6cf950cea9590063",
     "app/dbg/svd-state.js": "5a286b059a073e7693d77fba2d0b3452f263ceccd4994b8238c77ecedd7381c5",
@@ -108,9 +108,9 @@
     "app/scope/mock.js": "06cd937bb48f81dee9c7a1d5753e8dd1b3b177c4823f21e0f67d4b71484d4ef6",
     "app/scope/protocol.js": "382afcce7dd771b92781167e73d4ff5dc6ca0b7d284113fa9d93ea7f38b8964e",
     "app/scope/render.js": "539faa88133f619836d12b3086c189367f7c28894165bc0240b6f0ff1283b6ca",
-    "app/scope/store.js": "a54138c35048ae447446201f3491ef81bb989ebad3e23e32fb26ca44800937e3",
+    "app/scope/store.js": "2b35389e7a55055c3bd1f753a4d406247580eb3befb0f1d604493127efbca0f3",
     "app/scope/transport.js": "2b8ad18ff23fe5e99703a85a4cced849a175bbda512024170416c61f964991a3",
-    "app/scope/view.js": "5c03ce93833ee92e23a9d931725e38f58c7de5cd0ab78de73a46ff88264ec34d",
+    "app/scope/view.js": "bf1b148fe3f70c0eadf68a3e32d56a9753f69193117e2690f7e32458a212d28e",
     "app/serial/assistant.js": "9b1862cdc4ed37f081eda6f4b323167fb168f607c0de50213d08aa9dd773be78",
     "app/serial/demo.js": "7e1cc7301b5edbcb99edaa1d2b43778aa5696a038d565b754abae5ae0a6d7ad6",
     "app/serial/session.js": "5d37537c36613d8a062a34f94d8afe834eb7c6746d5510ddb9d9fb14714fbff2",
@@ -170,6 +170,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "852c4166ec81abed70495d125a4b75d5e21f1816f6ad2abc5e15ec373e602012",
-  "outputBytes": 1180359
+  "outputSha256": "0ff078657920ee5282c95fdf437cd06a6ab678c394427ea27cb428ca6a0de3bc",
+  "outputBytes": 1182592
 }

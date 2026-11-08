@@ -184,6 +184,24 @@ def compile_batched_sba(source, build, scratch, emscripten, env):
     return obj
 
 
+def compile_large_image_reads(source, build, scratch, emscripten, env):
+    original = source / 'src/target/target.c'
+    code = original.read_text(encoding='utf-8')
+    limit = 'uint32_t buf_size = (size > 4096) ? 4096 : size;'
+    if code.count(limit) != 1:
+        raise ValueError('OpenOCD dump_image buffer changed upstream')
+    # Keep multiple CMSIS-DAP packets queued across the old 4 KiB file boundary.
+    generated = scratch / 'target-large-dump.c'
+    generated.write_text(code.replace(limit, limit.replace('4096', '65536')), encoding='utf-8')
+    obj = scratch / 'target-large-dump.o'
+    subprocess.run([
+        sys.executable, emscripten / 'emcc.py', '-std=gnu23', '-O1', '-DHAVE_CONFIG_H',
+        '-I', build, '-I', source / 'src', '-I', build / 'src', '-I', original.parent,
+        '-I', source / 'jimtcl', '-I', build / 'jimtcl', '-c', generated, '-o', obj,
+    ], check=True, env=env, cwd=scratch)
+    return obj
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--emsdk", type=Path, required=True)
@@ -229,6 +247,7 @@ def main():
         features = ["--bind", "-sASYNCIFY=1", "-sEXPORTED_FUNCTIONS=_main,_malloc,_free"]
     runtime_methods = "FS,callMain,ccall,lengthBytesUTF8,stringToUTF8,setValue"
     if args.browser_session:
+        replacements.append(compile_large_image_reads(source, build, scratch, emscripten, env))
         bridge = Path(__file__).with_name("openocd-browser-loop.c")
         bridge_obj = scratch / "openocd-browser-loop.o"
         subprocess.run([
@@ -241,7 +260,7 @@ def main():
         replacements.append(compile_batched_sba(source, build, scratch, emscripten, env))
         replacements.append(compile_webusb_events(args.libusb_source.resolve(), args.libusb_build.resolve(),
                                                   scratch, emscripten, env))
-        features.append("-Wl,--wrap=server_loop")
+        features += ["-Wl,--wrap=server_loop", "-Wl,--wrap=timeval_ms"]
         runtime_methods += ",stringToNewUTF8,UTF8ToString"
     subprocess.run([
         sys.executable, emscripten / linker, f"-{args.optimization}", main_obj,

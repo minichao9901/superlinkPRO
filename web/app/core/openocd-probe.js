@@ -95,6 +95,7 @@ export class OpenOcdProbe {
           throw Error('OpenOCD 未确认目标 SWD DPIDR');
       }
       this.link = link;
+      this._f103HighDensity = undefined;
     } catch (error){
       await link.close().catch(() => {});
       throw error;
@@ -173,13 +174,27 @@ export class OpenOcdProbe {
     return values.map(Number);
   }
 
+  async _usesF103SramImage(address, length){
+    if (this.cfg?.family !== 'stm32f103' || this.cfg.raw || length < 4096 || address % 4 || length % 4 ||
+        address < 0x20000000 || address + length > 0x20010000) return false;
+    if (this._f103HighDensity === undefined){
+      const device = await this._readWord(0xe0042000).catch(() => null);
+      if (device === null) return false;
+      this._f103HighDensity = (device & 0xfff) === 0x414;
+    }
+    return this._f103HighDensity;
+  }
+
   async readMem(address, length){
     checkRange(address, length);
     const start = this.physical && length ? address - address % 4 : address;
     const end = this.physical && length ? Math.ceil((address + length) / 4) * 4 : address + length;
     this._checkFence(start, end - start);
-    if (this.physical && isHpm6800BulkSram(this.cfg, start, end - start)){
-      const { bytes } = await this.link.request('memoryImage', { address:start, length:end - start });
+    if ((this.physical && isHpm6800BulkSram(this.cfg, start, end - start)) ||
+        await this._usesF103SramImage(start, end - start)){
+      const { bytes } = await this.link.request('memoryImage', {
+        address:start, length:end - start, ...(!this.physical && { physical:false }),
+      });
       if (bytes?.length !== end - start) throw Error('OpenOCD 二进制内存回读长度不匹配');
       return bytes.subarray(address - start, address - start + length);
     }
@@ -202,8 +217,11 @@ export class OpenOcdProbe {
   async writeMem(address, bytes){
     checkRange(address, bytes.length);
     this._checkFence(address, bytes.length);
-    if (this.physical && isHpm6800BulkSram(this.cfg, address, bytes.length)){
-      await this.link.request('memoryImage', { address, length:bytes.length, input:bytes });
+    if ((this.physical && isHpm6800BulkSram(this.cfg, address, bytes.length)) ||
+        await this._usesF103SramImage(address, bytes.length)){
+      await this.link.request('memoryImage', {
+        address, length:bytes.length, input:bytes, ...(!this.physical && { physical:false }),
+      });
       return;
     }
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);

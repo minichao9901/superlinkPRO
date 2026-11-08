@@ -452,7 +452,7 @@ def web_command(args):
 
 def capture_command(args):
     from trace_cli_hardware import HardwareLease, TargetBridge, EchoLoad
-    from la.kingst_la import Vis, do_export, read_glitch_settings
+    from la.kingst_la import Vis, clock_glitch_filter_error, do_export, read_glitch_settings
     if not 0 < args.seconds <= 1 or not 0 < args.rate <= 500000000 or args.rate*args.seconds > 500000000:
         raise CliError('单次上限1s/5亿样本，采样率≤500MSa/s')
     if len(set([args.clock]+args.data)) != 5 or any(not 0 <= ch <= 15 for ch in [args.clock]+args.data):
@@ -544,6 +544,8 @@ def capture_command(args):
                 value = extent(folder, metadata)
                 metadata['captureExtent'] = value
                 save(folder/'session.json', metadata);input_bindings(folder)
+                if error := clock_glitch_filter_error(metadata['laFilter'], args.clock):
+                    raise CliError(error, 5, metadata['laFilter'])
                 # KVDAT and device must agree; set-time ACK alone is not sufficient.
                 if int(metadata['actualDepth']) != value['actualSamples']:
                     raise CliError('设备回读深度与保存的KVDAT不一致', 5, value)

@@ -122,8 +122,8 @@ int      rtt_bridge_swd_is_ready(void);
 /* 块读目标内存（0 = 成功）。内部按 s_chunk 切块，带失败重试。 */
 int      rtt_bridge_read(uint32_t addr, uint8_t *dst, uint32_t len);
 
-/* 最近一次 DAP 命令的 MCHTMR 时刻（0 = 从未执行过）——采样器用它做"让路"判断 */
-uint32_t rtt_bridge_last_dap_ticks(void);
+/* 最近 20 ms 是否有 DAP 活动。now 是采样方已读出的 MCHTMR 低字。 */
+int      rtt_bridge_dap_recent(uint32_t now);
 
 /* 运行时改 SWD 时钟档（运行中也能改；换挡走桥那套斜坡路径） */
 void     rtt_bridge_set_swd_clock(uint32_t hz);

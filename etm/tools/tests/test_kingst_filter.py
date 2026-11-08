@@ -4,11 +4,19 @@ from pathlib import Path
 from unittest.mock import patch
 from types import SimpleNamespace
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'la'))
-from kingst_la import glitch_preset_bytes,read_glitch_settings,cmd_glitch_preset
+from kingst_la import clock_glitch_filter_error,glitch_preset_bytes,read_glitch_settings,cmd_glitch_preset
 ROOT=Path(__file__).resolve().parents[2]
 def settings():
     return b'<settings><global><other>\xd6\xd0\xce\xc4</other><glitchFilterMode>0</glitchFilterMode><glitchFilterSettings>'+b'0,1,'*16+b'</glitchFilterSettings></global></settings>'
 class FilterTests(unittest.TestCase):
+    def test_capture_clock_filter_reports_selected_channel_and_periods(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=Path(temp)/'vis.config'
+            path.write_bytes(glitch_preset_bytes(settings(),[3],10))
+            info=read_glitch_settings(path,500000000)
+        self.assertIsNone(clock_glitch_filter_error(info,0))
+        self.assertIsNone(clock_glitch_filter_error({'basis':'unknown'},3))
+        self.assertRegex(clock_glitch_filter_error(info,3),r'CH3.*10 个采样周期.*重新采集')
     def test_only_selected_channels_change_and_local_encoding_survives(self):
         modified=glitch_preset_bytes(settings(),[0,4],2)
         self.assertIn(b'<other>\xd6\xd0\xce\xc4</other>',modified)

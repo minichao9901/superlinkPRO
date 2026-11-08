@@ -314,7 +314,7 @@ console.log('== 6. 类型化缓冲 + LOD 金字塔 ==');
   ok(superset, 'LOD 包络是精确包络的超集（不会漏掉任何极值）');
   ok(exactHit > 0, `其中 ${exactHit}/${cols} 列与精确值完全一致`);
 
-  // 放大到每列 < 16 个样本时应当自动切成精确扫描
+  // 放大到每列 < 32 个样本时应当自动切成精确扫描
   const mn2 = new Float64Array(8), mx2 = new Float64Array(8);
   const lod2 = st2.channel(0).columns(0, 64, 8, mn2, mx2);
   ok(lod2 === false, '每列 8 个样本 → 逐样本精确扫描（放大后取值必须精确）');
@@ -330,6 +330,20 @@ console.log('== 6. 类型化缓冲 + LOD 金字塔 ==');
   ok(near(st3.rate(), 1e6 / 100, 1), `实测速率 ≈ 10 kHz（实际 ${st3.rate().toFixed(1)} Hz）`);
   ok(near(st3.timeAt(5), 500, 1), `timeAt(5) ≈ 500 µs（实际 ${st3.timeAt(5).toFixed(1)}）`);
   ok(st3.bytes() > 10 * 2, `显存占用统计含 LOD（${st3.bytes()} B）`);
+
+  const mixed = [{ scalar: 'u8' }, { scalar: 'i16' }, { scalar: 'f64' }];
+  const exactLimit = new S.SampleStore(mixed, 257).bytes();
+  ok(S.SampleStore.fitCapacity(mixed, 4097, exactLimit) === 257,
+    '样本容量上限与混合类型、LOD 和时间锚点的实际分配一致');
+  for (const [channels, periodUs] of [[1, 56 / 24], [8, 16]]){
+    const longVars = Array.from({ length: channels }, () => ({ scalar: 'u32' }));
+    const target = Math.ceil(60e6 / periodUs) + 1;
+    const requested = Math.ceil((target - 1) * 1.1) + 64;
+    const capacity = S.SampleStore.fitCapacity(longVars, requested, 128 * 1024 * 1024);
+    const bytes = new S.SampleStore(longVars, capacity).bytes();
+    ok(capacity >= target && bytes <= 128 * 1024 * 1024,
+      `${channels} 路 ${periodUs.toFixed(3)} µs 可在 128 MiB 样本预算内存满 60 秒（${capacity} 组，${bytes} B）`);
+  }
 
   // 段内插值必须用**相邻锚点**的实测间隔，不能用全局平均：
   // 真机采到过 40 ms 的长卡顿，若拿"首尾÷样本数"的平均速率插值，段内局部读数会整体偏。

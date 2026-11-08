@@ -52,7 +52,7 @@ static int rtt_bridge_swd_ensure_ready(void) { return 0; }
 static int rtt_bridge_link_recover(void) { return 0; }
 static int rtt_bridge_read(uint32_t a, uint8_t *d, uint32_t n)
 { return swd_read_block4(a, d, n) ? 0 : -1; }
-static uint32_t rtt_bridge_last_dap_ticks(void) { return test_last_dap; }
+static int rtt_bridge_dap_recent(uint32_t now) { return test_last_dap && now - test_last_dap < 480000U; }
 static void rtt_bridge_request_swd_clock(uint32_t h) { (void)h; }
 static uint8_t chry_dap_usb2uart_is_enabled(void) { return test_cdc; }
 static void chry_dap_usb2uart_set_enabled(uint8_t v) { test_cdc = v; }

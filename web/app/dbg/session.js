@@ -129,12 +129,19 @@ export class DebugSession {
   async connect({ mock = false, cfg, device } = {}){
     if (this.probe) throw Error('已经连接了（先断开）');
     this.backendName = mock ? '模拟目标' : 'OpenOCD Wasm / WebUSB';
+    let requestedClock;
     if (mock){
       const { MockTarget } = await import('./mock.js');
       this.probe = new MockTarget();
       await this.probe.connect();
     } else {
       if (!device || !cfg) throw Error('请先选择探针和 Cortex-M 目标配置');
+      // The F103 high-speed timing blob can miss the first PPB access after
+      // a direct jump. Establish the link at 1 MHz, then qualify each stage.
+      if (cfg.family === 'stm32f103' && !cfg.raw && cfg.clockKhz > 20000){
+        requestedClock = cfg.clockKhz;
+        cfg = { ...cfg, clockKhz:1000, script:cfg.script.replace(/^adapter speed \d+$/m, 'adapter speed 1000') };
+      }
       this.probe = await OpenOcdProbe.open(device, { cfg, onLog:line => this._log(line, 'dim') });
       this.clockHz = this.probe.clockHz;
     }
@@ -142,7 +149,8 @@ export class DebugSession {
       this.name = this.probe.name;
       this.idcode = this.probe.idcode >>> 0;
       this._cStepWorks = null;
-      if (!mock) await this.verifyClock();
+      if (requestedClock) await this._setVerifiedClock(requestedClock);
+      else if (!mock) await this.verifyClock();
       await this.refresh();
       await this.bpInit();
       this._log(`已连接：${this.name} · ${this.clockHz / 1000} kHz · IDCODE ${hex32(this.idcode)}`, 'ok');
@@ -186,10 +194,23 @@ export class DebugSession {
     if (!Number.isInteger(khz) || khz < 1 || khz > 60000) throw Error('SWD 时钟须在 1–60000 kHz');
     return await this.exclusive(async () => {
       if (!(this.probe instanceof OpenOcdProbe) || this.probe.isRiscv) throw Error('请先连接 Wasm / SWD 目标');
-      await this.probe.setClock(khz * 1000);
-      this.clockHz = this.probe.clockHz;
-      return await this.verifyClock();
+      return await this._setVerifiedClock(khz);
     });
+  }
+
+  async _setVerifiedClock(khz){
+    const stages = this.probe.cfg?.family === 'stm32f103' && khz > 20000
+      ? [10000, 20000, 36000, 45000].filter(stage => stage * 1000 > this.clockHz && stage < khz)
+      : [];
+    stages.push(khz);
+    let result;
+    for (const stage of stages){
+      await this.probe.setClock(stage * 1000);
+      this.clockHz = this.probe.clockHz;
+      result = await this.verifyClock();
+      if (!result.ok) return result;
+    }
+    return result;
   }
 
   async disconnect(){

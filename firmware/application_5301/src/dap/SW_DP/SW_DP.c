@@ -1403,21 +1403,24 @@ typedef uint8_t (*swd_read_ptr)(uint32_t request, uint32_t *data, uint32_t delay
 swd_sequence_ptr seq_func = NULL;
 swd_write_ptr write_func = NULL;
 swd_read_ptr read_func = NULL;
+static uint32_t swd_nominal_hz;
 
 /* 诊断用（见 SW_DP.h）：把"实际装载了哪个 blob"变成可以远程读到的数 —— 
  * 光看请求频率分辨不出"命令被忽略"和"命令生效但没差别"。 */
 uint32_t swd_blob_read_offset(void)
 {
-    if ((read_func == NULL) || ((uint32_t)(uintptr_t)read_func < (uint32_t)(uintptr_t)swd_ops))
-    {
-        return 0xFFFFFFFFU;
-    }
-    return (uint32_t)((uint32_t)(uintptr_t)read_func - (uint32_t)(uintptr_t)swd_ops);
+    const uintptr_t offset = (uintptr_t)read_func - (uintptr_t)swd_ops;
+    return offset < sizeof(swd_ops) ? (uint32_t)offset : UINT32_MAX;
 }
 
 uint32_t swd_blob_clock_delay(void)
 {
     return DAP_Data.clock_delay;
+}
+
+uint32_t swd_blob_nominal_clock_hz(void)
+{
+    return swd_nominal_hz;
 }
 
 void SWD_DynamicLoad_Slow(void)
@@ -1428,6 +1431,7 @@ void SWD_DynamicLoad_Slow(void)
     seq_func = (swd_sequence_ptr)((uint32_t)swd_ops + SWJ_SEQUENCE_OFFSET_SLOW);
     write_func = (swd_write_ptr)((uint32_t)swd_ops + SWD_WRITE_OFFSET_SLOW);
     read_func = (swd_read_ptr)((uint32_t)swd_ops + SWD_READ_OFFSET_SLOW);
+    swd_nominal_hz = 0U;
 }
 
 void SWD_DynamicLoad_60M(void)
@@ -1438,6 +1442,7 @@ void SWD_DynamicLoad_60M(void)
     seq_func = (swd_sequence_ptr)((uint32_t)swd_ops + SWJ_SEQUENCE_OFFSET_60M);
     write_func = (swd_write_ptr)((uint32_t)swd_ops + SWD_WRITE_OFFSET_60M);
     read_func = (swd_read_ptr)((uint32_t)swd_ops + SWD_READ_OFFSET_60M);
+    swd_nominal_hz = 60000000U;
 }
 
 void SWD_DynamicLoad_45M(void)
@@ -1448,6 +1453,7 @@ void SWD_DynamicLoad_45M(void)
     seq_func = (swd_sequence_ptr)((uint32_t)swd_ops + SWJ_SEQUENCE_OFFSET_45M);
     write_func = (swd_write_ptr)((uint32_t)swd_ops + SWD_WRITE_OFFSET_45M);
     read_func = (swd_read_ptr)((uint32_t)swd_ops + SWD_READ_OFFSET_45M);
+    swd_nominal_hz = 45000000U;
 }
 
 void SWD_DynamicLoad_36M(void)
@@ -1458,6 +1464,7 @@ void SWD_DynamicLoad_36M(void)
     seq_func = (swd_sequence_ptr)((uint32_t)swd_ops + SWJ_SEQUENCE_OFFSET_36M);
     write_func = (swd_write_ptr)((uint32_t)swd_ops + SWD_WRITE_OFFSET_36M);
     read_func = (swd_read_ptr)((uint32_t)swd_ops + SWD_READ_OFFSET_36M);
+    swd_nominal_hz = 36000000U;
 }
 
 void SWD_DynamicLoad_30M(void)
@@ -1468,6 +1475,7 @@ void SWD_DynamicLoad_30M(void)
     seq_func = (swd_sequence_ptr)((uint32_t)swd_ops + SWJ_SEQUENCE_OFFSET_30M);
     write_func = (swd_write_ptr)((uint32_t)swd_ops + SWD_WRITE_OFFSET_30M);
     read_func = (swd_read_ptr)((uint32_t)swd_ops + SWD_READ_OFFSET_30M);
+    swd_nominal_hz = 30000000U;
 }
 
 void SWD_DynamicLoad_20M(void)
@@ -1478,6 +1486,7 @@ void SWD_DynamicLoad_20M(void)
     seq_func = (swd_sequence_ptr)((uint32_t)swd_ops + SWJ_SEQUENCE_OFFSET_20M);
     write_func = (swd_write_ptr)((uint32_t)swd_ops + SWD_WRITE_OFFSET_20M);
     read_func = (swd_read_ptr)((uint32_t)swd_ops + SWD_READ_OFFSET_20M);
+    swd_nominal_hz = 20000000U;
 }
 
 #if ((DAP_SWD != 0) || (DAP_JTAG != 0))

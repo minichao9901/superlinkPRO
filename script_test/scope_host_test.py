@@ -21,7 +21,8 @@ with tempfile.TemporaryDirectory(prefix='scope-host-') as d:
     unit = (root / 'script_test/host/scope_test_support.h').read_text(encoding='utf-8') + '\n' + source
     unit += '\n' + (root / 'script_test/host/scope_test_cases.c').read_text(encoding='utf-8')
     (path / 'test.c').write_text(unit, encoding='utf-8')
-    subprocess.run([os.environ.get('CC', 'gcc'), '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
-                    f'-I{root / "firmware/application_5301/src/api"}', '-Wno-unused-function', '-Wno-unused-variable', str(path / 'test.c'),
-                    '-o', str(path / 'test')], check=True)
-    subprocess.run([str(path / 'test')], check=True)
+    for flags in ([], ['-DSCOPE_TX_BUFS=32']):
+        subprocess.run([os.environ.get('CC', 'gcc'), '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+                        f'-I{root / "firmware/application_5301/src/api"}', '-Wno-unused-function', '-Wno-unused-variable',
+                        *flags, str(path / 'test.c'), '-o', str(path / 'test')], check=True)
+        subprocess.run([str(path / 'test')], check=True)

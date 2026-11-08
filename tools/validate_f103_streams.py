@@ -57,7 +57,17 @@ def main():
         def metrics():
             r=call(0x32,[11]);assert len(r)>=52,'Short metrics'
             w=struct.unpack_from('<12I',r,4);assert w[0]==0x31535348 and w[2]==24000000,'Invalid metrics'
-            return dict(zip(['magic','tick','hz','produced','skipped','usb','errors','yields','tx','bytes','periodTicks','flags'],w))
+            values=dict(zip(['magic','tick','hz','produced','skipped','usb','errors','yields','tx','bytes','periodTicks','flags'],w))
+            if r[1]>=54 and len(r)>=56:values['invalidSamples']=struct.unpack_from('<I',r,52)[0]
+            return values
+        def wait_scope_stopped():
+            deadline=time.monotonic()+2
+            while time.monotonic()<deadline:
+                response=call(0x32,[2]);flags=struct.unpack_from('<I',response,4)[0]
+                if flags&0x81:raise RuntimeError('Scope STOP was aborted or still sampling')
+                if not flags&0x40:return
+                time.sleep(.01)
+            raise TimeoutError('Scope STOP did not finish')
         if dev:
             wire=512/(496//(a.variables*4))*1e6/a.period
             fast=wire*.030>3*4096;depth=max(6,min(16,math.ceil(wire*.080/8192))) if fast else 3;chunk=8192 if fast else 4096
@@ -70,12 +80,28 @@ def main():
         if dev:
             after=metrics();delta=lambda k:(after[k]-before[k])&0xffffffff;dt=delta('tick')/24000000
             result.update(metricsBefore=before,metricsAfter=after,stable={**{k:delta(k) for k in ['produced','skipped','usb','errors','yields']},'seconds':dt,'Hz':delta('produced')/dt,'runningBefore':bool(before['flags']&256),'runningAfter':bool(after['flags']&256)})
+        stop_tail=bool(dev and (struct.unpack_from('<I',call(0x32,[2]),4)[0]&0x20))
+        if stop_tail:
+            bulk_reader.begin_drain()
+        elif bulk_reader:
             bulk_reader.finite_tail();time.sleep(.02)
-        reply=call(0x31 if port else 0x32,[0]);started=False;result['stopReply']=reply.hex()
+        reply=call(0x31 if port else 0x32,[0,1] if stop_tail else [0]);result['stopReply']=reply.hex()
+        if stop_tail:
+            if reply[3] not in (0,156):raise RuntimeError('Scope rejected tail STOP')
+            remaining=bulk_reader.wait_eof()
+            wait_scope_stopped()
+            if remaining:
+                retired=call(0x32,[13,remaining])
+                if retired[3]!=0:raise RuntimeError('Scope rejected pending read retirement')
+            bulk_reader.wait_retired()
+            wait_scope_stopped()
+            result['tailDrain']={'retiredReads':remaining}
+        started=False
         time.sleep(.3)
         if bulk_reader:bulk_reader.stop();read_errors.extend(bulk_reader.errors);bulk_reader=None
         if reader:reading.clear();reader.join(2);assert not reader.is_alive(),'Receiver did not stop'
         status=call(0x31 if port else 0x32,[2]);result['statusReply']=status.hex()
+        if dev:result['finalMetrics']=metrics()
         result.update(bytes=len(raw),seconds=seconds,activeBytes=active_bytes,MBps=active_bytes/seconds/1e6,sha256=hashlib.sha256(raw).hexdigest(),receiveErrors=read_errors)
         if port:
             records=[int(v) for v in re.findall(rb'seq (\d{7})\r\n',raw)];gaps=sum(b!=(a+1)%10000000 for a,b in zip(records,records[1:]));result.update(records=len(records),gaps=gaps,passed=len(records)>1000 and gaps==0)

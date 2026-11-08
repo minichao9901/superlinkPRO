@@ -164,18 +164,19 @@ def run(source, config=None, chunk_bytes=1 << 20, chunk_plan=None, out_prefix=No
         args.extend(['--json', str(json_path)])
     started = time.perf_counter()
     try:
-        completed = _run_binary(binary, args, timeout)
-    except subprocess.TimeoutExpired as error:
-        raise NativeFrontendError(f'原生前端超时（{timeout}s）：{source.name}') from error
-    elapsed = time.perf_counter() - started
-    stderr = completed.stderr.decode('utf-8', 'replace').strip()
-    if completed.returncode != 0:
-        raise NativeFrontendError(
-            f'原生前端失败（退出码 {completed.returncode}）：{stderr or "(无输出)"}')
-    try:
-        result = json.loads(json_path.read_text(encoding='utf-8'))
-    except (OSError, json.JSONDecodeError) as error:
-        raise NativeFrontendError(f'原生前端结果 JSON 不可读：{error}') from error
+        try:
+            completed = _run_binary(binary, args, timeout)
+        except subprocess.TimeoutExpired as error:
+            raise NativeFrontendError(f'原生前端超时（{timeout}s）：{source.name}') from error
+        elapsed = time.perf_counter() - started
+        stderr = completed.stderr.decode('utf-8', 'replace').strip()
+        if completed.returncode != 0:
+            raise NativeFrontendError(
+                f'原生前端失败（退出码 {completed.returncode}）：{stderr or "(无输出)"}')
+        try:
+            result = json.loads(json_path.read_text(encoding='utf-8'))
+        except (OSError, json.JSONDecodeError) as error:
+            raise NativeFrontendError(f'原生前端结果 JSON 不可读：{error}') from error
     finally:
         if not keep_json:
             try:

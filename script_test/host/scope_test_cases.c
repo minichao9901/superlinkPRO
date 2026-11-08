@@ -109,6 +109,28 @@ int main(void)
     assert(test_zlp_count == 1 && s_tx_zlp && !test_cdc);
     scope_sampler_tx_complete(); scope_sampler_poll();
     assert(test_cdc && !scope_sampler_is_running() && s_bench_err == 0 && s_bench_iters == 20);
+    /* Six milliseconds without an IN completion at the two tested high rates. */
+    scope_var_t gap_vars[8];
+    for (unsigned i = 0; i < 8; i++) {
+        gap_vars[i] = (scope_var_t){0x20001014U + i * 4U, 4, 4, 0};
+    }
+    const uint8_t gap_channels[] = {1, 8};
+    const uint32_t gap_period_ticks[] = {56, 384};
+    for (unsigned plan = 0; plan < 2; plan++) {
+        reset_test();
+        const uint8_t channels = gap_channels[plan];
+        const uint32_t period_ticks = gap_period_ticks[plan];
+        assert(scope_sampler_configure_ticks(period_ticks, SCOPE_FLAG_FAST_BATCH | SCOPE_FLAG_CDC_OFF,
+                                             channels, gap_vars) == 0);
+        assert(scope_start_now() == 0);
+        const uint32_t attempts = 6000U * 24U / period_ticks;
+        for (uint32_t i = 0; i < attempts; i++) { assert(scope_sample_once() == 0); }
+        const uint32_t data_slots = (SCOPE_TX_BUFS - 1U) * (SCOPE_PAYLOAD / (4U * channels));
+        const uint32_t buffered = attempts < data_slots ? attempts : data_slots;
+        assert(s_produced == buffered && s_usb_drop == attempts - buffered);
+        printf("scope 6 ms USB gap, %u channels, %u slots: buffered %u, dropped %u\n",
+               (unsigned)channels, (unsigned)SCOPE_TX_BUFS, (unsigned)s_produced, (unsigned)s_usb_drop);
+    }
     /* Recent DAP traffic still prevents entry into a batch. */
     reset_test();
     assert(scope_sampler_configure_ticks(48, SCOPE_FLAG_FAST_BATCH | SCOPE_FLAG_DISCARD, 1, &one) == 0);

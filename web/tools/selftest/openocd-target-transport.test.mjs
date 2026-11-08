@@ -25,6 +25,18 @@ test('production Wasm accepts SWD and JTAG configurations without opening hardwa
   }
 });
 
+test('browser Wasm uses an advancing monotonic clock for OpenOCD waits', async () => {
+  await installNativeOpenOcd({ getDevices:async () => assert.fail('clock test must never open USB') });
+  const session = new OpenOcdTargetSession();
+  try {
+    await session.open(makeOpenOcdProfile());
+    const first = Number(await session.command('ms'));
+    await new Promise(resolve => setTimeout(resolve, 40));
+    const second = Number(await session.command('ms'));
+    assert(first >= 0 && second - first >= 25, `OpenOCD clock: ${first} to ${second}`);
+  } finally { await session.close(); }
+});
+
 test('original CFG directory exposes multiple cores and a flash bank without USB', async () => {
   let usbCalls=0;
   await installNativeOpenOcd({ getDevices:async () => { usbCalls++; return []; } });
@@ -82,6 +94,35 @@ test('bulk HPM6800 SRAM uses binary images without changing edge or peripheral a
     [['memoryImage',0x01240000,4096,undefined],['memoryImage',0x18000,4096,4096]]);
   await assert.rejects(probe.readMem(0x80000000, 4096), /禁止通过 SBA/);
   assert.equal(requests.length, 2);
+});
+
+test('binary ARM images are limited to aligned SRAM on an identified high-density F103', async () => {
+  const cfg = makeOpenOcdProfile({ family:'stm32f103' });
+  const probe = new OpenOcdProbe({}, cfg);
+  let identifications = 0;
+  probe._readWord = async address => {
+    assert.equal(address, 0xe0042000);
+    identifications++;
+    return 0x414;
+  };
+  const calls = [];
+  const input = new Uint8Array(4096);
+  probe.link = { request:async (type, args) => {
+    calls.push([type,args]);
+    return { bytes:input };
+  } };
+  assert.deepEqual(await probe.readMem(0x20000000, input.length), input);
+  await probe.writeMem(0x2000f000, input);
+  assert.deepEqual(calls, [
+    ['memoryImage',{address:0x20000000,length:4096,physical:false}],
+    ['memoryImage',{address:0x2000f000,length:4096,input,physical:false}],
+  ]);
+  assert.equal(identifications, 1);
+  for (const address of [0x20000001, 0x2000f004, 0xe0000000])
+    assert.equal(await probe._usesF103SramImage(address, 4096), false);
+  const other = new OpenOcdProbe({}, cfg);
+  other._readWord = async () => 0x410;
+  assert.equal(await other._usesF103SramImage(0x20000000, 4096), false);
 });
 
 function flashTarget(){

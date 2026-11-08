@@ -30,10 +30,18 @@ static inline uint8_t scope_sampler_needs_service(void)
 
 #define SCOPE_MAX_VARS   8U     /* 8 个变量正好装进一条 63 B 的 HID 配置报文 */
 #define SCOPE_PACKET     512U   /* HS bulk 的 wMaxPacketSize（也是 DAP_PACKET_SIZE） */
-#define SCOPE_TX_BUFS    8U     /* 在飞的包缓冲数。512 B × 8 = 4 KB（DLM 现在很紧，别再加）。
-                                 * 它是"探针能容忍主机多慢"的唯一缓冲：主机（尤其是串行读的
-                                 * 调试脚本）两次下发之间的间隔一旦超过 BUFS×每包耗时，就开始
-                                 * 丢拍。实测 4 个时 50 kHz 下丢 8.3%，8 个基本吃平。 */
+/* Each slot occupies 512 B of non-cacheable DLM. Use a deeper queue on
+ * boards with room for it to absorb USB completion gaps at high rates. */
+#ifndef SCOPE_TX_BUFS
+#ifdef SCOPE_TX_BUFS_BOARD_DEFAULT
+#define SCOPE_TX_BUFS    SCOPE_TX_BUFS_BOARD_DEFAULT
+#else
+#define SCOPE_TX_BUFS    8U
+#endif
+#endif
+#if SCOPE_TX_BUFS < 2U || SCOPE_TX_BUFS > 32U
+#error "SCOPE_TX_BUFS must be between 2 and 32"
+#endif
 #define SCOPE_SPAN_MAX   64U    /* 单个 span 的读缓冲上限：8 个 f64 = 64 B */
 
 /* flags（HID 0x32 action 7 的第 5 字节） */

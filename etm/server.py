@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'tools/la'))
 from decode_trace import DEFAULT_CONFIG, Image, decode_capture, decoder_config
 from flow_analysis import enrich
-from kingst_la import Vis, do_export, read_glitch_settings
+from kingst_la import Vis, clock_glitch_filter_error, do_export, read_glitch_settings
 from record_store import RecordStore, record_store
 from trace_store_adapter import (BACKEND_TRACE, MANIFEST_NAME as STORE_MANIFEST_NAME,
                                 adapter as trace_store_adapter,
@@ -1062,6 +1062,10 @@ def capture_job(jid, sid, options):
             save(sid, m)
             change(jid, state='cancelled',
                    error='采集已停止：原始波形已保存，未启动解码')
+            return
+        if error := clock_glitch_filter_error(m['laFilter'], options['clock']):
+            record_failure(sid, error, 'capture')
+            change(jid, state='error', error=error)
             return
         if options['decode']:
             decode_job(jid, sid)

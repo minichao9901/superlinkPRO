@@ -41,13 +41,10 @@ void SWD_DynamicLoad_36M(void);
 void SWD_DynamicLoad_30M(void);
 void SWD_DynamicLoad_20M(void);
 
-/* 诊断：当前装载的读 blob 在 swd_ops 里的偏移，以及传给它的 clock_delay。
- * 这是"SWJ_Clock 到底换挡了没有"的唯一可靠证据 —— 光看状态字里的请求频率没用，
- * 那个值在链路还没起来时也会被记下来（rtt_bridge_set_swd_clock 的 else 分支）。
- * 返回值对应关系（见 swd_blob_evklite.h 的 SWD_READ_OFFSET_*）：
- *   0x53C=60M  0x60C=45M  0x6E0=36M  0x7C4=30M  0xA54=20M  0x620=SLOW
- *   0xFFFFFFFF = 还没装载过任何 blob（read_func 为 NULL）。 */
+/* 读引擎在 swd_ops 内的偏移和当前延时。UINT32_MAX 表示未加载。 */
 uint32_t swd_blob_read_offset(void);
 uint32_t swd_blob_clock_delay(void);
+/* Nominal rate of the selected fixed timing. Zero for variable timing. */
+uint32_t swd_blob_nominal_clock_hz(void);
 
 #endif

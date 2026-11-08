@@ -9,8 +9,8 @@
  *  3. **不存每个样本的时间戳**：只每隔 64 个样本存一个锚点（t_us），中间用实测速率插值 ——
  *     1 M 样本也只有 16 K 个锚点（几百 KB），时间轴精度远好于像素。
  *
- * LOD 金字塔：每通道额外维护 16 / 256 / 4096 三级的 min/max。
- * 画图时按"每像素列多少个样本"挑一级，**只有完全放大（每列 < 16 个样本）时才逐样本精确扫**。
+ * LOD 金字塔：每通道额外维护 32 / 256 / 4096 三级的 min/max。
+ * 画图时按"每像素列多少个样本"挑一级，每列少于 32 个样本时逐样本精确扫描。
  * 用 LOD 时列边界会向外扩到块边界（相邻列多含最多一个块的样本）—— 这是示波器软件的通行做法：
  * 包络只会"稍微胖一点"，但绝不会漏掉尖峰（漏尖峰比胖一点严重得多）。
  */
@@ -22,7 +22,8 @@ const CTOR = {
 };
 export const ctorFor = scalar => CTOR[scalar] || Float32Array;
 
-const LOD_FACTORS = [16, 256, 4096];
+const LOD_FACTORS = [32, 256, 4096];
+const TIMESTAMP_STRIDE = 64;
 
 export class Channel {
   constructor({ name, scalar = 'f32', capacity, scale = 1, offset = 0 } = {}){
@@ -112,6 +113,20 @@ export class Channel {
 }
 
 export class SampleStore {
+  static fitCapacity(vars, requested, byteLimit){
+    const frameBytes = vars.reduce((sum, v) => sum + ctorFor(v.scalar).BYTES_PER_ELEMENT, 0);
+    let low = 0, high = requested;
+    while (low < high){
+      const count = Math.ceil((low + high) / 2);
+      const lodSlots = LOD_FACTORS.reduce((sum, factor) => sum + Math.ceil(count / factor), 0);
+      const timestampBytes = (Math.ceil(count / TIMESTAMP_STRIDE) + 2) * Float64Array.BYTES_PER_ELEMENT;
+      const bytes = frameBytes * (count + 2 * lodSlots) + timestampBytes;
+      if (bytes <= byteLimit) low = count;
+      else high = count - 1;
+    }
+    return low;
+  }
+
   /**
    * @param {Array<{name,addr,size,scalar}>} vars 变量表（顺序 = 帧内顺序）
    * @param {number} capacity 每个通道能存多少个样本
@@ -123,7 +138,7 @@ export class SampleStore {
       name: v.name, scalar: v.scalar || 'f32', capacity,
       scale: opts.scale?.[v.name] ?? 1, offset: opts.offset?.[v.name] ?? 0,
     }));
-    this.tsEvery = 64;
+    this.tsEvery = TIMESTAMP_STRIDE;
     this.tsUs = new Float64Array(Math.ceil(capacity / this.tsEvery) + 2);
     this.tsN = 0;
     this.count = 0;

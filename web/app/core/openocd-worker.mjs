@@ -30,6 +30,9 @@ export function createOpenOcdDispatcher({ post, select, wasmBinary, onExit }){
       noInitialRun:true,
       print:log,
       printErr:log,
+      isArmMemoryImage(){
+        return pending?.type === 'memoryImage' && pending.physical === false;
+      },
       nextCommand(){
         return new Promise(resolve => {
           next = resolve;
@@ -118,7 +121,8 @@ export function createOpenOcdDispatcher({ post, select, wasmBinary, onExit }){
         const operation = input ? `load_image ${memoryFile} ${address} bin` : `dump_image ${memoryFile} ${address} ${length}`;
         // Image commands lack a phys flag. Switch translation for this one
         // command while keeping the selected memory access method intact.
-        command = 'set workbench_mode [riscv virt2phys_mode]; riscv virt2phys_mode off; ' +
+        command = request.physical === false ? operation :
+          'set workbench_mode [riscv virt2phys_mode]; riscv virt2phys_mode off; ' +
           `set workbench_rc [catch {${operation}} workbench_result]; ` +
           'riscv virt2phys_mode $workbench_mode; if {$workbench_rc} {error $workbench_result}; set workbench_result';
       }

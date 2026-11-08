@@ -9,7 +9,7 @@
  *   → 所以"假探针能跑通"就等于整条链路（配置 → 组包 → 收流 → 解码 → 缓冲 → 画图）跑通，
  *     这也是本页能在没有硬件时自测的原因。
  *
- * 采样是**一次性窗口**（线性缓冲，满了就停）：容量 = 名义速率 × 时长 × 1.25。
+ * 采样是一次性窗口。按设备时间轴停采，线性缓冲满时也会停止。
  * 满了之后新样本计入 `overrun` 并显示在"丢样本"里 —— 绝不静默丢。
  */
 import { releaseLocalProbeUsers, prepareProbeHandoff } from '../core/probe-users.js';
@@ -38,6 +38,7 @@ const CLOCKS = [[0, '自动'], [1000, '1 MHz'], [5000, '5 MHz'], [10000, '10 MHz
                 [30000, '30 MHz'], [40000, '40 MHz'], [45000, '45 MHz'], [50000, '50 MHz'], [60000, '60 MHz']];
 
 const MAX_VARS = 8;
+const SAMPLE_BUFFER_LIMIT = 128 * 1024 * 1024;
 const sleep = waitMs;
 
 export class ScopeView {
@@ -927,26 +928,17 @@ export class ScopeView {
      * 1.1 的余量够用：探针的周期是下限，实得速率不会超过名义速率；
      * 真超了也还有"缓冲满就停"兜底。老代码用 1.25 还指望它凑时长，白占 25% 内存。
      */
-    let capacity = Math.ceil(nominalHz * this.seconds() * 1.1) + 64;
+    const requestedCapacity = Math.ceil(nominalHz * this.seconds() * 1.1) + 64;
     this._stopAfterUs = Math.round(this.seconds() * 1e6);
     this._stopReason = null;
-    /**
-     * 🚨 内存闸：周期可以设到 2 µs、时长可以设到几百秒，两者一乘就是几千万样本 ——
-     *    8 通道 × 2 B × 1200 万 = 两百多 MB，标签页会卡死甚至崩。
-     *    这里按"每样本字节数 × 通道数 × 1.35（LOD 开销）"估一下，超了就把容量砍到 256 MB 以内
-     *    并**明说**砍了多少（宁可少存点，也不能让页面挂掉还不知道为什么）。
-     */
+    // Limit the typed sample arrays, LOD and timestamp anchors to 128 MiB.
+    // Optional raw USB packet retention is tracked separately.
     const bytesPerFrame = vars.reduce((s, v) => s + (P.SCALARS[v.scalar]?.size || 4), 0);
     this._frameBytes = bytesPerFrame;
-    const LIMIT = 128 * 1024 * 1024;
-    let capNote = '';
-    const est = cap => cap * bytesPerFrame * 1.35 + vars.length * 8192;
-    if (est(capacity) > LIMIT){
-      const capped = Math.max(1024, Math.floor((LIMIT - vars.length * 8192) / (bytesPerFrame * 1.35)));
-      capNote = `　⚠️ 缓冲按内存上限（128 MB）从 ${capacity} 收到 ${capped} 个样本` +
-        `（${((capped / nominalHz)).toFixed(2)} s @${(nominalHz / 1000).toFixed(1)} kHz）`;
-      capacity = capped;
-    }
+    const capacity = SampleStore.fitCapacity(vars, requestedCapacity, SAMPLE_BUFFER_LIMIT);
+    const capNote = capacity / nominalHz < this._stopAfterUs / 1e6
+      ? `　⚠️ 128 MiB 样本缓冲最多存 ${capacity} 组（${(capacity / nominalHz).toFixed(2)} s @${(nominalHz / 1000).toFixed(1)} kHz）`
+      : '';
     // DATA traffic includes the packet header and unused payload tail. There is
     // no fixed 1.75 MB/s ceiling; sustained throughput is measured separately.
     const wireBps = P.PACKET / Math.floor(P.PAYLOAD / bytesPerFrame) * nominalHz;
@@ -1446,7 +1438,9 @@ export class ScopeView {
       this._benchKey = this.benchKeyOf();          // 记住测的是哪套变量 + 哪个时钟（选择一变就失效）
       const actualRiscv = this._benchKey.backend === P.BACKEND.RISCV;
       this.recPeriodUs = this.recPeriodUsFor(usPerSample);
-      const blobName = { 0x53c: '60M(6 指令/bit)', 0x60c: '45M(8)', 0x6e0: '36M(10)', 0x7c4: '30M(12)',
+      const nominal = res[0] >= 26 && dv.byteLength >= 27 ? dv.getUint32(23, true) : 0;
+      const blobName = nominal === 50000000 ? '50M(300 MHz / 6)' :
+                        { 0x53c: '60M(6 指令/bit)', 0x60c: '45M(8)', 0x6e0: '36M(10)', 0x7c4: '30M(12)',
                          0xa54: '20M(18)', 0x620: 'SLOW', 0xffffffff: '还没装载' }[blob] || `0x${blob.toString(16)}`;
       this.blob = { offset: blob, name: blobName, delay };
       // 计划行里那个"保守模型"和实测差多少，当场说清楚（单字 span 实测 1.53 µs，模型算 6.74）。
@@ -1790,12 +1784,44 @@ export class ScopeView {
       const buf = new Uint8Array(await file.arrayBuffer());
       if (this.running || this._capturing || this._starting || this._stopPromise)
         throw new Error('先停止采样，再回放文件');
+      const configured = [...(this.selected.length ? this.selected : this.mockVars())].sort((a, b) => a.addr - b.addr);
+      let vars = configured;
+      let definition = null, samples = 0;
+      let frameBytes = vars.reduce((sum, v) => sum + v.size, 0);
+      const chunk = 64 * 1024;
+      const scan = new P.PacketStream();
+      for (let o = 0; o < buf.length; o += chunk){
+        for (const pkt of scan.push(buf.subarray(o, o + chunk))){
+          if (pkt.kind === P.KIND.DEF){
+            const d = P.parseDef(pkt.payload, pkt.version);
+            if (!d.vars.length || d.vars.length > MAX_VARS ||
+                d.vars.some(v => P.SCALARS[v.scalar]?.size !== v.size))
+              throw new Error('原始包中的 DEF 通道定义无效');
+            if (definition){
+              if (d.vars.length !== vars.length || d.vars.some((v, i) =>
+                v.addr !== vars[i].addr || v.scalar !== vars[i].scalar || v.size !== vars[i].size))
+                throw new Error('原始包在回放窗口内切换了通道定义');
+              continue;
+            }
+            definition = d;
+            vars = d.vars.map(v => ({ ...v, name: configured.find(c => c.addr === v.addr && c.scalar === v.scalar)?.name ||
+              `0x${v.addr.toString(16)}` }));
+            frameBytes = vars.reduce((sum, v) => sum + v.size, 0);
+            samples = 0;
+          } else if (pkt.kind === P.KIND.DATA && frameBytes){
+            samples += Math.min(pkt.n, Math.floor(pkt.payload.length / frameBytes));
+          }
+        }
+      }
+      if (!samples) throw new Error('原始包中没有可回放的样本');
+      const capacity = SampleStore.fitCapacity(vars, samples, SAMPLE_BUFFER_LIMIT);
+      if (capacity !== samples) throw new Error(`回放包含 ${samples} 组样本，超过 128 MiB 样本缓冲上限（可存 ${capacity} 组）`);
       this.receivedSamples=0;this.tailCountDelta=null;this.probeMetrics=null;
       this._qualityReplay = true; this._qualityConfig = { 文件: file.name || '原始包回放' };
       this.qualityHistory?.reset(); this.qualityHistory?.note('replay','从文件回放，不引用当前探针计数');
-      const vars = [...(this.selected.length ? this.selected : this.mockVars())].sort((a, b) => a.addr - b.addr);
-      const periodUs = this.periodUs();
-      this.store = new SampleStore(vars, Math.ceil(buf.length / 16) + 1024);
+      this._periodUs = definition?.periodUs || this.periodUs();
+      this.periodActualUs = 0;
+      this.store = new SampleStore(vars, capacity);
       this.renderer.setStore(this.store);
       this.renderer.clearMarks();
       this.renderer.cursor = null;
@@ -1804,15 +1830,15 @@ export class ScopeView {
       this.seqT = new P.SeqTracker();
       this.timeU = new P.TimeUnwrap();
       this.packets = 0; this.lost = 0; this.defVars = null;
-      this._awaitDef = false; this.defMismatch = null; this.stalePackets = 0;
+      this._awaitDef = Boolean(definition); this._awaitDefSince = 0; this.defMismatch = null; this.stalePackets = 0;
       this.probeDropped = 0; this.usbDrop = 0; this.readErrors = 0; this.metricsError = null;
       this.trigger.reset();
       this.decodeErr = 0; this._qualityStat = null; this._statAt = 0; this._metricsAt = 0; this.probeMetrics = null;
-      const chunk = 64 * 1024;
       this._replaying = true;
       try {
         for (let o = 0; o < buf.length; o += chunk) this.onChunk(buf.subarray(o, o + chunk));
       } finally { this._replaying = false; }
+      if (this.store.count !== samples || this.store.overrun) throw new Error('回放样本数与原始包不一致');
       this.renderer.fitAll();
       this.setStatusText(`回放完成：${this.store.count} 个样本 / ${this.packets} 个包`, 'ok');
       this._needDraw = true;

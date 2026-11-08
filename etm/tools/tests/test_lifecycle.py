@@ -77,6 +77,30 @@ class LifecycleTests(unittest.TestCase):
         m=server.meta(sid)
         self.assertTrue(m.get('stopRequested'))
         self.assertEqual(m.get('captureStatus'),'stopped')
+    def test_filtered_capture_is_saved_and_stops_before_decode(self):
+        sid = 'capture-filtered'
+        server.save(sid, {'input':'capture.kvdat'})
+        jid = server.new_job(sid, 'queued')
+        vis = Mock()
+        vis.sock.recv.return_value = b'ACK'
+        vis.cmd.side_effect = lambda cmd: {
+            'get-supported-sample-rate':'500000000',
+            'get-actual-sample-depth':'5000000',
+            'get-actual-sample-time':'0 0.01',
+        }.get(cmd, '')
+        options = dict(rate=500000000, seconds=.01, threshold=1.65, sync=True,
+                       data=[0,1,2,4], clock=3, decode=True, rawFormat='kvdat')
+        filters = {'channels':[{'channel':3, 'enabled':True, 'samples':10}]}
+        with patch.object(server, 'Vis', return_value=vis), patch.object(server, 'do_export'), \
+                patch.object(server, 'read_glitch_settings', return_value=filters), \
+                patch.object(server, 'decode_job') as decode:
+            server.capture_job(jid, sid, options)
+        decode.assert_not_called()
+        self.assertEqual(server.meta(sid)['actualDepth'], '5000000')
+        self.assertEqual(server.meta(sid)['laFilter'], filters)
+        self.assertEqual(server.jobs[jid]['state'], 'error')
+        self.assertIn('CH3', server.jobs[jid]['error'])
+        self.assertNotIn('_laLease', server.jobs[jid])
     def test_stop_before_decode_starts_is_not_ignored(self):
         sid='capture-stop-decode';server.save(sid,{'input':'capture.csv'});jid=server.new_job(sid,'queued',kind='decode')
         server.jobs[jid]['_stopped']=True

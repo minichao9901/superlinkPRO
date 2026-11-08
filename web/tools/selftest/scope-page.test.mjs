@@ -767,6 +767,30 @@ console.log('== 16. 超限输入有持续警告，强制继续保留周期，物
   ok(!r.invalid.running && /必须是大于 0/.test(r.invalid.state), '非法周期阻止启动，不静默采用默认周期');
 }
 
+console.log('== 17. 单路原始包按 DEF 回放全部样本 ==');
+{
+  const r = await ev(`
+    const P = await import('/app/scope/protocol.js');
+    const sc = window.__tools.scope;
+    const vars = [{ addr: 0x20001028, scalar: 'u32', size: 4 }];
+    const n = P.samplesPerPacket(4), groups = 24;
+    const definition = P.buildDef({ vars, periodUs: 3 });
+    const packets = [definition];
+    for (let group = 0; group < groups; group++){
+      const payload = new Uint8Array(n * 4);
+      const values = new DataView(payload.buffer);
+      for (let i = 0; i < n; i++) values.setUint32(i * 4, 0x10000000 + group * n + i, true);
+      packets.push(P.buildData({ seq: group + 1, tUs: group * n * 3, n, payload }));
+    }
+    sc.selected = [];
+    await sc.replayFile(new File(packets, 'single-u32.jsp'));
+    const st = sc.store;
+    return { state: sc.state, width: st.width, count: st.count, received: sc.receivedSamples,
+      overrun: st.overrun, expected: n * groups, last: st.channel(0).at(st.count - 1) };`);
+  ok(r.width === 1 && r.count === r.expected && r.received === r.count && r.overrun === 0 &&
+    r.last === 0x10000000 + r.expected - 1 && /回放完成/.test(r.state), '空变量选择按文件 DEF 回放全部单路样本');
+}
+
 console.log(`\n${fail ? '❌' : '✅'} scope-page.test: ${pass} 通过 / ${fail} 失败`);
 ws.close();
 process.exit(fail ? 1 : 0);

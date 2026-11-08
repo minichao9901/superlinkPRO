@@ -3,7 +3,7 @@ import argparse, hashlib, importlib.util, json, os, shutil, subprocess, sys, uui
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-VERSION='1.1.0-web.9'
+VERSION='1.1.0-web.10'
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def prepare_desktop_launcher(path):
