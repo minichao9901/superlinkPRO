@@ -98,11 +98,13 @@ make test-host    # 无硬件的固件逻辑回归
 | 产物 | 路径 |
 | --- | --- |
 | APP ELF / 调试符号 | [`akaLinkPro_App.elf`](application_5301/build_dfu_evklite/output/akaLinkPro_App.elf) |
-| DFU 升级包 | `firmware/application_5301/build_dfu_evklite/output/akaLinkPro_App_pack.bin` |
+| DFU 升级包 | [`akaLinkPro_App_pack.bin`](application_5301/build_dfu_evklite/output/akaLinkPro_App_pack.bin) |
 | 应用源码 | [`firmware/application_5301/`](application_5301) |
 | Bootloader 源码 | [`firmware/bootloader_dfu/`](bootloader_dfu) |
 
 详细烧录、救砖和目标侧接线见 [EVKLite 移植说明](../docs/HPM5301EVKLite_port.md)。
+
+当前 EVKLite 应用构建时间为 `2026/11/08 16:19:57`，DFU 包 194,312 B，已在 akaLinkPro A.0 上完整读回验证。此版修复 RTT 转发结束时的 CDC 整包尾部丢失。[真机验收与固件指纹](../docs/validation/rv32im-rtt-cdc-throughput-20261108.md)
 
 ## 硬件与兼容性
 

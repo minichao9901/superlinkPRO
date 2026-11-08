@@ -544,6 +544,7 @@ USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t usb_tmpbuffer[DAP_PACKET_SIZE];
 
 static volatile uint8_t usbrx_idle_flag = 0;
 static volatile uint8_t usbtx_idle_flag = 0;
+static volatile uint8_t cdc_in_needs_short = 0;
 static volatile uint8_t uarttx_idle_flag = 0;
 
 /* 主循环级 CDC/串口桥总开关（默认开）。见 chry_dap_usb2uart_set_enabled()。 */
@@ -564,6 +565,7 @@ void usbd_event_handler(uint8_t busid, uint8_t event)
         USB_ResetGen++;
         usbrx_idle_flag = 0;
         usbtx_idle_flag = 0;
+        cdc_in_needs_short = 0;
         uarttx_idle_flag = 0;
         config_uart_transfer = 0;
         cdc_configured = 0U;
@@ -690,32 +692,48 @@ void usbd_cdc_acm_bulk_out(uint8_t busid, uint8_t ep, uint32_t nbytes)
     }
 }
 
-void usbd_cdc_acm_bulk_in(uint8_t busid, uint8_t ep, uint32_t nbytes)
+/* Called with interrupts disabled, from the main loop or IN completion. */
+static void cdc_in_kick(uint8_t busid)
 {
-    (void)busid;
-    uint32_t size;
-    uint8_t *buffer;
+    if (!usbtx_idle_flag)
+    {
+        return;
+    }
 
-    /* g_uartrx is produced by the UART RX flush ISRs, so keep the consumer
-     * side in a critical section to avoid corrupting the ring indices. */
-    uint32_t level = disable_global_irq(CSR_MSTATUS_MIE_MASK);
-
-    chry_ringbuffer_linear_read_done(&g_uartrx, nbytes);
-
-    /* 这里原来在「长度是 512 整数倍」时补发一个 ZLP。CDC 是纯字节流，主机不需要
-     * 用它标记传输边界，而 RTT 桥是按 2048 字节往环里写的、线性窗经常正好是 512
-     * 的倍数 ⇒ 几乎每次传输都白白多一个事务。去掉。
-     * （如果真的需要 ZLP，也应该用 CDC_IN_EP 的 wMaxPacketSize 判断，而不是 DAP 的
-     *   DAP_PACKET_SIZE —— 虽然两者在本工程里同为 512，但语义是 CDC 端点的属性。） */
     if (chry_ringbuffer_get_used(&g_uartrx))
     {
-        buffer = chry_ringbuffer_linear_read_setup(&g_uartrx, &size);
-        usbd_ep_start_write(0, CDC_IN_EP, buffer, size);
+        uint32_t size;
+        uint8_t *buffer = chry_ringbuffer_linear_read_setup(&g_uartrx, &size);
+        if (usbd_ep_start_write(busid, CDC_IN_EP, buffer, size) == 0)
+        {
+            usbtx_idle_flag = 0U;
+        }
     }
-    else
+    else if (cdc_in_needs_short && uartx_get_cdc_source() == CDC_SOURCE_UART)
     {
-        usbtx_idle_flag = 1;
+        /* When the forwarding producer stops, an aligned tail needs a short
+         * packet so host bulk reads can complete. During RTT/SPI streaming,
+         * leave the transfer open across temporary gaps for throughput. */
+        if (usbd_ep_start_write(busid, CDC_IN_EP, NULL, 0U) == 0)
+        {
+            cdc_in_needs_short = 0U;
+            usbtx_idle_flag = 0U;
+        }
     }
+}
+
+void usbd_cdc_acm_bulk_in(uint8_t busid, uint8_t ep, uint32_t nbytes)
+{
+    uint32_t level = disable_global_irq(CSR_MSTATUS_MIE_MASK);
+
+    if (nbytes != 0U)
+    {
+        chry_ringbuffer_linear_read_done(&g_uartrx, nbytes);
+    }
+    uint32_t max_packet = usbd_get_ep_mps(busid, ep);
+    cdc_in_needs_short = nbytes != 0U && max_packet != 0U && (nbytes % max_packet) == 0U;
+    usbtx_idle_flag = 1U;
+    cdc_in_kick(busid);
 
     restore_global_irq(level);
 }
@@ -1098,13 +1116,7 @@ void chry_dap_usb2uart_handle(void)
     if (usbtx_idle_flag)
     {
         uint32_t level = disable_global_irq(CSR_MSTATUS_MIE_MASK);
-        if (chry_ringbuffer_get_used(&g_uartrx))
-        {
-            usbtx_idle_flag = 0;
-            /* start first transfer */
-            buffer = chry_ringbuffer_linear_read_setup(&g_uartrx, &size);
-            usbd_ep_start_write(0, CDC_IN_EP, buffer, size);
-        }
+        cdc_in_kick(0);
         restore_global_irq(level);
     }
 
