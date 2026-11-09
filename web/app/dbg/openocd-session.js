@@ -249,36 +249,50 @@ export class OpenOcdDebugSession extends DebugSession {
     // A NOP through the program buffer flushes and invalidates OpenOCD's
     // register cache before the HPM system reset pulse.
     await this._command(`${this.target} riscv exec_progbuf 0x00000013`);
-    const readStatus = async () => Number(await this._command(`${this.target} riscv dmi_read 0x11`));
-    const writeControl = value => this._command(`${this.target} riscv dmi_write 0x10 0x${value.toString(16)}`);
-    const ackHaveReset = 0x10000000;
-    const anyHaveReset = 0x40000;
-    const allHalted = 0x200;
-    const allRunning = 0x800;
-    const active = 1;
-    const haltRequest = halt ? 0x80000000 : 0;
-    await writeControl(ackHaveReset + active);
-    if (await readStatus() & anyHaveReset) throw new Error('旧复位标志未清除');
+    const pollOutput = await this._command('capture {poll}');
+    const pollMode = /background polling: (on|off)\b/.exec(pollOutput)?.[1];
+    if (!pollMode) throw Error('未确认 OpenOCD 后台轮询状态');
+    await this._command('poll off');
+    let resetResult, failure;
     try {
-      await writeControl(haltRequest + active + 2);
-      await waitMs(50);
-    } finally {
-      await writeControl(haltRequest + active);
+      const readStatus = async () => Number(await this._command(`${this.target} riscv dmi_read 0x11`));
+      const writeControl = value => this._command(`${this.target} riscv dmi_write 0x10 0x${value.toString(16)}`);
+      const ackHaveReset = 0x10000000;
+      const anyHaveReset = 0x40000;
+      const allHalted = 0x200;
+      const allRunning = 0x800;
+      const active = 1;
+      const haltRequest = halt ? 0x80000000 : 0;
+      await writeControl(ackHaveReset + active);
+      if (await readStatus() & anyHaveReset) throw new Error('旧复位标志未清除');
+      try {
+        await writeControl(haltRequest + active + 2);
+        await waitMs(50);
+      } finally {
+        await writeControl(haltRequest + active);
+      }
+      const control = Number(await this._command(`${this.target} riscv dmi_read 0x10`));
+      if ((control & 3) !== active) throw new Error('未确认系统复位已释放');
+      const mask = anyHaveReset | (halt ? allHalted : allRunning);
+      const deadline = performance.now() + 3000;
+      let status = await readStatus();
+      while ((status & mask) !== mask && performance.now() < deadline){
+        await waitMs(10);
+        status = await readStatus();
+      }
+      if ((status & mask) !== mask) throw new Error('未确认系统复位后的目标状态');
+      await writeControl(ackHaveReset + active);
+      resetResult = { dmcontrol:control, dmstatus:status };
+    } catch (error) { failure = error; }
+    try { await this._command('poll ' + pollMode); }
+    catch (error) {
+      if (failure) throw new AggregateError([failure, error], failure.message + '；恢复 OpenOCD 后台轮询失败：' + error.message);
+      throw error;
     }
-    const control = Number(await this._command(`${this.target} riscv dmi_read 0x10`));
-    if ((control & 3) !== active) throw new Error('未确认系统复位已释放');
-    const mask = anyHaveReset | (halt ? allHalted : allRunning);
-    const deadline = performance.now() + 3000;
-    let status = await readStatus();
-    while ((status & mask) !== mask && performance.now() < deadline){
-      await waitMs(10);
-      status = await readStatus();
-    }
-    if ((status & mask) !== mask) throw new Error('未确认系统复位后的目标状态');
-    await writeControl(ackHaveReset + active);
+    if (failure) throw failure;
     await this.refresh();
     if (this.halted !== halt) throw new Error('OpenOCD 未确认系统复位后的目标状态');
-    return { dmcontrol:control, dmstatus:status };
+    return resetResult;
   }
 
   async _pollHalted(){
@@ -378,7 +392,7 @@ export class OpenOcdDebugSession extends DebugSession {
     const key = String(name).toLowerCase();
     const index = /^x(?:[0-9]|[12][0-9]|3[01])$/.test(key) ? Number(key.slice(1)) : -1;
     const canonical = REGISTERS[index] || (key === 'fp' ? 's0' : key);
-    return REGISTERS.includes(canonical) || ['misa','dcsr','mstatus','mcause','mtval'].includes(canonical)
+    return REGISTERS.includes(canonical) || ['misa','dcsr','mstatus','mcause','mepc','mtval','mtvec'].includes(canonical)
       ? { name:canonical, bits:32 } : null;
   }
 

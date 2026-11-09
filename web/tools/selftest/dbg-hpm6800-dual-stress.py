@@ -47,7 +47,7 @@ class Workbench:
         self.client = toolbox.Client(runtime, 35)
         self.unsettled = False
 
-    def request(self, op, **params):
+    def request(self, op, *, allow_error=False, **params):
         try:
             result = self.client.request({'action': 'workbench', 'page': 'dbg', 'op': op, **params})
         except (TimeoutError, RuntimeError) as error:
@@ -56,16 +56,18 @@ class Workbench:
             raise
         if 'job' in result:
             self.client.http('ack/' + result['job'], {})
+        if not result.get('ok') and allow_error:
+            return {'errors': [], 'value': {'error': result.get('error', '')}}
         require(result.get('ok'), result.get('error'))
         return result['value']
 
-    def invoke(self, method, *args, target='session'):
-        result = self.request('invoke', target=target, method=method, args=list(args))
+    def invoke(self, method, *args, target='session', allow_error=False):
+        result = self.request('invoke', target=target, method=method, args=list(args), allow_error=allow_error)
         require(not result['errors'], result['errors'])
         return result['value']
 
     def line(self, line, allow_error=False):
-        result = self.invoke('runLine', line, target='view')
+        result = self.invoke('runLine', line, target='view', allow_error=allow_error)
         if not allow_error:
             require(not result.get('error'), result.get('error'))
         return '\n'.join(row['t'] for row in result.get('lines', [])) or result.get('error', '')

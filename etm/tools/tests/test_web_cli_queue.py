@@ -5,6 +5,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from flask import Flask
 from web_cli_queue import install_web_cli
@@ -50,6 +51,40 @@ class QueueTests(unittest.TestCase):
 
     def test_arbitrary_eval_is_not_an_action(self):
         self.assertEqual(self.client.post('/trace-cli/request',json={'action':'eval','source':'anything'},headers=self.headers).status_code,400)
+
+    def test_expired_worker_can_transfer_only_unclaimed_read_only_work(self):
+        requests = [{'action':action} for action in ('ping','status','help')]
+        requests += [{'action':'workbench','page':'dbg','op':op} for op in ('describe','state','read','downloads')]
+        with patch('web_cli_queue.time.monotonic', return_value=100) as clock:
+            self.poll()
+            for index, payload in enumerate(requests):
+                clock.return_value=100+index*20
+                jid=self.client.post('/trace-cli/request',json=payload,headers=self.headers).json['id']
+                next_worker=('b' if self.worker=='a'*32 else 'a')*32
+                # An active owner cannot be displaced, even for a read.
+                self.assertEqual(self.client.post('/trace-cli/poll',json={'worker':next_worker},headers=self.headers).status_code,409)
+                clock.return_value+=16
+                job=self.client.post('/trace-cli/poll',json={'worker':next_worker},headers=self.headers)
+                self.assertEqual(job.status_code,200)
+                self.assertEqual(job.json['job']['id'],jid)
+                self.assertEqual(self.client.post('/trace-cli/poll',json={'worker':self.worker},headers=self.headers).status_code,409)
+                self.worker=next_worker
+                self.client.post('/trace-cli/complete/'+jid,json={'worker':self.worker,'result':{'ok':True}},headers=self.headers)
+
+    def test_expired_worker_does_not_transfer_a_running_read(self):
+        with patch('web_cli_queue.time.monotonic', return_value=100) as clock:
+            self.poll()
+            jid=self.client.post('/trace-cli/request',json={'action':'workbench','page':'dbg','op':'state'},headers=self.headers).json['id']
+            self.assertEqual(self.poll().json['job']['id'],jid)
+            clock.return_value=116
+            self.assertEqual(self.client.post('/trace-cli/poll',json={'worker':'b'*32},headers=self.headers).status_code,409)
+
+    def test_expired_worker_does_not_transfer_queued_hardware_commands(self):
+        with patch('web_cli_queue.time.monotonic', return_value=100) as clock:
+            self.poll()
+            self.client.post('/trace-cli/request',json={'action':'workbench','page':'flash','op':'invoke','method':'flash'},headers=self.headers)
+            clock.return_value=116
+            self.assertEqual(self.client.post('/trace-cli/poll',json={'worker':'b'*32},headers=self.headers).status_code,409)
 
 
 if __name__=='__main__':unittest.main()

@@ -47,14 +47,14 @@
     "app/dbg/complete.js": "d91b6fc7adcda8854c9d21c2c5f08d5ac192cd446ebff08a8350922e18e01504",
     "app/dbg/dwt.js": "cd944e003fb42272de58801b83f6dca97eb42890a153691630d4c1ef7819d99b",
     "app/dbg/fault-panel.js": "a0edf2b736f856825afec884c82efc5445dacf144e09e01732c99d323cdf5a4a",
-    "app/dbg/fault.js": "dc00ce4338d2b3bb63a863d4a16903ff11fe030b10a14097aba825f91007e22c",
+    "app/dbg/fault.js": "c5d6a16ad611ef48b0b9e0a999f7adc4a14de778cd9f4b4b7dc25848a5dfb4ab",
     "app/dbg/fmt.js": "952a6fcf0d076f9ce5657100a5d5de0d6bc542d810a5250f44be5526cd746765",
     "app/dbg/image-files.js": "8a02e35be4d74bbde24b8d5aac9045597565b221a107157239996b70fe88041d",
     "app/dbg/image.js": "d951cc48d15357adca60aa00adf4fcd7d3ec54696ca7d1b273ad033ecc4b68a1",
     "app/dbg/openocd-cfg.js": "e23942d37009d9e65934149c9ff73b25fd17ed7fc6345e8b30c90b524d34ee75",
     "app/dbg/openocd-flash.js": "971c1248c0266ee8d76fe89f3e23376cdd5a839be057de7036394ade3028bf50",
     "app/dbg/openocd-raw-cfg.js": "1cc7750911a3298480dc55003d96a0baec5d29fde66ce21b9b5c6582d41efb44",
-    "app/dbg/openocd-session.js": "f6cf7b437d1d9a57c021c241ba783addcb7c753e00320fea26ac774ed21e9a4a",
+    "app/dbg/openocd-session.js": "6f7ad1aeb57031034af4e56a84af057da0bbfecf03b069b64af4885cf405e10e",
     "app/dbg/ram-debug.js": "0778755e3e2eb6b9479e16b78b1e438b49bc49aed18198cad9a82ab12809aafc",
     "app/dbg/ram-fill.js": "ac366a556451f3c9eb89302c9e6e3206a445b45007ed529cd64be1eb3512f508",
     "app/dbg/regs.js": "89de3e7d1b210f997bd82469343721b4fe8e7745cec11cdc1f49ff047c33b0a0",
@@ -170,6 +170,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "0ff078657920ee5282c95fdf437cd06a6ab678c394427ea27cb428ca6a0de3bc",
-  "outputBytes": 1182592
+  "outputSha256": "04d57a3d68ff82ec2228299ae2341e92d066914fe82bcbcf16c8b5d26ae0a057",
+  "outputBytes": 1183067
 }

@@ -61,11 +61,15 @@ export async function captureFault(s){
       // readReg() would call _ensureHalted(), which may halt a running hart. Bypass it deliberately.
       result.observedHalted=await guard(()=>s._pollHalted());
       if(!result.observedHalted) throw new Error('目标已运行；未暂停 hart');
+      // Wasm sessions expose named CSR reads; legacy sessions use their DM.
+      // Neither path may implicitly halt or resume the target during a snapshot.
+      const readReg = async (name, num) => typeof s.readRegs === 'function'
+        ? (await s.readRegs([name])).get(name) : s.dm.readReg(num);
       for(const [name,num] of Object.entries({pc:0x7b1,mcause:0x342,mepc:0x341,mtval:0x343,mstatus:0x300,mtvec:0x305,dcsr:0x7b0}))
-        result.raw[name] = (await guard(()=>s.dm.readReg(num)))>>>0;
+        result.raw[name] = (await guard(()=>readReg(name,num)))>>>0;
       result.pc=result.raw.pc;
       result.findings=decodeRiscv(result.raw);
-      if(!await guard(()=>s._pollHalted()) || (await guard(()=>s.dm.readReg(0x7b1)))>>>0 !== result.pc) throw new Error('读取期间目标状态改变，现场已过期');
+      if(!await guard(()=>s._pollHalted()) || (await guard(()=>readReg('pc',0x7b1)))>>>0 !== result.pc) throw new Error('读取期间目标状态改变，现场已过期');
     } else {
       const read = (a,n)=>guard(()=>s.probe.readMemDiagnostic(a,n));
       const word = async a=>{const b=await read(a,4); if(b.length!==4)throw new Error('诊断内存短读'); return new DataView(b.buffer,b.byteOffset,4).getUint32(0,true);};
