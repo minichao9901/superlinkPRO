@@ -6,6 +6,12 @@ import threading
 import time
 
 
+def _read_only_request(value):
+    return value.get('action') in ('ping', 'status', 'help') or (
+        value.get('action') == 'workbench' and
+        value.get('op') in ('describe', 'state', 'read', 'downloads'))
+
+
 def install_web_cli(app, token_file):
     from flask import request, jsonify, abort
     path = Path(token_file).resolve()
@@ -89,7 +95,13 @@ def install_web_cli(app, token_file):
         with condition:
             now=time.monotonic()
             if worker['id'] and worker['id'] != wid:
-                if now-worker['seen'] <= 15 or any(job['state'] != 'done' for job in jobs.values()):
+                # A queued read has never reached the old browser and is safe
+                # to inspect in a replacement tab after its lease expires.
+                # Running work and queued writes retain their original owner.
+                unfinished = [job for job in jobs.values() if job['state'] != 'done']
+                if now-worker['seen'] <= 15 or any(
+                        job['state'] != 'queued' or not _read_only_request(job['request'])
+                        for job in unfinished):
                     return jsonify(error='另一标签页仍持有 CLI 会话；未完成任务不会移交给新标签页'),409
             worker.update(id=wid,seen=now)
             if not pending:condition.wait(timeout=2)
