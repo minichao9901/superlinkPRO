@@ -19,3 +19,9 @@ Windows 正式包为 1.1.0-web.12，源码提交为 7b1cc2ab2365f04e209427e08879
 安装后再次使用独立临时数据目录验证默认安装的 EXE，全部冻结包检查通过。真实 Edge 从该 EXE 的 HTTP 页面验证十进制、Hex、修改后回读、溢出拒绝、Esc 取消及 p/x，再次得到写入字节 78 56 34 12，HTTP 提供的 Wasm 哈希与上述正式候选一致。Edge 首次因系统兼容层重启而先退出启动父进程，验收驱动显式跳过该重启后通过。桌面程序动态生成的重下载 ZIP 采用独立压缩流程，其 HTTP 清单和下载内容自洽；根 dist 的正式分发 ZIP 按上列哈希单独核验。
 
 本轮变量写入使用模拟目标，实板验证仍待开展。软件验收通过后关闭本任务测试服务和浏览器。清理操作两次被自动审批拒绝，返回原因仅为 blocked by policy，因此本任务构建中间目录、浏览器配置及测试数据仍保留。具体目录为 web/tmp/etm-package-a3d3ad6b、tmp/workbench-package-9c0ba1c0，以及系统 TEMP 下的 slpro-watch-sync-bb7576a1。workbench-package 目录中的 previous 是旧版回退副本。正式安装、正式 ZIP 和报告已就位。交付范围为本机与 Git，线上发布需另行执行。
+
+2026-11-11 随后按用户授权推送并发布线上。发布提交为 3d7937a329023bae04d8354e3704626d3ff1047b，[Pages 工作流 42923993214](https://github.com/minichao9901/superlinkPRO/actions/runs/42923993214) 的 build、deploy 均成功。首页、合并 JS 与清单、CSS、构建标记、Wasm 与加载器、变量视图、Watch 实现、命令实现及 ETM 入口共 11 项正常 GET，逐字节匹配发布提交的 Git 内容。线上下载 manifest 也逐字节匹配根 dist 的正式清单。合并 JS 为 1189505 字节，SHA-256 为 88d99e1295a3858c00be7c421f3ad43a26f0a717ea1a2f393317bac977a7ab6f，Wasm 哈希与前述候选一致。
+
+通过 25 个连续且无重叠的 HTTP 206 区间完整读取线上 Windows ZIP，并按顺序计算 SHA-256。线上包为 1.1.0-web.12，共 103194223 字节，哈希为 985dac5da605d7500c2ed20fba4266387a786392fa261a64835fa878d4c75aa9，与本机已验收正式 ZIP 完全一致。[线上工作台](https://minichao9901.github.io/superlinkPRO/) · [下载清单](https://minichao9901.github.io/superlinkPRO/downloads/manifest.json)
+
+隔离 Edge 直接访问线上 #dbg，使用模拟目标和本地 F103 ELF，实际验证默认十进制、Hex 切换、双击编辑、写入后回读、越界拒绝、Esc 取消及 p/x SystemCoreClock。写入 0x12345678 后读回 78 56 34 12。测试浏览器已关闭，本轮在线核对未操作硬件。网页和 Windows 下载包均已更新至 web.12，实板待验范围继续保留。
