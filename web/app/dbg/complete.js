@@ -17,10 +17,10 @@ import { imageWords } from './image.js';
 export const CMD_NAMES = [
   'h', 'help', 'c', 'cont', 's', 'step', 'n', 'next', 'si', 'fin', 'out', 'rc',
   'halt', 'reset', 'r', 'md', 'mw', 'ms', 'fill_ram', 'fill_inc', 'load_image', 'dump_image',
-  'p', 'x', 'b', 'bd', 'bl', 'wp', 'wpl', 'wpd', 'bt', 'backtrace', 'frame', 'locals', 'args', 'info', 'sym', 'w', 'wl', 'wd', 'src', 'sl', 'cls',
+  'p', 'p/x', 'x', 'b', 'bd', 'bl', 'wp', 'wpl', 'wpd', 'bt', 'backtrace', 'frame', 'locals', 'args', 'info', 'sym', 'w', 'wl', 'wd', 'src', 'sl', 'cls',
 ];
 
-const SYM_CMDS = new Set(['wp', 'b', 'break', 'p', 'x', 'w', 'watch', 'md', 'mw', 'ms', 'sym', 'rc', 'runto']);
+const SYM_CMDS = new Set(['wp', 'b', 'break', 'p', 'p/x', 'x', 'w', 'watch', 'md', 'mw', 'ms', 'sym', 'rc', 'runto']);
 const REG_CMDS = new Set(['r', 'reg', 'regs']);
 
 /** 最长公共前缀 */

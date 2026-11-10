@@ -15,7 +15,7 @@
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=04d57a3d68ff82ec';
+  window.__webBundleUrl = 'app/site/main.js?v=88d99e1295a3858c';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -972,12 +972,14 @@
             <div class="toolrow nw">
               <input id="d-watch-in" class="mono" placeholder="监视：变量名 / main+4 / 0x20000000" autocomplete="off" spellcheck="false">
               <button id="d-watch-add">加</button>
+              <select id="d-watch-radix" aria-label="变量数值显示格式"><option value="dec">十进制</option><option value="hex">十六进制</option></select>
             </div>
             <div id="d-watch-list" class="watchlist"><div class="hint">（还没有监视项：在符号列表点 ＋，或命令行 <code>w 变量</code>；<b>结构体/数组点 ▸ 展开成树</b>；停止时自动刷新）</div></div>
             <div class="toolrow nw">
               <button id="d-watch-refresh" class="mini">刷新值</button>
               <button id="d-watch-clear" class="mini">清空</button>
               <label class="chk"><input type="checkbox" id="d-watch-live"> 运行中也刷新</label>
+              <span class="hint">暂停后双击值修改，Enter 写入，Esc 取消</span>
             </div>
           </div>
 

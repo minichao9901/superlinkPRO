@@ -1253,6 +1253,10 @@ body.workspace-focused>.topbar{display:none}
 #tab-dbg .inspector-table .vl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;color:var(--ok)}
 #tab-dbg .inspector-table .vl.err,#tab-dbg .inspector-table .wrow.bad .vl{color:var(--err)}
 #tab-dbg .inspector-table .vl.dim{color:var(--fg2)}
+#tab-dbg .watch-editable{cursor:text}
+#tab-dbg .watch-editable:focus{outline:1px solid var(--acc)}
+#tab-dbg .watch-value-input{min-width:70px;width:100%;box-sizing:border-box}
+#tab-dbg .watch-editable:has(.watch-value-input){display:flex;flex-wrap:wrap;gap:4px;white-space:normal}
 #tab-dbg .inspector-table .ty,#tab-dbg .inspector-table .ad{color:var(--fg2)}
 #tab-dbg .inspector-table .ad{text-align:right}
 #tab-dbg .inspector-table .regrow input.rv{width:100%;text-align:right;color:var(--fg);border-radius:2px}

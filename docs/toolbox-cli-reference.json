@@ -838,35 +838,35 @@
       "methodSourceHints": [
         {
           "name": "connectProbe",
-          "line": 281
+          "line": 283
         },
         {
           "name": "disconnect",
-          "line": 358
+          "line": 360
         },
         {
           "name": "onShow",
-          "line": 664
+          "line": 684
         },
         {
           "name": "resetTarget",
-          "line": 748
+          "line": 769
         },
         {
           "name": "loadElfFile",
-          "line": 783
+          "line": 804
         },
         {
           "name": "summary",
-          "line": 798
+          "line": 819
         },
         {
           "name": "saveRaw",
-          "line": 936
+          "line": 957
         },
         {
           "name": "save",
-          "line": 943
+          "line": 964
         }
       ]
     },
@@ -1668,211 +1668,211 @@
       "methodSourceHints": [
         {
           "name": "onShow",
-          "line": 268
+          "line": 269
         },
         {
           "name": "zoomToPoints",
-          "line": 303
+          "line": 304
         },
         {
           "name": "connectHid",
-          "line": 315
+          "line": 316
         },
         {
           "name": "connectUsb",
-          "line": 391
+          "line": 392
         },
         {
           "name": "releaseProbe",
-          "line": 444
+          "line": 445
         },
         {
           "name": "disconnect",
-          "line": 483
+          "line": 484
         },
         {
           "name": "setMock",
-          "line": 497
+          "line": 498
         },
         {
           "name": "loadElfFile",
-          "line": 524
+          "line": 525
         },
         {
           "name": "addArrayElement",
-          "line": 565
+          "line": 566
         },
         {
           "name": "renderVars",
-          "line": 590
+          "line": 591
         },
         {
           "name": "toggleVar",
-          "line": 628
+          "line": 629
         },
         {
           "name": "updatePlan",
-          "line": 639
+          "line": 640
         },
         {
           "name": "mockVars",
-          "line": 729
+          "line": 730
         },
         {
           "name": "periodUs",
-          "line": 734
-        },
-        {
-          "name": "rateAdvice",
           "line": 735
         },
         {
+          "name": "rateAdvice",
+          "line": 736
+        },
+        {
           "name": "rateWarning",
-          "line": 739
+          "line": 740
         },
         {
           "name": "seconds",
-          "line": 746
+          "line": 747
         },
         {
           "name": "start",
-          "line": 749
+          "line": 750
         },
         {
           "name": "confirmTargetArchitecture",
-          "line": 780
+          "line": 781
         },
         {
           "name": "applyCaptureClock",
-          "line": 787
+          "line": 788
         },
         {
           "name": "stop",
-          "line": 1123
+          "line": 1115
         },
         {
           "name": "applyTargetType",
-          "line": 1181
+          "line": 1173
         },
         {
           "name": "setBackend",
-          "line": 1239
+          "line": 1231
         },
         {
           "name": "benchKeyOf",
-          "line": 1300
+          "line": 1292
         },
         {
           "name": "benchFresh",
-          "line": 1317
+          "line": 1309
         },
         {
           "name": "benchKeyWhy",
-          "line": 1326
+          "line": 1318
         },
         {
           "name": "uiBackend",
-          "line": 1351
+          "line": 1343
         },
         {
           "name": "fastWordUs",
-          "line": 1365
+          "line": 1357
         },
         {
           "name": "planClockMhz",
-          "line": 1371
+          "line": 1363
         },
         {
           "name": "planEstimateUs",
-          "line": 1376
+          "line": 1368
         },
         {
           "name": "recPeriodUsFor",
-          "line": 1381
+          "line": 1373
         },
         {
           "name": "bench",
-          "line": 1397
+          "line": 1389
         },
         {
           "name": "applyRecPeriod",
-          "line": 1474
+          "line": 1468
         },
         {
           "name": "isReal",
-          "line": 1489
+          "line": 1483
         },
         {
           "name": "signed",
-          "line": 1490
+          "line": 1484
         },
         {
           "name": "hidXfer",
-          "line": 1491
+          "line": 1485
         },
         {
           "name": "configureScope",
-          "line": 1497
+          "line": 1491
         },
         {
           "name": "readScopeMetrics",
-          "line": 1508
+          "line": 1502
         },
         {
           "name": "onChunk",
-          "line": 1533
+          "line": 1527
         },
         {
           "name": "clear",
-          "line": 1680
+          "line": 1674
         },
         {
           "name": "trigCfg",
-          "line": 1699
+          "line": 1693
         },
         {
           "name": "applyTrigger",
-          "line": 1710
+          "line": 1704
         },
         {
           "name": "findNextTrigger",
-          "line": 1735
+          "line": 1729
         },
         {
           "name": "clearTrigger",
-          "line": 1751
+          "line": 1745
         },
         {
           "name": "exportCsv",
-          "line": 1759
+          "line": 1753
         },
         {
           "name": "saveRaw",
-          "line": 1778
+          "line": 1772
         },
         {
           "name": "replayFile",
-          "line": 1786
+          "line": 1780
         },
         {
           "name": "setStatusText",
-          "line": 1825
+          "line": 1851
         },
         {
           "name": "syncButtons",
-          "line": 1832
+          "line": 1858
         },
         {
           "name": "drawFrame",
-          "line": 1859
+          "line": 1885
         },
         {
           "name": "renderLegend",
-          "line": 1916
+          "line": 1942
         },
         {
           "name": "summary",
-          "line": 1939
+          "line": 1965
         }
       ]
     },
@@ -2398,6 +2398,22 @@
           "label": "加"
         },
         {
+          "id": "d-watch-radix",
+          "tag": "select",
+          "type": null,
+          "label": "变量数值显示格式",
+          "options": [
+            {
+              "value": "dec",
+              "label": "十进制"
+            },
+            {
+              "value": "hex",
+              "label": "十六进制"
+            }
+          ]
+        },
+        {
           "id": "d-watch-refresh",
           "tag": "button",
           "type": null,
@@ -2523,203 +2539,207 @@
       "methodSourceHints": [
         {
           "name": "initSidebar",
-          "line": 370
+          "line": 372
         },
         {
           "name": "selectSidebar",
-          "line": 384
+          "line": 386
         },
         {
           "name": "renderElfInfo",
-          "line": 390
+          "line": 392
         },
         {
           "name": "onShow",
-          "line": 399
+          "line": 401
         },
         {
           "name": "authorizeJtagProbe",
-          "line": 742
+          "line": 744
         },
         {
           "name": "connect",
-          "line": 749
+          "line": 751
         },
         {
           "name": "disconnect",
-          "line": 823
+          "line": 825
         },
         {
           "name": "refreshAll",
-          "line": 884
+          "line": 886
         },
         {
           "name": "afterStop",
-          "line": 898
+          "line": 900
         },
         {
           "name": "renderRegs",
-          "line": 942
+          "line": 944
         },
         {
           "name": "presentBacktrace",
-          "line": 1044
+          "line": 1046
         },
         {
           "name": "presentSelectedFrame",
-          "line": 1063
+          "line": 1065
         },
         {
           "name": "presentLocals",
-          "line": 1069
+          "line": 1071
         },
         {
           "name": "renderDwt",
-          "line": 1083
+          "line": 1085
         },
         {
           "name": "renderBps",
-          "line": 1097
+          "line": 1099
         },
         {
           "name": "readMem",
-          "line": 1138
+          "line": 1140
         },
         {
           "name": "renderMem",
-          "line": 1172
+          "line": 1174
         },
         {
           "name": "writeMemEdit",
-          "line": 1230
+          "line": 1232
         },
         {
           "name": "pickImageDirectory",
-          "line": 1373
+          "line": 1375
         },
         {
           "name": "imageDirectoryStatus",
-          "line": 1384
+          "line": 1386
         },
         {
           "name": "runLine",
-          "line": 1392
+          "line": 1394
         },
         {
           "name": "configureRamWindow",
-          "line": 1535
+          "line": 1537
         },
         {
           "name": "launchRamElf",
-          "line": 1544
+          "line": 1546
         },
         {
           "name": "loadElfBuffer",
-          "line": 1570
+          "line": 1572
         },
         {
           "name": "loadBundledSvd",
-          "line": 1648
+          "line": 1650
         },
         {
           "name": "loadSvdText",
-          "line": 1674
+          "line": 1676
         },
         {
           "name": "renderSyms",
-          "line": 1828
+          "line": 1830
         },
         {
           "name": "addWatch",
-          "line": 1899
+          "line": 1901
         },
         {
           "name": "delWatch",
-          "line": 1920
+          "line": 1922
         },
         {
           "name": "watchItems",
-          "line": 1927
+          "line": 1929
         },
         {
           "name": "clearWatch",
-          "line": 1931
+          "line": 1933
         },
         {
           "name": "refreshWatch",
-          "line": 1939
+          "line": 1941
         },
         {
           "name": "renderWatch",
-          "line": 1989
+          "line": 1991
+        },
+        {
+          "name": "writeWatch",
+          "line": 2106
         },
         {
           "name": "pickSourceDir",
-          "line": 2095
+          "line": 2172
         },
         {
           "name": "renderSource",
-          "line": 2162
+          "line": 2239
         },
         {
           "name": "toggleSourceBp",
-          "line": 2255
+          "line": 2332
         },
         {
           "name": "runToLine",
-          "line": 2273
+          "line": 2350
         },
         {
           "name": "stepOver",
-          "line": 2310
+          "line": 2387
         },
         {
           "name": "stepInto",
-          "line": 2312
+          "line": 2389
         },
         {
           "name": "stepOut",
-          "line": 2314
+          "line": 2391
         },
         {
           "name": "showSource",
-          "line": 2323
+          "line": 2400
         },
         {
           "name": "rttStart",
-          "line": 2363
+          "line": 2440
         },
         {
           "name": "rttStop",
-          "line": 2394
+          "line": 2471
         },
         {
           "name": "rttClear",
-          "line": 2401
+          "line": 2478
         },
         {
           "name": "summary",
-          "line": 2421
+          "line": 2498
         },
         {
           "name": "for",
-          "line": 2458
+          "line": 2535
         },
         {
           "name": "if",
-          "line": 2464
+          "line": 2541
         },
         {
           "name": "if",
-          "line": 2465
+          "line": 2542
         },
         {
           "name": "if",
-          "line": 2466
+          "line": 2543
         },
         {
           "name": "if",
-          "line": 2467
+          "line": 2544
         }
       ]
     },

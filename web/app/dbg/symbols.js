@@ -82,6 +82,7 @@ export function parsePath(text){
 function walkPath(want, segs, head){
   let addr = head.addr >>> 0;
   let type = head.type;
+  let readOnly = !!type?.readOnly;
   let bit = null;
   let reason = null;
   for (const seg of segs.slice(1)){
@@ -93,6 +94,7 @@ function walkPath(want, segs, head){
       if (seg.index >= n){ reason = `下标 [${seg.index}] 越界（数组只有 ${n} 项）`; break; }
       addr = (addr + seg.index * (type.elem?.size || 0)) >>> 0;
       type = type.elem;
+      readOnly ||= !!type?.readOnly;
       continue;
     }
     if (type.kind !== 'struct' && type.kind !== 'union'){
@@ -108,6 +110,7 @@ function walkPath(want, segs, head){
     if (mem.offset == null){ reason = mem.reason || `成员「${seg.name}」偏移不是常量`; break; }
     addr = (addr + mem.offset) >>> 0;
     type = mem.type;
+    readOnly ||= !!type?.readOnly;
     if (mem.bitSize){
       if (mem.bitOffset == null){ bit = { unresolved: true, size: mem.bitSize }; }
       else {
@@ -123,7 +126,7 @@ function walkPath(want, segs, head){
    *    否则 `p g_model.nope` 会拿着 `g_model` 的类型画一棵看起来正常的树（2026-10 压测抓到）。
    */
   if (reason) return { name: want, addr: null, type: null, reason, bad: true };
-  return { name: want, addr, type, reason: null, bit };
+  return { name: want, addr, type: readOnly ? { ...type, readOnly: true } : type, reason: null, bit };
 }
 
 export class SymTab {

@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 
-OPENOCD_REVISION = "9ea7f3d647c8ecf6b0f1424002dfc3f4504a162c"
+OPENOCD_REVISION = "9f2d8762b3a75b4d7b2155affcf3d8bb8eb8849a"
 
 
 def compile_flash_registries(source, build, scratch, emscripten, env, profile):
@@ -188,11 +188,15 @@ def compile_large_image_reads(source, build, scratch, emscripten, env):
     original = source / 'src/target/target.c'
     code = original.read_text(encoding='utf-8')
     limit = 'uint32_t buf_size = (size > 4096) ? 4096 : size;'
-    if code.count(limit) != 1:
+    expanded = limit.replace('4096', '65536')
+    if code.count(limit) + code.count(expanded) != 1:
         raise ValueError('OpenOCD dump_image buffer changed upstream')
+    if code.count('const size_t buffersize = 65536;') != 2 or \
+            '#define MAX_PENDING_REQUESTS 8' not in (source / 'src/jtag/drivers/cmsis_dap.h').read_text():
+        raise ValueError('Apply openocd-pipeline.patch and rebuild all CMSIS-DAP objects before linking')
     # Keep multiple CMSIS-DAP packets queued across the old 4 KiB file boundary.
     generated = scratch / 'target-large-dump.c'
-    generated.write_text(code.replace(limit, limit.replace('4096', '65536')), encoding='utf-8')
+    generated.write_text(code.replace(limit, expanded), encoding='utf-8')
     obj = scratch / 'target-large-dump.o'
     subprocess.run([
         sys.executable, emscripten / 'emcc.py', '-std=gnu23', '-O1', '-DHAVE_CONFIG_H',

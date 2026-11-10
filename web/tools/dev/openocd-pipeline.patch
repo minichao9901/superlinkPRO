@@ -1,0 +1,44 @@
+diff --git a/src/jtag/drivers/cmsis_dap.h b/src/jtag/drivers/cmsis_dap.h
+index 7ad6fab..f7e2477 100644
+--- a/src/jtag/drivers/cmsis_dap.h
++++ b/src/jtag/drivers/cmsis_dap.h
+@@ -22,7 +22,7 @@ struct pending_transfer_result {
+ 
+ /* Up to MIN(packet_count, MAX_PENDING_REQUESTS) requests may be issued
+  * until the first response arrives */
+-#define MAX_PENDING_REQUESTS 4
++#define MAX_PENDING_REQUESTS 8
+ 
+ struct pending_request_block {
+ 	struct pending_transfer_result *transfers;
+diff --git a/src/target/target.c b/src/target/target.c
+index b1e28f0..841c797 100644
+--- a/src/target/target.c
++++ b/src/target/target.c
+@@ -3736,7 +3736,7 @@ COMMAND_HANDLER(handle_dump_image_command)
+ 	COMMAND_PARSE_ADDRESS(CMD_ARGV[1], address);
+ 	COMMAND_PARSE_ADDRESS(CMD_ARGV[2], size);
+ 
+-	uint32_t buf_size = (size > 4096) ? 4096 : size;
++	uint32_t buf_size = (size > 65536) ? 65536 : size;
+ 	buffer = malloc(buf_size);
+ 	if (!buffer)
+ 		return ERROR_FAIL;
+@@ -4536,7 +4536,7 @@ COMMAND_HANDLER(handle_target_read_memory)
+ 
+ 	struct target *target = get_current_target(CMD_CTX);
+ 
+-	const size_t buffersize = 4096;
++	const size_t buffersize = 65536;
+ 	uint8_t *buffer = malloc(buffersize);
+ 
+ 	if (!buffer) {
+@@ -4661,7 +4661,7 @@ COMMAND_HANDLER(handle_target_write_memory)
+ 
+ 	struct target *target = get_current_target(CMD_CTX);
+ 
+-	const size_t buffersize = 4096;
++	const size_t buffersize = 65536;
+ 	uint8_t *buffer = malloc(buffersize);
+ 
+ 	if (!buffer) {

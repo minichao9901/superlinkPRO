@@ -470,8 +470,9 @@ export class Dwarf {
         const t = this.type(this.num(rec, AT.type));
         return { ...t, alias: this.name(rec) || t.alias };
       }
-      case TAG.const_type: case TAG.volatile_type: case TAG.restrict_type:
-      case TAG.atomic_type: case TAG.immutable_type:
+      case TAG.const_type: case TAG.immutable_type:
+        return { ...this.type(this.num(rec, AT.type)), readOnly: true };
+      case TAG.volatile_type: case TAG.restrict_type: case TAG.atomic_type:
         return this.type(this.num(rec, AT.type));
       case TAG.pointer_type: case TAG.reference_type: case TAG.rvalue_reference_type:
         return { kind: 'pointer', size: size() || 4, to: this.num(rec, AT.type) };

@@ -30,6 +30,12 @@ export const TREE_LIMITS = {
 
 /** 把一行表达式解析成监视项（认不出来返回 `{expr, error}`，界面照实显示，不猜） */
 export function resolveWatch(expr, sym){
+  const item = resolveWatchItem(expr, sym);
+  const section = sym?.elf?.sections?.().find(s => (s.flags & 2) && item.addr >= s.addr && item.addr < s.addr + s.size);
+  return { ...item, readOnly: !!item.readOnly || !!section && !(section.flags & 1) };
+}
+
+function resolveWatchItem(expr, sym){
   const raw = String(expr ?? '').trim();
   if (!raw) return { expr: raw, error: '空的' };
   if (!sym) return { expr: raw, error: '还没载入 .elf' };
@@ -38,6 +44,7 @@ export function resolveWatch(expr, sym){
   const direct = /^(0x[0-9a-f]+|\d+)$/i.exec(raw);
   if (direct){
     const addr = /^0x/i.test(raw) ? parseInt(raw.slice(2), 16) : parseInt(raw, 10);
+    if (!Number.isSafeInteger(addr) || addr < 0 || addr + 4 > 0x100000000) return { expr: raw, error: '地址超出 32 位范围' };
     return { expr: raw, name: raw, kind: 'addr', addr: addr >>> 0, size: 4, scalar: 'u32', typeName: 'u32', label: raw };
   }
 
@@ -61,30 +68,32 @@ export function resolveWatch(expr, sym){
   if (m){
     const d = /^0x/i.test(m[3]) ? parseInt(m[3].slice(2), 16) : parseInt(m[3], 10);
     const base = (t?.addr ?? v?.addr ?? 0) >>> 0;
-    const addr = (m[2] === '+' ? base + d : base - d) >>> 0;
+    const addr = m[2] === '+' ? base + d : base - d;
+    if (!Number.isSafeInteger(addr) || addr < 0 || addr + 4 > 0x100000000) return { expr: raw, error: '地址偏移超出 32 位范围' };
     return { expr: raw, name: raw, kind: 'addr', addr, size: 4, scalar: 'u32', typeName: 'u32', label: raw };
   }
 
   if (t?.type && t.addr != null){
     const ty = t.type;
+    const access = { readOnly: !!ty.readOnly };
     // 位域成员：按位取，不能当整个存储单元读（`p g_model.flags.sbits.bias` 要的是 6 位那个值）
     if (t.bit){
       return { expr: raw, name, kind: 'var', addr: t.addr >>> 0, size: Math.max(1, ty.size || 4),
                scalar: null, typeName: `${ty.name || ty.scalar || '?'} 位域`, label: name, bit: t.bit,
-               note: t.bit.unresolved ? '位域偏移读不出来' : `位域 ${t.bit.size} 位` };
+               ...access, note: t.bit.unresolved ? '位域偏移读不出来' : `位域 ${t.bit.size} 位` };
     }
     if (ty.kind === 'scalar' && ty.scalar){
       return { expr: raw, name, kind: 'var', addr: t.addr >>> 0, size: ty.size, scalar: ty.scalar,
-               typeName: ty.name || ty.scalar, label: name };
+               ...access, typeName: ty.name || ty.scalar, label: name };
     }
     if (ty.kind === 'struct' || ty.kind === 'union' || ty.kind === 'array'){
       const label = ty.kind === 'array' ? `${ty.name || '数组'}[${ty.count ?? '?'}]` : (ty.name || '结构体');
       return { expr: raw, name, kind: ty.kind, addr: t.addr >>> 0, size: Math.max(1, ty.size || 4),
-               scalar: null, typeName: label, type: ty, label: name };
+               ...access, scalar: null, typeName: label, type: ty, label: name };
     }
     if (ty.kind === 'pointer'){
       return { expr: raw, name, kind: 'var', addr: t.addr >>> 0, size: ty.size || 4, scalar: ty.size === 4 ? 'u32' : null,
-               typeName: (ty.alias || '指针'), label: name, note: '指针（只显示地址本身，v1 不跟进目标）' };
+               ...access, typeName: (ty.alias || '指针'), label: name, note: '指针（只显示地址本身，v1 不跟进目标）' };
     }
     // 类型不在表里（enum/unspecified…）：当原始字节，但把原因带上
     return { expr: raw, name, kind: 'raw', addr: t.addr >>> 0, size: Math.max(1, Math.min(ty.size || 4, TREE_LIMITS.maxBytes)),
@@ -112,27 +121,89 @@ export function resolveWatch(expr, sym){
 }
 
 /** 读取一个监视项的值（bytes 是刚从目标读回来的原始字节）→ `{text, cls, hex}` */
-export function formatWatchValue(item, bytes){
+export function formatWatchValue(item, bytes, radix = 'dec'){
   if (item.error) return { text: item.error, cls: 'err' };
   if (!bytes || !bytes.length) return { text: '（没读到）', cls: 'warn' };
   const ty = item.typeName || item.scalar || `${item.size} 字节`;
   // 位域：按位取（`g_model.flags.sbits.bias` 这种 6 位有符号字段不能当整个 u32 读）
   if (item.bit){
     const bf = decodeBitfield(bytes, item.bit);
-    if (bf) return { text: `${bf.text}  (${bf.hex})`, hex: bf.hex, cls: '', type: ty };
+    if (bf) return { text: radix === 'hex' ? bf.hex : `${bf.text}  (${bf.hex})`, hex: bf.hex, cls: '', type: ty };
     return { text: '（位域读不出来）', cls: 'warn', type: ty };
   }
   if (item.scalar && SCALARS[item.scalar] && bytes.length >= SCALARS[item.scalar].size){
     const v = decodeScalar(item.scalar, bytes);
     const info = SCALARS[item.scalar];
-    const hex = '0x' + readLE(bytes, 0, Math.min(info.size, bytes.length)).toString(16);
+    const hex = watchHex(bytes.subarray(0, info.size));
     const num = info.float ? (Number.isFinite(v) ? v.toPrecision(6) : String(v)) : String(v);
-    return { text: `${num}`, hex, cls: '', type: ty };
+    return { text: radix === 'hex' ? hex : num, hex, cls: '', type: ty };
   }
   // 没有类型：短的就摆字节，长的给前 8 字节
   const show = [...bytes.subarray(0, 8)].map(b => b.toString(16).padStart(2, '0')).join(' ');
   const hex = bytes.length <= 4 ? '0x' + readLE(bytes, 0, bytes.length).toString(16) : null;
   return { text: hex ? `${readLE(bytes, 0, bytes.length)}  (${hex})` : `${show}${bytes.length > 8 ? ' …' : ''}`, hex, cls: '', type: ty };
+}
+
+/** Little-endian bit pattern, including all eight bytes of a double. */
+export function watchHex(bytes){
+  return '0x' + [...bytes].reverse().map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export function canEditWatch(item){
+  const info = SCALARS[item?.scalar];
+  return !item?.error && !item?.readOnly && Number.isInteger(item?.addr) && item.addr >= 0 &&
+    item.addr + item.size <= 0x100000000 &&
+    (item.bit ? !item.bit.unresolved && item.bit.size > 0 && item.bit.size <= 32 &&
+      Number.isInteger(item.bit.inUnit) && item.bit.inUnit >= 0 && item.bit.inUnit + item.bit.size <= item.size * 8
+      : !!info && item.size === info.size);
+}
+
+/** Validate before writing. Bitfields preserve adjacent bits from a fresh read. */
+export function encodeWatchValue(item, text, original){
+  if (!canEditWatch(item)) throw Error('此项没有可写的标量类型或地址');
+  const raw = String(text).trim().replace(/_/g, '');
+  const info = SCALARS[item.scalar];
+  const bytes = new Uint8Array(item.size);
+  const view = new DataView(bytes.buffer);
+  if (info?.float){
+    if (!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(raw)) throw Error('请输入有限浮点数');
+    const value = Number(raw);
+    if (!Number.isFinite(value) || info.size === 4 && !Number.isFinite(Math.fround(value))) throw Error('数值超出浮点类型范围');
+    if (info.size === 4) view.setFloat32(0, value, true);
+    else view.setFloat64(0, value, true);
+    return bytes;
+  }
+  if (!/^(?:[+-]?\d+|0x[0-9a-f]+|0b[01]+|0o[0-7]+)$/i.test(raw)) throw Error('请输入十进制整数或带 0x 前缀的十六进制数');
+  const value = BigInt(raw.startsWith('+') ? raw.slice(1) : raw);
+  const bits = item.bit?.size ?? info.size * 8;
+  const signed = item.bit?.signed ?? info.signed;
+  const hexInput = /^0[xbo]/i.test(raw);
+  const min = signed && !hexInput ? -(1n << BigInt(bits - 1)) : 0n;
+  const max = (1n << BigInt(signed && !hexInput ? bits - 1 : bits)) - 1n;
+  if (value < min || value > max) throw Error(`数值超出 ${bits} 位类型范围`);
+  let encoded = BigInt.asUintN(bits, value);
+  if (item.bit){
+    if (original?.length !== item.size) throw Error('位域原值读取不完整');
+    const shift = BigInt(item.bit.inUnit);
+    const mask = ((1n << BigInt(bits)) - 1n) << shift;
+    encoded = (BigInt(watchHex(original)) & ~mask) | encoded << shift;
+  }
+  for (let i = 0; i < bytes.length; i++) bytes[i] = Number(encoded >> BigInt(i * 8) & 255n);
+  return bytes;
+}
+
+export async function writeWatchValue(session, item, text){
+  if (!session.connected || !session.halted) throw Error('请先连接并暂停目标，再修改变量');
+  // Reject invalid input before even reading target memory.
+  encodeWatchValue(item, text, item.bit ? new Uint8Array(item.size) : undefined);
+  await session.refresh?.();
+  if (!session.connected || !session.halted) throw Error('目标已运行，请重新暂停后修改变量');
+  const original = item.bit ? await session.memRead(item.addr, item.size) : undefined;
+  const bytes = encodeWatchValue(item, text, original);
+  await session.memWrite(item.addr, bytes);
+  const actual = await session.memRead(item.addr, bytes.length);
+  if (actual.length !== bytes.length || !bytes.every((v,i) => actual[i] === v)) throw Error('变量写入后的回读不一致，请刷新确认目标状态');
+  return actual;
 }
 
 // ---------------------------------------------------------------- 结构体 / 数组树
@@ -185,7 +256,7 @@ function scalarAt(type, bytes, off){
   if (!info) return null;
   if (off < 0 || off + info.size > bytes.length) return null;
   const v = decodeScalar(type.scalar, bytes.subarray(off, off + info.size));
-  const hex = '0x' + readLE(bytes, off, info.size).toString(16);
+  const hex = watchHex(bytes.subarray(off, off + info.size));
   const text = info.float ? (Number.isFinite(v) ? v.toPrecision(6) : String(v)) : String(v);
   return { text, hex, signed: !!info.signed };
 }
@@ -236,22 +307,27 @@ export function treeRows(item, bytes, opts = {}){
     if (raw == null) return { ...base, text: '（位域超出读取范围）', cls: 'dim' };
     const v = SCALARS[mem.type?.scalar]?.signed ? signExtend(raw, mem.bitSize) : (raw >>> 0);
     const hexv = '0x' + (raw >>> 0).toString(16);
-    return { ...base, text: `${v}  (${hexv})`, hex: hexv, cls: '' };
+    const edit = { addr: item.addr + off, size, readOnly: !!item.readOnly || !!mem.type?.readOnly,
+      bit: { inUnit: baseOff * 8 + mem.bitOffset - off * 8, size: mem.bitSize, signed: !!SCALARS[mem.type?.scalar]?.signed } };
+    return { ...base, text: o.radix === 'hex' ? hexv : `${v}  (${hexv})`, hex: hexv, cls: '', edit };
   };
 
-  const walk = (type, off, name, depth) => {
+  const walk = (type, off, name, depth, readOnly = !!item.readOnly) => {
+    readOnly ||= !!type?.readOnly;
     if (rows.length >= o.maxRows) return overflow();
     if (depth > o.maxDepth){ push({ depth, name, off, size: type?.size || 0, text: '…（嵌套太深）', type: typeNameOf(type), cls: 'dim' }); return; }
     if (!type){ push({ depth, name, off, size: 0, text: '（类型未知）', type: '?', cls: 'dim' }); return; }
 
     if (type.kind === 'pointer'){
       const st = type.size === 4 ? scalarAt({ scalar: 'u32' }, buf, off) : null;
-      push({ depth, name, off, size: type.size || 4, text: st ? `→ ${st.hex}` : '（越界）', hex: st?.hex, type: typeNameOf(type), cls: st ? '' : 'dim' });
+      push({ depth, name, off, size: type.size || 4, text: st ? `→ ${st.hex}` : '（越界）', hex: st?.hex, type: typeNameOf(type), cls: st ? '' : 'dim',
+        edit: { addr: item.addr + off, scalar: type.size === 4 ? 'u32' : null, size: type.size, readOnly } });
       return;
     }
     if (type.kind === 'scalar'){
       const st = scalarAt(type, buf, off);
-      push({ depth, name, off, size: type.size || 0, text: st ? st.text : '（越界 / 读不到）', hex: st?.hex, type: typeNameOf(type), cls: st ? '' : 'dim' });
+      push({ depth, name, off, size: type.size || 0, text: st ? o.radix === 'hex' ? st.hex : st.text : '（越界 / 读不到）', hex: st?.hex, type: typeNameOf(type), cls: st ? '' : 'dim',
+        edit: { addr: item.addr + off, scalar: type.scalar, size: type.size, readOnly } });
       return;
     }
     if (type.kind === 'array'){
@@ -263,7 +339,7 @@ export function treeRows(item, bytes, opts = {}){
         if (str) push({ depth: depth + 1, name: '(字符串)', off, size: Math.min(n, o.maxStr), text: JSON.stringify(str), type: 'char[]', cls: '' });
       }
       const shown = Math.min(n, o.maxArray);
-      for (let i = 0; i < shown; i++) walk(type.elem, off + i * elemSize, `[${i}]`, depth + 1);
+      for (let i = 0; i < shown; i++) walk(type.elem, off + i * elemSize, `[${i}]`, depth + 1, readOnly);
       if (n > shown) push({ depth: depth + 1, name: '…', off: off + shown * elemSize, size: 0, text: `还有 ${n - shown} 项`, type: '', cls: 'dim' });
       return;
     }
@@ -276,8 +352,12 @@ export function treeRows(item, bytes, opts = {}){
           push({ depth: depth + 1, name: mem.name, off: mo, size: mem.type?.size || 0, text: `（${mem.reason || '偏移不是常量'}）`, type: typeNameOf(mem.type), cls: 'dim' });
           continue;
         }
-        if (mem.bitSize){ push(bitRow(mem, off, mem.name, depth + 1)); continue; }
-        walk(mem.type, mo, mem.name, depth + 1);
+        if (mem.bitSize){
+          const row = bitRow(mem, off, mem.name, depth + 1);
+          if (row.edit) row.edit.readOnly ||= readOnly;
+          push(row); continue;
+        }
+        walk(mem.type, mo, mem.name, depth + 1, readOnly);
       }
       return;
     }
@@ -288,7 +368,8 @@ export function treeRows(item, bytes, opts = {}){
   if (!t) return rows;
   if (t.kind === 'struct' || t.kind === 'union'){
     for (const mem of t.members || []){
-      if (mem.offset == null || !mem.bitSize) walk(mem.type, mem.offset || 0, mem.name, 0);
+      if (mem.offset == null) push({ depth: 0, name: mem.name, off: 0, text: '（成员偏移未知）', type: typeNameOf(mem.type), cls: 'dim' });
+      else if (!mem.bitSize) walk(mem.type, mem.offset, mem.name, 0);
       else push(bitRow(mem, 0, mem.name, 0));      // 根对象本身：结构体首字节 = buf[0]
     }
   } else if (t.kind === 'array'){

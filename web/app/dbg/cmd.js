@@ -12,7 +12,7 @@
 
 import { hex32, hex8, hexdump, parseBytes, parseNum, readLE } from './fmt.js';
 import { decodeXpsr, formatXpsr, regInfo, SPECIAL_REGS, cfbpGet, formatSpecial } from './regs.js';
-import { TREE_LIMITS, treeRows, decodeBitfield } from './watch.js';
+import { TREE_LIMITS, treeRows, decodeBitfield, watchHex } from './watch.js';
 import { SCALARS } from '../elf/dwarf.js';
 import { imageWords, imageCommand, parseImage, imageLoadPlan } from './image.js';
 import { ramFillRequest, ramFillChunk } from './ram-fill.js';
@@ -94,6 +94,7 @@ const HELP = [
   '  dump_image filename address size  将目标内存保存为原始二进制文件',
   '                        文件名/相对路径基于侧栏授权的“镜像目录”；空格路径可用双引号或大括号',
   '  p <变量>              打印变量（有 DWARF 时按类型解出数值；结构体打成缩进的树）',
+  '  p/x <变量>            以十六进制显示变量及结构体成员（浮点显示原始位模式）',
   '  x <地址|&变量> [长度] 同 md，但先把符号解释成人话',
   '  b <地址|符号|文件:行> 加硬件断点（例：b main / b main.c:192 / b +5 / b 0x08000123）',
   '  bd <编号|地址|符号|文件:行|all>   删断点（编号见 bl）',
@@ -353,7 +354,8 @@ async function runCmdInner(p, session, opts = {}){
       return { lines };
     }
 
-    case 'p': {
+    case 'p': case 'p/x': {
+      const hexDisplay = cmd === 'p/x';
       need();
       if (!args.length) throw new Error('用法：p <变量名>（变量从载入的 .elf 里找；结构体/数组会打成缩进的树）');
       const name = args[0];
@@ -371,7 +373,7 @@ async function runCmdInner(p, session, opts = {}){
         const raw = await S.memRead(ty.addr, size);
         checkCancel(opts);
         const loc = st.locText?.(ty.addr) || '';
-        const rows = treeRows({ type: ty.type, label: name }, raw);
+        const rows = treeRows({ type: ty.type, label: name }, raw, { radix: hexDisplay ? 'hex' : 'dec' });
         const head = `${name} @ ${hex32(ty.addr)}  :  ${ty.type.name || ty.type.kind}`
           + `（${ty.type.size} 字节，${rows.length} 行）${loc ? '  ' + loc : ''}`;
         const out = [L(head, 'ok')];
@@ -396,7 +398,7 @@ async function runCmdInner(p, session, opts = {}){
         if (!bf) throw new Error(`「${name}」是位域（${ty.bit.size} 位），但目标里那段字节没读全`);
         const loc = st.locText?.(ty.addr) || '';
         const tn = ty.type?.name || ty.type?.scalar || '?';
-        return { lines: [L(`${name} @ ${hex32(ty.addr)}  :  ${tn} 位域[bit ${ty.bit.inUnit} · ${ty.bit.size} 位]${bf.signed ? ' 有符号' : ''} = ${bf.text}  (${bf.hex})${loc ? '  ' + loc : ''}`, 'ok')] };
+        return { lines: [L(`${name} @ ${hex32(ty.addr)}  :  ${tn} 位域[bit ${ty.bit.inUnit} · ${ty.bit.size} 位]${bf.signed ? ' 有符号' : ''} = ${hexDisplay ? bf.hex : `${bf.text}  (${bf.hex})`}${loc ? '  ' + loc : ''}`, 'ok')] };
       }
       /**
        * 复合路径走到的**标量/指针/枚举**：`p g_model.nodes[1].cell.ch`、`p g_model.label`。
@@ -418,9 +420,9 @@ async function runCmdInner(p, session, opts = {}){
                + `　（指针只显示地址本身，要跟进去用 p *${hex32(p >>> 0)}）${loc ? '  ' + loc : ''}`;
         } else if (info){
           const v = decodeScalar(ty.type.scalar, raw);
-          const hex = '0x' + readLE(raw, 0, info.size).toString(16);
+          const hex = watchHex(raw.subarray(0, info.size));
           const num = info.float ? (Number.isFinite(v) ? v.toPrecision(6) : String(v)) : String(v);
-          line = `${name} @ ${hex32(ty.addr)}  :  ${tn} = ${num}${info.float ? '' : `  (${hex})`}${loc ? '  ' + loc : ''}`;
+          line = `${name} @ ${hex32(ty.addr)}  :  ${tn} = ${hexDisplay ? hex : num}${hexDisplay || info.float ? '' : `  (${hex})`}${loc ? '  ' + loc : ''}`;
         } else {
           line = `${name} @ ${hex32(ty.addr)}  :  ${tn} = ${[...raw].map(hex8).join(' ')}${loc ? '  ' + loc : ''}`;
         }
@@ -437,7 +439,7 @@ async function runCmdInner(p, session, opts = {}){
       const raw = await S.memRead(t.addr, size);
       checkCancel(opts);
       const loc = st.locText?.(t.addr) || '';
-      return { lines: [L(fmtVar(t, raw, S) + (loc ? '  ' + loc : ''))] };
+      return { lines: [L((hexDisplay ? `${name} @ ${hex32(t.addr)} = ${watchHex(raw)}` : fmtVar(t, raw, S)) + (loc ? '  ' + loc : ''))] };
     }
 
     case 'b': case 'break': {

@@ -24,13 +24,23 @@ for path in "$sdk" "$openocd" "$usb" "$output"; do
     esac
 done
 
-openocd_revision=${OPENOCD_REVISION:-9ea7f3d647c8ecf6b0f1424002dfc3f4504a162c}
+openocd_revision=${OPENOCD_REVISION:-9f2d8762b3a75b4d7b2155affcf3d8bb8eb8849a}
 jim_revision=$(git -C "$openocd" ls-tree HEAD -- jimtcl | awk '{print $3}')
 if [ "$(git -C "$openocd" rev-parse HEAD)" != "$openocd_revision" ] ||
    [ -z "$jim_revision" ] ||
    [ "$(git -C "$openocd/jimtcl" rev-parse HEAD)" != "$jim_revision" ] ||
    [ "$(git -C "$usb" rev-parse HEAD)" != 87a55632db62c9bdc58cd31d3ccfa673f1bb017f ]; then
     echo "Expected OpenOCD $openocd_revision with its pinned Jim Tcl and libusb v1.0.30" >&2
+    exit 2
+fi
+
+# Apply the complete block pipeline patch before compiling every transport
+# object that shares struct cmsis_dap. OUTPUT is always a fresh build directory.
+pipeline_patch="$(cd "$(dirname "$0")" && pwd)/openocd-pipeline.patch"
+if git -C "$openocd" apply --check "$pipeline_patch"; then
+    git -C "$openocd" apply "$pipeline_patch"
+elif ! git -C "$openocd" apply --reverse --check "$pipeline_patch"; then
+    echo 'OpenOCD pipeline patch does not match this source' >&2
     exit 2
 fi
 

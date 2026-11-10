@@ -36,7 +36,7 @@ import { OpenOcdDebugSession } from './openocd-session.js';
 import { HPM_WASM_BOARD, hpmOpenOcdFiles, isHpmOpenOcdEntry } from '../core/openocd-hpm-profile.js';
 import { fillHpmSelect, selectedHpmBoard, rememberHpmBoard } from '../targets/hpm/select.js';
 import { hpmBoard } from '../targets/hpm/porting.js';
-import { runCmd } from './cmd.js';
+import { runCmd, decodeScalar } from './cmd.js';
 import { SymTab } from './symbols.js';
 import { importOpenOcdCfg, readCfgDirectory } from './openocd-cfg.js';
 import { inspectOpenOcdCfg } from './openocd-raw-cfg.js';
@@ -51,7 +51,7 @@ import { inspectOpenOcdCfg } from './openocd-raw-cfg.js';
  *    就撞上 `抽象命令失败（读寄存器 0x7b0）：cmderr=4`。一个大小写，串起两个症状。
  */
 const regIs = (name, want) => String(name ?? '').toUpperCase() === want;
-import { WatchList, resolveWatch, formatWatchValue, treeRows, summarizeTree, TREE_LIMITS } from './watch.js';
+import { WatchList, resolveWatch, formatWatchValue, treeRows, summarizeTree, TREE_LIMITS, canEditWatch, writeWatchValue } from './watch.js';
 import { completeLine } from './complete.js';
 import { SourceStore, sourceRootSuggestions } from './source.js';
 import { sourceTokens } from './source-syntax.js';
@@ -252,6 +252,8 @@ export class DbgView {
     if (wi) wi.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); this.addWatch(wi.value); } });
     on('d-watch-refresh', 'click', () => this.refreshWatch({ force: true }));
     on('d-watch-clear', 'click', () => this.clearWatch());
+    const radix = $('d-watch-radix');
+    if (radix){ store.bind(radix, 'dbg.watchRadix'); radix.addEventListener('change', () => this.renderWatch()); }
     const wl = $('d-watch-list');
     if (wl){
       wl.addEventListener('click', (e) => {
@@ -1599,7 +1601,7 @@ export class DbgView {
     this._out(`已载入符号：${name || 'ELF'} —— ${info}`, st.note ? 'warn' : 'ok');
     if (st.lines) this._out(`　${st.lines.summary()}`, 'dim');
     // 监视项重新解析一遍（换了 ELF 之后地址/类型都可能变）
-    for (const it of this.watch.items) Object.assign(it, resolveWatch(it.expr, st), { value: null });
+    for (const it of this.watch.items) Object.assign(it, resolveWatch(it.expr, st), { value: null, bytes: null, prev: null });
     this.renderRegs(); this.renderBps(); this.renderSyms(); this.renderWatch();
     this._renderRttSym();
     this._updatePcStrip();
@@ -1967,7 +1969,7 @@ export class DbgView {
             if (f.cls !== 'err') ok++;
             continue;
           }
-          it.bytes = null;
+          it.bytes = bytes;
           const f = formatWatchValue(it, bytes);
           it.prev = it.value;
           it.value = f;
@@ -1987,6 +1989,11 @@ export class DbgView {
   }
 
   renderWatch(){
+    if (this._watchEditing){
+      const edit = this._watchEditing;
+      if (this.session === edit.session && this._connectionGen === edit.generation && this.sym === edit.sym && this.watch.items.includes(edit.item) && this.session.connected && this.session.halted) return;
+      this._watchEditing = null;
+    }
     const table=this._inspector('watch');
     if(!table)return;
     const box=table.body;
@@ -2023,10 +2030,14 @@ export class DbgView {
       nm.title = `${it.expr}${it.addr !== undefined ? ' @ ' + hex32(it.addr) : ''}${it.typeName ? ' : ' + it.typeName : ''}`;
       const vl = document.createElement('span');
       vl.className = 'vl';
-      const v = it.value;
+      const radix = $('d-watch-radix')?.value === 'hex' ? 'hex' : 'dec';
+      const v = it.bytes ? expandable
+        ? { ...it.value, text: summarizeTree(it, it.bytes, { radix }) }
+        : formatWatchValue(it, it.bytes, radix) : it.value;
       vl.textContent = it.error ? it.error : (v ? String(v.text) : '—');
       vl.title=!it.error&&v?.hex?`${v.text}\n原始值：${v.hex}`:vl.textContent;
       if(v?.cls)vl.classList.add(v.cls);
+      this._watchValueEditor(vl, it, i, null, it.bytes);
       const previous=this._watchPaint.get(it);
       const fingerprint=JSON.stringify([it.error||'',v?.text,v?.hex,v?.cls]);
       if(previous&&previous.fingerprint!==fingerprint){row.classList.add('chg');flashValue(vl);}
@@ -2049,7 +2060,7 @@ export class DbgView {
 
       // 展开的树：成员 / 数组元素 / 位域（一次读回的字节里解出来的，已按偏移排好）
       if (expandable && it.expanded){
-        const kids = it.bytes ? treeRows(it, it.bytes) : [];
+        const kids = it.bytes ? treeRows(it, it.bytes, { radix }) : [];
         if (!kids.length){
           const d = document.createElement('div');
           d.className = 'hint';
@@ -2057,7 +2068,7 @@ export class DbgView {
           d.textContent = '（还没读到数据：停下目标，或点「刷新值」）';
           box.appendChild(d);
         }
-        for (const k of kids){
+        for (const [memberIndex, k] of kids.entries()){
           const kr = document.createElement('div');
           kr.className = 'wkid' + (k.cls === 'dim' ? ' dim' : '') + (k.bitfield ? ' bf' : '');
           table.row(kr);
@@ -2072,6 +2083,7 @@ export class DbgView {
           if(k.cls==='dim')kv.classList.add('dim');
           kv.textContent = String(k.text ?? '');
           kv.title=k.hex?`${kv.textContent}\n原始值：${k.hex}`:kv.textContent;
+          if (k.edit && !k.cls) this._watchValueEditor(kv, k.edit, i, memberIndex, it.bytes.subarray(k.off, k.off + k.size));
           const key=`${k.off}:${k.name}`,member=JSON.stringify([k.text,k.hex]);
           memberValues.set(key,member);
           if(previous?.members.has(key)&&previous.members.get(key)!==member)flashValue(kv);
@@ -2087,6 +2099,71 @@ export class DbgView {
         }
       }
       this._watchPaint.set(it,{fingerprint,members:memberValues});
+    });
+  }
+
+  /** One explicit write with type validation and readback, shared by the UI and page CLI. */
+  async writeWatch(index, text, memberIndex = null){
+    const session = this.session, sym = this.sym, item = this.watch.items[index];
+    const generation = this._connectionGen;
+    if (!item) throw Error('监视项已不存在');
+    return await session.exclusive(async () => {
+      if (this.session !== session || this._connectionGen !== generation || this.sym !== sym || this.watch.items[index] !== item || this._disconnecting)
+        throw Error('目标或监视项已改变，请重新编辑');
+      const fresh = resolveWatch(item.expr, sym);
+      const value = memberIndex === null ? fresh : treeRows(fresh, item.bytes)[memberIndex]?.edit;
+      if (!value) throw Error('此成员没有可写类型');
+      this.faultPanel?.invalidate('变量写入，现场转为历史记录');
+      const bytes = await writeWatchValue(session, value, text);
+      await this._refreshWatchLocked({ force: true });
+      return { address: value.addr, bytes: [...bytes], verified: true };
+    });
+  }
+
+  _watchValueEditor(cell, value, index, memberIndex, bytes){
+    if (!canEditWatch(value) || !bytes?.length) return;
+    cell.classList.add('watch-editable');
+    cell.tabIndex = 0;
+    cell.title += '\n暂停后双击或按 Enter 修改';
+    const open = () => {
+      if (this._watchEditing) return;
+      if (!this.session.connected || !this.session.halted){ toast('请先连接并暂停目标，再修改变量', 'warn'); return; }
+      const original = formatWatchValue(value, bytes, $('d-watch-radix')?.value);
+      const input = document.createElement('input');
+      input.className = 'mono watch-value-input'; input.spellcheck = false;
+      input.setAttribute('aria-label', '修改变量值');
+      input.value = value.scalar?.startsWith('f') ? String(decodeScalar(value.scalar, bytes))
+        : original.text.split(/\s/)[0];
+      const save = document.createElement('button'); save.className = 'mini'; save.textContent = '写入';
+      const cancel = document.createElement('button'); cancel.className = 'mini'; cancel.textContent = '取消';
+      const status = document.createElement('span'); status.className = 'err'; status.setAttribute('role', 'status');
+      const token = this._watchEditing = { session: this.session, generation: this._connectionGen, sym: this.sym, item: this.watch.items[index] };
+      const close = () => { if (this._watchEditing === token){ this._watchEditing = null; this.renderWatch(); } };
+      const submit = async () => {
+        if (input.disabled) return;
+        input.disabled = save.disabled = cancel.disabled = true;
+        try {
+          if (this.session !== token.session || this._connectionGen !== token.generation || this.sym !== token.sym || this.watch.items[index] !== token.item)
+            throw Error('目标或监视项已改变，请取消后重新编辑');
+          await this.writeWatch(index, input.value, memberIndex);
+          close();
+        } catch (error){
+          status.textContent = error.message;
+          input.disabled = save.disabled = cancel.disabled = false;
+          input.focus();
+        }
+      };
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); submit(); }
+        if (e.key === 'Escape' && !input.disabled){ e.preventDefault(); e.stopPropagation(); close(); }
+      });
+      save.onclick = submit; cancel.onclick = close;
+      cell.replaceChildren(input, save, cancel, status);
+      input.focus(); input.select();
+    };
+    cell.addEventListener('dblclick', open);
+    cell.addEventListener('keydown', e => {
+      if (e.target === cell && e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); open(); }
     });
   }
 
