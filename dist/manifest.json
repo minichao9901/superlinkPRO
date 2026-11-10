@@ -1,11 +1,11 @@
 {
-  "version": "1.1.0-web.11",
+  "version": "1.1.0-web.12",
   "platform": "windows-x64",
   "file": "superlinkPRO-win64.zip",
-  "bytes": 103184830,
-  "sha256": "fd91891161d761f0b030d2553406fe7442404375441ffc349090d7c021ec6667",
-  "packageId": "f4959eff07c5d62eee1d48256aeed29207f37ac908085c00ec7ff215bdc87bb1",
-  "sourceRevision": "8086f961317148089c81bd4ae26f1d5744698e76",
+  "bytes": 103194223,
+  "sha256": "985dac5da605d7500c2ed20fba4266387a786392fa261a64835fa878d4c75aa9",
+  "packageId": "3a7c41cab3d267a8b0aabcb6fad8f273a24b8ea8a51db74d64182fa702c9d405",
+  "sourceRevision": "7b1cc2ab2365f04e209427e08879291a527e1545",
   "sourceDirty": false,
-  "runtimeSourceRevision": "f6c5dff4c0c7caf628025c87118ee37378d62a0b"
+  "runtimeSourceRevision": "044af4aee4b6f1ad6423976edacb47e0e4870f7e"
 }
