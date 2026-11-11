@@ -16,6 +16,7 @@ export function makeOpenOcdProfile({ arch = 'arm', clockKhz = 1000, dpidr, tapId
   hart = 0, port, family, name, flash = false } = {}){
   const riscv = arch === 'riscv';
   const rp2350 = !riscv && family === 'rp2350';
+  const h7DebugTarget = flash && !riscv && !port && family === 'stm32h7' ? 'workbench.h7dbg' : undefined;
   const target = 'workbench.cpu';
   const integer = (value, min, max) => {
     if (!Number.isInteger(value) || value < min || value > max) throw Error('OpenOCD 目标配置参数超出范围');
@@ -38,7 +39,9 @@ export function makeOpenOcdProfile({ arch = 'arm', clockKhz = 1000, dpidr, tapId
       `${target} cortex_m reset_config sysresetreq`);
   } else {
     lines.push(`swd newdap workbench cpu${expected}`, 'dap create workbench.dap -chain-position workbench.cpu',
-      `target create ${target} cortex_m -dap workbench.dap`, 'cortex_m reset_config sysresetreq');
+      `target create ${target} cortex_m -dap workbench.dap${h7DebugTarget ? ' -ap-num 0 -defer-examine' : ''}`,
+      'cortex_m reset_config sysresetreq');
+    if (h7DebugTarget) lines.push(`target create ${h7DebugTarget} mem_ap -dap workbench.dap -ap-num 2 -defer-examine`);
   }
   if (flash && port){
     const { flashBase, flashSize, xpiBase, option0, option1 } = port.flash;
@@ -51,10 +54,11 @@ export function makeOpenOcdProfile({ arch = 'arm', clockKhz = 1000, dpidr, tapId
     const base = rp2350 ? '0x10000000' : driver === 'nrf5' ? '0x00000000' : '0x08000000';
     if (rp2350) lines.push(`${target} configure -work-area-phys 0x20010000 -work-area-size 0x10000 -work-area-backup 1`,
       `${target} configure -event reset-init { rp2xxx rom_api_call FC }`);
-    lines.push(`flash bank internal ${driver} ${base} 0 0 0 ${target}`);
-    if (family === 'stm32h7') lines.push(`flash bank internal2 stm32h7x 0x08100000 0 0 0 ${target}`);
+    const debugTargetArg = h7DebugTarget ? ` -dbgmcu-target ${h7DebugTarget}` : '';
+    lines.push(`flash bank internal ${driver} ${base} 0 0 0 ${target}${debugTargetArg}`);
+    if (family === 'stm32h7') lines.push(`flash bank internal2 stm32h7x 0x08100000 0 0 0 ${target}${debugTargetArg}`);
   }
   return { name:name || family || port?.id || arch, arch, target, clockKhz:clock, dpidr,
     tapIdcode:riscv ? id : undefined, family, boardId:port?.id,
-    sbaFence:port?.memory.sbaReadForbidden, script:lines.join('\n') + '\n' };
+    sbaFence:port?.memory.sbaReadForbidden, h7DebugTarget, script:lines.join('\n') + '\n' };
 }

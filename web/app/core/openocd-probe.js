@@ -59,14 +59,16 @@ export class OpenOcdProbe {
 
   get _faulted(){ return !!this.link && !this.link.worker; }
 
+  async _initTarget(link){ await link.command('init'); }
+
   async connect(){
-    const link = new OpenOcdTargetSession(line => this.onLog?.(line));
+    const link = this.link = new OpenOcdTargetSession(line => this.onLog?.(line));
     try {
       await link.open(this.cfg, this.device);
       const targets = (await link.command('target names')).split(/\s+/);
       if (!targets.includes(this.cfg.target)) throw Error('OpenOCD CFG 目标不匹配');
       if (this.cfg.raw) await link.command(`targets ${this.cfg.target}`);
-      await link.command('init');
+      await this._initTarget(link);
       if (this.cfg.raw){
         await link.command(`targets ${this.cfg.target}`);
         // The workbench controls one selected core. A peer can be parked in
@@ -94,10 +96,10 @@ export class OpenOcdProbe {
         if (!this.idcode || this.idcode === 0xffffffff || this.cfg.dpidr != null && this.idcode !== this.cfg.dpidr)
           throw Error('OpenOCD 未确认目标 SWD DPIDR');
       }
-      this.link = link;
       this._f103HighDensity = undefined;
     } catch (error){
-      await link.close().catch(() => {});
+      try { await this.disconnect(); }
+      catch (cleanup){ throw new AggregateError([error, cleanup], `${error.message}；探针关闭失败：${cleanup.message}`); }
       throw error;
     }
   }

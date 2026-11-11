@@ -36,13 +36,16 @@ fi
 
 # Apply the complete block pipeline patch before compiling every transport
 # object that shares struct cmsis_dap. OUTPUT is always a fresh build directory.
-pipeline_patch="$(cd "$(dirname "$0")" && pwd)/openocd-pipeline.patch"
-if git -C "$openocd" apply --check "$pipeline_patch"; then
-    git -C "$openocd" apply "$pipeline_patch"
-elif ! git -C "$openocd" apply --reverse --check "$pipeline_patch"; then
-    echo 'OpenOCD pipeline patch does not match this source' >&2
-    exit 2
-fi
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+for name in openocd-pipeline.patch openocd-h7-dbgmcu.patch; do
+    patch="$script_dir/$name"
+    if git -C "$openocd" apply --check "$patch"; then
+        git -C "$openocd" apply "$patch"
+    elif ! git -C "$openocd" apply --reverse --check "$patch"; then
+        echo "OpenOCD patch $name does not match this source" >&2
+        exit 2
+    fi
+done
 
 mkdir "$output"
 mkdir "$output/scratch" "$output/empty-pkgconfig" "$output/libusb" "$output/openocd"

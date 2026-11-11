@@ -1,0 +1,86 @@
+--- a/src/flash/nor/stm32h7x.c
++++ b/src/flash/nor/stm32h7x.c
+@@ -141,4 +141,5 @@
+ 
+ #define DBGMCU_IDCODE_REGISTER  0x5C001000
++#define DBGMCU_APB_IDCODE_REGISTER 0xE00E1000
+ #define FLASH_BANK0_ADDRESS     0x08000000
+ #define FLASH_BANK1_ADDRESS     0x08100000
+@@ -184,4 +185,5 @@
+ 	bool probed;
+ 	uint32_t idcode;
++	struct target *dbgmcu_target;
+ 	uint32_t user_bank_size;
+ 	uint32_t flash_regs_base;    /* Address of flash reg controller */
+@@ -319,7 +321,22 @@
+ 		return ERROR_COMMAND_SYNTAX_ERROR;
+ 
++	struct target *dbgmcu_target = NULL;
++	if (CMD_ARGC >= 7 && !strcmp(CMD_ARGV[6], "-dbgmcu-target")) {
++		if (CMD_ARGC != 8)
++			return ERROR_COMMAND_SYNTAX_ERROR;
++		dbgmcu_target = get_target(CMD_ARGV[7]);
++		if (!dbgmcu_target || strcmp(target_type_name(dbgmcu_target), "mem_ap") ||
++				dbgmcu_target->tap != bank->target->tap) {
++			LOG_ERROR("DBGMCU target must be a MEM-AP on the Flash target TAP");
++			return ERROR_FAIL;
++		}
++	}
++
+ 	stm32h7_info = malloc(sizeof(struct stm32h7_flash_bank));
++	if (!stm32h7_info)
++		return ERROR_FAIL;
+ 	bank->driver_priv = stm32h7_info;
+ 
++	stm32h7_info->dbgmcu_target = dbgmcu_target;
+ 	stm32h7_info->probed = false;
+ 	stm32h7_info->user_bank_size = bank->size;
+@@ -855,11 +872,19 @@
+ }
+ 
+-static int stm32h7_read_id_code(struct flash_bank *bank, uint32_t *id)
+-{
+-	/* read stm32 device id register */
+-	int retval = target_read_u32(bank->target, DBGMCU_IDCODE_REGISTER, id);
+-	if (retval != ERROR_OK)
+-		return retval;
+-	return ERROR_OK;
++static int stm32h7_read_id_code(struct flash_bank *bank, uint32_t *id, bool *id_from_apb)
++{
++	struct stm32h7_flash_bank *stm32h7_info = bank->driver_priv;
++	struct target *debug = stm32h7_info->dbgmcu_target;
++	/* On H74x/H75x, the AXI DBGMCU alias can return zero or stale
++	 * data even after Cortex-M examination. AP2 exposes the APB view.
++	 */
++	if (debug && target_was_examined(debug) &&
++			target_read_u32(debug, DBGMCU_APB_IDCODE_REGISTER, id) == ERROR_OK &&
++			(*id & 0xfff) == DEVID_STM32H74_H75XX) {
++		*id_from_apb = true;
++		return ERROR_OK;
++	}
++
++	return target_read_u32(bank->target, DBGMCU_IDCODE_REGISTER, id);
+ }
+ 
+@@ -879,5 +904,6 @@
+ 	}
+ 
+-	int retval = stm32h7_read_id_code(bank, &stm32h7_info->idcode);
++	bool id_from_apb = false;
++	int retval = stm32h7_read_id_code(bank, &stm32h7_info->idcode, &id_from_apb);
+ 	if (retval != ERROR_OK)
+ 		return retval;
+@@ -922,4 +948,13 @@
+ 	else
+ 		retval = target_read_u16(target, stm32h7_info->part_info->fsize_addr, &flash_size_in_kb);
++
++	/* APB identification only proves the debug domain is reachable. Require
++	 * a real H74x/H75x capacity from AXI before exposing sectors to erase.
++	 */
++	if (id_from_apb && (retval != ERROR_OK ||
++			(flash_size_in_kb != 128 && flash_size_in_kb != 1024 && flash_size_in_kb != 2048))) {
++		LOG_ERROR("Cannot read a valid STM32H74x/75x Flash size through the CPU MEM-AP");
++		return ERROR_FAIL;
++	}
+ 
+ 	if (retval != ERROR_OK) {

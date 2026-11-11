@@ -24,8 +24,8 @@
     "app/core/log-search.js": "aa125c1d3f8e13370c3950c0852d18871efa780a5067a158e6b4571bbacb4a9f",
     "app/core/openocd-hpm-profile.js": "739be61ba63aa5567d694979c4c6dcd4ca7bba57785415535cdc8e79d6feac06",
     "app/core/openocd-jtag-pins.js": "c306ba27b0e930f8134c35503468aa1b92cd0f273f36ec6ad4fa91ff9a9a84b1",
-    "app/core/openocd-probe.js": "f5d8f1d4ff55a8642a05da79cb18312c9eba76cb1f64ce126545f73100c18120",
-    "app/core/openocd-profile.js": "29199f94b78d584cf660c1ff49b535e722c298b0da28080fdc129cd0495a4625",
+    "app/core/openocd-probe.js": "5d906d7e81b680829dd130d318a16c4e6a21466914d0310dcb266c11f05a96e1",
+    "app/core/openocd-profile.js": "1779bfbf8302590c2a26ade5dcdf8c454c0ec212a1d60744a2d0962a7c5c2c9b",
     "app/core/openocd-session.js": "8fd9ee6edd028164a4032883f8410ee4d74ffa447ed79986aeb4b24b4f04bb30",
     "app/core/operation-budget.js": "92c3c1a9c97f4cf9321df9b17caf72463d15b1ca9e98fb8ee78a4a151f7d2d41",
     "app/core/pace.js": "ac27d5db130cc32033221c5b96c1f2fa5c108450a8ddbc706a174dc6c2ab1b8e",
@@ -82,9 +82,10 @@
     "app/flash/image.js": "85b81a5ee29ab9aa1f52b2709da3cf8a47897e8a205de67c7ec45641b0e42b7c",
     "app/flash/inspect.js": "03c8c214fe6f81c5c4602162fbaf64c7edcb823759d7c2307e3af95089673014",
     "app/flash/inspector-view.js": "05cfeb760b888b77359548f8afa659e8f9a521e3a8e15dfe096c8df9e6a97d1a",
+    "app/flash/openocd-h7.js": "c4c95ecae057adcd7727b32cbd6655653af8a2e566780206f69975e86bfd5623",
     "app/flash/openocd-program.js": "8a38a7fad7115f2be2b9e0350d03d652ce295b94c85b78c49d48c9f533e42ece",
     "app/flash/target-reset.js": "fc5cee58df6299c65e0c16d89796174f12036f3edd17cfec6549f9cfb57a31ee",
-    "app/flash/view.js": "03484f42bfc78b634037c458d7a7715f0db4c194c7fbfe308ab5638359e0ea35",
+    "app/flash/view.js": "e216540a73b5954d6510f7772459475a8f97663465ae3a3a0b3736bda919436c",
     "app/hid/mock.js": "b37788033bc12dfc5febb3beaaa20f6b293bdaa83dba9898df1c693b94d832d5",
     "app/hid/probe.js": "6f2e246bc1749bb5c916db34326f79b2ccd39fcab9faa711709e9115b7d0cb4a",
     "app/hid/stream.js": "33a21e3530c7e639cf6c46dae1c68f005708ad3a5030b336abd1c413a570dcd4",
@@ -170,6 +171,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "88d99e1295a3858c00be7c421f3ad43a26f0a717ea1a2f393317bac977a7ab6f",
-  "outputBytes": 1189505
+  "outputSha256": "1e34a80c1ca92e6b00c301851f2600d51cd384d452bbfc6916bacabb5bc77235",
+  "outputBytes": 1191422
 }

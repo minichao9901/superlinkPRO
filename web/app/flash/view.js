@@ -15,6 +15,7 @@ import { rememberHpmBoard } from '../targets/hpm/select.js';
 import { DBGMCU_BASES, FLASH_SIZE_REGS, decodeCpuid, decodeDpIdcode, decodeStm32Dev, refineByFlash, saneFlashKb } from './devid.js';
 import { parseFirmware } from './image.js';
 import { programOpenOcdFlash } from './openocd-program.js';
+import { OpenOcdH7FlashProbe } from './openocd-h7.js';
 import { OpenOcdResetSession } from './target-reset.js';
 import { FirmwareInspector } from './inspector-view.js';
 import { bytes as fBytes } from '../core/format.js';
@@ -212,7 +213,8 @@ export class FlashView {
   async _openTarget(flash, cfg = this._targetProfile(flash)){
     const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice();
     if (cfg.arch === 'riscv') await prepareOpenOcdJtag(device);
-    return OpenOcdProbe.open(device, { cfg, onLog:line => this._log(line) });
+    const Probe = cfg.h7DebugTarget ? OpenOcdH7FlashProbe : OpenOcdProbe;
+    return Probe.open(device, { cfg, onLog:line => this._log(line) });
   }
 
   async _program(probe, regions, verify){

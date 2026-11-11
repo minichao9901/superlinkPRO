@@ -19,7 +19,11 @@ test('production Wasm accepts SWD and JTAG configurations without opening hardwa
     const session = new OpenOcdTargetSession();
     try {
       await session.open(cfg, device);
-      assert.equal(await session.command('target names'), cfg.target, cfg.name);
+      const expectedTargets = cfg.family === 'stm32h7' ? [cfg.target, 'workbench.h7dbg'] : [cfg.target];
+      assert.deepEqual((await session.command('target names')).split(/\s+/), expectedTargets, cfg.name);
+      if (expectedTargets.length === 2){
+        assert.equal(await session.command('workbench.h7dbg cget -ap-num'), '2');
+      }
       assert.equal(await session.command('transport select'), cfg.arch === 'riscv' ? 'jtag' : 'swd', cfg.name);
     } finally { await session.close(); }
   }
