@@ -106,6 +106,7 @@ test('flash reset-after-program still runs the target software reset', async () 
   const commands = [];
   const probe = Object.create(OpenOcdProbe.prototype);
   probe.command = async command => commands.push(command);
+  probe._readWord = async address => { assert.equal(address, 0xe000edf0); return 0x10001; };
   probe.disconnect = async () => {};
   const view = new FlashView();
   view.file = { name:'fixture.bin', dataB64:'AA==' };

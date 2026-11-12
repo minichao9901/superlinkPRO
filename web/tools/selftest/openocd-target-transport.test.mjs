@@ -133,7 +133,7 @@ function flashTarget(){
   const probe = {
     async command(line){
       commands.push(line);
-      if (line === 'capture {flash banks}') return '#0 : internal (stm32f1x) at 0x08000000, size 0x0, buswidth 0, chipwidth 0\n#1 : alias (virtual) at 0x08000000, size 0x0, buswidth 0, chipwidth 0';
+      if (line === 'capture {flash banks}') return '#0 : internal (stm32f1x) at 0x00000000, size 0x0, buswidth 0, chipwidth 0\n#1 : alias (virtual) at 0x08000000, size 0x0, buswidth 0, chipwidth 0';
       if (line.startsWith('if {')) return '#0 : stm32f1x at 0x08000000, size 0x10, buswidth 0, chipwidth 0\n  #  0: 0x00000000 (0x8 0kB)\n  #  1: 0x00000008 (0x8 0kB)';
       if (line.startsWith('flash read_bank')){
         const [, offset, size] = line.match(/ (\d+) (\d+)$/);

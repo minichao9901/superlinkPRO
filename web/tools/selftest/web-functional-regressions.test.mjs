@@ -91,7 +91,7 @@ test('queued Flash operation uses its original target, image and options', async
   let handoff;
   view._clearProbeUsers = () => new Promise(resolve => { handoff = resolve; });
   view._openTarget = async (_flash, cfg) => {
-    assert.equal(cfg.family, 'stm32f103');
+    assert.equal(cfg.builtin, 'stm32f103');
     assert.equal(cfg.clockKhz, 1000);
     return {disconnect:async () => {}};
   };
