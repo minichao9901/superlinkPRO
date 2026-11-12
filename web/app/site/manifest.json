@@ -82,7 +82,7 @@
     "app/flash/image.js": "85b81a5ee29ab9aa1f52b2709da3cf8a47897e8a205de67c7ec45641b0e42b7c",
     "app/flash/inspect.js": "03c8c214fe6f81c5c4602162fbaf64c7edcb823759d7c2307e3af95089673014",
     "app/flash/inspector-view.js": "05cfeb760b888b77359548f8afa659e8f9a521e3a8e15dfe096c8df9e6a97d1a",
-    "app/flash/openocd-h7.js": "c4c95ecae057adcd7727b32cbd6655653af8a2e566780206f69975e86bfd5623",
+    "app/flash/openocd-h7.js": "9dbb67c74e0cf15bebac8c4f6a38dc484ae16db5b48cecc6ec0f8a902a94dd45",
     "app/flash/openocd-program.js": "8a38a7fad7115f2be2b9e0350d03d652ce295b94c85b78c49d48c9f533e42ece",
     "app/flash/target-reset.js": "fc5cee58df6299c65e0c16d89796174f12036f3edd17cfec6549f9cfb57a31ee",
     "app/flash/view.js": "e216540a73b5954d6510f7772459475a8f97663465ae3a3a0b3736bda919436c",
@@ -171,6 +171,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "1e34a80c1ca92e6b00c301851f2600d51cd384d452bbfc6916bacabb5bc77235",
-  "outputBytes": 1191422
+  "outputSha256": "7809f2ff3d881631dbf53e74651cbf9a2d04778b6f6ef8c1477ea953f7d1010f",
+  "outputBytes": 1191750
 }

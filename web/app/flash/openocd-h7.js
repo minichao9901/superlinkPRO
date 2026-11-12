@@ -5,6 +5,10 @@ const DBGMCU_IDCODE = 0xe00e1000;
 const DBGMCU_CR = DBGMCU_IDCODE + 4;
 const H74_H75_DEVICE = 0x450;
 const DEBUG_CLOCKS_AND_D1_LOW_POWER = 0x00600007;
+const DHCSR = 0xe000edf0;
+const S_REGRDY = 1 << 16;
+const S_HALT = 1 << 17;
+const S_LOCKUP = 1 << 19;
 
 /** H74x/H75x's APB-AP remains accessible when the CPU's AXI access is gated. */
 export class OpenOcdH7FlashProbe extends OpenOcdProbe {
@@ -46,7 +50,17 @@ export class OpenOcdH7FlashProbe extends OpenOcdProbe {
 
   async reset(halt = false){
     await this._restoreDebugControl();
-    return super.reset(halt);
+    await this.command(halt ? 'reset halt' : 'reset run');
+    // AP0 can be temporarily unavailable while the reset firmware starts.
+    // Check the core directly and never issue the reset again on a read failure.
+    const deadline = performance.now() + 2000;
+    do {
+      const status = await this._readWord(DHCSR).catch(() => null);
+      if ((status & S_REGRDY) && !(status & S_LOCKUP) && Boolean(status & S_HALT) === halt)
+        return 'OpenOCD 目标复位';
+      await new Promise(resolve => setTimeout(resolve, 25));
+    } while (performance.now() < deadline);
+    throw Error('未确认 STM32H7 复位后的核心状态');
   }
 
   async disconnect(){
