@@ -22,6 +22,7 @@ class CommandManualTests(unittest.TestCase):
             client = app.test_client()
             headers = {'X-Trace-CLI': 'a' * 64, 'Origin': 'http://localhost'}
             self.assertEqual(client.get('/command-manual').status_code, 403)
+            self.assertTrue(client.get('/command-manual/status', headers=headers).json['available'])
             rows = client.get('/command-manual', headers=headers).json['rows']
             self.assertEqual({row['id'] for row in rows if 'id' in row}, set(command_manual.BY_NAME))
             self.assertEqual(client.post('/command-manual/run', headers={**headers, 'Origin': 'http://other'},

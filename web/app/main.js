@@ -124,7 +124,10 @@ initDockNavigation();
 installAcquisitionDiagnostics(tools);
 
 const manualTab = document.querySelector('[data-local-manual]');
-if (document.body.dataset.commandManual === '1'){
+const manualAvailable = workbenchToken && await fetch('/command-manual/status', {
+  headers:{'X-Trace-CLI':workbenchToken}, signal:AbortSignal.timeout(2000),
+}).then(response=>response.ok).catch(()=>false);
+if (manualAvailable){
   manualTab.dataset.tab = 'manual';
   manualTab.hidden = false;
 } else manualTab.remove();

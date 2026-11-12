@@ -100,7 +100,6 @@ def start_command(command, values, runtime, prefix, cwd, output):
 
 def install(app, token_file, manual, prefix, cwd):
     """Install only on the authenticated, loopback workbench origin."""
-    app.config['COMMAND_MANUAL'] = True
     token = token_file.read_bytes().strip()
     runtime = token_file.parent.resolve()
     jobs = {}
@@ -112,6 +111,11 @@ def install(app, token_file, manual, prefix, cwd):
             abort(403)
         if request.method == 'POST' and request.headers.get('Origin') != request.host_url.rstrip('/'):
             abort(403)
+
+    @app.get('/command-manual/status')
+    def command_manual_status():
+        authorize()
+        return jsonify(available=True)
 
     @app.get('/command-manual')
     def command_manual():

@@ -101,7 +101,7 @@
     "app/i2c/runner.js": "75b765d6f84a314fa6cabb3d0d8f3a38637a364c6e9d40eb7b9d63cf41e4df88",
     "app/i2c/session.js": "d139098f2794e67b641cd560f45f3a646faf6b2f236b7f35c738d9d4b7504a60",
     "app/i2c/view.js": "b0c5d1610039da10a3cc654135ac5335f34e81edc0282cf9df668962472d9288",
-    "app/main.js": "be34032d68e79299656860a9ec2b822b31271ad01996ee9c5e94e3bbdfc4e41b",
+    "app/main.js": "0d4ca5579eaabb4eeb15ae7b342c16156f228a3c6aa2d422a861ecd737d4a42d",
     "app/rtt/elf.js": "76a6278965724f52133467f8f07d4472077c5a9c35ca187fece59abad42405c7",
     "app/rtt/mock.js": "713da5c0c48d4a912ed9da57dbaf5decf824e57be3b185adc70023e02a1c072d",
     "app/rtt/protocol.js": "ba92dbcda2170431db1e5d1cc0fc1a6ad5f092e60aab5db43bd1cf98c35f69c2",
@@ -172,6 +172,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "6af2b12a8cb299af27d0013331a6d32a677f4afd84cc925bfe5625c88b72b47a",
-  "outputBytes": 1194929
+  "outputSha256": "e12c4b55e9746703d09b10174d6d758f227c8e3a9024d71671c2c96c6ceee420",
+  "outputBytes": 1195024
 }

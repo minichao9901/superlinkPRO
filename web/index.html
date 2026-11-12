@@ -16,7 +16,7 @@
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=6af2b12a8cb299af';
+  window.__webBundleUrl = 'app/site/main.js?v=e12c4b55e9746703';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
