@@ -1,8 +1,10 @@
 from argparse import Namespace
 from pathlib import Path
 import struct
+import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 import zlib
 
@@ -59,9 +61,10 @@ class ProbeFlashTests(unittest.TestCase):
                 return ''
 
             args = Namespace(file=image, dry_run=False, dfu_util=tool, serial='TEST1', backup_dir=folder/'ok')
-            with patch.object(probe_flash, 'run', side_effect=simulate):
+            with patch.object(probe_flash, 'run', side_effect=simulate), patch.object(probe_flash, 'app_devices', return_value=[]):
                 result = probe_flash.flash(args)
                 self.assertTrue(result['verified'] and result['runtimeDetected'])
+                self.assertFalse(result['enteredDfuByHid'])
                 self.assertEqual((args.backup_dir/'before-app-pack.bin').read_bytes(), old_pack)
                 self.assertIn(':leave', calls[-2])
                 calls.clear()
@@ -70,3 +73,95 @@ class ProbeFlashTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, '逐字节'):
                     probe_flash.flash(args)
                 self.assertFalse(any(':leave' in arguments for arguments in calls))
+
+
+    def test_running_probe_enters_dfu_and_only_writes_matching_serial_and_port(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            image = folder / 'probe.bin'
+            payload = app_pack(b'new app')
+            image.write_bytes(payload)
+            tool = folder / 'dfu-util.exe'
+            tool.touch()
+            reports = []
+            actions = []
+            enter_attempted = False
+
+            class HidDevice:
+                def open_path(self, path):
+                    if path != b'probe-hid':
+                        raise AssertionError('a different probe was opened')
+
+                def write(self, report):
+                    nonlocal enter_attempted
+                    reports.append(report)
+                    if report[2] == 0xFF:
+                        enter_attempted = True
+                        raise OSError('USB disconnected during reset')
+                    return 64
+
+                def read(self, length, timeout_ms):
+                    return bytes((2, 12, 0x10)) + b'akaLinkPro\0' + bytes(50)
+
+                def close(self):
+                    actions.append('close HID')
+
+            hid = SimpleNamespace(
+                device=HidDevice,
+                enumerate=lambda vid, pid: [
+                    dict(path=b'zynq-hid', usage_page=0xff00, product_string='ZynqLink probe control', serial_number='ZYNQ1'),
+                    dict(path=b'probe-hid', usage_page=0xff00, product_string='akaLinkPro CMSIS-DAP', serial_number='TEST1'),
+                ],
+            )
+            dfu_name = '@Internal Flash /0x80020000/55*16Kg'
+            app_row = 'Found Runtime: [0d28:0204] ver=0100, cfg=1, intf=4, path="2-2.4", alt=0, name="Runtime", serial="TEST1"'
+
+            def simulate(exe, arguments, **options):
+                if arguments[0] == '-l':
+                    if arguments[2] == probe_flash.APP_ID:
+                        return app_row
+                    if not enter_attempted:
+                        return ''
+                    return (
+                        f'Found DFU: [0d28:0207] ver=0100, cfg=1, intf=0, path="2-2.5", alt=0, name="{dfu_name}", serial="OTHER"\n'
+                        f'Found DFU: [0d28:0207] ver=0100, cfg=1, intf=0, path="2-2.4", alt=0, name="{dfu_name}", serial="TEST1"'
+                    )
+                self.assertEqual(arguments[arguments.index('-p') + 1], '2-2.4')
+                self.assertEqual(arguments[arguments.index('-S') + 1], 'TEST1')
+                self.assertIn('close HID', actions)
+                actions.append(arguments)
+                if '-U' in arguments:
+                    target = Path(arguments[-1])
+                    target.write_bytes(bytes(probe_flash.APP_SIZE) if target.name.startswith('before') else payload)
+                return ''
+
+            args = Namespace(file=image, dry_run=False, dfu_util=tool, serial=None, backup_dir=folder/'result')
+            with patch.dict(sys.modules, hid=hid), patch.object(probe_flash, 'run', side_effect=simulate):
+                result = probe_flash.flash(args)
+            self.assertEqual(reports, [bytes((1, 1, code)) + bytes(61) for code in (0x10, 0xFF)])
+            self.assertTrue(result['enteredDfuByHid'] and result['verified'] and result['runtimeDetected'])
+
+    def test_wrong_hid_model_cannot_receive_the_dfu_request(self):
+        class HidDevice:
+            def open_path(self, path):
+                pass
+
+            def write(self, report):
+                if report[2] != 0x10:
+                    raise AssertionError('unexpected reboot command')
+                return 64
+
+            def read(self, length, timeout_ms):
+                return bytes((2, 9, 0x10)) + b'ZynqLink'
+
+            def close(self):
+                pass
+
+        with patch.dict(sys.modules, hid=SimpleNamespace(device=HidDevice)):
+            with self.assertRaisesRegex(RuntimeError, '型号'):
+                probe_flash.enter_dfu(b'different-probe')
+
+    def test_dfu_port_mismatch_is_rejected_before_any_flash_io(self):
+        with patch.object(probe_flash, 'dfu_devices', return_value=[('2-2.5', 'TEST1')]):
+            with self.assertRaisesRegex(RuntimeError, 'USB 端口'):
+                probe_flash.wait_for_dfu('dfu-util', 'TEST1', '2-2.4', None)

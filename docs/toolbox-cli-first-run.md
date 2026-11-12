@@ -94,12 +94,12 @@
 
 ## 4. 烧录 SuperLinkPRO 探针固件
 
-断开工作台里的探针连接和采集。让要更新的 HPM5301 探针进入 DFU 模式（`0D28:0207`）。支持 USER 键的板型可长按 USER 键进入。准备打包后的探针 APP BIN 和 PATH 中的 [dfu-util](https://dfu-util.sourceforge.net/dfu-util.1.html)。在 Windows 上把工具目录加入 PATH 后，重新启动工作台。
+停止采集并释放工作台的探针连接。命令通过 HID 确认 HPM5301 探针型号并自动切换 DFU，也支持从已进入 DFU 的探针继续。准备打包后的探针 APP BIN 和 PATH 中的 [dfu-util](https://dfu-util.sourceforge.net/dfu-util.1.html)。在 Windows 上把工具目录加入 PATH 后，重新启动工作台。
 
-1. 备份探针应用区，写入 APP，逐字节读回校验并确认同一探针重新枚举。点击前在本步填写 APP BIN 的绝对路径。终端使用时，将 `$ProbeFirmware` 换成带引号的实际文件路径。成功结果包含 `verified: true` 和 `runtimeDetected: true`。
+1. 备份探针应用区，写入 APP，逐字节读回校验并确认同一探针重新枚举。点击前在本步填写 APP BIN 的绝对路径。终端使用时，将 `$ProbeFirmware` 换成带引号的实际文件路径。成功结果包含 `verified: true` 和 `runtimeDetected: true`。若本次通过 HID 切换，`enteredDfuByHid` 为 `true`。
 
    ```powershell
    python -X utf8 toolbox.py probe-flash --file "$ProbeFirmware"
    ```
 
-用 `--dry-run` 可只检查 APP 包头、CRC 和 SHA-256。命令支持 `--serial` 指定多只 DFU 设备中的一只，支持 `--dfu-util` 指定工具绝对路径。备份和各阶段日志的位置见命令输出。
+用 `--dry-run` 可只检查 APP 包头、CRC 和 SHA-256。命令支持 `--serial` 指定多只探针中的一只，支持 `--dfu-util` 指定工具绝对路径。备份和各阶段日志的位置见命令输出。

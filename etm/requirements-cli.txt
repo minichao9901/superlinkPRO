@@ -1,3 +1,4 @@
 -r requirements.txt
 # 硬件复用网页命令与 Node WebUSB；可选 CDC 负载使用 pyserial。
 pyserial==3.5
+hidapi==0.15.0

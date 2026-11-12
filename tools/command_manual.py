@@ -41,7 +41,7 @@ COMMANDS = {item.line: item for item in (
     Command('flash-log', WEB + "page flash read '#f-log'"),
     Command('job', WEB + 'job JOB_ID', fields=('job',)),
     Command('probe-firmware', 'python -X utf8 toolbox.py probe-flash --file "$ProbeFirmware"',
-            '写入已进入 DFU 的 SuperLinkPRO 探针 APP，读回校验后重启。', ('probe-firmware',)),
+            '通过 HID 自动切换 DFU，备份并写入 SuperLinkPRO 探针 APP，读回校验后重启。', ('probe-firmware',)),
 )}
 BY_NAME = {item.name: item for item in COMMANDS.values()}
 FENCE = re.compile(r'^   ```powershell\n([^\n]+)\n   ```$', re.M)

@@ -52,14 +52,87 @@ def device_rows(text):
             for kind, product, path, name, serial in LIST_ROW.findall(text)]
 
 
-def select_device(tool, serial):
+def dfu_devices(tool, serial):
     rows = device_rows(run(tool, ['-l', '-d', DFU_ID, '-i', '0', '-a', '0']))
-    devices = [(path, uid) for mode, product, path, name, uid in rows
-               if mode == 'dfu' and product == '0207' and LAYOUT.fullmatch(name.strip())
-               and (serial is None or uid == serial)]
-    if len(devices) != 1:
-        raise RuntimeError('需要唯一一只已进入 DFU 的 SuperLinkPRO（0D28:0207，接口 0）。多只设备时用 --serial 指定。')
-    return devices[0]
+    return [(path, uid) for mode, product, path, name, uid in rows
+            if mode == 'dfu' and product == '0207' and LAYOUT.fullmatch(name.strip())
+            and (serial is None or uid == serial)]
+
+
+def app_devices(serial):
+    try:
+        import hid
+    except ImportError as error:
+        raise RuntimeError('自动切换 DFU 需要 hidapi。请安装 CLI 依赖或使用打包的工作台。') from error
+    devices = hid.enumerate(0x0D28, 0x0204)
+    return [device for device in devices
+            if device.get('usage_page') == 0xFF00
+            and (device.get('product_string') or '').casefold().startswith(('akalinkpro', 'superlinkpro'))
+            and re.fullmatch(r'[A-Za-z0-9_-]+', device.get('serial_number') or '')
+            and (serial is None or device['serial_number'] == serial)]
+
+
+def select_device(tool, serial):
+    dfu = dfu_devices(tool, serial)
+    app = app_devices(serial)
+    if len(dfu) + len(app) != 1:
+        raise RuntimeError('需要唯一一只匹配的 SuperLinkPRO 探针（运行态或 DFU）。多只设备时用 --serial 指定。')
+    if dfu:
+        path, uid = dfu[0]
+        return path, uid, None
+    device = app[0]
+    uid = device['serial_number']
+    rows = device_rows(run(tool, ['-l', '-d', APP_ID, '-S', uid]))
+    paths = {path for mode, product, path, _, reported in rows
+             if mode == 'runtime' and product == '0204' and reported == uid}
+    if len(paths) > 1:
+        raise RuntimeError('相同序列号对应多个 USB 端口，取消切换 DFU')
+    return next(iter(paths), None), uid, device['path']
+
+
+def enter_dfu(hid_path):
+    import hid
+
+    device = hid.device()
+    device.open_path(hid_path)
+    try:
+        # SuperLinkPRO and ZynqLinkPRO share a USB VID/PID and usage page.
+        # Check the protocol model before using the reboot command.
+        if device.write(bytes((1, 1, 0x10)) + bytes(61)) != 64:
+            raise RuntimeError('探针 HID 型号查询发送不完整')
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            reply = bytes(device.read(64, timeout_ms=200))
+            if len(reply) >= 3 and reply[0] == 2 and reply[2] == 0x10:
+                length = reply[1]
+                if 1 <= length <= len(reply) - 2 and reply[3:2+length].rstrip(b'\0') == b'akaLinkPro':
+                    break
+                raise RuntimeError('探针 HID 型号与 SuperLinkPRO 不匹配，取消切换 DFU')
+        else:
+            raise RuntimeError('未收到 SuperLinkPRO 探针 HID 型号响应')
+
+        try:
+            written = device.write(bytes((1, 1, 0xFF)) + bytes(61))
+        except OSError as error:
+            # Windows can report a disconnected handle when reboot is immediate.
+            # Continue only if the selected serial appears in DFU mode.
+            return str(error)
+        return None if written == 64 else f'HID 报告写入 {written} 字节'
+    finally:
+        device.close()
+
+
+def wait_for_dfu(tool, serial, runtime_path, write_note):
+    deadline = time.monotonic() + 25
+    while time.monotonic() < deadline:
+        devices = dfu_devices(tool, serial)
+        if devices:
+            if len(devices) != 1 or runtime_path is not None and devices[0][0] != runtime_path:
+                raise RuntimeError('DFU 设备与选定探针的 USB 端口不匹配')
+            return devices[0][0]
+        time.sleep(.25)
+    detail = f'。HID {write_note}' if write_note else ''
+    raise RuntimeError(f'探针 {serial} 发送 HID 切换命令后未进入 DFU{detail}')
 
 
 def flash(args):
@@ -76,13 +149,17 @@ def flash(args):
     tool = shutil.which('dfu-util') if args.dfu_util is None else str(args.dfu_util.resolve())
     if not tool or not Path(tool).is_file():
         raise FileNotFoundError('找不到 dfu-util，请加入 PATH 或用 --dfu-util 指定其绝对路径')
-    path, serial = select_device(tool, args.serial)
+    path, serial, hid_path = select_device(tool, args.serial)
     if args.backup_dir:
         folder = args.backup_dir.resolve()
         folder.mkdir(parents=True, exist_ok=False)
     else:
         folder = Path(tempfile.mkdtemp(prefix='superlink-probe-flash-'))
     print(f'已定位探针 {serial}。备份和日志目录 {folder}', file=sys.stderr, flush=True)
+    if hid_path is not None:
+        print('正在通过 HID 切换到 DFU。', file=sys.stderr, flush=True)
+        write_note = enter_dfu(hid_path)
+        path = wait_for_dfu(tool, serial, path, write_note)
 
     selected = ['-d', DFU_ID, '-i', '0', '-a', '0', '-p', path, '-S', serial]
     backup = folder / 'before-app-region.bin'
@@ -114,6 +191,6 @@ def flash(args):
         if any(mode == 'runtime' and product == '0204' and bus == path and uid == serial
                for mode, product, bus, _, uid in rows):
             return {**value, 'serial': serial, 'backupDir': str(folder), 'backupSha256': digest(old),
-                    'verified': True, 'runtimeDetected': True}
+                    'verified': True, 'runtimeDetected': True, 'enteredDfuByHid': hid_path is not None}
         time.sleep(.5)
     raise RuntimeError(f'APP 已读回一致，未确认探针重新枚举。请检查 USB 和 {folder / "leave.log"}')

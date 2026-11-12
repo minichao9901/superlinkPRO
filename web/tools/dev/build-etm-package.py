@@ -128,7 +128,7 @@ def main(argv=None):
     python_license=Path(sys.base_prefix)/'LICENSE.txt'
     if python_license.exists():shutil.copyfile(python_license,licenses/'Python-LICENSE.txt')
     distributions={}
-    for name in ['PyInstaller','Flask','Werkzeug','pyelftools','capstone','Jinja2','MarkupSafe','itsdangerous','click','blinker']:
+    for name in ['PyInstaller','Flask','Werkzeug','pyelftools','capstone','Jinja2','MarkupSafe','itsdangerous','click','blinker','hidapi']:
         try:dist=importlib.metadata.distribution(name)
         except importlib.metadata.PackageNotFoundError:
             if name=='blinker':continue # Optional with the pinned Flask 2.2 release.
