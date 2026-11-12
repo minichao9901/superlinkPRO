@@ -14,3 +14,7 @@
 原始浏览器输出及截图在本机 `tmp/command-manual-acceptance-20261112/`。记录对应 ISSUE-138。
 
 首个冻结候选的 HTTP 验收发现，服务在首页注入手册标记使响应字节与包清单不一致。入口探测改用鉴权状态接口，首页以清单校验的原始字节返回。
+
+日常入口 `dist/superlinkPRO/superlinkPRO.exe` 已更新为 `1.1.0-web.15`，构建来源 `9c97d49`，保留原 `data`。EXE SHA-256 为 `5bc74532a8aa3f2def538eda1ec45da3938ae33fdcf2804746ca44810ee5c1fa`。ZIP 为 103,378,757 字节，SHA-256 为 `c606007402093a8d4540eff619cdd33f3ed0821c407684f6f37478e870f2e642`。完整冻结包验收通过，首页 HTTP 响应与文件哈希一致。
+
+使用独立数据目录和系统 PATH 中不含 Python 或 Node.js 的环境，在安装后的 EXE 上重复完成同样的 13 步和两种模拟目标流程。包内 CLI 实际执行。15 项 Python CLI 与打包测试、35 项定向 Web 测试及生成产物一致性检查通过。验收进程已退出。
