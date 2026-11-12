@@ -187,6 +187,9 @@ def serve(args):
     token = secrets.token_hex(32)
     (folder / 'cli-token').write_text(token, encoding='ascii')
     app = service.create_application(ROOT / 'etm', ROOT / 'web', folder / 'cli-token')
+    from tools.command_manual import install as install_manual
+    install_manual(app.app, folder / 'cli-token', ROOT / 'docs/toolbox-cli-first-run.md',
+                   [sys.executable, '-u', '-X', 'utf8', str(ROOT / 'toolbox.py')], ROOT)
     server = make_server('127.0.0.1', args.port, app, threaded=True)
     state = {'protocol': 'workbench/1', 'url': 'http://127.0.0.1:' + str(args.port), 'pid': os.getpid(), 'status': 'serving'}
     emit(state, folder / 'toolbox-runtime.json')
@@ -202,6 +205,30 @@ def serve(args):
         (folder / 'toolbox-runtime.json').write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
+def target_flash(client, args):
+    path = Path(args.file)
+    if path.suffix.lower() not in {'.elf', '.axf', '.out', '.hex', '.ihex', '.bin'}:
+        raise ValueError('固件格式须为 ELF/AXF/OUT、HEX/IHEX 或 BIN')
+    if path.suffix.lower() == '.bin' and not (args.base and 0 < args.base <= 0xffffffff):
+        raise ValueError('BIN 须指定 --base，例如 --base 0x08000000')
+    if path.suffix.lower() != '.bin' and args.base is not None:
+        raise ValueError('--base 仅用于 BIN，ELF 和 HEX 自带地址')
+    firmware = {**pack_file(path), 'kind': 'file'}
+    digest = hashlib.sha256(base64.b64decode(firmware['$base64'])).hexdigest()
+    result = client.request({
+        'action': 'workbench', 'page': 'flash', 'op': 'invoke', 'method': 'programFile',
+        'args': [firmware, {'chip': args.chip, 'clockKhz': args.clock_khz, 'base': args.base,
+                            'reset': not args.keep_halted, 'prepareOnly': args.prepare_only}],
+    })
+    if result.get('ok'):
+        value = result['value']['value']
+        key = 'prepared' if args.prepare_only else 'verified'
+        if not isinstance(value, dict) or value.get(key) is not True:
+            return {**result, 'ok': False, 'error': '烧录器未确认本次操作成功；请查看页面日志。'}
+        value['sha256'] = digest
+    return result
+
+
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--runtime', help='工作台运行时目录（不是 trace native 运行时）')
@@ -214,6 +241,13 @@ def parser():
     s.add_argument('--port', type=int, default=8896)
     sub.add_parser('ping', help='检查浏览器worker就绪，不访问设备')
     sub.add_parser('status', help='工作台摘要')
+    s = sub.add_parser('target-flash', help='用网页 OpenOCD Wasm 烧录目标 MCU 并校验')
+    s.add_argument('--chip', required=True, help='烧录器芯片选项值，如 stm32h7')
+    s.add_argument('--file', required=True, help='目标 MCU 固件文件')
+    s.add_argument('--clock-khz', type=int, help='烧录时钟档位，省略时用所选配置默认值，SWD/JTAG 均使用 kHz')
+    s.add_argument('--base', type=lambda value: int(value, 0), help='仅 BIN 需要，指定目标 Flash 基地址')
+    s.add_argument('--keep-halted', action='store_true', help='校验后不复位运行')
+    s.add_argument('--prepare-only', action='store_true', help='检查镜像并设置页面，不连接设备')
     s = sub.add_parser('job', help='查询超时/历史操作结果，不重试')
     s.add_argument('id')
     s = sub.add_parser('ack', help='删除已完成job结果，释放队列容量')
@@ -298,7 +332,9 @@ def main(argv=None, *, portable_runtime=None):
             serve(args)
             return 0
         client = Client(args.runtime, args.timeout)
-        if args.command == 'job':
+        if args.command == 'target-flash':
+            result = target_flash(client, args)
+        elif args.command == 'job':
             result = {'ok': True, 'value': client.result(args.id)}
         elif args.command == 'ack':
             client.result(args.id)  # validate ID before composing an endpoint

@@ -172,6 +172,10 @@ def main():
             staging.write_text(secrets.token_hex(32),encoding='ascii')
             staging.replace(folder/'cli-token')
             load_current_web_queue().install_web_cli(app,folder/'cli-token')
+            if workbench:
+                from tools.command_manual import install as install_manual
+                install_manual(app, folder/'cli-token', runtime/'docs/toolbox-cli-first-run.md',
+                               [sys.executable, '--workbench-cli'], home)
             (folder/'toolbox-runtime.json').write_text(json.dumps(dict(protocol='workbench/1',url=url.rstrip('/'),pid=os.getpid())),encoding='utf8')
         seed_demo(backend,records)
         print('KingstVIS 需开启 Socket 并使能五路通道。',flush=True)

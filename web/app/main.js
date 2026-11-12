@@ -74,6 +74,7 @@ initEventLogs();
 window.__tools = tools;
 // The packaged launcher passes authorization in the fragment so it never
 // reaches the HTTP access log. Keep it scoped to this tab across reloads.
+let workbenchToken;
 if(['127.0.0.1','localhost','[::1]'].includes(location.hostname)){
   const url=new URL(location.href);
   const [page,fragmentQuery]=url.hash.split('?',2);
@@ -90,6 +91,7 @@ if(['127.0.0.1','localhost','[::1]'].includes(location.hostname)){
     else if(token===null) token=sessionStorage.getItem('workbench-cli-token');
   }catch{}
   if(/^[0-9a-f]{64}$/.test(token||'')){
+    workbenchToken = token;
     import('./automation/trace.js').then(m=>m.startWorker(token)).catch(e=>console.error('CLI工作台：',e));
   }
 }
@@ -121,7 +123,13 @@ initLogSearch({page:'rttcdc',prefix:'c',records:()=>stream.rx.raw,isHex:()=>stre
 initDockNavigation();
 installAcquisitionDiagnostics(tools);
 
-const pages = { serial:assistant, terminal, rtt, rttcdc:stream, scope, flash, spi, panel,
+const manualTab = document.querySelector('[data-local-manual]');
+if (document.body.dataset.commandManual === '1'){
+  manualTab.dataset.tab = 'manual';
+  manualTab.hidden = false;
+} else manualTab.remove();
+const pages = { manual:{ onShow:async () => (await import('./command-manual.js')).showManual(workbenchToken) },
+  serial:assistant, terminal, rtt, rttcdc:stream, scope, flash, spi, panel,
   dbg, i2c, analog, swo, etm, spicdc:spiCdc, download };
 initTabs(name => {
   workspace.sync();

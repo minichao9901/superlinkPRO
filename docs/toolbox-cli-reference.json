@@ -2981,15 +2981,19 @@
       "methodSourceHints": [
         {
           "name": "flash",
-          "line": 126
+          "line": 131
+        },
+        {
+          "name": "programFile",
+          "line": 138
         },
         {
           "name": "resetTarget",
-          "line": 169
+          "line": 205
         },
         {
           "name": "readIdcode",
-          "line": 258
+          "line": 295
         }
       ]
     },

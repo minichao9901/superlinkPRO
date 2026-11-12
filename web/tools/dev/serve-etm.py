@@ -124,6 +124,8 @@ def create_application(etm_root,serial_root=ROOT,cli_token_file=None):
         # Only public files. Never expose Git metadata, backend records or temp files.
         if any(part.startswith('.') for part in Path(path).parts) or Path(path).parts[0] in ('tmp','node_modules','captures','records'):
             abort(404)
+        if path == 'index.html' and app.config.get('COMMAND_MANUAL'):
+            return (serial_root/path).read_text(encoding='utf8').replace('<body', '<body data-command-manual="1"', 1)
         return send_from_directory(serial_root,path)
     @app.after_request
     def fresh_main(response):

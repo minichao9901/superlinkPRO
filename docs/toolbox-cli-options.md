@@ -18,7 +18,7 @@ Unified AI entry: python -X utf8 toolbox.py --help. See docs/toolbox-cli-ai.md.
 
 ```text
 usage: toolbox.py [-h] [--runtime RUNTIME] [--timeout TIMEOUT] [--out OUT]
-                  {catalog,serve,ping,status,job,ack,request,batch,page,target,trace,bridge-build} ...
+                  {catalog,serve,ping,status,target-flash,job,ack,request,batch,page,target,trace,bridge-build} ...
 ```
 
 | 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
@@ -77,6 +77,26 @@ usage: toolbox.py status [-h]
 | 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
 |---|---|---|---|---|---|
 | -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+
+## toolbox.py target-flash
+
+用网页 OpenOCD Wasm 烧录目标 MCU 并校验
+
+```text
+usage: toolbox.py target-flash [-h] --chip CHIP --file FILE
+                               [--clock-khz CLOCK_KHZ] [--base BASE]
+                               [--keep-halted] [--prepare-only]
+```
+
+| 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
+|---|---|---|---|---|---|
+| -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+| --chip | 烧录器芯片选项值，如 stm32h7 | str | 是 | 未指定 | — |
+| --file | 目标 MCU 固件文件 | str | 是 | 未指定 | — |
+| --clock-khz | 烧录时钟档位，省略时用所选配置默认值，SWD/JTAG 均使用 kHz | int | 否 | 未指定 | — |
+| --base | 仅 BIN 需要，指定目标 Flash 基地址 | <lambda> | 否 | 未指定 | — |
+| --keep-halted | 校验后不复位运行 | flag × 0 | 否 | False | — |
+| --prepare-only | 检查镜像并设置页面，不连接设备 | flag × 0 | 否 | False | — |
 
 ## toolbox.py job
 
@@ -1191,4 +1211,4 @@ usage: toolbox.py trace record sources [-h] --record RECORD
 | --sources-json | 路径→正文的源码字典 | Path | 否 | 未指定 | — |
 | --source-root | 只读取此目录内、ELF记录的实际源码路径；不猜basename | Path | 否 | 未指定 | — |
 
-共覆盖 **68 个命令/分类节点**。
+共覆盖 **69 个命令/分类节点**。

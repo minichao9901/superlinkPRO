@@ -76,14 +76,18 @@ export class FlashView {
       const buf = buffer || await f.arrayBuffer();
       if (revision !== this._fileRevision) return;
       if (this.busy) throw new Error('请等待烧录操作完成后再换固件');
-      this.file = { name: f.name, size: f.size, dataB64: this._b64(new Uint8Array(buf)) };
-      this._fileInfo();
-      this.inspector?.load(f.name, buf);
-      this.onElfLoaded?.(buf, f.name);
+      this._acceptFile(f, buf);
       toast(`已读入 ${f.name}（${fBytes(f.size)}），点「烧录」写入`, 'ok', 4000);
     } catch (e){
       toast(`读文件失败：${e?.message || e}`, 'err');
     }
+  }
+
+  _acceptFile(file, buffer){
+    this.file = { name:file.name, size:file.size, dataB64:this._b64(new Uint8Array(buffer)) };
+    this._fileInfo();
+    this.inspector?.load(file.name, buffer);
+    this.onElfLoaded?.(buffer, file.name);
   }
 
   /** Uint8Array → base64（分块，避免 String.fromCharCode 爆栈） */
@@ -129,6 +133,37 @@ export class FlashView {
     if (!this.file){ toast('请选择或拖入固件文件', 'warn'); return; }
     const request = this._flashRequest();
     return await this._withProbeOwnership(() => this._flashOnce(request), '烧录器要使用探针');
+  }
+
+  async programFile(file, { chip, clockKhz = null, base = null, reset = true, prepareOnly = false } = {}){
+    if (!(file instanceof File) || !file.size) throw Error('请选择非空目标固件');
+    const binary = /\.bin$/i.test(file.name);
+    if (!/\.(elf|axf|out|hex|ihex|bin)$/i.test(file.name)) throw Error('不支持此固件格式');
+    if (binary && (!Number.isInteger(base) || base <= 0 || base > 0xffffffff))
+      throw Error('BIN 需要有效的 Flash 基地址');
+    const buffer = await file.arrayBuffer();
+    const regions = parseFirmware(file.name, new Uint8Array(buffer), base);
+    if (this.busy) throw Error('烧录器正在操作，请等待完成');
+    const select = $('f-chip'), speed = $('f-speed');
+    const option = [...select.options].find(item => item.value === chip && !item.disabled);
+    if (!option) throw Error('未知目标芯片：' + chip);
+    select.value = chip;
+    select.dispatchEvent(new Event('change', { bubbles:true }));
+    if (clockKhz !== null && (speed.disabled || ![...speed.options].some(item => item.value === String(clockKhz) && !item.disabled)))
+      throw Error('该配置不支持此时钟档位。请查看烧录器频率选项，导入 CFG 使用自身频率。');
+    if (!speed.disabled) speed.value = clockKhz === null ? '' : String(clockKhz);
+    if (binary) $('f-base').value = '0x' + base.toString(16);
+    $('f-verify').checked = true;
+    $('f-reset').checked = reset;
+    // Invalidate an earlier file-picker read that has not finished yet.
+    this._fileRevision = (this._fileRevision || 0) + 1;
+    this._acceptFile(file, buffer);
+    const plan = { name:file.name, chip, clockKhz:this._targetProfile().clockKhz, reset,
+      regions:regions.map(({ addr, data }) => ({ address:addr, bytes:data.length })) };
+    if (prepareOnly) return { ...plan, prepared:true };
+    const result = await this.flash();
+    if (!result?.verified || result.reset !== reset) throw Error('本次烧录或读回校验未确认');
+    return { ...plan, ...result };
   }
 
   /** Flash and identification share reservation, retry cleanup and button state. */
@@ -277,7 +312,26 @@ export class FlashView {
           return { id, cpuid, chipId };
         }
         let device;
+        if (probe.cfg.raw){
+          // The upstream H7 CFG defines a separate debug AP. Examine only that
+          // mem_ap to read DBGMCU, leaving the Cortex-M examine events deferred.
+          const rawId = await probe.command(`
+set dbg_dap [${probe.cfg.target} cget -dap]
+set dbg_ap [string range $dbg_dap 0 end-4].ap2
+if {[llength [info commands stm32h7x_mrw]] &&
+    [lsearch -exact [target names] $dbg_ap] >= 0 &&
+    [$dbg_ap cget -type] eq "mem_ap" && [$dbg_ap cget -ap-num] == 2} {
+    $dbg_ap arp_examine
+    stm32h7x_mrw $dbg_ap 0xe00e1000
+}`).catch(() => '');
+          if (rawId){
+            const value = Number(rawId);
+            const candidate = decodeStm32Dev(value & 0xfff, value >>> 16);
+            if (candidate.known) device = candidate;
+          }
+        }
         for (const addr of DBGMCU_BASES){
+          if (device) break;
           const value = await word(addr);
           if (value == null) continue;
           const candidate = decodeStm32Dev(value & 0xfff, value >>> 16);

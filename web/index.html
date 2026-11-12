@@ -9,13 +9,14 @@
 <link rel="stylesheet" href="app/vendor/xterm/xterm.css">
 <link rel="stylesheet" href="app/app.css">
 <link rel="stylesheet" href="app/download.css">
+<link rel="stylesheet" href="app/command-manual.css">
 <script>
 (function(){
   if (location.protocol === 'file:') return;
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=ef11fd9c6f5eda50';
+  window.__webBundleUrl = 'app/site/main.js?v=6af2b12a8cb299af';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -48,6 +49,7 @@
       <button class="tab active" data-tab="flash">烧录器</button>
       <button class="tab" data-tab="dbg">调试器</button>
       <button class="tab" data-tab="download">工程下载</button>
+      <button class="tab" data-local-manual hidden>可执行手册</button>
     </div>
     <details class="tool-switch" id="tool-switch">
       <summary>更多功能 <span aria-hidden="true">▾</span></summary>
@@ -86,6 +88,12 @@
 </header>
 
 <main>
+<section class="panel" id="tab-manual" aria-labelledby="manual-heading">
+  <div class="command-manual">
+    <h1 id="manual-heading">可执行手册</h1>
+    <div id="manual-document"></div>
+  </div>
+</section>
 <section class="panel" id="tab-download" aria-labelledby="download-heading">
   <div class="download-page">
     <p class="download-eyebrow">SUPERLINK PRO · WINDOWS 工作台</p>

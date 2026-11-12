@@ -86,7 +86,7 @@
     "app/flash/openocd-program.js": "802be7821970adbdc33565700e8191402960c7a591fcc2e5ab52cb25d4e5e1ec",
     "app/flash/target-reset.js": "fc5cee58df6299c65e0c16d89796174f12036f3edd17cfec6549f9cfb57a31ee",
     "app/flash/upstream-config.js": "3ee568629c17e3e0ac902b946398910a72b645369faf30c21625297461c8cee0",
-    "app/flash/view.js": "8dccc0ab87228390ed3965d941fba358e892a42dc3470d8eadc8e37ca00ac604",
+    "app/flash/view.js": "1e5bbf232e6608108440ec0647eb690004807dec291ba265d146cd2d6f1a4e57",
     "app/hid/mock.js": "b37788033bc12dfc5febb3beaaa20f6b293bdaa83dba9898df1c693b94d832d5",
     "app/hid/probe.js": "6f2e246bc1749bb5c916db34326f79b2ccd39fcab9faa711709e9115b7d0cb4a",
     "app/hid/stream.js": "33a21e3530c7e639cf6c46dae1c68f005708ad3a5030b336abd1c413a570dcd4",
@@ -101,7 +101,7 @@
     "app/i2c/runner.js": "75b765d6f84a314fa6cabb3d0d8f3a38637a364c6e9d40eb7b9d63cf41e4df88",
     "app/i2c/session.js": "d139098f2794e67b641cd560f45f3a646faf6b2f236b7f35c738d9d4b7504a60",
     "app/i2c/view.js": "b0c5d1610039da10a3cc654135ac5335f34e81edc0282cf9df668962472d9288",
-    "app/main.js": "b0d40874eb53f92273d34d0830980ade5a03867d2370ff1a59405bf766afb1ad",
+    "app/main.js": "be34032d68e79299656860a9ec2b822b31271ad01996ee9c5e94e3bbdfc4e41b",
     "app/rtt/elf.js": "76a6278965724f52133467f8f07d4472077c5a9c35ca187fece59abad42405c7",
     "app/rtt/mock.js": "713da5c0c48d4a912ed9da57dbaf5decf824e57be3b185adc70023e02a1c072d",
     "app/rtt/protocol.js": "ba92dbcda2170431db1e5d1cc0fc1a6ad5f092e60aab5db43bd1cf98c35f69c2",
@@ -172,6 +172,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "ef11fd9c6f5eda50b2b25c5957afc89c2cab9c3cc94ea7a0c78ee3aa360c9004",
-  "outputBytes": 1192804
+  "outputSha256": "6af2b12a8cb299af27d0013331a6d32a677f4afd84cc925bfe5625c88b72b47a",
+  "outputBytes": 1194929
 }

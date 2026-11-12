@@ -1,5 +1,7 @@
 # superlinkPRO：AI 使用的统一 CLI 总指南
 
+初次操作可按 [CLI 入门手册](toolbox-cli-first-run.md) 完成探针接入、目标识别、烧录和校验。相同步骤也可在本机工作台的「可执行手册」逐条点击。
+
 总入口是仓库根目录 **`toolbox.py`**。本文件是给 AI 的第一阅读入口；
 全部页面的分类、静态控件和方法源码位置集中在 **`docs/toolbox-cli-reference.json`**。
 逐条命令、全部参数、默认值、可选值和必填/互斥规则见
