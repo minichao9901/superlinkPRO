@@ -55,7 +55,11 @@ export function createOpenOcdDispatcher({ post, select, wasmBinary, onExit }){
         lines = [];
       },
     });
-    const directory = raw ? '/cfg/import' : generated ? '/cfg' : '/cfg/hpm/boards/openocd';
+    const directory = raw?.hpmSdk ? '/cfg/hpm-sdk/boards/openocd' : raw ? '/cfg/import' : generated ? '/cfg' : '/cfg/hpm/boards/openocd';
+    if (raw?.hpmSdk){
+      core.FS.mkdirTree(directory + '/interface');
+      core.FS.writeFile(directory + '/interface/cmsis-dap.cfg', 'adapter driver cmsis-dap\n');
+    }
     for (const [name, text] of files){
       if (raw && (name.split('/').some(part => !part || part === '.' || part === '..') || /[\\:\u0000-\u001f]/.test(name)))
         throw Error('CFG 路径必须位于所选目录');
@@ -65,8 +69,23 @@ export function createOpenOcdDispatcher({ post, select, wasmBinary, onExit }){
     }
     const args = ['openocd', '-s', directory, '-c', 'noinit',
       '-c', 'gdb port disabled; tcl port disabled; telnet port disabled'];
-    if (raw) args.push('-c', 'adapter driver cmsis-dap; adapter speed 1000',
-      '-f', directory + '/' + raw.entry, '-c', 'noinit; gdb port disabled; tcl port disabled; telnet port disabled');
+    if (raw){
+      args.push('-c', 'adapter driver cmsis-dap; adapter speed 1000');
+      const connection = raw.connection;
+      if (connection){
+        if (!['swd','jtag'].includes(connection.transport) || !Number.isInteger(connection.clockKhz) ||
+            connection.clockKhz < 1 || connection.clockKhz > 60000) throw Error('OpenOCD 连接参数无效');
+        args.push('-c', `transport select ${connection.transport}`);
+      }
+      if (raw.hpmSdk) args.push('-c', 'set HPM_SDK_BASE /cfg/hpm-sdk; set PROBE cmsis_dap');
+      if (connection?.board !== undefined){
+        if (!raw.hpmSdk || !/^hpm[a-z0-9]+$/.test(connection.board)) throw Error('HPM SDK 板卡参数无效');
+        args.push('-c', `set BOARD ${connection.board}`);
+      }
+      args.push('-f', directory + '/' + raw.entry, '-c', 'noinit; gdb port disabled; tcl port disabled; telnet port disabled');
+      if (raw.hpmSdk) args.push('-c', 'reset_config none');
+      if (connection) args.push('-c', `adapter speed ${connection.clockKhz}`);
+    }
     else if (generated) args.push('-f', directory + '/workbench.cfg');
     else args.push(
       '-c', 'set HPM_SDK_BASE /cfg/hpm; set PROBE cmsis_dap',

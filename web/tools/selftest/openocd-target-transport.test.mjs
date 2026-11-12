@@ -1,31 +1,28 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { installNativeOpenOcd } from '../../../etm/tools/node-transport/openocd-worker.mjs';
-import { CHIPS } from '../../app/core/chips.js';
+import { readFile } from 'node:fs/promises';
+import { upstreamFlashConfigs, hpmSdkFlashConfigs } from '../../app/flash/openocd-cfgs/catalog.js';
+import { loadBuiltinFlashCfg } from '../../app/flash/upstream-config.js';
 import { OpenOcdProbe } from '../../app/core/openocd-probe.js';
-import { hasOpenOcdFlash, makeOpenOcdProfile } from '../../app/core/openocd-profile.js';
+import { makeOpenOcdProfile } from '../../app/core/openocd-profile.js';
 import { OpenOcdTargetSession } from '../../app/core/openocd-session.js';
 import { inspectOpenOcdCfg } from '../../app/dbg/openocd-raw-cfg.js';
 import { programOpenOcdFlash } from '../../app/flash/openocd-program.js';
 import { HPM_BOARDS } from '../../app/targets/hpm/porting.js';
 
-test('production Wasm accepts SWD and JTAG configurations without opening hardware', async () => {
-  const device = { vendorId:0x0d28, productId:0x0204, serialNumber:'offline' };
+test('production Wasm loads all official Flash CFGs without opening hardware', async t => {
   await installNativeOpenOcd({ getDevices:async () => assert.fail('configuration must never open USB') });
-  const profiles = [makeOpenOcdProfile(), makeOpenOcdProfile({ arch:'riscv' }),
-    ...CHIPS.filter(c => hasOpenOcdFlash(c.v)).map(c => makeOpenOcdProfile({ family:c.v, flash:true })),
-    ...HPM_BOARDS.map(port => makeOpenOcdProfile({ arch:'riscv', port, flash:true }))];
-  for (const cfg of profiles){
-    const session = new OpenOcdTargetSession();
-    try {
-      await session.open(cfg, device);
-      const expectedTargets = cfg.family === 'stm32h7' ? [cfg.target, 'workbench.h7dbg'] : [cfg.target];
-      assert.deepEqual((await session.command('target names')).split(/\s+/), expectedTargets, cfg.name);
-      if (expectedTargets.length === 2){
-        assert.equal(await session.command('workbench.h7dbg cget -ap-num'), '2');
-      }
-      assert.equal(await session.command('transport select'), cfg.arch === 'riscv' ? 'jtag' : 'swd', cfg.name);
-    } finally { await session.close(); }
+  t.mock.method(globalThis, 'fetch', async url => new Response(await readFile(url)));
+  for (const family of [...Object.keys(upstreamFlashConfigs), ...Object.keys(hpmSdkFlashConfigs)]){
+    const hpm = family.startsWith('hpm');
+    const cfg = await loadBuiltinFlashCfg(family,hpm ? 8000 : 1000);
+    assert.equal(cfg.transport,hpm ? 'jtag' : 'swd',family);
+    assert.equal(cfg.clockKhz,hpm ? 8000 : 1000,family);
+    assert.equal(cfg.flashBase,hpm ? '0x80000000' : family === 'nrf52' ? '0x00000000' :
+      family === 'rp2350' ? '0x10000000' : '0x08000000',family);
+    assert.equal(cfg.raw.hpmSdk,hpm,family);
+    if (hpm) assert.equal(cfg.raw.connection.board,family);
   }
 });
 

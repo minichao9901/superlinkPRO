@@ -9,13 +9,13 @@ import { webClockKhz } from '../core/target-clock.js';
 import { constrainClockSelect } from '../ui/target-clock.js';
 import { OpenOcdProbe, selectOpenOcdDevice } from '../core/openocd-probe.js';
 import { prepareOpenOcdJtag } from '../core/openocd-jtag-pins.js';
-import { hasOpenOcdFlash, makeOpenOcdProfile, ocdHex } from '../core/openocd-profile.js';
+import { ocdHex } from '../core/openocd-profile.js';
 import { hpmBoard } from '../targets/hpm/porting.js';
 import { rememberHpmBoard } from '../targets/hpm/select.js';
 import { DBGMCU_BASES, FLASH_SIZE_REGS, decodeCpuid, decodeDpIdcode, decodeStm32Dev, refineByFlash, saneFlashKb } from './devid.js';
 import { parseFirmware } from './image.js';
-import { programOpenOcdFlash } from './openocd-program.js';
-import { OpenOcdH7FlashProbe } from './openocd-h7.js';
+import { programOpenOcdFlash, resetAfterFlash } from './openocd-program.js';
+import { hasBuiltinFlashCfg, loadBuiltinFlashCfg } from './upstream-config.js';
 import { OpenOcdResetSession } from './target-reset.js';
 import { FirmwareInspector } from './inspector-view.js';
 import { bytes as fBytes } from '../core/format.js';
@@ -31,7 +31,7 @@ export class FlashView {
   init(){
     this.inspector = new FirmwareInspector();
     this.inspector.init();
-    for (const chip of CHIPS.filter(c => hasOpenOcdFlash(c.v) || hpmBoard(c.v)))
+    for (const chip of CHIPS.filter(c => hasBuiltinFlashCfg(c.v)))
       $('f-chip').appendChild(new Option(chip.label, chip.v));
     store.bind($('f-chip'), 'flash.chip');
     if (!$('f-chip').value) $('f-chip').selectedIndex = 0;
@@ -202,19 +202,19 @@ export class FlashView {
     }
   }
 
-  _targetProfile(flash){
+  _targetProfile(){
     const family = $('f-chip').value;
     const port = hpmBoard(family);
     const imported = this.importedTarget?.id === family ? this.importedTarget.cfg : null;
-    return imported || makeOpenOcdProfile({ arch:port ? 'riscv' : 'arm', port, family, flash,
-      clockKhz:webClockKhz($('f-speed').value, family, port ? 8000 : 1000) });
+    return imported || { builtin:family,
+      clockKhz:webClockKhz($('f-speed').value, family, port ? 8000 : 1000) };
   }
 
-  async _openTarget(flash, cfg = this._targetProfile(flash)){
+  async _openTarget(flash, cfg = this._targetProfile()){
     const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice();
+    if (cfg.builtin) cfg = { ...await loadBuiltinFlashCfg(cfg.builtin, cfg.clockKhz), family:cfg.builtin };
     if (cfg.arch === 'riscv') await prepareOpenOcdJtag(device);
-    const Probe = cfg.h7DebugTarget ? OpenOcdH7FlashProbe : OpenOcdProbe;
-    return Probe.open(device, { cfg, onLog:line => this._log(line) });
+    return OpenOcdProbe.open(device, { cfg, onLog:line => this._log(line) });
   }
 
   async _program(probe, regions, verify){
@@ -229,7 +229,7 @@ export class FlashView {
     if (/\.bin$/i.test(name) && (!$('f-base').value.trim() || !Number.isInteger(base) || base < 0 || base > 0xffffffff))
       throw Error('请输入有效的 BIN 烧录基地址');
     const regions = parseFirmware(name, Uint8Array.from(atob(dataB64), ch => ch.charCodeAt(0)), base);
-    return { name, regions, cfg:structuredClone(this._targetProfile(true)),
+    return { name, regions, cfg:structuredClone(this._targetProfile()),
       verify:$('f-verify').checked, reset:$('f-reset').checked };
   }
 
@@ -242,7 +242,7 @@ export class FlashView {
     try {
       this.lastFlash = await this._usingTarget(true, async probe => {
         const result = await this._program(probe, regions, verify);
-        if (reset) await probe.reset();
+        if (reset) await resetAfterFlash(probe);
         return { ...result, reset };
       }, cfg);
       this._bar(100);
@@ -259,7 +259,7 @@ export class FlashView {
 
   async readIdcode(){
     if (this.busy) throw Error('正在烧录或读取目标身份');
-    const cfg = structuredClone(this._targetProfile(false));
+    const cfg = structuredClone(this._targetProfile());
     return await this._withProbeOwnership(async () => {
       if (!(await this._clearProbeUsers('读取目标身份'))) return;
       return this._usingTarget(false, async probe => {

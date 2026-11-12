@@ -34,10 +34,15 @@ if [ "$(git -C "$openocd" rev-parse HEAD)" != "$openocd_revision" ] ||
     exit 2
 fi
 
+if ! git -C "$openocd" diff --quiet "$openocd_revision" -- src/flash/nor/stm32h7x.c; then
+    echo "Use the unmodified upstream STM32H7 Flash driver at $openocd_revision" >&2
+    exit 2
+fi
+
 # Apply the complete block pipeline patch before compiling every transport
 # object that shares struct cmsis_dap. OUTPUT is always a fresh build directory.
 script_dir="$(cd "$(dirname "$0")" && pwd)"
-for name in openocd-pipeline.patch openocd-h7-dbgmcu.patch; do
+for name in openocd-pipeline.patch; do
     patch="$script_dir/$name"
     if git -C "$openocd" apply --check "$patch"; then
         git -C "$openocd" apply "$patch"

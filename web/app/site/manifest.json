@@ -25,7 +25,7 @@
     "app/core/openocd-hpm-profile.js": "739be61ba63aa5567d694979c4c6dcd4ca7bba57785415535cdc8e79d6feac06",
     "app/core/openocd-jtag-pins.js": "c306ba27b0e930f8134c35503468aa1b92cd0f273f36ec6ad4fa91ff9a9a84b1",
     "app/core/openocd-probe.js": "5d906d7e81b680829dd130d318a16c4e6a21466914d0310dcb266c11f05a96e1",
-    "app/core/openocd-profile.js": "1779bfbf8302590c2a26ade5dcdf8c454c0ec212a1d60744a2d0962a7c5c2c9b",
+    "app/core/openocd-profile.js": "72cca0a0202af020582b802c8cdb9a27da07f8c165d25024f441d48da9de3ffa",
     "app/core/openocd-session.js": "8fd9ee6edd028164a4032883f8410ee4d74ffa447ed79986aeb4b24b4f04bb30",
     "app/core/operation-budget.js": "92c3c1a9c97f4cf9321df9b17caf72463d15b1ca9e98fb8ee78a4a151f7d2d41",
     "app/core/pace.js": "ac27d5db130cc32033221c5b96c1f2fa5c108450a8ddbc706a174dc6c2ab1b8e",
@@ -53,7 +53,7 @@
     "app/dbg/image.js": "d951cc48d15357adca60aa00adf4fcd7d3ec54696ca7d1b273ad033ecc4b68a1",
     "app/dbg/openocd-cfg.js": "e23942d37009d9e65934149c9ff73b25fd17ed7fc6345e8b30c90b524d34ee75",
     "app/dbg/openocd-flash.js": "971c1248c0266ee8d76fe89f3e23376cdd5a839be057de7036394ade3028bf50",
-    "app/dbg/openocd-raw-cfg.js": "1cc7750911a3298480dc55003d96a0baec5d29fde66ce21b9b5c6582d41efb44",
+    "app/dbg/openocd-raw-cfg.js": "7b19c80e35e145aeee0cf8a8a512a5c8f2e72ecb2e3e9633f17030dfbd463c37",
     "app/dbg/openocd-session.js": "6f7ad1aeb57031034af4e56a84af057da0bbfecf03b069b64af4885cf405e10e",
     "app/dbg/ram-debug.js": "0778755e3e2eb6b9479e16b78b1e438b49bc49aed18198cad9a82ab12809aafc",
     "app/dbg/ram-fill.js": "ac366a556451f3c9eb89302c9e6e3206a445b45007ed529cd64be1eb3512f508",
@@ -82,10 +82,11 @@
     "app/flash/image.js": "85b81a5ee29ab9aa1f52b2709da3cf8a47897e8a205de67c7ec45641b0e42b7c",
     "app/flash/inspect.js": "03c8c214fe6f81c5c4602162fbaf64c7edcb823759d7c2307e3af95089673014",
     "app/flash/inspector-view.js": "05cfeb760b888b77359548f8afa659e8f9a521e3a8e15dfe096c8df9e6a97d1a",
-    "app/flash/openocd-h7.js": "9dbb67c74e0cf15bebac8c4f6a38dc484ae16db5b48cecc6ec0f8a902a94dd45",
-    "app/flash/openocd-program.js": "8a38a7fad7115f2be2b9e0350d03d652ce295b94c85b78c49d48c9f533e42ece",
+    "app/flash/openocd-cfgs/catalog.js": "9dd72c95486178f6fda44eb41458ecb5cc9db88df20552604fa49d0aa26e5dda",
+    "app/flash/openocd-program.js": "802be7821970adbdc33565700e8191402960c7a591fcc2e5ab52cb25d4e5e1ec",
     "app/flash/target-reset.js": "fc5cee58df6299c65e0c16d89796174f12036f3edd17cfec6549f9cfb57a31ee",
-    "app/flash/view.js": "e216540a73b5954d6510f7772459475a8f97663465ae3a3a0b3736bda919436c",
+    "app/flash/upstream-config.js": "3ee568629c17e3e0ac902b946398910a72b645369faf30c21625297461c8cee0",
+    "app/flash/view.js": "8dccc0ab87228390ed3965d941fba358e892a42dc3470d8eadc8e37ca00ac604",
     "app/hid/mock.js": "b37788033bc12dfc5febb3beaaa20f6b293bdaa83dba9898df1c693b94d832d5",
     "app/hid/probe.js": "6f2e246bc1749bb5c916db34326f79b2ccd39fcab9faa711709e9115b7d0cb4a",
     "app/hid/stream.js": "33a21e3530c7e639cf6c46dae1c68f005708ad3a5030b336abd1c413a570dcd4",
@@ -171,6 +172,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "7809f2ff3d881631dbf53e74651cbf9a2d04778b6f6ef8c1477ea953f7d1010f",
-  "outputBytes": 1191750
+  "outputSha256": "ef11fd9c6f5eda50b2b25c5957afc89c2cab9c3cc94ea7a0c78ee3aa360c9004",
+  "outputBytes": 1192804
 }

@@ -10,6 +10,8 @@
 正在运行的网页。后者覆盖全部 15 个工具页面的控件及公开方法，共用网页协议、会话和资源协调。
 它需要浏览器，不能等同于所有功能均已实现独立的无浏览器驱动。F103ZE原生适配器真机范围见 [2026-11-07验收](validation/webusb-hardware-20261107/README.md)。
 
+烧录器内置目标与手动导入共用 OpenOCD Wasm 原版 CFG 加载入口。ARM 使用匹配 Wasm 的上游 target CFG，HPM 使用 HPM SDK v1.11.0 原版 CFG，包括 HPM6P00EVK。工作台通过 SDK 的 `BOARD` 和 `PROBE=cmsis_dap` 选择板卡与探针，保持界面所选烧录时钟。
+
 ## 1. AI 的执行规则
 
 1. 先 `catalog`，再对所需页面 `describe` / `state`；依据返回结果选择控件和参数，不猜控件 ID、方法签名、硬件型号。

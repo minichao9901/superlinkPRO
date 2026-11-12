@@ -4,6 +4,20 @@ const TIMEOUT = 180000;
 const bankRows = /^#(\d+)\s*:\s*[^\n]+?\bat\s+(0x[\da-f]+),\s*size\s+(0x[\da-f]+)/gim;
 const sectorRows = /^\s*#\s*(\d+):\s*(0x[\da-f]+)\s+\((0x[\da-f]+)\s/gim;
 
+export async function resetAfterFlash(probe){
+  if (probe.isRiscv) return probe.reset();
+  await probe.command('reset run');
+  // Read the Cortex-M status directly. A failed read during startup must
+  // never replay the reset or report a locked core as running.
+  const deadline = performance.now() + 2000;
+  do {
+    const status = await probe._readWord(0xe000edf0).catch(() => null);
+    if ((status & (1 << 16)) && !(status & ((1 << 17) | (1 << 19)))) return;
+    await new Promise(resolve => setTimeout(resolve, 25));
+  } while (performance.now() < deadline);
+  throw Error('Flash 写入完成，未确认复位后的核心运行状态');
+}
+
 export async function readFlashRange(command, link, { bank = 0, offset, length }){
   await command(`flash read_bank ${bank} /flash-readback.bin ${offset} ${length}`, TIMEOUT);
   const { bytes } = await link.request('flashFile', { read:true });
@@ -23,20 +37,27 @@ export async function writeFlashRange(command, link, { bank = 0, first, last, of
 
 export async function programOpenOcdFlash(probe, regions, { verify, progress }){
   const command = (line, timeout) => probe.command(line, timeout);
-  const banks = Array.from((await command('capture {flash banks}')).matchAll(bankRows),
-    ([row, index, base]) => ({ index:Number(index), base:Number(base), alias:/\(virtual\)/i.test(row) }))
-    .sort((a,b) => a.base - b.base || Number(b.alias) - Number(a.alias));
+  const bankText = await command('capture {flash banks}');
+  const banks = Array.from(bankText.matchAll(bankRows),
+    ([row, index, base]) => ({ index:Number(index), base:Number(base), alias:/\(virtual\)/i.test(row) }));
   if (!banks.length) throw Error('OpenOCD CFG 没有定义 Flash bank');
 
   async function probeBank(bank){
     await command(`flash probe ${bank.index}`, TIMEOUT);
     const info = await command(`if {[catch {flash info ${bank.index} sectors} geometry] && $errorCode ne {OpenOCD -908}} {error $geometry}; set geometry`, TIMEOUT);
     const row = Array.from(info.matchAll(bankRows)).find(([, index]) => Number(index) === bank.index);
-    if (!row || Number(row[2]) !== bank.base || !Number(row[3])) throw Error('Flash bank 容量或地址未确认');
+    if (!row || (bank.base && Number(row[2]) !== bank.base) || !Number(row[3]))
+      throw Error('Flash bank 容量或地址未确认');
+    bank.base = Number(row[2]);
     bank.sectors = Array.from(info.matchAll(sectorRows), ([, index, offset, length]) =>
       ({ index:Number(index), offset:Number(offset), length:Number(length), patches:[] }));
     bank.end = bank.base + Number(row[3]);
   }
+
+  // Some official CFGs leave the bank base at zero until the driver probes
+  // it. Resolve those bases before choosing a bank for an image address.
+  for (const bank of banks) if (!bank.base) await probeBank(bank);
+  banks.sort((a,b) => a.base - b.base || Number(b.alias) - Number(a.alias));
 
   const sorted = [...regions].sort((a,b) => a.addr - b.addr);
   let previousEnd = 0;
@@ -69,13 +90,54 @@ export async function programOpenOcdFlash(probe, regions, { verify, progress }){
     sector.data = full ? new Uint8Array(sector.length) : await read(sector);
     for (const patch of sector.patches) sector.data.set(patch.bytes, patch.offset);
   }
-  for (const [i, sector] of plan.entries()){
-    await writeFlashRange(command, probe.link, { ...sector, first:sector.index, last:sector.index }, sector.data);
-    if (verify){
-      const actual = await read(sector);
-      if (!sector.data.every((byte, offset) => byte === actual[offset])) throw Error(`Flash 扇区 ${sector.index} 读回校验失败`);
+  // H7 block algorithms use RAM. Keep an independent copy: the Wasm backend
+  // was observed leaving its final literal word behind despite backup=1.
+  let workArea, savedWorkArea;
+  if (/\bstm32h7x\b/.test(bankText)){
+    const address = Number(await command(`${probe.cfg.target} cget -work-area-phys`));
+    const length = Number(await command(`${probe.cfg.target} cget -work-area-size`));
+    if (address && length){
+      if (!Number.isSafeInteger(address) || !Number.isSafeInteger(length) || length < 0 || length > 0x100000)
+        throw Error('H7 Flash 工作区范围无效');
+      const mpu = await probe.readMem(0xe000ed94, 4);
+      if (mpu.length !== 4) throw Error('H7 MPU 状态回读不完整');
+      if (mpu[0] & 1){
+        // A live MPU can forbid instruction fetches from the work area.
+        // A zero-sized work area makes stm32h7x program via the debug port.
+        await command(`${probe.cfg.target} configure -work-area-size 0`);
+        if (Number(await command(`${probe.cfg.target} cget -work-area-size`)) !== 0)
+          throw Error('H7 Flash 工作区禁用未确认');
+        probe.onLog?.('STM32H7 MPU 已启用，经调试端口直接烧录');
+      } else {
+        workArea = {address, length};
+        savedWorkArea = await probe.readMem(address, length);
+        if (savedWorkArea.length !== length) throw Error('H7 Flash 工作区备份不完整');
+      }
     }
-    progress((i + 1) / plan.length);
+  }
+  let operationError;
+  try {
+    for (const [i, sector] of plan.entries()){
+      await writeFlashRange(command, probe.link, { ...sector, first:sector.index, last:sector.index }, sector.data);
+      if (verify){
+        const actual = await read(sector);
+        if (!sector.data.every((byte, offset) => byte === actual[offset])) throw Error(`Flash 扇区 ${sector.index} 读回校验失败`);
+      }
+      progress((i + 1) / plan.length);
+    }
+  } catch (error){ operationError = error; throw error; }
+  finally {
+    if (workArea){
+      try {
+        await probe.halt();
+        await probe.writeMem(workArea.address, savedWorkArea);
+        const actual = await probe.readMem(workArea.address, workArea.length);
+        if (!savedWorkArea.every((value,i) => value === actual[i])) throw Error('H7 Flash 工作区恢复校验失败');
+      } catch (error){
+        if (operationError) throw new AggregateError([operationError,error], '烧录失败，且 H7 Flash 工作区恢复未确认');
+        throw error;
+      }
+    }
   }
   return { bytes:sorted.reduce((sum, region) => sum + region.data.length, 0), sectors:plan.length, verified:verify };
 }
