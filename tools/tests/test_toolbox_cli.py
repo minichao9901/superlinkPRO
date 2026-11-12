@@ -24,7 +24,7 @@ class EntryTests(unittest.TestCase):
         reference = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(reference)
         text, count = reference.render()
-        self.assertEqual(count, 69)
+        self.assertEqual(count, 70)
         self.assertEqual(text, (ROOT / 'docs/toolbox-cli-options.md').read_text(encoding='utf-8'))
         self.assertIn('必须且只能选一项', text)
 

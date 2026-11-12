@@ -18,7 +18,7 @@ Unified AI entry: python -X utf8 toolbox.py --help. See docs/toolbox-cli-ai.md.
 
 ```text
 usage: toolbox.py [-h] [--runtime RUNTIME] [--timeout TIMEOUT] [--out OUT]
-                  {catalog,serve,ping,status,target-flash,job,ack,request,batch,page,target,trace,bridge-build} ...
+                  {catalog,serve,ping,status,probe-flash,target-flash,job,ack,request,batch,page,target,trace,bridge-build} ...
 ```
 
 | 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
@@ -77,6 +77,25 @@ usage: toolbox.py status [-h]
 | 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
 |---|---|---|---|---|---|
 | -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+
+## toolbox.py probe-flash
+
+通过 USB DFU 烧录 SuperLinkPRO 探针的 APP 并读回校验
+
+```text
+usage: toolbox.py probe-flash [-h] --file FILE [--serial SERIAL]
+                              [--dfu-util DFU_UTIL] [--backup-dir BACKUP_DIR]
+                              [--dry-run]
+```
+
+| 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
+|---|---|---|---|---|---|
+| -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+| --file | 探针打包后的 APP BIN 文件 | Path | 是 | 未指定 | — |
+| --serial | 选定 DFU 探针的 USB 序列号 | str | 否 | 未指定 | — |
+| --dfu-util | dfu-util 的绝对路径，省略时使用 PATH | Path | 否 | 未指定 | — |
+| --backup-dir | 新建的备份和日志目录，省略时创建临时目录 | Path | 否 | 未指定 | — |
+| --dry-run | 只检查固件包和哈希 | flag × 0 | 否 | False | — |
 
 ## toolbox.py target-flash
 
@@ -1211,4 +1230,4 @@ usage: toolbox.py trace record sources [-h] --record RECORD
 | --sources-json | 路径→正文的源码字典 | Path | 否 | 未指定 | — |
 | --source-root | 只读取此目录内、ELF记录的实际源码路径；不猜basename | Path | 否 | 未指定 | — |
 
-共覆盖 **69 个命令/分类节点**。
+共覆盖 **70 个命令/分类节点**。

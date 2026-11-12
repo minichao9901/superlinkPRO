@@ -241,6 +241,12 @@ def parser():
     s.add_argument('--port', type=int, default=8896)
     sub.add_parser('ping', help='检查浏览器worker就绪，不访问设备')
     sub.add_parser('status', help='工作台摘要')
+    s = sub.add_parser('probe-flash', help='通过 USB DFU 烧录 SuperLinkPRO 探针的 APP 并读回校验')
+    s.add_argument('--file', required=True, type=Path, help='探针打包后的 APP BIN 文件')
+    s.add_argument('--serial', help='选定 DFU 探针的 USB 序列号')
+    s.add_argument('--dfu-util', type=Path, help='dfu-util 的绝对路径，省略时使用 PATH')
+    s.add_argument('--backup-dir', type=Path, help='新建的备份和日志目录，省略时创建临时目录')
+    s.add_argument('--dry-run', action='store_true', help='只检查固件包和哈希')
     s = sub.add_parser('target-flash', help='用网页 OpenOCD Wasm 烧录目标 MCU 并校验')
     s.add_argument('--chip', required=True, help='烧录器芯片选项值，如 stm32h7')
     s.add_argument('--file', required=True, help='目标 MCU 固件文件')
@@ -317,6 +323,10 @@ def main(argv=None, *, portable_runtime=None):
             raise FileExistsError('拒绝覆盖结果文件：' + args.out)
         if args.command == 'catalog':
             emit({'ok': True, 'value': load_json(ROOT / 'docs/toolbox-cli-reference.json') if args.full else catalog()}, args.out)
+            return 0
+        if args.command == 'probe-flash':
+            from tools.probe_flash import flash
+            emit({'ok': True, 'value': flash(args)}, args.out)
             return 0
         if portable_runtime is not None:
             if args.command in ('serve', 'bridge-build'):

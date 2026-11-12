@@ -81,8 +81,8 @@ function appendCommand(row){
   action.append(line, button);
   box.append(action);
   let input;
-  if (['chip', 'firmware', 'job'].includes(row.id)){
-    const titles = {chip:'目标芯片 ID', firmware:'固件绝对路径', job:'CLI job ID'};
+  if (['chip', 'firmware', 'job', 'probe-firmware'].includes(row.id)){
+    const titles = {chip:'目标芯片 ID', firmware:'固件绝对路径', job:'CLI job ID', 'probe-firmware':'探针 APP BIN 绝对路径'};
     const label = element('label', titles[row.id], 'manual-input');
     input = element('input');
     input.type = 'text';
@@ -112,7 +112,11 @@ function appendCommand(row){
         return;
       }
     }
-    if (row.confirmation && !window.confirm(row.confirmation + '\n\n目标 ' + values.chip + '\n固件 ' + values.firmware)) return;
+    if (row.confirmation){
+      const details = row.id === 'probe-firmware' ? '探针固件 ' + values['probe-firmware']
+        : '目标 ' + values.chip + '\n固件 ' + values.firmware;
+      if (!window.confirm(row.confirmation + '\n\n' + details)) return;
+    }
     running = true;
     buttonsBusy(true);
     status.dataset.result = 'running';

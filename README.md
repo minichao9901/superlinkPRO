@@ -174,10 +174,10 @@ RTT 转发、J-Scope 等高速功能由探针固件提供；RP2350 当前已验�
 ```powershell
 Push-Location firmware/application_5301
 try { .\build_dfu_evklite.bat } finally { Pop-Location }
-python script_test/hpm6800_flash_probe.py --no-build # 经 HID 进 DFU 后写入
+python -X utf8 toolbox.py probe-flash --file firmware/application_5301/build_dfu_evklite/output/akaLinkPro_App_pack.bin
 ```
 
-> 烧录前先关掉占用探针的浏览器页签，否则 HID 会被独占。
+先断开工作台中的探针连接，再将探针切到 DFU 模式。工具会备份应用区并读回校验。也可在本机工作台的「可执行手册」里运行同一条命令。[入门手册](docs/toolbox-cli-first-run.md#4-烧录-superlinkpro-探针固件)
 
 ## 硬件与兼容性
 
