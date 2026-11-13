@@ -277,7 +277,41 @@ async function watchJob(id,{resume=false,kind='decode'}={}){
     throw e;
   }finally{state.job=null;state.jobKind=null;state.jobPhase=null;controls();}
 }
-on('connect',async()=>{state.lastTraceConfig=null;target.profile=$('target-profile').value;target.hseHz=null;const info=await target.connect();/* 手填优先于该板默认值，最后才是 auto 兜底 */const hse=state.hseOverride??state.hseValues[info.profile]??state.hseValues.auto;$('hse').value=hse??'';target.hseHz=hse?hse*1e6:null;if(state.hseValues.auto!==undefined){if(state.hseValues[info.profile]===undefined)state.hseValues[info.profile]=hse;delete state.hseValues.auto;}await showTarget(await target.inspect());if(state.elfInfo&&target.breakpoints.items.some(b=>b.enabled)){await target.verifyElf(state.elfInfo);await target.breakpoints.resume();await showTarget(await target.inspect());}});
+async function connectTarget(){
+  if(state.operation||state.job)throw Error('ETM 正在处理任务，请等待完成');
+  if(target.probe)return true;
+  state.operation=true;state.hardwareOperation=true;controls();
+  try{
+    await runEmbedded(host,async()=>{
+      state.lastTraceConfig=null;
+      target.profile=$('target-profile').value;
+      target.hseHz=null;
+      const info=await target.connect();
+      const hse=state.hseOverride??state.hseValues[info.profile]??state.hseValues.auto;
+      $('hse').value=hse??'';
+      target.hseHz=hse?hse*1e6:null;
+      if(state.hseValues.auto!==undefined){
+        if(state.hseValues[info.profile]===undefined)state.hseValues[info.profile]=hse;
+        delete state.hseValues.auto;
+      }
+      await showTarget(await target.inspect());
+      if(state.elfInfo&&target.breakpoints.items.some(b=>b.enabled)){
+        await target.verifyElf(state.elfInfo);
+        await target.breakpoints.resume();
+        await showTarget(await target.inspect());
+      }
+    });
+    return !!target.probe;
+  }catch(e){error(e);throw e;}
+  finally{state.operation=false;state.hardwareOperation=false;controls();}
+}
+if(host){
+  $('etm-probe-buttons').hidden=true;
+  $('etm-probe-guide').hidden=false;
+  $('etm-connect-instruction').textContent='从工作台顶栏连接探针';
+}else{
+  $('connect').onclick=()=>connectTarget().catch(()=>{});
+}
 on('recover-debug',async()=>{await target.recoverDebugPort();if(state.pendingBreakpointRestore.length){await target.verifyElf(state.elfInfo);await resumeBreakpoints(state.pendingBreakpointRestore);}await showTarget(await target.inspect());$('job-state').classList.remove('bad');$('job-state').textContent='调试口已恢复，目标暂停；请重新联动采集';});
 async function disconnectTarget(){await target.disconnect();target.info=null;showClocks();$('target-state').textContent='探针已断开';$('live-pc').textContent='当前 PC：未连接';renderBreakpoints();controls();}
 on('disconnect',disconnectTarget);
@@ -430,7 +464,7 @@ $('toggle-source').onclick=()=>{const open=document.body.classList.toggle('sourc
 const divider=document.querySelector('.pane-divider');function setRatio(percent){const value=Math.max(25,Math.min(75,percent));$('analysis-panes').style.setProperty('--trace-width',value+'%');divider.setAttribute('aria-valuenow',String(Math.round(value)));}
 divider.onpointerdown=e=>{divider.setPointerCapture(e.pointerId);divider.onpointermove=v=>{if(divider.hasPointerCapture(v.pointerId)){const box=$('analysis-panes').getBoundingClientRect();setRatio((v.clientX-box.left)/box.width*100);}};divider.onpointerup=v=>divider.releasePointerCapture(v.pointerId);};divider.onkeydown=e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const value=parseFloat($('analysis-panes').style.getPropertyValue('--trace-width'))||52;setRatio(value+(e.key==='ArrowLeft'?-3:3));}};
 async function init(){state.operation=true;controls();history.setLoading(true);renderSymbols();renderBreakpoints();try{await loadCapabilities();await refreshRecords();$('service-state').textContent='本地服务在线';$('service-state').className='status good';showClocks();}catch(e){error(e);}finally{state.operation=false;history.setLoading(false);controls();}}
-const embeddedBridge={probe:()=>target.probe,busy:()=>!!(state.hardwareOperation||state.jobKind==='capture'||target.probe&&(state.job||state.waiting)),
+const embeddedBridge={connect:connectTarget,probe:()=>target.probe,busy:()=>!!(state.hardwareOperation||state.jobKind==='capture'||target.probe&&(state.job||state.waiting)),
   requestStop:async()=>{
     target.cancelEntry=true;state.captureCancelled=true;
     if(state.jobKind==='decode')throw Error('正在解码，等待结束或超时后再重新检测');
