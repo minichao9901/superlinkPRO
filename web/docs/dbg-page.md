@@ -13,7 +13,7 @@
 自动化使用 `toolbox.py target import / use / info`，等待导入或沿用完成后返回核心、目标和配置指纹。已通过 F103ZE、H743 和 HPM6800EVK 的 Wasm 调试、烧录与 RTT Viewer 真机回归；RP2350 另以原版 CFG 跑过三页联动。见 [CLI 示例](../../docs/toolbox-cli-ai.md#openocd-目标与-cfg)、[F103ZE](../../docs/validation/f103ze-wasm-hw-20261107.md)、[H743](../../docs/validation/h743-wasm-hw-20261107.md)、[HPM6800EVK](../../docs/validation/hpm6800-wasm-full-hw-20261107.md)和 [RP2350](../../docs/validation/rp2350-cfg-shared-hw-20261108.md)。
 
 - **Cortex-M / SWD** 使用 CFG 的调试时钟并核对预期 DPIDR。支持单目标配置，以及引用内置 STM32F1 或 Nordic nRF52 target 的 board 文件。
-- **RV32 / JTAG** 使用单 TAP 的预期 IDCODE、IR 长度、所选 hart 和 JTAG 时钟。需要标准 DTM、0.13 调试模块和 SBA。akaLinkPro 如果报 `JTAG not supported`，点「授权 JTAG 探针…」后重连，页面会按序列号匹配已授权的 HID 与 WebUSB 设备并回读 JTAG 模式。
+- **RV32 / JTAG** 使用单 TAP 的预期 IDCODE、IR 长度、所选 hart 和 JTAG 时钟。需要标准 DTM、0.13 调试模块和 SBA。akaLinkPro 使用顶栏「连接选项」为同一只探针授权 USB 和 HID，再从顶栏连接。工作台按序列号配对，并回读探针的 JTAG 模式。
 
 HPM6800EVK 可直接导入 SDK v1.11.0 原名 `boards/openocd/boards/hpm6800evk.cfg`。该文件为板级片段，工作台补齐同一 SDK 的 HPM6880 TAP 参数和 CMSIS-DAP 8 MHz 时钟，并保留 HPM 内存访问约束。 [HPM6800EVK 真机验收](../../docs/validation/hpm6800-cfg-hw-20261107.md)
 

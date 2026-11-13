@@ -19,6 +19,24 @@ export const VID = 0x0d28;          // akaLinkPro：CMSIS-DAP + CDC + HID + WebU
 export const PID = 0x0204;
 export const PAYLOAD = 63;          // 64 - 1（Report ID）
 
+let selectedHid = null;
+export function rememberHidDevice(device){ selectedHid = device; }
+export function selectedHidDevice(){ return selectedHid; }
+function isProbeHid(d){
+  return d.vendorId === VID && d.productId === PID && d.collections?.some(c => c.usagePage === USAGE_PAGE);
+}
+export async function authorizedHidDevices(){
+  return (await globalThis.navigator?.hid?.getDevices() || []).filter(isProbeHid);
+}
+export async function requestHidDevice(){
+  if (!AkaLinkHid.supported()) throw Error('这个浏览器没有 WebHID（Chrome / Edge 桌面版才有）');
+  const [device] = await navigator.hid.requestDevice({
+    filters: [{ vendorId: VID, productId: PID, usagePage: USAGE_PAGE }],
+  });
+  if (!device) throw Error('没有选择设备');
+  return device;
+}
+
 export const CMD = {
   GET_CONFIG: 0x01, SET_CONFIG: 0x02, GET_VOLTAGE: 0x03, SAVE_CONFIG: 0x04,
   MODEL: 0x10, SN: 0x11, HW_VER: 0x12, FW_VER: 0x13, BL_VER: 0x14,
@@ -255,12 +273,7 @@ export class AkaLinkHid {
 
   /** 弹设备选择框。过滤条件带上 VID/PID —— 否则选择框里会混进触摸板这类同样有 0xFF00 的设备 */
   async request(){
-    if (!AkaLinkHid.supported()) throw new Error('这个浏览器没有 WebHID（Chrome / Edge 桌面版才有）');
-    const devs = await navigator.hid.requestDevice({
-      filters: [{ vendorId: VID, productId: PID, usagePage: USAGE_PAGE }],
-    });
-    if (!devs.length) throw new Error('没有选择设备');
-    await this.open(devs[0]);
+    await this.open(await requestHidDevice());
     return this.device;
   }
 
@@ -269,8 +282,8 @@ export class AkaLinkHid {
     if (interactive === true) return await this.request();
     if (interactive === false) return await this.reconnect();
     if (!AkaLinkHid.supported()) throw new Error('这个浏览器没有 WebHID（Chrome / Edge 桌面版才有）');
-    const devices = (await navigator.hid.getDevices()).filter(d =>
-      d.vendorId === VID && d.productId === PID && d.collections?.some(c => c.usagePage === USAGE_PAGE));
+    if (selectedHid){ await this.open(selectedHid); return selectedHid; }
+    const devices = await authorizedHidDevices();
     if (devices.length !== 1) return await this.request();
     await this.open(devices[0]);
     return devices[0];
@@ -279,11 +292,11 @@ export class AkaLinkHid {
   /** 用之前授权过的探针直接连（浏览器记住过就不用再点弹框） */
   async reconnect(){
     if (!AkaLinkHid.supported()) throw new Error('这个浏览器没有 WebHID（Chrome / Edge 桌面版才有）');
-    const devs = await navigator.hid.getDevices();
-    const d = AkaLinkHid.pick(devs);
+    const devs = selectedHid ? [selectedHid] : await authorizedHidDevices();
+    const d = devs.length === 1 ? devs[0] : null;
     if (!d){
       const names = devs.map(x => x.productName || '(无名)').join('、');
-      throw new Error(`没有已授权的探针（已授权的 HID 设备：${names || '无'}）—— 点一次「连接探针」授权`);
+      throw new Error(`请从顶栏选择 HID 探针（已授权的设备：${names || '无'}）`);
     }
     await this.open(d);
     return d;
@@ -390,9 +403,9 @@ export class AkaLinkHid {
    */
   async _reacquire(){
     if (!AkaLinkHid.supported()) throw new Error('这个浏览器没有 WebHID');
-    const devs = await navigator.hid.getDevices();
-    const d = AkaLinkHid.pick(devs);
-    if (!d) throw new Error('浏览器里已经没有已授权的探针了（点「连接探针」重新授权一次）');
+    const devs = selectedHid ? [selectedHid] : await authorizedHidDevices();
+    const d = devs.length === 1 ? devs[0] : null;
+    if (!d) throw new Error('请从顶栏重新选择 HID 探针');
     await this.open(d);
     return d;
   }
@@ -503,6 +516,10 @@ export class AkaLinkHid {
     const fw = await this.text(CMD.FW_VER);
     const sn = await this.text(CMD.SN);
     return { model, fw, sn };
+  }
+
+  async firmwareInfo(){
+    return { ...await this.info(), buildTime:await this.text(CMD.FW_DATE) };
   }
 
   /** 0x31：发一个动作，回 { rc, status } */

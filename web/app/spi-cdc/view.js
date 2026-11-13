@@ -17,27 +17,30 @@ export class SpiCdcView {
     for(const id of ['mode','lsb'])store.bind($('si-'+id),'spicdc.'+id);
     this.session.onChange=()=>this.render();
     const bind=(id,fn)=>$('si-'+id).addEventListener('click',async()=>{
-      try{await fn();setStatus($('si-info'),this.session.connected?this.session.hid.label:'未连接',null);}
-      catch(error){setStatus($('si-info'),error.message,'err');}
+      try{await fn();this.connectionError=null;}
+      catch(error){this.connectionError=error.message;}
       this.render();
     });
-    bind('connect',()=>this.session.connect(null));bind('choose',()=>this.session.connect(true));
-    bind('disconnect',()=>this.session.disconnect());
     bind('start',()=>this.session.start({mode:Number($('si-mode').value),lsb:$('si-lsb').value==='1'}));
     bind('stop',()=>this.session.stop());bind('status',()=>this.session.status());
-    setInterval(()=>{if(!document.hidden&&this.session.connected&&!this.session.busy)this.session.status().catch(e=>setStatus($('si-info'),e.message,'err'));},1000);
+    setInterval(()=>{if(!document.hidden&&this.session.connected&&!this.session.busy)this.refreshStatus();},1000);
     this.render();
   }
-  onShow(){this.stream.onShow();this.render();if(this.session.connected&&!this.session.busy)this.session.status().catch(e=>setStatus($('si-info'),e.message,'err'));}
+  async refreshStatus(){
+    try{await this.session.status();this.connectionError=null;}
+    catch(error){this.connectionError=error.message;}
+    this.render();
+  }
+  onShow(){this.stream.onShow();this.render();if(this.session.connected&&!this.session.busy)this.refreshStatus();}
   render(){
     this.pinMap?.refresh();
     const s=this.session.last,connected=this.session.connected,busy=this.session.busy;
-    for(const id of ['connect','choose'])$('si-'+id).disabled=connected||busy;
-    $('si-disconnect').disabled=!this.session.hid||busy;
+    if (!connected) this.connectionError=null;
+    setStatus($('si-info'),this.connectionError||(connected?this.session.hid.label:'未连接'),this.connectionError?'err':null);
     $('si-start').disabled=!connected||busy||!!s?.running;
     $('si-stop').disabled=!connected||busy;
     $('si-status').disabled=!connected||busy;
     for(const id of ['mode','lsb'])$('si-'+id).disabled=busy||!!s?.running;
-    $('si-state').textContent=s?`${s.running?'运行中':s.pending?'处理中':'已停止'} · ${resultText(s.rc)}\nSPI 接收 ${fBytes(s.received)} · 转入 CDC ${fBytes(s.forwarded)}\n丢弃 ${fBytes(s.dropped)} · FIFO 溢出 ${s.fifoOverflows} · DMA 错误 ${s.dmaErrors}\n循环缓冲 ${fBytes(s.bufferBytes)} · 待转发 ${fBytes(s.pendingBytes)} · CDC 待发送 ${fBytes(s.cdcQueued)}`:'等待连接探针';
+    $('si-state').textContent=s?`${s.running?'运行中':s.pending?'处理中':'已停止'} · ${resultText(s.rc)}\nSPI 接收 ${fBytes(s.received)} · 转入 CDC ${fBytes(s.forwarded)}\n丢弃 ${fBytes(s.dropped)} · FIFO 溢出 ${s.fifoOverflows} · DMA 错误 ${s.dmaErrors}\n循环缓冲 ${fBytes(s.bufferBytes)} · 待转发 ${fBytes(s.pendingBytes)} · CDC 待发送 ${fBytes(s.cdcQueued)}`:'请从顶栏连接探针';
   }
 }

@@ -4,6 +4,7 @@ python tools/dev/build-etm-package.py
 Requires build-only dependencies in bridge/etm/requirements-build.txt.
 """
 import argparse,hashlib,importlib.metadata,json,os,shutil,subprocess,sys,uuid,zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 VERSION='1.0.14-native.15'
@@ -105,7 +106,8 @@ def main(argv=None):
     shutil.copyfile(ROOT/'index.html',toolbox/'index.html')
     public_files=public_app_files(ROOT)
     # A pre-commit build must also ship newly introduced bundle source modules.
-    bundle_inputs=json.loads((ROOT/'app/site/manifest.json').read_text(encoding='utf8'))['inputs']
+    web_build=json.loads((ROOT/'app/site/manifest.json').read_text(encoding='utf8'))
+    bundle_inputs=web_build['inputs']
     if any(name.startswith('app/legacy/') for name in bundle_inputs):
         raise ValueError('生产 bundle 引用了旧版诊断模块')
     public_files+=list(bundle_inputs)
@@ -153,7 +155,9 @@ def main(argv=None):
     source_scope=['web/app','web/index.html','web/samples','web/tools/dev','web/bridge/etm/etm_bridge.py','web/bridge/etm/backend','web/bridge/etm/provenance.json','etm','toolbox.py','docs/toolbox-cli-ai.md','docs/toolbox-cli-reference.json','docs/toolbox-cli-first-run.md','tools/command_manual.py','tools/probe_flash.py','tools/build_workbench.py','tools/verify_workbench_package.py']
     dirty=bool(subprocess.check_output(['git','status','--porcelain','--untracked-files=normal','--',*source_scope],cwd=ROOT.parent,text=True).strip())
     inputs={name:sha(ROOT/name) for name in sorted(set(public_files+['index.html','tools/dev/serve-etm.py','tools/dev/build-etm-package.py','bridge/etm/etm_bridge.py','../toolbox.py','../docs/toolbox-cli-ai.md','../docs/toolbox-cli-reference.json','../docs/toolbox-cli-first-run.md','../tools/command_manual.py','../tools/probe_flash.py','../etm/tools/web_cli_queue.py','../tools/build_workbench.py','../tools/verify_workbench_package.py'])) if (ROOT/name).is_file()}
-    manifest=dict(version=args.version,platform='windows-x64',launcher=args.app_name+'.exe',archiveRoot='superlinkPRO' if args.app_name=='superlinkPRO' else 'etm-bridge-kit',packageId=identity,sourceRevision=revision,sourceDirty=dirty,workspaceDirty=workspace_dirty,sourceScope=source_scope,runtimeSourceRevision=provenance['sourceRevision'],sourceInputs=inputs,python=sys.version,dependencies=distributions,files=files)
+    build_times=dict(builtAt=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z'),
+                     webBuiltAt=web_build.get('builtAt'))
+    manifest=dict(version=args.version,platform='windows-x64',launcher=args.app_name+'.exe',archiveRoot='superlinkPRO' if args.app_name=='superlinkPRO' else 'etm-bridge-kit',packageId=identity,sourceRevision=revision,sourceDirty=dirty,workspaceDirty=workspace_dirty,sourceScope=source_scope,runtimeSourceRevision=provenance['sourceRevision'],sourceInputs=inputs,python=sys.version,dependencies=distributions,files=files,**build_times)
     (package/'package-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     args.output.mkdir(parents=True,exist_ok=True);archive=args.output/(args.app_name+'-win64.zip')
     if archive.exists():raise FileExistsError('候选输出已存在：'+str(archive))
@@ -162,7 +166,7 @@ def main(argv=None):
             if file.is_file():zip.write(file,manifest['archiveRoot']+'/'+file.relative_to(package).as_posix())
     if args.app_name=='etm-bridge' and archive.stat().st_size>=100*1024*1024:
         raise ValueError('完整包超过GitHub单文件100MiB限制；不能作为Pages下载提交')
-    download=dict(version=args.version,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=revision,sourceDirty=dirty,runtimeSourceRevision=provenance['sourceRevision'])
+    download=dict(version=args.version,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=sha(archive),packageId=identity,sourceRevision=revision,sourceDirty=dirty,runtimeSourceRevision=provenance['sourceRevision'],**build_times)
     (args.output/'manifest.json').write_text(json.dumps(download,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(dict(package=str(package),archive=str(archive),**download),ensure_ascii=False))
     return dict(package=package,archive=archive,manifest=args.output/'manifest.json')

@@ -14,7 +14,8 @@ export const INTERRUPTS={
   panel:['#pn-run-abort','#pn-code-stop','#pn-read-stop','#pn-anim-stop'],
   i2c:['#i2-run-stop'],analog:['#an-stop','#an-dac-stop'],
 };
-const GLOBAL_CONTROLS=['btn-global-reset','global-nrst-open-drain','btn-fullscreen','btn-help'];
+export const GLOBAL_CONTROLS=['btn-global-reset','global-nrst-open-drain','btn-fullscreen','btn-help',
+  'btn-probe-connect','btn-probe-usb','probe-usb-all','btn-probe-hid','btn-probe-disconnect','btn-probe-info'];
 
 function methods(object){
   const result=new Map();
@@ -179,7 +180,8 @@ export function createWorkbenchAutomation(tools,win=globalThis.window){
     }
     if(m.op==='describe')return {page:m.page,targets:Object.keys(targets).filter(k=>targets[k]),interrupts:INTERRUPTS[m.page]||[],
       globalControls:GLOBAL_CONTROLS.map(id=>doc.getElementById(id)).filter(Boolean).map(e=>control(e,doc.body)),
-      controls:[...Array.from(root.querySelectorAll('input,select,textarea,button,a[download],[role="button"],[data-v]'),e=>control(e,root)),
+      controls:[...Array.from(root.querySelectorAll('input,select,textarea,button,a[download],[role="button"],[data-v]'))
+        .filter(e=>!e.closest('#etm-probe-buttons[hidden]')).map(e=>control(e,root)),
         ...Array.from(fileControls,([key,e])=>({...control(e,e.ownerDocument.body,key),detachedFromPage:true}))],
       methods:Array.from(methods(target),([name,fn])=>({name,signature:fn.toString().split('{')[0].trim().slice(0,400),
         note:'原网页方法；参数含 DOM/回调的接口应改用控件接口'}))};
@@ -203,6 +205,7 @@ export function createWorkbenchAutomation(tools,win=globalThis.window){
       return {returned:true,value:jsonValue(value),errors,verificationRequired:true};
     }
     const e=locate(root,m.selector,fileControls);
+    if(e.closest('#etm-probe-buttons[hidden]'))throw Error('请使用工作台顶栏连接或断开探针');
     if(m.op==='read')return {...control(e,root,m.selector),text:e.textContent.slice(0,100000)};
     if(e.disabled||e.matches(':disabled'))throw Error('控件已禁用：'+m.selector);
     if(m.op==='event'){

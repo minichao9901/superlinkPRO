@@ -35,7 +35,10 @@ if(process.argv.includes('--check')){
  const inputs={};for(const path of Object.keys(result.metafile.inputs).sort())inputs[path.replaceAll('\\','/')]=sha(await readFile(resolve(root,path)));
  const output=result.outputFiles.find(f=>f.path===entryPath);if(!output)throw Error('Build produced no entry');
  await mkdir(out,{recursive:true});await writeFile(entryPath,output.contents);
- await writeFile(manifestPath,JSON.stringify({schema:1,esbuild:'0.25.12',inputs,outputSha256:sha(output.contents),outputBytes:output.contents.length},null,2)+'\n');
+ const outputSha256=sha(output.contents);
+ const previous=await readFile(manifestPath,'utf8').then(JSON.parse).catch(()=>null);
+ const builtAt=previous?.outputSha256===outputSha256 && previous.builtAt || new Date().toISOString();
+ await writeFile(manifestPath,JSON.stringify({schema:1,esbuild:'0.25.12',builtAt,inputs,outputSha256,outputBytes:output.contents.length},null,2)+'\n');
  const indexPath=resolve(root,'index.html'),html=await readFile(indexPath,'utf8');
  if(!/window\.__webBundleUrl = '[^']+';/.test(html))throw Error('页面缺少发布脚本入口');
  await writeFile(indexPath,html.replace(/window\.__webBundleUrl = '[^']+';/,`window.__webBundleUrl = 'app/site/main.js?v=${sha(output.contents).slice(0,16)}';`));

@@ -58,7 +58,11 @@ export async function ui(capabilities=null){
   target.recoverDebugPort=async()=>{events.push('recover');probe._faulted=false;target.debugFault=false;model.halted=true;return target.inspect();};
   history.load=async sid=>{history.sid=sid;};
   return {$,window,target,state,history,events,requests,jobs,imports,model,manager,intervals,elf,
-    click:async id=>{const el=$(id);if(el.disabled)throw Error('Button disabled: '+id);return el.onclick();},
+    click:async id=>{
+      if(id==='connect')return bridge.connect();
+      if(id==='disconnect')return bridge.release();
+      const el=$(id);if(el.disabled)throw Error('Button disabled: '+id);return el.onclick();
+    },
     upload:async()=>{Object.defineProperty($('elf-file'),'files',{configurable:true,value:[new File(['elf'],'fw.elf')]});await $('elf-file').onchange();},
     select:async()=>{await $('capture-symbol').querySelector('button').onclick();},
     close:()=>{for(const [key,value]of saved)globalThis[key]=value;}};

@@ -78,8 +78,6 @@ export class RttCdcView {
     this._applyTargetUi();
     $('h-target').addEventListener('change', () => this.applyTargetType());
 
-    $('h-connect').addEventListener('click', () => this.connect());
-    $('h-disconnect')?.addEventListener('click', () => this.disconnect());
     $('h-elf').addEventListener('click', () => this._elfInput.click());
     this._elfInput.addEventListener('change', () => this.loadElf());
     $('h-start').addEventListener('click', () => this.start());
@@ -98,7 +96,7 @@ export class RttCdcView {
     };
     this.render();
     // 之前授权过的探针：静默接上（没授权就安静地保持未连接）
-    if (!this.mock && AkaLinkHid.supported()) this.reconnect({ silent: true });
+    if (!this.mock && AkaLinkHid.supported()) this._initialReconnect = this.reconnect({ silent: true });
   }
 
   useMock(){
@@ -109,12 +107,13 @@ export class RttCdcView {
   }
 
   // ---------------------------------------------------------------- 连接
-  async connect(){
+  async connect(device){
     if (this._connecting || this._disconnecting || this.dev.connected) return false;
     this._connecting = true;
     this.render();
     try {
       if (this.mock) await this.dev.request();
+      else if (device) await this.dev.open(device);
       else await this.dev.connect();
       this.info = await this.dev.info();
       this._statusError = null;
@@ -426,7 +425,7 @@ export class RttCdcView {
       toast('探针已自动重连' + (this.isRiscv ? '（并补发了 RISC-V/JTAG 目标类型）' : ''), 'ok');
       return this.dev.connected;
     } catch (e){
-      toast('探针没连上：点「连接探针」授权一次（' + (e?.message || e) + '）', 'err', 6000);
+      toast('请从顶栏连接探针（' + (e?.message || e) + '）', 'err', 6000);
       return false;
     }
   }
@@ -438,13 +437,19 @@ export class RttCdcView {
     if (this._starting || this._stopPromise || this._disconnecting) return;
     const g = this._engineGen = (this._engineGen || 0) + 1;
     this._starting = true;
+    this._statusError = null;
+    this.render();
     clearInterval(this._timer);
     this._activeTask = runProbeOperation(this, 'hid', () => this._startBridgeNow(auto, g), {
       mock: !!this.mock, reason: 'RTT 转发要使用探针',
     });
     try { return await this._activeTask; }
-    catch (e){ this.render({ error: e.message }); return false; }
-    finally { this._activeTask = null; this._starting = false; }
+    catch (e){ this._statusError = e?.message || String(e); return false; }
+    finally {
+      this._activeTask = null;
+      this._starting = false;
+      this.render({ error: this._statusError });
+    }
   }
 
   async _startBridgeNow(auto, g){
@@ -507,7 +512,10 @@ export class RttCdcView {
       this.probeManager?.forget('hid');
       return result;
     }
-    finally { this._stopPromise = null; }
+    finally {
+      this._stopPromise = null;
+      this.render({ error: this._statusError });
+    }
   }
 
   async _stopBridgeNow(fromManager){
@@ -521,7 +529,7 @@ export class RttCdcView {
         });
       }
       return await this._sendStopNow();
-    } catch (e){ this.render({ error: e.message }); throw e; }
+    } catch (e){ this._statusError = e?.message || String(e); throw e; }
   }
 
   async _sendStopNow(){
@@ -671,9 +679,6 @@ export class RttCdcView {
   // ---------------------------------------------------------------- 渲染
   render({ error } = {}){
     const dev = this.dev;
-    const connectionBusy = this._connecting || this._disconnecting;
-    if ($('h-connect')) $('h-connect').disabled = connectionBusy || !!dev.connected;
-    if ($('h-disconnect')) $('h-disconnect').disabled = connectionBusy || !dev.connected;
     const engineBusy = this._disconnecting || this._starting || !!this._stopPromise;
     if ($('h-start')) $('h-start').disabled = engineBusy;
     if ($('h-auto')) $('h-auto').disabled = engineBusy;
@@ -684,7 +689,7 @@ export class RttCdcView {
     const resetMode = $('global-nrst-open-drain'); if (resetMode) resetMode.disabled = !this._resetIoSupported || this._disconnecting;
     // 第一行：设备信息
     if (error && !dev.connected) setStatus($('h-info'), error, 'err');
-    else if (!dev.connected) setStatus($('h-info'), '未连接（点「连接探针」；首次使用或有多个设备时选择 akaLinkPro）', '');
+    else if (!dev.connected) setStatus($('h-info'), '未连接，请从顶栏连接探针', '');
     else{
       const i = this.info || {};
       setStatus($('h-info'), `已连接：${dev.label}${i.fw ? ' · FW ' + i.fw : ''}${i.sn ? ' · SN ' + i.sn : ''}`, 'ok');

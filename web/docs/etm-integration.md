@@ -40,7 +40,7 @@ pwsh -NoProfile -File tools/dev/start-etm.ps1
 ## 操作顺序
 
 1. 启动KingstVIS并打开其Socket接口（默认23367），使能采集所需的五路通道。
-2. 从更多功能进入ETM，载入板上同一份ELF，连接探针；首次使用该地址需在浏览器授权并选择akaLinkPro。
+2. 从「更多功能」进入 ETM，载入与板上程序匹配的 ELF。等本地服务就绪后，从工作台顶栏连接探针。首次使用请按浏览器提示授权 akaLinkPro 的 USB 接口。
 3. 搜索函数，点击前面的＋添加断点，选择圆点作为采集起点。
 4. 核对目标与时钟，F103ZE当前验收档为CPU48 MHz、引脚TRACECLK24 MHz；HSE按板卡实际值填写，本板为8 MHz。
 5. 配置Kingst：CH0～4=PE2～PE6，共地；本板验收为500 MSa/s、10 ms、2.0 V、相位0.25，分支广播关闭。

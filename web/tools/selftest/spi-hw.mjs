@@ -136,19 +136,19 @@ step('1. 连接探针（HID）与数据端点（WebUSB）');
   await cdp.eval(`document.querySelector('#tabs .tab[data-tab="spi"]').click();`);
   await sleep(300);
   // 先走"已授权"这条路（浏览器记得就不用弹框）；没有授权才弹框 + 自动应答
-  await cdp.eval(`document.getElementById('sp-reconnect').click();`);
+  await cdp.eval(`await __tools.spiSession.connectHid(false);`);
   await sleep(900);
   let hid = await cdp.eval(`return { connected: window.__tools.spiSession.connected, label: window.__tools.spiSession.hid?.label || '' };`);
   if (!hid.connected){
     console.log('  （没有已授权的 HID，触发选择框…）');
-    await cdp.eval(`document.getElementById('sp-connect').click();`, true);
+    await cdp.eval(`document.getElementById('btn-probe-hid').click();`, true);
     await cdp.settle(/akaLinkPro|CMSIS|HID/i, 'window.__tools.spiSession.connected');
     await sleep(600);
     hid = await cdp.eval(`return { connected: window.__tools.spiSession.connected, label: window.__tools.spiSession.hid?.label || '' };`);
   }
   ok(hid.connected, `HID 已连接（${hid.label || 'akaLinkPro'}）`);
 
-  await cdp.eval(`document.getElementById('sp-usb').click();`);      // 智能：已授权直连、否则弹框
+  await cdp.eval(`document.getElementById('btn-probe-usb').click();`,true);      // 智能：已授权直连、否则弹框
   await cdp.settle(/akaLinkPro|CMSIS|WinUSB|Composite/i, 'window.__tools.spiSession.dataReady');
   await sleep(600);
   const usb = await cdp.eval(`return { ready: window.__tools.spiSession.dataReady, label: window.__tools.spiSession.transport?.label || '', iface: window.__tools.spiSession.transport?.iface };`);

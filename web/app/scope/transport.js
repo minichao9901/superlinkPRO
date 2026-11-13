@@ -15,6 +15,7 @@ import { withTimeout } from '../core/timeout.js';
 import { MockScopeProbe } from './mock.js';
 import { PACKET } from './protocol.js';
 import { UsbLease, isUsbResourceConflict } from '../core/usb-device.js';
+import { selectedOpenOcdDevice } from '../core/openocd-probe.js';
 
 /** 探针上那个空闲的 bulk IN 端点（SWO 端点，SWO_STREAM=0 所以没人用）*/
 export const EP_SCOPE = 0x83;
@@ -65,6 +66,8 @@ export class VendorEpTransport {
   /** 已授权过的探针（浏览器记得就不用再弹框）*/
   static async authorized(){
     if (!VendorEpTransport.supported()) return [];
+    const selected = selectedOpenOcdDevice();
+    if (selected) return selected.vendorId === VID ? [selected] : [];
     try { return (await navigator.usb.getDevices()).filter(d => d.vendorId === VID); } catch { return []; }
   }
 

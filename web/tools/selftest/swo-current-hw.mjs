@@ -19,7 +19,7 @@ try{
   await c.eval(`const v=__tools.swo;await v.loadElf(Uint8Array.from(atob(${JSON.stringify(elf.toString('base64'))}),c=>c.charCodeAt(0)).buffer,'F103 HSE 24 MHz.elf');v.sources.indexFileList(Object.entries(${JSON.stringify(sources)}).map(([n,t])=>new File([t],n)));v.setEntryBreakpoint('b pipeline_scan');document.getElementById('sw-hse').value='8';`);
   if(!await c.eval(`return (await navigator.usb.getDevices()).length>0;`)){const detection=c.eval('await __tools.swo.detectTarget()',true);await c.pickDevice(/AkaLink|MicroLink|CMSIS|DAP/i,20000);await detection;}
   else await c.eval('await __tools.swo.detectTarget()');
-  if(!await c.eval(`return (await navigator.hid.getDevices()).some(d=>d.vendorId===0x0d28&&d.productId===0x0204);`)){await c.eval(`document.getElementById('sw-clock-grant').click();return true;`,true);await c.pickDevice(/AkaLink|MicroLink|CMSIS|DAP/i,20000);}
+  if(!await c.eval(`return (await navigator.hid.getDevices()).some(d=>d.vendorId===0x0d28&&d.productId===0x0204);`)){await c.eval(`document.getElementById('btn-probe-hid').click();return true;`,true);await c.pickDevice(/AkaLink|MicroLink|CMSIS|DAP/i,20000);}
   if(!await c.eval(`return (await navigator.serial.getPorts()).some(p=>{const i=p.getInfo();return i.usbVendorId===0x0d28&&i.usbProductId===0x0204;});`)){await c.eval(`document.getElementById('sw-pick').click();return true;`,true);await c.pickDevice(/AkaLink|MicroLink|VCOM|Serial/i,20000);await c.eval('await __tools.swo.refreshPorts()');}
   assert.equal(await c.eval('return __tools.swo.target.knownHz;'),24e6);
   for(const cfg of [{period:4096,timestamps:true,itm:true,auto:false,baud:1000000},{period:8192,timestamps:false,itm:false,auto:false,baud:1000000}]){

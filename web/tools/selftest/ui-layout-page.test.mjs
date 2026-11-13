@@ -37,16 +37,18 @@ try {
   ok(tabs.length===15,'15 个工具入口保留（包含 SWO）');
   const closeControls=await ev(`
     const h=window.__tools.hid,s=window.__tools.scope;
-    const hButton=document.getElementById('h-disconnect'),sButton=document.getElementById('sc-disconnect');
-    const labels=hButton?.textContent.trim()==='关闭探针'&&sButton?.textContent.trim()==='关闭探针';
-    await s.setMock(true);const scopeMock=sButton.disabled===false&&document.getElementById('sc-connect').disabled;
-    sButton.click();for(let i=0;i<100&&s.usingMock;i++)await new Promise(r=>setTimeout(r,20));
-    const scopeClosed=!s.usingMock&&sButton.disabled&& !document.getElementById('sc-connect').disabled;
-    hButton.click();for(let i=0;i<100&&h.mock;i++)await new Promise(r=>setTimeout(r,20));
-    const hidClosed=!h.mock&&hButton.disabled&& !document.getElementById('h-connect').disabled;
+    const close=document.getElementById('btn-probe-disconnect');
+    const labels=close.textContent.trim()==='断开探针'&&
+      ['h-connect','h-disconnect','sc-connect','sc-disconnect','sc-usb'].every(id=>!document.getElementById(id));
+    await s.setMock(true);
+    for(let i=0;i<40&&close.disabled;i++)await new Promise(r=>setTimeout(r,20));
+    const scopeMock=!close.disabled;
+    await close.onclick();
+    const scopeClosed=!s.usingMock&&close.disabled;
+    const hidClosed=!h.mock&&!h.dev.connected;
     h.useMock();return {labels,scopeMock,scopeClosed,hidClosed};`);
   ok(closeControls.labels&&closeControls.scopeMock&&closeControls.scopeClosed&&closeControls.hidClosed,
-    'RTT 转发和 J-Scope：连接后显示关闭探针，关闭后恢复连接按钮',JSON.stringify(closeControls));
+    '顶栏统一关闭 RTT 转发和 J-Scope，工具页没有重复按钮',JSON.stringify(closeControls));
   await ev(`await window.__tools.flash._onFile(new File([Uint8Array.of(0,1,2,3)],'layout.bin'));return true;`);
   // Let the transient file-load toast expire before taking the page snapshots.
   await ev(`for(let i=0;i<100 && document.querySelector('#toasts .toast');i++)await new Promise(r=>setTimeout(r,50));return true;`);

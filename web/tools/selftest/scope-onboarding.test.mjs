@@ -6,8 +6,8 @@ test('empty workspace gives a concrete next step and disappears with data or sam
   assert.equal(scopeNextAction({canAdopt:true}).kind,'adopt');
   assert.equal(scopeNextAction({canReuse:true}).kind,'reuse');
   assert.equal(scopeNextAction({hasElf:true}).kind,'variables');
-  assert.equal(scopeNextAction({hasElf:true,selected:1}).kind,'connect');
-  assert.equal(scopeNextAction({hasElf:true,selected:1,hasHid:true}).kind,'data');
+  assert.equal(scopeNextAction({hasElf:true,selected:1}),null);
+  assert.equal(scopeNextAction({hasElf:true,selected:1,hasHid:true}),null);
   assert.equal(scopeNextAction({hasElf:true,selected:1,hasHid:true,hasTransport:true}).kind,'start');
   assert.equal(scopeNextAction({mock:true}).kind,'start');
   assert.equal(scopeNextAction({hasData:true}),null);assert.equal(scopeNextAction({starting:true}),null);

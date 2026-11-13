@@ -73,6 +73,9 @@ code{font-family:var(--mono);background:var(--bg3);padding:0 4px;border-radius:v
 .more-menu>.ghost{text-align:left}
 .more-menu>.build-stamp{display:block;padding:5px 8px;border-top:1px solid var(--line)}
 .app-more:not([open])>.more-menu{display:none}
+#btn-probe-connect,#probe-connect-menu>summary{white-space:nowrap}
+#probe-connect-status,#web-build-info,#probe-info-result{white-space:pre-line;overflow-wrap:anywhere}
+#probe-connect-status{min-width:185px}
 button.primary:disabled{background:var(--bg3);border-color:var(--line);color:var(--fg2)}
 button.danger{color:var(--err);border-color:#f8514966}
 button.danger:hover:enabled{background:#f851491a;border-color:var(--err)}

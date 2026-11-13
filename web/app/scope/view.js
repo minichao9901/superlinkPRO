@@ -118,9 +118,6 @@ export class ScopeView {
     }
     tm.value = String(TRIG.NONE);
 
-    $('sc-connect').addEventListener('click', () => this.connectHid(true));
-    $('sc-disconnect')?.addEventListener('click', () => this.disconnect());
-    $('sc-usb').addEventListener('click', () => this.connectUsb(true));
     $('sc-mock').addEventListener('change', e => this.setMock(e.target.checked));
     $('sc-elf').addEventListener('click', () => this.elfInput.click());
     $('sc-varclear').addEventListener('click', () => { this.selected = []; this.renderVars(); this.updatePlan(); });
@@ -338,7 +335,7 @@ export class ScopeView {
       const hid = new AkaLinkHid();
       // 探针被复位/拔插 → 浏览器会发 disconnect：立刻把状态写清楚，别等用户点开始采样才报一句英文错
       hid.onDisconnect = () => {
-        this.setStatusText('探针断开了（被复位、拔插或掉电？）—— 点「连接探针」重新连接，或拔插一次探针', 'err');
+        this.setStatusText('探针已断开。检查 USB 后从顶栏重新连接', 'err');
         $('sc-info').textContent = '探针已断开';
         if (this.running) this.stop().catch(() => {});
       };
@@ -358,7 +355,7 @@ export class ScopeView {
       if (!connected){
         this.hid = null;
         this.setStatusText('连接探针失败：' + (lastErr || '浏览器里没有已授权的探针') +
-          ' —— 点「连接探针」在弹出的列表里选 akaLinkPro（授权过一次以后就直连，不再弹框）', 'err');
+          '。请从顶栏选择 akaLinkPro 的 HID 接口', 'err');
         return;
       }
       this.hid = hid;
@@ -369,7 +366,7 @@ export class ScopeView {
         info = hid.label || '未知 HID 设备';
         $('sc-info').textContent = info + '（HID 已连接，但问不出型号）';
         this.setStatusText(`连到的 HID 设备是「${info}」，但它不响应探针协议 —— ` +
-          '选错设备了？请点「连接探针」并在弹框里选 akaLinkPro', 'err');
+          '请在顶栏「连接选项」中选择 akaLinkPro 的 HID 接口', 'err');
         return;
       }
       $('sc-info').textContent = info + '（HID 已连接）';
@@ -423,7 +420,7 @@ export class ScopeView {
       } else if (request){
         this.transport = await VendorEpTransport.request();
       } else {
-        throw new Error('浏览器里没有已授权的探针（点「连接数据端点…」授权一次）');
+        throw new Error('请从顶栏授权探针 USB 接口');
       }
       $('sc-usbinfo').textContent = this.transport.label;
       this.setStatusText('数据端点已就绪：' + this.transport.label, 'ok');
@@ -473,7 +470,7 @@ export class ScopeView {
     try {
       if (failure){ this.setStatusText(failure.message, 'err'); throw failure; }
       this.probeManager?.forget('scope');
-      this.setStatusText('已让出探针（' + reason + '）—— 需要时点「连接探针 / 数据端点」重新占用', 'warn');
+      this.setStatusText('已让出探针（' + reason + '）。可从顶栏重新连接', 'warn');
       return true;
     } finally {
       this._releasing = false;
@@ -483,7 +480,7 @@ export class ScopeView {
 
   async disconnect(){
     try {
-      if (this.usingMock) await this.setMock(false);
+      if (this.usingMock){ await this.setMock(false); $('sc-mock').checked = false; }
       else await this.releaseProbe('用户关闭探针');
       const info = $('sc-info'); if (info) info.textContent = '未连接';
       const usbInfo = $('sc-usbinfo'); if (usbInfo) usbInfo.textContent = '未连接数据端点';
@@ -516,7 +513,7 @@ export class ScopeView {
       if (this.hid === this.mockProbe) this.hid = null;
       $('sc-info').textContent = '未连接';
       $('sc-usbinfo').textContent = '未连接数据端点';
-      this.setStatusText('已切回真机模式：先连探针，再连数据端点', '');
+      this.setStatusText('已切回实机模式，请从顶栏连接探针', '');
     }
     this.syncButtons();
   }
@@ -595,7 +592,7 @@ export class ScopeView {
     const list = this.all.filter(v => !q || v.name.toLowerCase().includes(q));
     box.innerHTML = '';
     if (!this.all.length){
-      box.innerHTML = '<div class="vsect">还没有变量：点「载入 ELF…」，或勾「用假探针」用内置的 8 个通道</div>';
+      box.innerHTML = '<div class="vsect">还没有变量：点「载入 ELF…」，或勾选「模拟探针」使用内置的 8 个通道</div>';
     }
     for (const v of list.slice(0, 400)){
       const sel = this.selected.some(s => s.name === v.name && s.addr === v.addr);
@@ -910,14 +907,14 @@ export class ScopeView {
       if (!this._captureAlive(g)) return;
       if (!this.hid || !this.transport){
         this.setStatusText(!this.hid
-          ? '探针没连上：点左边「连接探针」授权一次（烧录或别的页面用过探针后，需要在这里重新连接）'
-          : '数据端点没连上：点「连接数据端点…」授权一次（采样数据走 EP 0x83，必须有它）', 'err');
+          ? 'HID 未连接，请从顶栏连接探针'
+          : 'USB 数据端点未连接，请从顶栏连接探针', 'err');
         return;
       }
       this.setStatusText('探针已自动重连，开始采样', 'ok');
     }
-    if (!this.transport || !this.hid){ this.setStatusText(this.usingMock ? '假探针还没准备好' : '先连探针 + 数据端点', 'warn'); return; }
-    if (this.isReal() && !this.transport?.device){ this.setStatusText('真机模式要先点「连接数据端点…」', 'warn'); return; }
+    if (!this.transport || !this.hid){ this.setStatusText(this.usingMock ? '假探针还没准备好' : '请从顶栏连接探针', 'warn'); return; }
+    if (this.isReal() && !this.transport?.device){ this.setStatusText('请从顶栏连接探针的 USB 数据端点', 'warn'); return; }
     await this.confirmTargetArchitecture();
 
     if (!this._captureAlive(g)) return;
@@ -1483,7 +1480,7 @@ export class ScopeView {
   isReal(){ return !this.usingMock; }
   signed(v){ const x = (v ?? 0) & 0xff; return x > 127 ? x - 256 : x; }
   async hidXfer(cmd, data, timeout){
-    if (!this.hid) throw new Error('探针没连上：点左边「连接探针」授权一次；USB 数据也需连接「连接数据端点…」');
+    if (!this.hid) throw new Error('请从顶栏连接探针，J-Scope 需要 HID 和 USB');
     if (this.usingMock) return await this.hid.xfer(cmd, data);
     return await this.hid.xfer(cmd, data, timeout);
   }
@@ -1856,12 +1853,6 @@ export class ScopeView {
   }
 
   syncButtons(){
-    const pending = !!(this._hidConnectPromise || this._usbConnectPromise);
-    const connected = this.usingMock || !!this.hid || !!this.transport;
-    const recoverable = !!(this._stopUnconfirmed || this.probeManager?.failures?.has('scope'));
-    const connect = $('sc-connect'); if (connect) connect.disabled = !!(this._releasing || this._hidConnectPromise || this.usingMock || this.hid?.connected);
-    const disconnect = $('sc-disconnect'); if (disconnect) disconnect.disabled = !!(this._releasing || !(connected || pending || recoverable));
-    const usb = $('sc-usb'); if (usb) usb.disabled = !!(this._releasing || this._usbConnectPromise);
     $('sc-start').disabled = !!(this.running || this._starting || this._stopPromise || this._releasing);
     $('sc-stop').disabled = !!this._stopPromise || (!this.running && !this._starting);
     const target = $('sc-target'); if (target) target.disabled = !!(this.running || this._starting || this._stopPromise || this._releasing);

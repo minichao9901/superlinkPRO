@@ -30,7 +30,7 @@ import { InspectorTable, flashValue } from '../ui/inspector-table.js';
 import { waitMs } from '../core/pace.js';
 import { DebugSession, DEFAULT_CLOCK_KHZ } from './session.js';
 import { selectOpenOcdDevice } from '../core/openocd-probe.js';
-import { prepareOpenOcdJtag, requestOpenOcdJtagHid } from '../core/openocd-jtag-pins.js';
+import { prepareOpenOcdJtag } from '../core/openocd-jtag-pins.js';
 import { makeOpenOcdProfile } from '../core/openocd-profile.js';
 import { OpenOcdDebugSession } from './openocd-session.js';
 import { HPM_WASM_BOARD, hpmOpenOcdFiles, isHpmOpenOcdEntry } from '../core/openocd-hpm-profile.js';
@@ -164,8 +164,6 @@ export class DbgView {
       }
       clk.addEventListener('change', () => store.set('dbg.clock', clk.value));
     }
-    on('d-connect', 'click', () => this.connect());
-    on('d-disconnect', 'click', () => this.disconnect());
     on('d-cfg-pick', 'click', () => $('d-cfg-file')?.click());
     on('d-cfg-file', 'change', e => {
       const file = e.target.files?.[0];
@@ -206,7 +204,6 @@ export class DbgView {
       if (file) void this.launchRamElf(file).catch(() => {});
     });
     on('d-ram-apply','click',() => this.configureRamWindow($('d-ram-start').value,$('d-ram-length').value).catch(e => this._out(e.message,'err')));
-    on('d-jtag-hid','click',() => this.authorizeJtagProbe().catch(e => this._out(e.message,'err')));
     on('d-image-pick', 'click', () => this.pickImageDirectory());
     window.addEventListener('focus',() => { void this.imageDirectoryStatus(); });
     on('d-svd-pick', 'click', () => $('d-svd-file')?.click());
@@ -563,7 +560,7 @@ export class DbgView {
     if (haltBtn) haltBtn.disabled = !c || h;
     const cont = $('d-cont');
     if (cont) cont.disabled = !c || !h;
-    for (const id of ['d-disconnect', 'd-reset-halt', 'd-reset-run', 'd-rtt-locate', 'd-wp-add', 'd-wp-clear', 'd-bt', 'd-bt-scan']){ const el = $(id); if (el) el.disabled = !c; }
+    for (const id of ['d-reset-halt', 'd-reset-run', 'd-rtt-locate', 'd-wp-add', 'd-wp-clear', 'd-bt', 'd-bt-scan']){ const el = $(id); if (el) el.disabled = !c; }
     if (this.session.isRiscv && $('d-wp-add')) $('d-wp-add').disabled = !c || this.session.caps.numCode === 0;
     for(const id of ['d-bt','d-bt-scan']){ const el=$(id); if(el) el.disabled=!c||!h; }
     setFlag($('d-state'), !c ? '未连接' : this.session.stateKnown === false ? '目标状态未知' : (h ? '已停止' : '运行中'), !c ? null : (h || this.session.stateKnown === false ? 'warn' : 'on'));
@@ -573,10 +570,6 @@ export class DbgView {
     const cfg = this._activeCfg();
     const busy = this._connecting || this._disconnecting || this._cfgImporting;
     const backend = $('d-backend');
-    if ($('d-jtag-hid')){
-      $('d-jtag-hid').hidden = backend?.value !== 'riscv';
-      $('d-jtag-hid').disabled = !!(connected || busy);
-    }
     const pick = $('d-cfg-pick'), clear = $('d-cfg-clear'), info = $('d-cfg-info');
     const arm = $('d-arm-target');
     const cfgDisabled = !!(connected || busy || backend?.value === 'mock');
@@ -601,8 +594,6 @@ export class DbgView {
     }
     const row = $('d-clock-row');
     if (row) row.hidden = !!cfg;
-    const connect = $('d-connect');
-    if (connect) connect.disabled = !!(connected || busy);
     if (info){
       info.hidden = !cfg;
       if (cfg){
@@ -741,21 +732,15 @@ export class DbgView {
 
   // ================================================================ 连接
 
-  async authorizeJtagProbe(){
-    if (this.session.connected || this._connecting || this._disconnecting) throw Error('请先断开当前调试连接');
-    await requestOpenOcdJtagHid();
-    this._out('已授权探针 HID；点「连接」后会按序列号匹配并回读 JTAG 模式', 'ok');
-    return true;
-  }
-
   async connect(){
+    if (this.session.connected) return true;
     if (this._connecting || this._disconnecting || this._cfgImporting) return false;
     const generation = this._connectionGen = (this._connectionGen || 0) + 1;
     this._connecting = true;
     this._syncCfgControls();
     if ($('d-hpm-target')) $('d-hpm-target').disabled = true;
     try {
-      const device = $('d-backend')?.value === 'mock' ? null : await selectOpenOcdDevice();
+      const device = $('d-backend')?.value === 'mock' ? null : await selectOpenOcdDevice({ authorizedOnly:true });
       return await runProbeOperation(this, 'dbg', () => this._connectNow(generation, device), {
         mock: $('d-backend')?.value === 'mock', reason: '调试器要使用探针', recovery: true,
       });
@@ -798,7 +783,7 @@ export class DbgView {
       if (this._disconnecting || generation !== this._connectionGen) return false;
     } catch (e){
       const msg = String(e?.message || e) + (riscv && /JTAG not supported/i.test(e?.message || '')
-        ? '。akaLinkPro 请先点「授权 JTAG 探针…」，再重新连接' : '');
+        ? '。请从顶栏「连接选项」为同一只 akaLinkPro 授权 HID，再连接探针' : '');
       this._out('✗ 连接失败：' + msg, 'err');
       toast('连接失败：' + msg, 'err', 7000);
       return false;

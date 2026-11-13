@@ -1,4 +1,5 @@
 import { AkaLinkHid } from '../hid/probe.js';
+import { selectedOpenOcdDevice } from '../core/openocd-probe.js';
 import { runProbeOperation } from '../core/probe-manager.js';
 import { waitMs } from '../core/pace.js';
 import { withTimeout } from '../core/timeout.js';
@@ -14,7 +15,7 @@ export class AnalogSession {
   constructor(){ this.hid = null; this.caps = null; this.dac = null; this.busy = false; this.usingMock = false; }
   get connected(){ return !!this.hid?.connected; }
   setBusy(value){ this.busy = value; this.onChange?.(); }
-  async connect(){
+  async connect(device){
     if (this._connectPromise) return this._connectPromise;
     this._connectPromise = runProbeOperation(this, 'analog', async lease => {
       const alive=()=>lease?.assert();alive();
@@ -22,7 +23,8 @@ export class AnalogSession {
       if (this.connected) return this.caps || {supported:false};
       const hid = new AkaLinkHid();
       try {
-        await hid.request();
+        if (device) await hid.open(device);
+        else await hid.request();
         alive();
         let caps;
         try{caps=streamCaps(decodeReply(await hid.xfer(0x38,Uint8Array.of(ADC_ACT.CAPS)),ADC_ACT.CAPS),{allowUnsupported:true});}
@@ -65,7 +67,9 @@ export class AnalogSession {
     this._requestedBits=bits;
     const abort=()=>{this._sendStop().catch(e=>{this._adcStopError=e;});};
     try{
-      if(!this.transport)this.transport=await AdcTransport.request(this.hid.device);
+      if(!this.transport)this.transport=await AdcTransport.request(this.hid.device,{
+        authorizedOnly:!!this.probeManager, device:selectedOpenOcdDevice(),
+      });
       await this._acquireSharedCaps({signal});
       await this.transport.retireSpiIn();
       if(signal.aborted)return;

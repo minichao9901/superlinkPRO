@@ -20,17 +20,14 @@ export class AnalogView {
     for (const id of ['an-adc-canvas','an-dac-canvas']) this.resizeObserver.observe($(id));
     this.pinMap=new PinMap({buttonId:'an-pinmap-btn',feature:'adc',state:()=>({connected:this.session.connected,connectionKey:this.session.hid?.device||this.session.hid,supported:!!this.session.caps})});
     this.pinMap.init();
-    this.session.onChange = () => this.updateConnectionControls();
+    this.session.onChange = () => {
+      if (!this.session.hid && !this.session._connectPromise){
+        this.updateDacControls();
+        this.status('请从顶栏连接探针');
+      }
+      this.updateConnectionControls();
+    };
     const bind = (id, fn) => $(id).addEventListener('click', () => { Promise.resolve().then(fn).catch(e => this.status(e.message, true)); });
-    bind('an-connect', async () => {
-      const c = await this.session.connect(); if (!c) return;
-      $('an-channel').textContent=c.supported?'CH1 · PB14 / ADC0.6 · EVKLite J3[10]（与 QSPI IO2 互斥）':'当前固件未提供 ADC DMA；DAC 可独立使用';
-      if(c.supported){$('an-rate').max=c.maxRate;$('an-reference').value=c.reference;}
-      this.updateDacControls();
-      try{this.preview();}catch(e){$('an-wave-state').textContent=e.message;}
-      this.status(c.supported?(this.session.dac.caps.supported?'ADC/DAC 已连接':'ADC 已连接；当前固件未支持 DAC'):'DAC 信号发生器已连接');
-    });
-    bind('an-disconnect', async () => { await this.session.disconnect(); this.updateDacControls(); this.status('ADC 已断开'); });
     bind('an-once', () => this.acquire(Math.max(32,Math.min(65536,Math.round(Number($('an-rate').value)*10*Number($('an-time').value)))))); bind('an-start', () => this.acquire(Number($('an-count').value)));
     bind('an-stop', async () => { await this.session.stopAdc(); this.status('已确认 ADC 停止'); });
     bind('an-adc-export', () => this.download('adc.csv', this.store.csv(Number($('an-reference').value))));
@@ -86,8 +83,8 @@ export class AnalogView {
   status(text, error = false){ $('an-state').textContent = text; $('an-state').style.color = error ? '#f85149' : '';this.pinMap?.refresh();this.updateConnectionControls(); }
   updateConnectionControls(){
     const s = this.session, pending = !!s._connectPromise || !!s._disconnecting;
-    $('an-connect').disabled = s.connected || s.busy || pending;
-    $('an-disconnect').disabled = !(s.hid || s._connectCleanupError) || pending;
+    for (const id of ['an-once','an-start']) $(id).disabled = !s.connected || !s.caps || s.busy || pending;
+    $('an-stop').disabled = !s.connected || !s.busy;
   }
   async acquire(count){
     if(this.session.busy)throw Error('先停止当前采集');
@@ -292,7 +289,7 @@ export class AnalogView {
     if(enabled){$('an-dac-reference').value=c.fullScale;$('an-dac-bits').value=c.bits;$('an-update').max=c.maxRate;}
     else $('an-update').max=10000000;
     $('an-points').max=enabled?c.maxPoints:65535;
-    $('an-dac-state').textContent=enabled?`DAC 接口就绪：${c.channels} 通道、${c.bits} bit、最高 ${c.maxRate} Sa/s`:'DAC 已预留，当前未连接或固件不支持；仍可预览和导出';
+      $('an-dac-state').textContent=enabled?`DAC 接口就绪：${c.channels} 通道、${c.bits} 位、最高 ${c.maxRate} Sa/s`:this.session.connected?'当前探针未报告 DAC 输出能力，可预览和导出波形':'连接探针后检查 DAC 能力。可离线预览和导出波形';
   }
   plot(id, values, max = 3.3){
     const canvas = $(id), ctx = canvas.getContext('2d'); if (!ctx) return;
@@ -314,6 +311,21 @@ export class AnalogView {
     const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+  async connect(device){
+    const caps = await this.session.connect(device);
+    if (!caps) return false;
+    $('an-channel').textContent = caps.supported
+      ? 'CH1 · PB14 / ADC0.6 · EVKLite J3[10]（与 QSPI IO2 互斥）'
+      : '当前固件未提供 ADC DMA；DAC 可独立使用';
+    if (caps.supported){ $('an-rate').max = caps.maxRate; $('an-reference').value = caps.reference; }
+    this.updateDacControls();
+    try { this.preview(); } catch (e){ $('an-wave-state').textContent = e.message; }
+    this.status(caps.supported
+      ? (this.session.dac.caps.supported ? 'ADC/DAC 已连接' : 'ADC 已连接；当前固件未支持 DAC')
+      : 'DAC 信号发生器已连接');
+    return true;
+  }
+
   onShow(){ this.renderAdc(); try { this.preview(); } catch (e){ $('an-wave-state').textContent = e.message; } }
   summary(){ return { connected: this.session.connected, busy: this.session.busy, caps: this.session.caps, samples: this.total, wavePoints: this.wave.length, dacAvailable:!!this.session.dac?.caps?.supported, dacOwned:!!this.session.dac?.owned }; }
 }

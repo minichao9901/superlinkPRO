@@ -55,11 +55,11 @@ step('1. 连接探针 + 配置');
 {
   await ev(`document.querySelector('#tabs .tab[data-tab="spi"]').click(); return 1;`);
   await sleep(200);
-  await ev(`document.getElementById('sp-reconnect').click(); return 1;`);
+  await ev(`await __tools.spiSession.connectHid(false); return 1;`);
   await sleep(900);
   const hid = await ev(`return { connected: window.__tools.spiSession.connected, label: window.__tools.spiSession.hid?.label || '' };`);
   ok(hid.connected, `HID 已连接（${hid.label}）`);
-  await ev(`document.getElementById('sp-usb').click(); return 1;`);
+  await ev(`await __tools.spiSession.connectUsb(false); return 1;`);
   await sleep(1200);
   const usb = await ev(`return { ready: window.__tools.spiSession.dataReady, iface: window.__tools.spiSession.transport?.iface };`);
   ok(usb.ready, `数据端点已连接（接口 ${usb.iface}）`);

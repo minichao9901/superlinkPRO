@@ -135,16 +135,16 @@ steps++;
 // ---- 1. 连接探针
 await cdp.eval(`document.querySelector('#tabs .tab[data-tab="spi"]').click();`);
 await sleep(300);
-await cdp.eval(`document.getElementById('sp-reconnect').click();`);
+await cdp.eval(`await __tools.spiSession.connectHid(false);`);
 await sleep(900);
 if (!(await cdp.eval('return window.__tools.spiSession.connected;'))){
   log('   （没有已授权的 HID，触发选择框…）');
-  await cdp.eval(`document.getElementById('sp-connect').click();`, true);
+  await cdp.eval(`document.getElementById('btn-probe-hid').click();`, true);
   await cdp.settle(/akaLinkPro|CMSIS|HID/i, 'window.__tools.spiSession.connected');
   await sleep(600);
 }
 if (!(await cdp.eval('return window.__tools.spiSession.connected;'))) throw new Error('HID 连接失败');
-await cdp.eval(`document.getElementById('sp-usb').click();`);
+await cdp.eval(`document.getElementById('btn-probe-usb').click();`,true);
 await cdp.settle(/akaLinkPro|CMSIS|WinUSB|Composite/i, 'window.__tools.spiSession.dataReady');
 await sleep(600);
 const conn = await cdp.eval(`return { hid: window.__tools.spiSession.connected, usb: window.__tools.spiSession.dataReady, iface: window.__tools.spiSession.transport?.iface };`);

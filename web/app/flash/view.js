@@ -206,7 +206,7 @@ export class FlashView {
     if (this.busy) throw Error('探针当前正忙，请等当前操作结束后再复位');
     return await this._withProbeOwnership(async () => {
       if (!(await this._clearProbeUsers('全局硬复位'))) return false;
-      const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice();
+      const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice({ authorizedOnly:true });
       this.probe = new OpenOcdResetSession(line => this._log(line));
       let failure;
       try {
@@ -246,7 +246,7 @@ export class FlashView {
   }
 
   async _openTarget(flash, cfg = this._targetProfile()){
-    const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice();
+    const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice({ authorizedOnly:true });
     if (cfg.builtin) cfg = { ...await loadBuiltinFlashCfg(cfg.builtin, cfg.clockKhz), family:cfg.builtin };
     if (cfg.arch === 'riscv') await prepareOpenOcdJtag(device);
     return OpenOcdProbe.open(device, { cfg, onLog:line => this._log(line) });
@@ -303,7 +303,8 @@ export class FlashView {
         if (probe.isRiscv) return { id };
         const word = addr => probe._readWord(addr).catch(() => null);
         const cpuid = await word(0xe000ed00);
-        if (cpuid != null) this._log(decodeCpuid(cpuid).text);
+        if (cpuid != null && cpuid !== 0 && cpuid !== 0xffffffff) this._log(decodeCpuid(cpuid).text);
+        else this._log('核心 CPUID 暂不可读，继续核对探针和目标芯片身份');
         if (probe.cfg.family === 'rp2350'){
           const chipId = await word(0x40000000);
           if (chipId == null || (chipId & 0x0fffffff) !== 0x4927)

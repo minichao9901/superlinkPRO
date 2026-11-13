@@ -170,7 +170,7 @@ if (STAGE === 'webusb'){
   // 扫描范围限定在这块 F103 的 20KB SRAM 内（默认范围会读进未映射区，白等）
   await cdp.eval(`document.getElementById('r-range').value='0x20000000-0x20005000'`);
 
-  await cdp.eval(click('r-usb-connect'), true);
+  await cdp.eval(click('btn-probe-connect'), true);
   const dev = await settle(cdp, /MicroLink|DAP|CMSIS/i, `window.__tools.rtt.probe`);
   ok(true, dev ? `选择框里选中探针：${dev.name}` : '用已授权设备直连（没弹选择框）');
   await cdp.waitFor('window.__tools.rtt.probe', 8000, '探针对象');

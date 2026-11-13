@@ -20,5 +20,3 @@
 .manual-output{max-height:280px;overflow:auto;background:var(--bg);border:1px solid var(--line);padding:8px;margin-top:6px}
 .manual-log{overflow-wrap:anywhere;font-size:var(--text-xs)}
 .manual-log:not(:empty){margin-top:5px}
-
-.manual-usb{display:flex;align-items:center;gap:8px;margin:12px 0}

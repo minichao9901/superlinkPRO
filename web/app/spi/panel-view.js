@@ -134,10 +134,6 @@ export class SpiPanelView {
     this.syncCustomGeomInputs();
 
     // 连接（与桥页同一个会话）
-    $('pn-connect').addEventListener('click', () => s.connectHid());
-    $('pn-disconnect').addEventListener('click', () => s.disconnect());
-    $('pn-choose').addEventListener('click', () => s.connectHid(true));
-    $('pn-usb').addEventListener('click', () => s.connectUsb(null, { inFlight: +($('pn-inflight').value || 4) }));
     $('pn-mock').addEventListener('change', e => this.wrap(() => s.setMock(e.target.checked)).finally(() => this.renderState(s.stateInfo())));
     /**
      * 攒批档位：一次 `transferOut` 带多少字节（见 `protocol.batchPacks` 的注释）。
@@ -583,9 +579,6 @@ export class SpiPanelView {
   refreshButtons(){
     const s = this.session, c = s.connected, d = s.dataReady, busy = s.busy;
     const access = s.capabilities();
-    $('pn-connect').disabled = c || busy;
-    $('pn-choose').disabled = c || d || busy;
-    $('pn-disconnect').disabled = !(c || d) || (busy && !access.retryStop);
     $('pn-prof-get').disabled = !c; $('pn-prof-set').disabled = !access.configure;
     $('pn-enable').disabled = !access.configure; $('pn-disable').disabled = !access.configure;
     $('pn-preset-apply').disabled = !access.configure;
@@ -771,7 +764,7 @@ export class SpiPanelView {
     const s = this.session;
     const rows = this.effectiveRows || this.rows;
     if (!rows.length){ s.log('w', '先「解析并预览」再来重放', this.tag); return; }
-    if (!s.dataReady){ s.log('e', '先「连接数据端点」（或勾「用假探针」）', this.tag); return; }
+    if (!s.dataReady){ s.log('e', '请从顶栏连接探针，或勾选「模拟探针」', this.tag); return; }
     if (!s.enabled) s.log('w', '桥还没使能 —— 先点「使能」：未使能时 bulk OUT 端点不武装，写会一直 NAK/超时', this.tag);
     if (s.busy) return;
     const a = Math.max(0, Math.min(start, rows.length - 1));
@@ -1066,7 +1059,7 @@ export class SpiPanelView {
   async sendImage(){
     const s = this.session;
     if (!this.src){ s.log('w', '先选一张图或图案', this.tag); return; }
-    if (!s.dataReady){ s.log('e', '先「连接数据端点」（或勾「用假探针」）', this.tag); return; }
+    if (!s.dataReady){ s.log('e', '请从顶栏连接探针，或勾选「模拟探针」', this.tag); return; }
     if (!s.enabled) s.log('w', '桥还没使能 —— 先点「使能」：未使能时 bulk OUT 端点不武装，写会一直 NAK/超时', this.tag);
     if (s.busy) return;
     if (!s.profile){ s.log('w', '还没读到面板档 —— 先「读取档位」或点「套用推荐值」', this.tag); }
@@ -1264,7 +1257,7 @@ export class SpiPanelView {
   /** 读寄存器（一条事务就回来）*/
   async readRegister(){
     const s = this.session;
-    if (!s.dataReady) return s.log('e', '读寄存器：先「连接数据端点」（或勾「用假探针」）', this.tag);
+    if (!s.dataReady) return s.log('e', '读寄存器：请从顶栏连接探针，或勾选「模拟探针」', this.tag);
     if (s.busy) return s.log('w', '读寄存器：桥上正忙（刷屏/重放没结束）', this.tag);
     const t = this.readTiming();
     this.warnIfRawProfile('读寄存器');
@@ -1293,7 +1286,7 @@ export class SpiPanelView {
    */
   async readGram(){
     const s = this.session;
-    if (!s.dataReady) return s.log('e', '读回：先「连接数据端点」（或勾「用假探针」）', this.tag);
+    if (!s.dataReady) return s.log('e', '读回：请从顶栏连接探针，或勾选「模拟探针」', this.tag);
     if (s.busy) return s.log('w', '读回：桥上正忙（刷屏/重放没结束）', this.tag);
     const g = this.geometry();
     const t = this.readTiming();

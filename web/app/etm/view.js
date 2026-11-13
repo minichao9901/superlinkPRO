@@ -228,6 +228,11 @@ export class EtmView {
     }catch(e){this.showError(e.message);}
   }
   run(fn){return this.probeManager.run('etm',fn,{reason:'ETM 执行轨迹使用探针'});}
+  async connect(){
+    await this.onShow();
+    if(!this.bridge?.connect) throw Error('ETM 页面尚未就绪，请等待本地服务加载后再连接');
+    return await this.bridge.connect();
+  }
   async releaseProbe(bridge=this.bridge){
     if(bridge?.busy())throw Error('ETM 正在操作目标或采集，请先停止采集');
     if(bridge)await bridge.release();

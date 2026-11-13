@@ -115,10 +115,6 @@ export class SpiBusView {
     $('sp-dsl-text').value = D.DSL_SAMPLES[0].text;
 
     // 连接（两页共用一次会话，所以这里和屏页都能连）
-    $('sp-connect').addEventListener('click', () => s.connectHid());
-    $('sp-disconnect').addEventListener('click', () => s.disconnect());
-    $('sp-choose').addEventListener('click', () => s.connectHid(true));
-    $('sp-usb').addEventListener('click', () => s.connectUsb(null, { inFlight: +($('sp-inflight').value || 4) }));
     $('sp-mock').addEventListener('change', e => this.wrap(() => s.setMock(e.target.checked, { device: $('sp-mock-device').value })).finally(() => this.renderState(s.stateInfo())));
     // 假探针的"末级器件"：SPI 没有器件地址，所以是**换一个末级**（NOR / 寄存器器件 / 命令型 ADC）
     $('sp-mock-device').value = store.get('spi.mockDevice', 'flash');
@@ -193,7 +189,7 @@ export class SpiBusView {
     this._bindDock();
 
     this.unsub = s.subscribe(this);
-    s.log('i', '就绪。真机：先「连接探针」再「连接数据端点」；没板子就勾「用假探针」。');
+    s.log('i', '从顶栏连接探针，或勾选「模拟探针」。');
     this.renderState(s.stateInfo());
     this.renderCounters(s.counters, s.lastStatus);
   }
@@ -384,9 +380,6 @@ export class SpiBusView {
   refreshButtons(){
     const s = this.session, c = s.connected, d = s.dataReady, busy = s.busy;
     const access = s.capabilities();
-    $('sp-connect').disabled = c || busy;
-    $('sp-choose').disabled = c || d || busy;
-    $('sp-disconnect').disabled = !(c || d) || (busy && !access.retryStop);
     $('sp-get').disabled = !c; $('sp-set').disabled = !access.configure; $('sp-pin-apply').disabled = !access.configure;
     $('sp-enable').disabled = !access.configure; $('sp-disable').disabled = !access.configure;
     $('sp-reset').disabled = !access.configure; $('sp-abort').disabled = !access.configure; $('sp-status').disabled = !c;
@@ -684,7 +677,7 @@ export class SpiBusView {
   async cmdSendAll(){
     const s = this.session;
     if (s.busy) return;
-    if (!s.dataReady){ s.log('e', '先「连接数据端点」（或勾「用假探针」）', this.tag); return; }
+    if (!s.dataReady){ s.log('e', '请从顶栏连接探针，或勾选「模拟探针」', this.tag); return; }
     const items = this.cmdItems();
     if (!items) return;
     if (!items.length){ s.log('w', '通用命令表是空的（每行第一列填 cmd）', this.tag); return; }
@@ -1174,7 +1167,7 @@ export class SpiBusView {
   async loopbackTest(){
     const s = this.session;
     if (s.busy) return;
-    if (!s.dataReady){ s.log('e', '先「连接数据端点」（或勾「用假探针」）', this.tag); return; }
+    if (!s.dataReady){ s.log('e', '请从顶栏连接探针，或勾选「模拟探针」', this.tag); return; }
     if (!s.enabled) s.log('w', '桥还没使能 —— 先点「使能」，否则帧会被判 SB_E_DISABLED', this.tag);
 
     const lens = String($('sp-lb-lens').value || '').split(/[,\s]+/).map(x => +x).filter(n => n > 0 && n <= P.XFER_TX_MAX);

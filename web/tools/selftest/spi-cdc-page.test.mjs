@@ -18,18 +18,18 @@ try{
  const p=new Uint8Array(63);p.set([54,cmd,a]);const d=new DataView(p.buffer,3);
  [0x31435053,1|(+running<<1)|(+pending<<2),rc,config,16384,4096,4096,0,0,0,0,generation,0].forEach((v,i)=>d.setUint32(i*4,v,true));return p;
  }});
- const click=async id=>{document.getElementById(id).click();for(let i=0;i<100&&(s.busy||id==='si-connect'&&!s.connected);i++)await new Promise(r=>setTimeout(r,10));};
- await click('si-connect');
- const connectedButtons=document.getElementById('si-connect').disabled&&!document.getElementById('si-disconnect').disabled&&!document.getElementById('si-reconnect');
+ const click=async id=>{document.getElementById(id).click();for(let i=0;i<100&&s.busy;i++)await new Promise(r=>setTimeout(r,10));};
+ await s.connect(false);
+ const connectedButtons=!document.getElementById('si-start').disabled&&!document.getElementById('si-connect')&&!document.getElementById('si-disconnect');
  document.getElementById('si-mode').value='3';document.getElementById('si-lsb').value='1';await click('si-start');
  const started={running:s.running,mode:s.last?.mode,lsb:s.last?.lsb,disabled:document.getElementById('si-start').disabled,state:document.getElementById('si-state').textContent};
  await click('si-stop');const stopped=!s.running&&!document.getElementById('si-start').disabled;
- await click('si-disconnect');
- return {started,stopped,connectedButtons,closedButtons:!document.getElementById('si-connect').disabled&&document.getElementById('si-disconnect').disabled,disconnected:!s.connected,tabs:[...document.querySelectorAll('#tabs [data-tab]')].map(e=>[e.dataset.tab,e.textContent.trim()]),duplicates:[...document.querySelectorAll('[id]')].map(e=>e.id).filter((x,i,a)=>a.indexOf(x)!==i),errors:t.errors};`);
+ await s.disconnect();
+ return {started,stopped,connectedButtons,closedButtons:document.getElementById('si-start').disabled,disconnected:!s.connected,tabs:[...document.querySelectorAll('#tabs [data-tab]')].map(e=>[e.dataset.tab,e.textContent.trim()]),duplicates:[...document.querySelectorAll('[id]')].map(e=>e.id).filter((x,i,a)=>a.indexOf(x)!==i),errors:t.errors};`);
  assert.ok(controls.connectedButtons&&controls.closedButtons,'SPI转发连接/关闭按钮状态同步');
  assert.ok(controls.started.running&&controls.started.disabled);assert.equal(controls.started.mode,3);assert.equal(controls.started.lsb,true);assert.ok(controls.stopped&&controls.disconnected);assert.deepEqual(controls.duplicates,[]);assert.deepEqual(controls.errors,[]);
  // 当前“更多功能”顺序为 SPI 桥 → 屏 → SPI 转发；旧检查仍按早期主导航排序。
- assert.equal(controls.tabs.findIndex(x=>x[0]==='spicdc'),controls.tabs.findIndex(x=>x[0]==='panel')+1);assert.equal(controls.tabs.find(x=>x[0]==='spicdc')[1],'SPI转发');assert.equal(controls.tabs.find(x=>x[0]==='spi')[1],'USB→SPI/QSPI');
+ assert.equal(controls.tabs.findIndex(x=>x[0]==='spicdc'),controls.tabs.findIndex(x=>x[0]==='panel')+1);assert.equal(controls.tabs.find(x=>x[0]==='spicdc')[1],'SPI 转发');assert.equal(controls.tabs.find(x=>x[0]==='spi')[1],'USB→SPI/QSPI');
  const pins=await c.eval(`
  document.getElementById('si-pinmap-btn').click();const m=__tools.spiCdc.pinMap;
  m.board.value='hpm5301evklite';m.board.dispatchEvent(new Event('change'));

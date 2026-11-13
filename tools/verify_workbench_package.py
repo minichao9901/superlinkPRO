@@ -20,6 +20,10 @@ def main():
         file=(home/item['name']).resolve()
         assert file.is_relative_to(home) and file.stat().st_size==item['bytes'] and sha(file)==item['sha256'],item['name']
     result['allPackageFilesMatch']=True
+    if manifest.get('builtAt'):
+        web=json.loads((home/'toolbox/app/site/manifest.json').read_text(encoding='utf8'))
+        assert manifest['webBuiltAt']==web['builtAt']
+        result.update(builtAt=manifest['builtAt'],webBuiltAt=manifest['webBuiltAt'])
     for name,expected in manifest['sourceInputs'].items():assert sha(ROOT/'web'/name)==expected,name
     result['sourceInputsMatch']=True
     assert (home/'toolbox/samples').is_dir() and not (home/'cli/web/samples').exists()
@@ -55,6 +59,8 @@ def main():
             except OSError:time.sleep(.2)
         else:raise TimeoutError('冻结服务启动超时')
         assert result['launcher']['workbenchCli'] is True
+        if manifest.get('builtAt'):
+            assert all(result['launcher'][k]==manifest[k] for k in ('builtAt','webBuiltAt'))
         runtime=out/'data/workbench-cli'/str(port)
         token=(runtime/'cli-token').read_text(encoding='ascii')
         try:api('trace-cli/health');raise AssertionError('CLI accepted a request without its token')

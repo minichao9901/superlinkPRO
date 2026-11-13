@@ -1324,11 +1324,11 @@ console.log('== 9e. 回读：读寄存器 + 读 GRAM（假探针 GRAM → 预览
 console.log('== 10. 收尾 ==');
 {
   const done = await ev(`
-    document.getElementById('pn-disconnect').click();
+    document.getElementById('btn-probe-disconnect').click();
     await new Promise(r => setTimeout(r, 300));
     return { bus: window.__tools.spi.summary(), pn: window.__tools.panel.summary(),
              cleared: !window.__tools.spiSession.mockProbe && !window.__tools.spiSession.pollTimer && !document.getElementById('pn-mock').checked && !document.getElementById('sp-mock').checked,
-             buttons: ['sp-disconnect', 'pn-disconnect', 'pn-bl-on', 'pn-bl-off'].every(id => document.getElementById(id).disabled) && !document.getElementById('sp-connect').disabled && !document.getElementById('pn-connect').disabled,
+             buttons: ['btn-probe-disconnect', 'pn-bl-on', 'pn-bl-off'].every(id => document.getElementById(id).disabled),
              pnState: document.getElementById('pn-state').textContent };`);
   ok(done.bus.connected === false && done.pn.connected === false && !done.bus.dataReady, '屏页关闭探针后，两页的配置与数据连接都释放');
   ok(done.cleared && done.buttons, '关闭后清除模拟状态及轮询，更新两页连接和背光按钮');

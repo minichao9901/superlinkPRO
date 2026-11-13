@@ -119,7 +119,7 @@ console.log('== 1. 标签页与初始状态 ==');
   ok(s.spi && s.spi.connected === false && s.spi.dataReady === false, '初始：未连接（HID 与数据面都空）');
   ok(s.panel && s.panel.connected === false, '屏页看到的是**同一个**会话（初始也未连接）');
   const logs = await ev(`return document.getElementById('sp-log').textContent;`);
-  ok(/就绪/.test(logs), '日志区有启动提示');
+  ok(/从顶栏连接探针/.test(logs), '日志区指向顶栏连接');
 }
 
 // ==================================================================== 1b
@@ -858,10 +858,12 @@ console.log('== 11. 收尾：放掉探针（别的页签要用）==');
   const done = await ev(`
     const s = window.__tools.spiSession;
     s.setBusy(true);
-    const protectedDuringSend = document.getElementById('sp-disconnect').disabled && document.getElementById('pn-disconnect').disabled;
+    await new Promise(r => setTimeout(r, 550));
+    const protectedDuringSend = document.getElementById('btn-probe-disconnect').disabled;
     const rejected = (await s.disconnect()) === false && s.connected;
     s.setBusy(false);
-    document.getElementById('sp-disconnect').click();
+    await new Promise(r => setTimeout(r, 550));
+    document.getElementById('btn-probe-disconnect').click();
     await new Promise(r => setTimeout(r, 200));
     return { ...window.__tools.spi.summary(), protectedDuringSend, rejected,
       peerClosed: !window.__tools.panel.session.connected && !window.__tools.panel.session.dataReady,

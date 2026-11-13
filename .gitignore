@@ -251,6 +251,7 @@ etm/baselines/*/execution-simplified.c
 !**/docs/validation/data/
 !**/docs/validation/dbg-image-20261016-185857/
 !**/docs/validation/probe-close-20261016-184800/
+!docs/validation/probe-workbench-port-20261114/
 !**/docs/validation/ram-fill-20261016-223752/
 
 

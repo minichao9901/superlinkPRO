@@ -132,12 +132,13 @@ def main():
     sys.modules['decode_trace'].ROOT=backend
     package_manifest=json.loads((home/'package-manifest.json').read_text(encoding='utf8'))
     package_id=package_manifest['packageId'];version=package_manifest.get('version',VERSION)
+    build_times={key:package_manifest[key] for key in ('builtAt','webBuiltAt') if package_manifest.get(key)}
     workbench=package_manifest.get('launcher')=='superlinkPRO.exe'
     entry='' if workbench else '#etm'
     cli_enabled=not args.no_workbench_cli
     folder=cli_runtime(data,port)
     app=application.app
-    app.view_functions['launcher_info']=lambda:dict(protocol=1,portable=True,version=version,packageId=package_id,port=port,dataDirectory=str(data),engine=engine,workbenchCli=cli_enabled)
+    app.view_functions['launcher_info']=lambda:dict(protocol=1,portable=True,version=version,packageId=package_id,port=port,dataDirectory=str(data),engine=engine,workbenchCli=cli_enabled,**build_times)
     archive_guard=threading.Lock()
     def download_package():
         with archive_guard:return send_file(package_archive(home,data),as_attachment=True)
@@ -145,7 +146,7 @@ def main():
     def download_manifest():
         with archive_guard:
             archive=package_archive(home,data)
-            return dict(version=version,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),packageId=package_id)
+            return dict(version=version,platform='windows-x64',file=archive.name,bytes=archive.stat().st_size,sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),packageId=package_id,**build_times)
     app.add_url_rule('/bridge/etm/downloads/manifest.json','portable_download_manifest',download_manifest)
     if workbench:
         app.view_functions['workbench_download']=lambda:download_manifest() if request.path.endswith('/manifest.json') else download_package()

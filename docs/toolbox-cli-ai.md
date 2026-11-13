@@ -130,6 +130,10 @@ SWO 的 capture/sources、ETM 的 target、存在时的 store。以 `describe` �
 会以 `@file:view._fileInput`、`@file:hid._elfInput` 等虚拟 selector 出现在 controls 中，
 使用 describe 返回的原字符串传给 upload；这些是受控文件入口，不是任意对象访问。
 
+在工作台先打开目标工具，再从顶栏「连接探针」连接。顶栏优先复用唯一已授权的 USB 和 HID 设备，首次授权可依次选择 USB 和 HID，多探针时按实际序列号配对。烧录器和 SWO 在开始各自操作时认领所选设备，ETM 在本地服务就绪后由顶栏连接。顶栏「连接选项」中的「断开探针」会释放工作台的探针会话，CDC 串口继续由串口页管理。「帮助」可查看 Web 构建信息、探针固件版本和编译时间。
+
+CLI 可先执行 `page dbg show`，再通过 `page dbg click '#btn-probe-connect'` 连接已授权设备，最后以 `page dbg state` 核对结果。断开使用 `#btn-probe-disconnect`。原工具方法仍可通过 `invoke` 调用，首次 USB/HID 选择需要从顶栏完成。
+
 顶栏 `#btn-global-reset` 通过 OpenOCD Wasm 初始化 CMSIS-DAP 探针并发送 NRST 硬复位脉冲。目标调试口无法连接时仍可发脉冲，实际复位需要接通探针和目标的 NRST。探针回读确认引脚电平，调试器和烧录后的软件复位沿用各自的目标配置。
 
 ## OpenOCD 目标与 CFG

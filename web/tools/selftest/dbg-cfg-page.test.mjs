@@ -119,7 +119,7 @@ try{
     const file=await folder.getFileHandle('rv_ram.elf',{create:true});const stream=await file.createWritable();
     await stream.write(Uint8Array.from(atob(${JSON.stringify(image)}),ch=>ch.charCodeAt(0)));await stream.close();
     window.showDirectoryPicker=async()=>folder;
-    document.querySelector('#d-connect').click();
+    document.querySelector('#btn-probe-connect').click();
   `);
   await waitFor('__tools.dbg.session.connected && !__tools.dbg._connecting && __tools.dbg.session.halted');
   results.connected = await c.eval(`const s=__tools.dbg.session;return {tap:s.idcode,ir:cfgTarget.configure[1],hart:s.dm.hart,dmiBits:s.dm.dmiBits,tck:cfgTarget.requestedHz,halted:s.halted};`);
@@ -145,7 +145,7 @@ try{
   results.memory=await c.eval(`return {code:[...cfgTarget.ram.slice(0x100,0x10c)],sbaWrites:cfgTarget.stats.sbaWrites,flashPristine:cfgTarget.flash.every(x=>x===0xff),targetResets:cfgTarget.havereset};`);
   assert.deepEqual(results.memory.code,[0x13,0x05,0x15,0x00,0x13,0x05,0x15,0x00,0x6f,0x00,0x00,0x00]);
   assert.ok(results.memory.sbaWrites>0 && results.memory.flashPristine && !results.memory.targetResets);
-  await c.eval("document.querySelector('#d-disconnect').click();");
+  await c.eval("document.querySelector('#btn-probe-disconnect').click();");
   await waitFor('!__tools.dbg.session.connected && !__tools.dbg._disconnecting');
   results.passed=true;
 } catch(e){ results.error=e.message;process.exitCode=1; }

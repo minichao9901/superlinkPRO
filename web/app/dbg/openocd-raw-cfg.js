@@ -41,6 +41,7 @@ export async function inspectOpenOcdCfg(text, entry, directory, connection){
     const digest = new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(raw))));
     const hash = Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');
     return { raw, hash, name:entry, kind:'原版', transport, clockKhz, cores,
-      hasFlash:!!banks.length, flashBase, ignored:[], ...cores[0] };
+      hasFlash:!!banks.length, flashBase, ignored:[],
+      stm32h7Flash:banks.some(([, name]) => name === 'stm32h7x'), ...cores[0] };
   } finally { await session.close(); }
 }

@@ -2,6 +2,12 @@ import { OpenOcdTargetSession } from './openocd-session.js';
 import { makeOpenOcdProfile, ocdHex } from './openocd-profile.js';
 
 const FILTER = { vendorId:0x0d28 };
+let selectedUsb = null;
+export function rememberOpenOcdDevice(device){ selectedUsb = device; }
+export function selectedOpenOcdDevice(){ return selectedUsb; }
+export async function authorizedOpenOcdDevices(){
+  return (await globalThis.navigator?.usb?.getDevices() || []).filter(d => d.vendorId === FILTER.vendorId);
+}
 const MAX_TRANSFER = 2048;
 const ARM_REGS = [...Array.from({ length:13 }, (_, index) => `r${index}`), 'sp', 'lr', 'pc', 'xpsr', 'msp', 'psp'];
 const CFBP = ['primask', 'basepri', 'faultmask', 'control'];
@@ -14,11 +20,15 @@ export function isHpm6800BulkSram(cfg, address, length){
     address >= 0x01240000 && address + length <= 0x01280000;
 }
 
-export async function selectOpenOcdDevice({ all = false, forcePick = false } = {}){
+export async function selectOpenOcdDevice({ all = false, forcePick = false, authorizedOnly = false } = {}){
   const usb = globalThis.navigator?.usb;
   if (!usb) throw Error('OpenOCD Wasm 需要支持 WebUSB 的浏览器');
-  const devices = forcePick ? [] : (await usb.getDevices()).filter(d => d.vendorId === FILTER.vendorId);
-  return devices.length === 1 ? devices[0] : usb.requestDevice({ filters:all ? [] : [FILTER] });
+  if (forcePick) return usb.requestDevice({ filters:all ? [] : [FILTER] });
+  if (selectedUsb) return selectedUsb;
+  const devices = await authorizedOpenOcdDevices();
+  if (devices.length === 1) return devices[0];
+  if (authorizedOnly) throw Error('请在顶栏「连接选项」中选择 USB 探针');
+  return usb.requestDevice({ filters:all ? [] : [FILTER] });
 }
 
 function checkRange(address, length){
@@ -34,7 +44,7 @@ function widthAt(address, count){
 
 export class OpenOcdProbe {
   static supported(){ return !!globalThis.navigator?.usb; }
-  static async authorized(){ return await navigator.usb.getDevices(); }
+  static async authorized(){ return selectedUsb ? [selectedUsb] : await authorizedOpenOcdDevices(); }
 
   static async open(device, { cfg = makeOpenOcdProfile(), onLog, runningMemory = false } = {}){
     const probe = new this(device, cfg, onLog, runningMemory);
@@ -59,7 +69,47 @@ export class OpenOcdProbe {
 
   get _faulted(){ return !!this.link && !this.link.worker; }
 
-  async _initTarget(link){ await link.command('init'); }
+  async _initTarget(link){
+    const { raw, target, stm32h7Flash } = this.cfg;
+    if (!raw || !stm32h7Flash) return await link.command('init');
+    try {
+      // The upstream examine-end handler is too late if AP0 cannot read CPUID.
+      await link.command(`
+proc workbench_h7_examine_start {ap original} {
+  set ::workbench_h7_clocks_ready 0
+  set clock 0xe00e1004
+  set mask 0x0060003f
+  if {![$ap was_examined]} {$ap arp_examine}
+  set current [$ap read_memory $clock 32 1]
+  if {($current & $mask) != $mask} {
+    $ap mww $clock [expr {$current | $mask}]
+    if {([$ap read_memory $clock 32 1] & $mask) != $mask} {
+      error "STM32H7 DBGMCU debug clocks not confirmed"
+    }
+  }
+  set ::workbench_h7_clocks_ready 1
+  if {$original ne ""} {uplevel #0 $original}
+}
+set workbench_h7_clocks_ready 1
+set workbench_h7_dap [${target} cget -dap]
+foreach workbench_h7_ap [target names] {
+  if {[$workbench_h7_ap cget -type] ne "mem_ap"} {continue}
+  if {[$workbench_h7_ap cget -dap] eq $workbench_h7_dap &&
+      [$workbench_h7_ap cget -ap-num] == 2} {
+    set workbench_h7_clocks_ready 0
+    ${target} configure -event examine-start [list workbench_h7_examine_start $workbench_h7_ap [${target} cget -event examine-start]]
+    break
+  }
+}
+`);
+      await link.command('init');
+      // OpenOCD logs event errors and can still report examination success.
+      if (await link.command('set workbench_h7_clocks_ready') !== '1') throw Error('AP2 未确认 DBGMCU 调试时钟');
+      if (await link.command(`${target} was_examined`) !== '1') throw Error('OpenOCD 未确认核心检查完成');
+    } catch (error){
+      throw Error(`STM32H7 内核检查失败，Flash 尚未擦写。请查看日志中的 AP2、DBGMCU 和 CPUID 信息：${error.message}`, { cause:error });
+    }
+  }
 
   async connect(){
     const link = this.link = new OpenOcdTargetSession(line => this.onLog?.(line));

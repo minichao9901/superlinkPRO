@@ -19,8 +19,8 @@ try{
  await c.eval(`const d=__tools.dbg;d.loadElfBuffer(await(await fetch('/tools/target-firmware/hpm5301evklite_spi_rx/fw.elf')).arrayBuffer(),'spi-rx.elf');
  const be=document.getElementById('d-backend');be.value='riscv';be.dispatchEvent(new Event('change'));await new Promise(r=>setTimeout(r,100));
  await d.connect();d._stopWatch();d.rttStop();if(d.session.halted)await d.session.cont();d._stopWatch();return true;`);
- await c.eval('document.getElementById("sp-connect").click();return true;',true);await c.settle(DEV_RE,'__tools.spiSession.connected',30000);
- await c.eval('document.getElementById("sp-usb").click();return true;',true);await c.settle(/akaLinkPro|CMSIS|WinUSB/i,'__tools.spiSession.dataReady',30000);
+ await c.eval('document.getElementById("btn-probe-hid").click();return true;',true);await c.settle(DEV_RE,'__tools.spiSession.connected',30000);
+ await c.eval('document.getElementById("btn-probe-usb").click();return true;',true);await c.settle(/akaLinkPro|CMSIS|WinUSB/i,'__tools.spiSession.dataReady',30000);
  for(const rate of rates){
   await c.eval(`const s=__tools.spiSession;await s.loadCfg({quiet:true});if(s.enabled)await s.setEnabled(false,'bus');
    await s.applyConfig({...s.cfg,sclkHz:${rate*1e6},mode:0,csPolicy:${cs},txDmaThreshold:100},'bus');await s.setEnabled(true,'bus');return true;`);

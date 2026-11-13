@@ -497,24 +497,6 @@
       ],
       "controls": [
         {
-          "id": "r-usb-connect",
-          "tag": "button",
-          "type": null,
-          "label": "连接探针"
-        },
-        {
-          "id": "r-usb-pick",
-          "tag": "button",
-          "type": null,
-          "label": "换一个探针（会弹浏览器设备选择框）"
-        },
-        {
-          "id": "r-usb-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "断开"
-        },
-        {
           "id": "r-target",
           "tag": "select",
           "type": null,
@@ -577,12 +559,6 @@
               "label": "60 MHz"
             }
           ]
-        },
-        {
-          "id": "r-usb-all",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
         },
         {
           "id": "r-chip",
@@ -838,35 +814,35 @@
       "methodSourceHints": [
         {
           "name": "connectProbe",
-          "line": 283
+          "line": 280
         },
         {
           "name": "disconnect",
-          "line": 360
+          "line": 356
         },
         {
           "name": "onShow",
-          "line": 684
+          "line": 679
         },
         {
           "name": "resetTarget",
-          "line": 769
+          "line": 764
         },
         {
           "name": "loadElfFile",
-          "line": 804
+          "line": 799
         },
         {
           "name": "summary",
-          "line": 819
+          "line": 814
         },
         {
           "name": "saveRaw",
-          "line": 957
+          "line": 952
         },
         {
           "name": "save",
-          "line": 964
+          "line": 959
         }
       ]
     },
@@ -892,18 +868,6 @@
         "discard"
       ],
       "controls": [
-        {
-          "id": "h-connect",
-          "tag": "button",
-          "type": null,
-          "label": "连接已授权探针；首次使用或有多个探针时弹出设备选择框"
-        },
-        {
-          "id": "h-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "先停止探针侧 RTT 转发，再关闭 HID 连接；CDC 串口由串口页单独管理"
-        },
         {
           "id": "h-addr",
           "tag": "input",
@@ -1151,18 +1115,6 @@
       ],
       "controls": [
         {
-          "id": "si-connect",
-          "tag": "button",
-          "type": null,
-          "label": "自动连接唯一已授权的探针；首次或多个设备时弹框选择"
-        },
-        {
-          "id": "si-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "停止探针 SPI 转发并关闭 HID 连接；接收串口可在下方单独关闭"
-        },
-        {
           "id": "si-pinmap-btn",
           "tag": "button",
           "type": null,
@@ -1225,12 +1177,6 @@
           "tag": "button",
           "type": null,
           "label": "刷新状态"
-        },
-        {
-          "id": "si-choose",
-          "tag": "button",
-          "type": null,
-          "label": "选择其它探针…"
         },
         {
           "id": "si-rx-port",
@@ -1350,12 +1296,16 @@
       ],
       "methodSourceHints": [
         {
+          "name": "refreshStatus",
+          "line": 29
+        },
+        {
           "name": "onShow",
-          "line": 31
+          "line": 34
         },
         {
           "name": "render",
-          "line": 32
+          "line": 35
         }
       ]
     },
@@ -1406,28 +1356,10 @@
           "label": "帮助"
         },
         {
-          "id": "sc-connect",
-          "tag": "button",
-          "type": null,
-          "label": "连接已授权探针；首次使用或连接失败时弹出设备选择框"
-        },
-        {
-          "id": "sc-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "停止采样并关闭 HID 配置连接和 USB 数据端点；不关闭目标电源"
-        },
-        {
           "id": "sc-mock",
           "tag": "input",
           "type": "checkbox",
           "label": ""
-        },
-        {
-          "id": "sc-usb",
-          "tag": "button",
-          "type": null,
-          "label": "WebUSB 认领 interface 0，走那个空闲的 bulk IN 端点 0x83"
         },
         {
           "id": "sc-period",
@@ -1480,7 +1412,7 @@
           "id": "sc-bench",
           "tag": "button",
           "type": null,
-          "label": "让探针用当前计划空跑一段，回报真实 µs/样本（M0 标定；假探针会假装一个结果）"
+          "label": "让探针用当前计划空跑一段，回报真实 µs/样本（模拟模式使用模拟结果）"
         },
         {
           "id": "sc-recc",
@@ -1668,211 +1600,211 @@
       "methodSourceHints": [
         {
           "name": "onShow",
-          "line": 269
+          "line": 266
         },
         {
           "name": "zoomToPoints",
-          "line": 304
+          "line": 301
         },
         {
           "name": "connectHid",
-          "line": 316
+          "line": 313
         },
         {
           "name": "connectUsb",
-          "line": 392
+          "line": 389
         },
         {
           "name": "releaseProbe",
-          "line": 445
+          "line": 442
         },
         {
           "name": "disconnect",
-          "line": 484
+          "line": 481
         },
         {
           "name": "setMock",
-          "line": 498
+          "line": 495
         },
         {
           "name": "loadElfFile",
-          "line": 525
+          "line": 522
         },
         {
           "name": "addArrayElement",
-          "line": 566
+          "line": 563
         },
         {
           "name": "renderVars",
-          "line": 591
+          "line": 588
         },
         {
           "name": "toggleVar",
-          "line": 629
+          "line": 626
         },
         {
           "name": "updatePlan",
-          "line": 640
+          "line": 637
         },
         {
           "name": "mockVars",
-          "line": 730
+          "line": 727
         },
         {
           "name": "periodUs",
-          "line": 735
+          "line": 732
         },
         {
           "name": "rateAdvice",
-          "line": 736
+          "line": 733
         },
         {
           "name": "rateWarning",
-          "line": 740
+          "line": 737
         },
         {
           "name": "seconds",
-          "line": 747
+          "line": 744
         },
         {
           "name": "start",
-          "line": 750
+          "line": 747
         },
         {
           "name": "confirmTargetArchitecture",
-          "line": 781
+          "line": 778
         },
         {
           "name": "applyCaptureClock",
-          "line": 788
+          "line": 785
         },
         {
           "name": "stop",
-          "line": 1115
+          "line": 1112
         },
         {
           "name": "applyTargetType",
-          "line": 1173
+          "line": 1170
         },
         {
           "name": "setBackend",
-          "line": 1231
+          "line": 1228
         },
         {
           "name": "benchKeyOf",
-          "line": 1292
+          "line": 1289
         },
         {
           "name": "benchFresh",
-          "line": 1309
+          "line": 1306
         },
         {
           "name": "benchKeyWhy",
-          "line": 1318
+          "line": 1315
         },
         {
           "name": "uiBackend",
-          "line": 1343
+          "line": 1340
         },
         {
           "name": "fastWordUs",
-          "line": 1357
+          "line": 1354
         },
         {
           "name": "planClockMhz",
-          "line": 1363
+          "line": 1360
         },
         {
           "name": "planEstimateUs",
-          "line": 1368
+          "line": 1365
         },
         {
           "name": "recPeriodUsFor",
-          "line": 1373
+          "line": 1370
         },
         {
           "name": "bench",
-          "line": 1389
+          "line": 1386
         },
         {
           "name": "applyRecPeriod",
-          "line": 1468
+          "line": 1465
         },
         {
           "name": "isReal",
-          "line": 1483
+          "line": 1480
         },
         {
           "name": "signed",
-          "line": 1484
+          "line": 1481
         },
         {
           "name": "hidXfer",
-          "line": 1485
+          "line": 1482
         },
         {
           "name": "configureScope",
-          "line": 1491
+          "line": 1488
         },
         {
           "name": "readScopeMetrics",
-          "line": 1502
+          "line": 1499
         },
         {
           "name": "onChunk",
-          "line": 1527
+          "line": 1524
         },
         {
           "name": "clear",
-          "line": 1674
+          "line": 1671
         },
         {
           "name": "trigCfg",
-          "line": 1693
+          "line": 1690
         },
         {
           "name": "applyTrigger",
-          "line": 1704
+          "line": 1701
         },
         {
           "name": "findNextTrigger",
-          "line": 1729
+          "line": 1726
         },
         {
           "name": "clearTrigger",
-          "line": 1745
+          "line": 1742
         },
         {
           "name": "exportCsv",
-          "line": 1753
+          "line": 1750
         },
         {
           "name": "saveRaw",
-          "line": 1772
+          "line": 1769
         },
         {
           "name": "replayFile",
-          "line": 1780
+          "line": 1777
         },
         {
           "name": "setStatusText",
-          "line": 1851
+          "line": 1848
         },
         {
           "name": "syncButtons",
-          "line": 1858
+          "line": 1855
         },
         {
           "name": "drawFrame",
-          "line": 1885
+          "line": 1876
         },
         {
           "name": "renderLegend",
-          "line": 1942
+          "line": 1933
         },
         {
           "name": "summary",
-          "line": 1965
+          "line": 1956
         }
       ]
     },
@@ -1959,7 +1891,7 @@
           "id": "d-clock",
           "tag": "select",
           "type": null,
-          "label": "连接后校验通信，必要时降频",
+          "label": "工作台请求的 SWD 或 JTAG 时钟，使用导入的 CFG 时以 CFG 为准",
           "options": [
             {
               "value": "10000",
@@ -2034,24 +1966,6 @@
           "type": null,
           "label": "CFG 调试核",
           "options": []
-        },
-        {
-          "id": "d-connect",
-          "tag": "button",
-          "type": null,
-          "label": "连接"
-        },
-        {
-          "id": "d-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "断开"
-        },
-        {
-          "id": "d-jtag-hid",
-          "tag": "button",
-          "type": null,
-          "label": "为 akaLinkPro 授权 HID；连接时切换并回读探针模式"
         },
         {
           "id": "d-elf-pick",
@@ -2539,207 +2453,203 @@
       "methodSourceHints": [
         {
           "name": "initSidebar",
-          "line": 372
+          "line": 369
         },
         {
           "name": "selectSidebar",
-          "line": 386
+          "line": 383
         },
         {
           "name": "renderElfInfo",
-          "line": 392
+          "line": 389
         },
         {
           "name": "onShow",
-          "line": 401
-        },
-        {
-          "name": "authorizeJtagProbe",
-          "line": 744
+          "line": 398
         },
         {
           "name": "connect",
-          "line": 751
+          "line": 735
         },
         {
           "name": "disconnect",
-          "line": 825
+          "line": 810
         },
         {
           "name": "refreshAll",
-          "line": 886
+          "line": 871
         },
         {
           "name": "afterStop",
-          "line": 900
+          "line": 885
         },
         {
           "name": "renderRegs",
-          "line": 944
+          "line": 929
         },
         {
           "name": "presentBacktrace",
-          "line": 1046
+          "line": 1031
         },
         {
           "name": "presentSelectedFrame",
-          "line": 1065
+          "line": 1050
         },
         {
           "name": "presentLocals",
-          "line": 1071
+          "line": 1056
         },
         {
           "name": "renderDwt",
-          "line": 1085
+          "line": 1070
         },
         {
           "name": "renderBps",
-          "line": 1099
+          "line": 1084
         },
         {
           "name": "readMem",
-          "line": 1140
+          "line": 1125
         },
         {
           "name": "renderMem",
-          "line": 1174
+          "line": 1159
         },
         {
           "name": "writeMemEdit",
-          "line": 1232
+          "line": 1217
         },
         {
           "name": "pickImageDirectory",
-          "line": 1375
+          "line": 1360
         },
         {
           "name": "imageDirectoryStatus",
-          "line": 1386
+          "line": 1371
         },
         {
           "name": "runLine",
-          "line": 1394
+          "line": 1379
         },
         {
           "name": "configureRamWindow",
-          "line": 1537
+          "line": 1522
         },
         {
           "name": "launchRamElf",
-          "line": 1546
+          "line": 1531
         },
         {
           "name": "loadElfBuffer",
-          "line": 1572
+          "line": 1557
         },
         {
           "name": "loadBundledSvd",
-          "line": 1650
+          "line": 1635
         },
         {
           "name": "loadSvdText",
-          "line": 1676
+          "line": 1661
         },
         {
           "name": "renderSyms",
-          "line": 1830
+          "line": 1815
         },
         {
           "name": "addWatch",
-          "line": 1901
+          "line": 1886
         },
         {
           "name": "delWatch",
-          "line": 1922
+          "line": 1907
         },
         {
           "name": "watchItems",
-          "line": 1929
+          "line": 1914
         },
         {
           "name": "clearWatch",
-          "line": 1933
+          "line": 1918
         },
         {
           "name": "refreshWatch",
-          "line": 1941
+          "line": 1926
         },
         {
           "name": "renderWatch",
-          "line": 1991
+          "line": 1976
         },
         {
           "name": "writeWatch",
-          "line": 2106
+          "line": 2091
         },
         {
           "name": "pickSourceDir",
-          "line": 2172
+          "line": 2157
         },
         {
           "name": "renderSource",
-          "line": 2239
+          "line": 2224
         },
         {
           "name": "toggleSourceBp",
-          "line": 2332
+          "line": 2317
         },
         {
           "name": "runToLine",
-          "line": 2350
+          "line": 2335
         },
         {
           "name": "stepOver",
-          "line": 2387
+          "line": 2372
         },
         {
           "name": "stepInto",
-          "line": 2389
+          "line": 2374
         },
         {
           "name": "stepOut",
-          "line": 2391
+          "line": 2376
         },
         {
           "name": "showSource",
-          "line": 2400
+          "line": 2385
         },
         {
           "name": "rttStart",
-          "line": 2440
+          "line": 2425
         },
         {
           "name": "rttStop",
-          "line": 2471
+          "line": 2456
         },
         {
           "name": "rttClear",
-          "line": 2478
+          "line": 2463
         },
         {
           "name": "summary",
-          "line": 2498
+          "line": 2483
         },
         {
           "name": "for",
-          "line": 2535
+          "line": 2520
         },
         {
           "name": "if",
-          "line": 2541
+          "line": 2526
         },
         {
           "name": "if",
-          "line": 2542
+          "line": 2527
         },
         {
           "name": "if",
-          "line": 2543
+          "line": 2528
         },
         {
           "name": "if",
-          "line": 2544
+          "line": 2529
         }
       ]
     },
@@ -3067,12 +2977,6 @@
           "tag": "button",
           "type": null,
           "label": "识别目标与时钟"
-        },
-        {
-          "id": "sw-clock-grant",
-          "tag": "button",
-          "type": null,
-          "label": "允许通过同一探针配置接收时钟"
         },
         {
           "id": "sw-model",
@@ -3432,195 +3336,195 @@
       "methodSourceHints": [
         {
           "name": "action",
-          "line": 69
+          "line": 67
         },
         {
           "name": "error",
-          "line": 70
+          "line": 68
         },
         {
           "name": "initSidebar",
-          "line": 71
+          "line": 69
         },
         {
           "name": "selectSidebar",
-          "line": 86
+          "line": 84
         },
         {
           "name": "options",
-          "line": 87
+          "line": 85
         },
         {
           "name": "renderPlan",
-          "line": 88
+          "line": 86
         },
         {
           "name": "fillCalculator",
-          "line": 107
+          "line": 105
         },
         {
           "name": "calculatorOptions",
-          "line": 112
+          "line": 110
         },
         {
           "name": "renderCalculator",
-          "line": 116
+          "line": 114
         },
         {
           "name": "applyCalculator",
-          "line": 129
+          "line": 127
         },
         {
           "name": "refreshPorts",
-          "line": 133
+          "line": 131
         },
         {
           "name": "loadElf",
-          "line": 134
+          "line": 132
         },
         {
           "name": "renderEntrySymbols",
-          "line": 138
+          "line": 136
         },
         {
           "name": "renderEntryState",
-          "line": 150
+          "line": 148
         },
         {
           "name": "setEntryBreakpoint",
-          "line": 164
+          "line": 162
         },
         {
           "name": "addEntryBreakpoint",
-          "line": 177
+          "line": 175
         },
         {
           "name": "selectEntryBreakpoint",
-          "line": 178
+          "line": 176
         },
         {
           "name": "removeEntryBreakpoint",
-          "line": 179
+          "line": 177
         },
         {
           "name": "clearEntryBreakpoint",
-          "line": 180
+          "line": 178
         },
         {
           "name": "resetAndHaltAtEntry",
-          "line": 181
+          "line": 179
         },
         {
           "name": "loadDemo",
-          "line": 187
+          "line": 185
         },
         {
           "name": "verifyElf",
-          "line": 194
+          "line": 192
         },
         {
           "name": "showTarget",
-          "line": 200
+          "line": 198
         },
         {
           "name": "refreshTargetClock",
-          "line": 212
+          "line": 210
         },
         {
           "name": "detectTarget",
-          "line": 217
+          "line": 215
         },
         {
           "name": "start",
-          "line": 222
+          "line": 220
         },
         {
           "name": "renderCapture",
-          "line": 228
+          "line": 226
         },
         {
           "name": "renderFiles",
-          "line": 236
+          "line": 234
         },
         {
           "name": "pause",
-          "line": 237
+          "line": 235
         },
         {
           "name": "analyze",
-          "line": 238
+          "line": 236
         },
         {
           "name": "clearResult",
-          "line": 245
+          "line": 243
         },
         {
           "name": "renderStats",
-          "line": 246
+          "line": 244
         },
         {
           "name": "fullRange",
-          "line": 251
+          "line": 249
         },
         {
           "name": "renderRange",
-          "line": 252
+          "line": 250
         },
         {
           "name": "zoomChart",
-          "line": 253
+          "line": 251
         },
         {
           "name": "fitChart",
-          "line": 254
+          "line": 252
         },
         {
           "name": "chartSampleAt",
-          "line": 255
+          "line": 253
         },
         {
           "name": "chartPointerDown",
-          "line": 256
+          "line": 254
         },
         {
           "name": "chartPointerMove",
-          "line": 257
+          "line": 255
         },
         {
           "name": "chartPointerUp",
-          "line": 258
+          "line": 256
         },
         {
           "name": "renderRows",
-          "line": 259
+          "line": 257
         },
         {
           "name": "renderHot",
-          "line": 267
+          "line": 265
         },
         {
           "name": "draw",
-          "line": 268
+          "line": 266
         },
         {
           "name": "selectSample",
-          "line": 277
+          "line": 275
         },
         {
           "name": "exportText",
-          "line": 282
+          "line": 280
         },
         {
           "name": "exportCsv",
-          "line": 318
+          "line": 316
         },
         {
           "name": "onShow",
-          "line": 319
+          "line": 317
         },
         {
           "name": "summary",
-          "line": 320
+          "line": 318
         }
       ]
     },
@@ -3705,18 +3609,6 @@
               "label": "自动识别"
             }
           ]
-        },
-        {
-          "id": "connect",
-          "tag": "button",
-          "type": null,
-          "label": "连接探针"
-        },
-        {
-          "id": "disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "断开"
         },
         {
           "id": "symbol-search",
@@ -4370,12 +4262,16 @@
           "line": 230
         },
         {
-          "name": "releaseProbe",
+          "name": "connect",
           "line": 231
         },
         {
+          "name": "releaseProbe",
+          "line": 236
+        },
+        {
           "name": "summary",
-          "line": 237
+          "line": 242
         }
       ]
     },
@@ -4426,18 +4322,6 @@
           "label": "帮助"
         },
         {
-          "id": "sp-connect",
-          "tag": "button",
-          "type": null,
-          "label": "连接已授权的探针；首次使用或有多个探针时弹出设备选择框"
-        },
-        {
-          "id": "sp-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "关闭共享的 HID 配置连接和 USB 数据端点，不关闭目标电源"
-        },
-        {
           "id": "sp-mock",
           "tag": "input",
           "type": "checkbox",
@@ -4464,16 +4348,10 @@
           ]
         },
         {
-          "id": "sp-usb",
-          "tag": "button",
-          "type": null,
-          "label": "授权 WebUSB 并认领 SPI 桥接口（class 0xFF + EP11 双向）：OUT 0x0B 发帧、IN 0x8B 收应答。⚠️ 第一次点会弹出浏览器的设备选择框（HID 与 WebUSB 要各授权一次）"
-        },
-        {
           "id": "sp-inflight",
           "tag": "input",
           "type": null,
-          "label": "同时提交的 USB IN 读取请求数，连接数据端点时生效。"
+          "label": "同时提交的 USB IN 读取请求数，下次从顶栏打开 SPI 数据端点时生效。"
         },
         {
           "id": "sp-sclk",
@@ -4611,12 +4489,6 @@
           "tag": "button",
           "type": null,
           "label": "读状态"
-        },
-        {
-          "id": "sp-choose",
-          "tag": "button",
-          "type": null,
-          "label": "选择探针…"
         },
         {
           "id": "sp-enable",
@@ -5126,199 +4998,199 @@
         },
         {
           "name": "abortLoop",
-          "line": 268
+          "line": 264
         },
         {
           "name": "renderRunPill",
-          "line": 277
+          "line": 273
         },
         {
           "name": "syncRunPill",
-          "line": 294
+          "line": 290
         },
         {
           "name": "appendLog",
-          "line": 313
+          "line": 309
         },
         {
           "name": "renderLogFromRing",
-          "line": 320
+          "line": 316
         },
         {
           "name": "renderState",
-          "line": 327
+          "line": 323
         },
         {
           "name": "renderCounters",
-          "line": 336
+          "line": 332
         },
         {
           "name": "fillCfg",
-          "line": 354
+          "line": 350
         },
         {
           "name": "refreshButtons",
-          "line": 384
+          "line": 380
         },
         {
           "name": "refreshPads",
-          "line": 419
+          "line": 412
         },
         {
           "name": "togglePinMap",
-          "line": 451
+          "line": 444
         },
         {
           "name": "renderPinMap",
-          "line": 473
+          "line": 466
         },
         {
           "name": "wrap",
-          "line": 561
+          "line": 554
         },
         {
           "name": "loadCfg",
-          "line": 565
+          "line": 558
         },
         {
           "name": "readCfgFromUI",
-          "line": 569
+          "line": 562
         },
         {
           "name": "applyCfg",
-          "line": 593
+          "line": 586
         },
         {
           "name": "setEnabled",
-          "line": 597
+          "line": 590
         },
         {
           "name": "buildCmdRows",
-          "line": 607
+          "line": 600
         },
         {
           "name": "readCmdRow",
-          "line": 629
+          "line": 622
         },
         {
           "name": "cmdItems",
-          "line": 648
+          "line": 641
         },
         {
           "name": "cmdClearResults",
-          "line": 680
+          "line": 673
         },
         {
           "name": "cmdSendAll",
-          "line": 684
+          "line": 677
         },
         {
           "name": "dslLoadSample",
-          "line": 723
+          "line": 716
         },
         {
           "name": "dslLoadFile",
-          "line": 730
+          "line": 723
         },
         {
           "name": "dslExport",
-          "line": 747
+          "line": 740
         },
         {
           "name": "dslParse",
-          "line": 766
+          "line": 759
         },
         {
           "name": "dslRun",
-          "line": 775
+          "line": 768
         },
         {
           "name": "flMode",
-          "line": 813
+          "line": 806
         },
         {
           "name": "flAddr",
-          "line": 822
+          "line": 815
         },
         {
           "name": "flDummy",
-          "line": 834
+          "line": 827
         },
         {
           "name": "flOut",
-          "line": 836
+          "line": 829
         },
         {
           "name": "flReadId",
-          "line": 842
+          "line": 835
         },
         {
           "name": "flReadSfdp",
-          "line": 864
+          "line": 857
         },
         {
           "name": "flReadStatus",
-          "line": 892
+          "line": 885
         },
         {
           "name": "flWiring",
-          "line": 904
+          "line": 897
         },
         {
           "name": "flRead",
-          "line": 920
+          "line": 913
         },
         {
           "name": "flReadUI",
-          "line": 938
+          "line": 931
         },
         {
           "name": "flBench",
-          "line": 956
+          "line": 949
         },
         {
           "name": "flWaitReady",
-          "line": 1000
+          "line": 993
         },
         {
           "name": "flFillPattern",
-          "line": 1012
+          "line": 1005
         },
         {
           "name": "flErase",
-          "line": 1019
+          "line": 1012
         },
         {
           "name": "flArmed",
-          "line": 1045
+          "line": 1038
         },
         {
           "name": "flWriteData",
-          "line": 1053
+          "line": 1046
         },
         {
           "name": "flWrite",
-          "line": 1075
+          "line": 1068
         },
         {
           "name": "flWriteBench",
-          "line": 1114
+          "line": 1107
         },
         {
           "name": "loopbackTest",
-          "line": 1174
+          "line": 1167
         },
         {
           "name": "renderLoopRows",
-          "line": 1234
+          "line": 1227
         },
         {
           "name": "onShow",
-          "line": 1245
+          "line": 1238
         },
         {
           "name": "summary",
-          "line": 1252
+          "line": 1245
         }
       ]
     },
@@ -5369,34 +5241,16 @@
           "label": "帮助"
         },
         {
-          "id": "pn-connect",
-          "tag": "button",
-          "type": null,
-          "label": "连接已授权的探针；与 USB→SPI/QSPI 共用连接"
-        },
-        {
-          "id": "pn-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "关闭与 USB→SPI/QSPI 共用的配置连接和数据端点，不关闭屏电源"
-        },
-        {
           "id": "pn-mock",
           "tag": "input",
           "type": "checkbox",
           "label": ""
         },
         {
-          "id": "pn-usb",
-          "tag": "button",
-          "type": null,
-          "label": "授权 WebUSB 并认领 SPI 桥接口（刷图/发帧的数据走这条）。⚠️ 第一次点会弹出浏览器的设备选择框（HID 与 WebUSB 要各授权一次）"
-        },
-        {
           "id": "pn-inflight",
           "tag": "input",
           "type": null,
-          "label": "同时提交的 USB IN 读取请求数，连接数据端点时生效。"
+          "label": "同时提交的 USB IN 读取请求数，下次从顶栏打开 SPI 数据端点时生效。"
         },
         {
           "id": "pn-batch",
@@ -5586,12 +5440,6 @@
           "tag": "input",
           "type": "checkbox",
           "label": ""
-        },
-        {
-          "id": "pn-choose",
-          "tag": "button",
-          "type": null,
-          "label": "选择探针…"
         },
         {
           "id": "pn-enable",
@@ -6068,267 +5916,267 @@
       "methodSourceHints": [
         {
           "name": "setActivity",
-          "line": 436
+          "line": 432
         },
         {
           "name": "syncRunPill",
-          "line": 442
+          "line": 438
         },
         {
           "name": "abortAll",
-          "line": 460
+          "line": 456
         },
         {
           "name": "appendLog",
-          "line": 484
+          "line": 480
         },
         {
           "name": "renderLogFromRing",
-          "line": 490
+          "line": 486
         },
         {
           "name": "renderState",
-          "line": 497
+          "line": 493
         },
         {
           "name": "renderCounters",
-          "line": 506
+          "line": 502
         },
         {
           "name": "renderSummary",
-          "line": 516
+          "line": 512
         },
         {
           "name": "fillClock",
-          "line": 528
+          "line": 524
         },
         {
           "name": "applySclk",
-          "line": 535
+          "line": 531
         },
         {
           "name": "fillProfile",
-          "line": 545
+          "line": 541
         },
         {
           "name": "fillPresetNote",
-          "line": 563
+          "line": 559
         },
         {
           "name": "refreshButtons",
-          "line": 583
+          "line": 579
         },
         {
           "name": "loadPresetCode",
-          "line": 611
+          "line": 604
         },
         {
           "name": "loadCodeFile",
-          "line": 620
+          "line": 613
         },
         {
           "name": "parseCode",
-          "line": 630
+          "line": 623
         },
         {
           "name": "setCodeSummary",
-          "line": 663
+          "line": 656
         },
         {
           "name": "rowDirty",
-          "line": 669
+          "line": 662
         },
         {
           "name": "dirtyCount",
-          "line": 675
+          "line": 668
         },
         {
           "name": "renderSum",
-          "line": 683
+          "line": 676
         },
         {
           "name": "renderCodeTable",
-          "line": 695
+          "line": 688
         },
         {
           "name": "drawRuler",
-          "line": 727
+          "line": 720
         },
         {
           "name": "revertRow",
-          "line": 737
+          "line": 730
         },
         {
           "name": "onByteEdit",
-          "line": 747
+          "line": 740
         },
         {
           "name": "exportRows",
-          "line": 754
+          "line": 747
         },
         {
           "name": "playRows",
-          "line": 770
+          "line": 763
         },
         {
           "name": "buildPatternChips",
-          "line": 824
+          "line": 817
         },
         {
           "name": "setPattern",
-          "line": 849
+          "line": 842
         },
         {
           "name": "revealCanvas",
-          "line": 867
+          "line": 860
         },
         {
           "name": "pickImage",
-          "line": 872
+          "line": 865
         },
         {
           "name": "syncCustomGeomInputs",
-          "line": 910
+          "line": 903
         },
         {
           "name": "geometry",
-          "line": 923
+          "line": 916
         },
         {
           "name": "batchBytes",
-          "line": 941
+          "line": 934
         },
         {
           "name": "partialOpts",
-          "line": 950
+          "line": 943
         },
         {
           "name": "resetPartial",
-          "line": 960
+          "line": 953
         },
         {
           "name": "progressThrottle",
-          "line": 980
+          "line": 973
         },
         {
           "name": "applyGeometry",
-          "line": 991
+          "line": 984
         },
         {
           "name": "renderPreview",
-          "line": 1005
+          "line": 998
         },
         {
           "name": "sendImage",
-          "line": 1066
+          "line": 1059
         },
         {
           "name": "loadAnim",
-          "line": 1150
+          "line": 1143
         },
         {
           "name": "playAnim",
-          "line": 1177
+          "line": 1170
         },
         {
           "name": "drawAnimFrame",
-          "line": 1187
+          "line": 1180
         },
         {
           "name": "renderAnim",
-          "line": 1204
+          "line": 1197
         },
         {
           "name": "fillReadWindow",
-          "line": 1232
+          "line": 1225
         },
         {
           "name": "panelProfile",
-          "line": 1239
+          "line": 1232
         },
         {
           "name": "warnIfRawProfile",
-          "line": 1244
+          "line": 1237
         },
         {
           "name": "readTiming",
-          "line": 1252
+          "line": 1245
         },
         {
           "name": "readRegister",
-          "line": 1265
+          "line": 1258
         },
         {
           "name": "readGram",
-          "line": 1294
+          "line": 1287
         },
         {
           "name": "syncViewSwitches",
-          "line": 1368
+          "line": 1361
         },
         {
           "name": "drawReadBack",
-          "line": 1384
+          "line": 1377
         },
         {
           "name": "saveReadBmp",
-          "line": 1412
+          "line": 1405
         },
         {
           "name": "wrap",
-          "line": 1424
+          "line": 1417
         },
         {
           "name": "readProfileFromUI",
-          "line": 1428
+          "line": 1421
         },
         {
           "name": "applyProfile",
-          "line": 1440
+          "line": 1433
         },
         {
           "name": "applyPreset",
-          "line": 1445
+          "line": 1438
         },
         {
           "name": "sendResetPulse",
-          "line": 1465
+          "line": 1458
         },
         {
           "name": "sendPowerCmd",
-          "line": 1475
+          "line": 1468
         },
         {
           "name": "sendGpio",
-          "line": 1486
+          "line": 1479
         },
         {
           "name": "resetAndBacklight",
-          "line": 1509
+          "line": 1502
         },
         {
           "name": "replayPrelude",
-          "line": 1541
+          "line": 1534
         },
         {
           "name": "onShow",
-          "line": 1548
+          "line": 1541
         },
         {
           "name": "summary",
-          "line": 1556
+          "line": 1549
+        },
+        {
+          "name": "if",
+          "line": 1616
         },
         {
           "name": "if",
           "line": 1623
         },
         {
-          "name": "if",
-          "line": 1630
-        },
-        {
           "name": "setTimeout",
-          "line": 1643
+          "line": 1636
         }
       ]
     },
@@ -6377,18 +6225,6 @@
           "tag": "button",
           "type": "button",
           "label": "帮助"
-        },
-        {
-          "id": "i2-connect",
-          "tag": "button",
-          "type": null,
-          "label": "自动连接唯一已授权的探针；首次或多个设备时弹框选择"
-        },
-        {
-          "id": "i2-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "失能 I2C 桥并关闭探针连接，不关闭目标电源"
         },
         {
           "id": "i2-pinmap-btn",
@@ -6463,12 +6299,6 @@
           "tag": "button",
           "type": null,
           "label": "12 个寄存器的现场快照：I2C CTRL/STATUS/ADDR/CMD/SETUP/INTEN、PA28/PA29 的复用与焊盘、配置、状态字"
-        },
-        {
-          "id": "i2-choose",
-          "tag": "button",
-          "type": null,
-          "label": "选择探针…"
         },
         {
           "id": "i2-enable",
@@ -6860,16 +6690,20 @@
           "line": 285
         },
         {
+          "name": "connect",
+          "line": 337
+        },
+        {
           "name": "summary",
-          "line": 983
+          "line": 959
         },
         {
           "name": "if",
-          "line": 1006
+          "line": 982
         },
         {
           "name": "if",
-          "line": 1008
+          "line": 984
         }
       ]
     },
@@ -6895,18 +6729,6 @@
         "discard"
       ],
       "controls": [
-        {
-          "id": "an-connect",
-          "tag": "button",
-          "type": null,
-          "label": "连接探针"
-        },
-        {
-          "id": "an-disconnect",
-          "tag": "button",
-          "type": null,
-          "label": "关闭探针"
-        },
         {
           "id": "an-tab-adc",
           "tag": "button",
@@ -7352,75 +7174,79 @@
       "methodSourceHints": [
         {
           "name": "initTabs",
-          "line": 57
+          "line": 54
         },
         {
           "name": "selectTab",
-          "line": 71
+          "line": 68
         },
         {
           "name": "status",
-          "line": 86
+          "line": 83
         },
         {
           "name": "updateConnectionControls",
-          "line": 87
+          "line": 84
         },
         {
           "name": "acquire",
-          "line": 92
+          "line": 89
         },
         {
           "name": "renderAdc",
-          "line": 109
+          "line": 106
         },
         {
           "name": "paintAdc",
-          "line": 135
+          "line": 132
         },
         {
           "name": "initAdcCursors",
-          "line": 159
+          "line": 156
         },
         {
           "name": "paintAdcCursors",
-          "line": 224
+          "line": 221
         },
         {
           "name": "preview",
-          "line": 256
+          "line": 253
         },
         {
           "name": "syncLevels",
-          "line": 275
+          "line": 272
         },
         {
           "name": "waveOptions",
-          "line": 282
+          "line": 279
         },
         {
           "name": "updateDacControls",
-          "line": 286
+          "line": 283
         },
         {
           "name": "plot",
-          "line": 297
+          "line": 294
         },
         {
           "name": "canvasMetrics",
-          "line": 306
+          "line": 303
         },
         {
           "name": "download",
-          "line": 313
+          "line": 310
+        },
+        {
+          "name": "connect",
+          "line": 314
         },
         {
           "name": "onShow",
-          "line": 317
+          "line": 329
         },
         {
           "name": "summary",
-          "line": 318
+          "line": 330
         }
       ]
     },
@@ -7472,7 +7298,7 @@
         },
         {
           "name": "summary",
-          "line": 39
+          "line": 41
         }
       ]
     }
@@ -7503,7 +7329,7 @@
     {
       "id": "global-nrst-open-drain",
       "selector": "#global-nrst-open-drain",
-      "label": ""
+      "label": "NRST 开漏"
     },
     {
       "id": "btn-fullscreen",
@@ -7514,6 +7340,36 @@
       "id": "btn-help",
       "selector": "#btn-help",
       "label": "帮助与快捷键"
+    },
+    {
+      "id": "btn-probe-connect",
+      "selector": "#btn-probe-connect",
+      "label": "连接探针"
+    },
+    {
+      "id": "btn-probe-usb",
+      "selector": "#btn-probe-usb",
+      "label": "选择 USB"
+    },
+    {
+      "id": "probe-usb-all",
+      "selector": "#probe-usb-all",
+      "label": "显示其他 USB 设备"
+    },
+    {
+      "id": "btn-probe-hid",
+      "selector": "#btn-probe-hid",
+      "label": "选择 HID"
+    },
+    {
+      "id": "btn-probe-disconnect",
+      "selector": "#btn-probe-disconnect",
+      "label": "断开探针"
+    },
+    {
+      "id": "btn-probe-info",
+      "selector": "#btn-probe-info",
+      "label": "读取探针固件信息"
     }
   ],
   "inventory": "静态源码清单；动态控件、当前选项、可调用方法/targets以 page describe 为准；不代表硬件验收"

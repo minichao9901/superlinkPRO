@@ -201,14 +201,14 @@ console.log('== 3. 连接假探针 → 配置 → 使能 ==');
     const t = window.__tools.i2c;
     t.session.log = () => {};                    // 自测不刷日志 DOM（省时间）
     document.getElementById('i2-mock').checked = true;
-    document.getElementById('i2-connect').click();
+    document.getElementById('btn-probe-connect').click();
     await new Promise(r => setTimeout(r, 800));
     return { connected: t.session.connected, enabled: t.session.enabled,
              scl: t.session.actualSclHz, mock: t.session.usingMock,
              state: document.getElementById('i2-state').textContent,
              info: document.getElementById('i2-info').textContent,
              scanDisabled: document.getElementById('i2-scan').disabled,
-             buttons: document.getElementById('i2-connect').disabled && !document.getElementById('i2-disconnect').disabled };`);
+             buttons: !document.getElementById('btn-probe-disconnect').disabled && !document.getElementById('i2-connect') };`);
   ok(r.connected === true && r.mock === true, '假探针已连接');
   ok(r.buttons, '连接成功后连接按钮变灰，关闭探针可用');
   ok(r.enabled === true, '连上后自动使能了（探针复位后桥是未使能状态）');
@@ -676,10 +676,10 @@ console.log('== 9. 收尾：放掉探针 ==');
   const done = await ev(`
     const t = window.__tools.i2c;
     t.runner.stop();
-    document.getElementById('i2-disconnect').click();
+    document.getElementById('btn-probe-disconnect').click();
     await new Promise(r => setTimeout(r, 250));
     return { s: t.summary(), state: document.getElementById('i2-state').textContent,
-      buttons: !document.getElementById('i2-connect').disabled && document.getElementById('i2-disconnect').disabled && !document.getElementById('i2-reconnect') };`);
+      buttons: !document.getElementById('btn-probe-connect').disabled && document.getElementById('btn-probe-disconnect').disabled };`);
   ok(done.s.connected === false, 'disconnect 后已放掉 HID');
   ok(done.buttons, '关闭探针后恢复连接按钮；已移除旧重连入口');
   ok(done.s.running === false, '定时已停');

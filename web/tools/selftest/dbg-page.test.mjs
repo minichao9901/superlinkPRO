@@ -113,7 +113,7 @@ console.log('== 1. 标签页与初始状态 ==');
              regs: document.querySelectorAll('#d-regs .table-body>.hint').length,
              mem: document.getElementById('d-mem').textContent.slice(0, 12),
              flag: document.getElementById('d-state').textContent,
-             connectBtn: !!document.getElementById('d-connect') };`);
+             connectBtn: !!document.getElementById('btn-probe-connect') };`);
   ok(dom.active && dom.connectBtn, '切到调试器页，控件齐');
   ok(dom.regs === 1 && /未连接|没有数据/.test(dom.mem), '未连接时寄存器/内存区显示占位提示', JSON.stringify(dom));
   ok(dom.flag === '未连接', '状态灯显示未连接');

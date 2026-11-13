@@ -184,9 +184,6 @@ export class RttView {
     });
 
     // ---------- 连接按钮 ----------
-    $('r-usb-connect').addEventListener('click', () => this.connectProbe());
-    $('r-usb-pick').addEventListener('click', () => { this._forcePick = true; this.connectProbe(); });
-    $('r-usb-disconnect').addEventListener('click', () => this.disconnect());
     $('r-find').addEventListener('click', () => this._startRtt().catch(e => this._err(e)));
     $('r-restart').addEventListener('click', () => this._startRtt().catch(e => this._err(e)));
     $('r-reset').addEventListener('click', () => this.resetTarget());
@@ -308,8 +305,7 @@ export class RttView {
         const imported = this.importedTarget?.id === target ? this.importedTarget.cfg : null;
         const cfg = imported || makeOpenOcdProfile({ arch:riscv ? 'riscv' : 'arm', port:hpmBoard(target), family:target,
           clockKhz:webClockKhz($('r-usb-clock').value, target, riscv ? 8000 : 1000) });
-        const device = await selectOpenOcdDevice({ all:$('r-usb-all').checked, forcePick:this._forcePick });
-        this._forcePick = false;
+        const device = await selectOpenOcdDevice({ authorizedOnly:true });
         if (g !== this._sessionGen) return;
         if (riscv) await prepareOpenOcdJtag(device);
         if (g !== this._sessionGen) return;
@@ -404,7 +400,6 @@ export class RttView {
   }
 
   _uiConnected(on){
-    $('r-usb-connect').disabled = on; $('r-usb-pick').disabled = on; $('r-usb-disconnect').disabled = !on;
     if (!on){ $('r-cb').textContent = '—'; $('r-up').textContent = '0'; $('r-down').textContent = '0'; }
   }
 
@@ -577,7 +572,7 @@ export class RttView {
 
   async _recoverRtt(rtt, probe, active){
     if (typeof probe.recoverDebugPort !== 'function'){
-      setStatus($('r-err'), '当前连接无法自动恢复调试口，请重新连接探针', 'warn');
+      setStatus($('r-err'), '调试口未能自动恢复，请从顶栏重新连接探针', 'warn');
       return false;
     }
     setStatus($('r-err'), '正在重新连接 OpenOCD 调试口…', 'warn');

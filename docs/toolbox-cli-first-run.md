@@ -30,7 +30,7 @@
 
 ## 2. 接入探针并预览固件
 
-用 USB 数据线连接 SuperLinkPRO。按目标板针脚图连接 SWD 或 JTAG 和共地，核对供电和 I/O 电平。确认其他工作台已释放探针。首次连接，在可执行手册点击「授权 CMSIS-DAP」，在浏览器设备窗口选中你的探针。
+用 USB 数据线连接 SuperLinkPRO。按目标板针脚图连接 SWD 或 JTAG 和共地，核对供电和 I/O 电平。确认其他工作台已释放探针。在顶栏点「连接探针」，按浏览器提示选择 USB 设备。使用 akaLinkPro 调试 JTAG 时，也请为同一只探针授权 HID。
 
 1. 查看烧录器的目标选项。选项里的 `value` 是下一步要输入的芯片 ID。
 
@@ -94,7 +94,7 @@
 
 ## 4. 烧录 SuperLinkPRO 探针固件
 
-停止采集并释放工作台的探针连接。命令通过 HID 确认 HPM5301 探针型号并自动切换 DFU，也支持从已进入 DFU 的探针继续。准备打包后的探针 APP BIN 和 PATH 中的 [dfu-util](https://dfu-util.sourceforge.net/dfu-util.1.html)。在 Windows 上把工具目录加入 PATH 后，重新启动工作台。
+停止采集，在顶栏「连接选项」中断开探针，并关闭该探针的 CDC 串口。命令通过 HID 确认 HPM5301 探针型号并自动切换 DFU，也支持从已进入 DFU 的探针继续。准备打包后的探针 APP BIN 和 PATH 中的 [dfu-util](https://dfu-util.sourceforge.net/dfu-util.1.html)。在 Windows 上把工具目录加入 PATH 后，重新启动工作台。
 
 1. 备份探针应用区，写入 APP，逐字节读回校验并确认同一探针重新枚举。点击前在本步填写 APP BIN 的绝对路径。终端使用时，将 `$ProbeFirmware` 换成带引号的实际文件路径。成功结果包含 `verified: true` 和 `runtimeDetected: true`。若本次通过 HID 切换，`enteredDfuByHid` 为 `true`。
 

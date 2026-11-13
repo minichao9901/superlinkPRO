@@ -3,6 +3,18 @@ import assert from 'node:assert/strict';
 import { OpenOcdProbe } from '../../app/core/openocd-probe.js';
 import { programOpenOcdFlash, resetAfterFlash } from '../../app/flash/openocd-program.js';
 
+test('H7 raw CFG prepares the same DAP AP2 before init and requires a successful examine', async () => {
+  const probe = new OpenOcdProbe(null, { arch:'arm', raw:{}, target:'custom.cpu0', stm32h7Flash:true });
+  const calls = [];
+  const link = { async command(line){ calls.push(line); return line === 'set workbench_h7_clocks_ready' ? '1' : '0'; } };
+  await assert.rejects(probe._initTarget(link), /Flash 尚未擦写/);
+  assert.match(calls[0], /workbench_h7_dap \[custom\.cpu0 cget -dap\]/);
+  assert.match(calls[0], /cget -ap-num\] == 2/);
+  assert.match(calls[0], /configure -event examine-start \[list .*\[custom\.cpu0 cget -event examine-start\]\]/);
+  assert.match(calls[0], /DBGMCU debug clocks not confirmed/);
+  assert.deepEqual(calls.slice(1), ['init', 'set workbench_h7_clocks_ready', 'custom.cpu0 was_examined']);
+});
+
 test('H7 reset checks physical DHCSR after transient failures without resetting again', async t => {
   const probe = new OpenOcdProbe(null, {arch:'arm',clockKhz:10000});
   const command = t.mock.method(probe,'command',async () => '');

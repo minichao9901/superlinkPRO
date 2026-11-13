@@ -60,7 +60,7 @@ try {
   console.log('== 连接 akaLinkPro HID / SPI WebUSB ==');
   const hid0 = await cdp.json('({connected:window.__tools.spiSession.connected,label:window.__tools.spiSession.hid?.label||""})');
   if (!hid0.connected){
-    await cdp.eval('document.getElementById("sp-connect").click(); return true;', true);
+    await cdp.eval('document.getElementById("btn-probe-hid").click(); return true;', true);
     await cdp.settle(DEV_RE, 'window.__tools.spiSession.connected', 30000);
   }
   const hid = await cdp.json('({connected:window.__tools.spiSession.connected,label:window.__tools.spiSession.hid?.label||""})');
@@ -69,7 +69,7 @@ try {
 
   const usb0 = await cdp.eval('return !!window.__tools.spiSession.dataReady;');
   if (!usb0){
-    await cdp.eval('document.getElementById("sp-usb").click(); return true;', true);
+    await cdp.eval('document.getElementById("btn-probe-usb").click(); return true;', true);
     await cdp.settle(/akaLinkPro|CMSIS|WinUSB|Composite/i, 'window.__tools.spiSession.dataReady', 30000);
   }
   const usb = await cdp.json('({ready:window.__tools.spiSession.dataReady,iface:window.__tools.spiSession.transport?.iface||null,label:window.__tools.spiSession.transport?.label||""})');

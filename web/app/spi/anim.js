@@ -262,7 +262,7 @@ export class PanelAnim {
       this.log('w', '页面在后台（窗口被最小化/遮住）：Chrome 不渲染隐藏页面里的 <video>，逐帧回调不会触发 —— ' +
         '把窗口放到前台再播（GIF / APNG 那条 ImageDecoder 路不受影响）', 'panel');
     }
-    if (!s.dataReady) throw new Error('先「连接数据端点」（或勾「用假探针」）');
+    if (!s.dataReady) throw new Error('请从顶栏连接探针，或勾选「模拟探针」');
     if (!s.enabled) this.log('w', '桥还没使能 —— 未使能时 bulk OUT 端点不武装，写会一直 NAK/超时');
     if (s.busy) throw new Error('桥上正忙（另一次刷屏/重放没结束）');
     if (this._running) return;

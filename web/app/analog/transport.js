@@ -138,11 +138,12 @@ class AdcWorkerTransport {
 }
 export class AdcTransport {
   constructor(device){this.lease=new UsbLease(device,'analog');this.device=this.lease.device;this.done=false;}
-  static async request(hidDevice){
+  static async request(hidDevice, { authorizedOnly = false, device:selected = null } = {}){
     if(!globalThis.navigator?.usb)throw Error('ADC 需要桌面 Chrome/Edge WebUSB');
     const same=d=>d.vendorId===hidDevice.vendorId&&d.productId===hidDevice.productId&&
       (!hidDevice.serialNumber||d.serialNumber===hidDevice.serialNumber);
-    const devices=(await navigator.usb.getDevices()).filter(same);
+    const devices=(selected?[selected]:await navigator.usb.getDevices()).filter(same);
+    if (authorizedOnly && devices.length !== 1) throw Error('请从顶栏为同一只探针选择 USB');
     const device=devices.length===1?devices[0]:await navigator.usb.requestDevice({filters:[{
       vendorId:hidDevice.vendorId,productId:hidDevice.productId,
       ...(hidDevice.serialNumber?{serialNumber:hidDevice.serialNumber}:{})}]});

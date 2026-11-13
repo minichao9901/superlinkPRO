@@ -11,6 +11,21 @@ v.dev.stop=async()=>{throw new Error('link failed');};await assert.rejects(v.sto
 console.log('rtt-cdc-lifecycle: stop cancels pending start, waits for firmware STOP completion, propagates failure PASS');
 
 {
+  const view = Object.create(RttCdcView.prototype);
+  const rendered = [];
+  Object.assign(view, {
+    _startBridgeNow:async () => { throw Error('start failed'); },
+    _stopBridgeNow:async () => {},
+    render({ error } = {}){ rendered.push([!!this._starting, !!this._stopPromise, error]); },
+  });
+  assert.equal(await view.start(), false);
+  assert.deepEqual(rendered.at(-1), [false, false, 'start failed']);
+  view._statusError = null;
+  await view.stop();
+  assert.deepEqual(rendered.at(-1), [false, false, null]);
+}
+
+{
   const events = [];
   let connected = true;
   const v = Object.create(RttCdcView.prototype);

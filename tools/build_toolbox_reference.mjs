@@ -4,20 +4,25 @@ import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {resolve,dirname} from 'node:path';
+import {GLOBAL_CONTROLS} from '../web/app/automation/workbench.js';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const require=createRequire(resolve(root,'web/package.json'));
 const {parseHTML}=require('linkedom');
 const catalog=JSON.parse(execFileSync(process.env.PYTHON||'python',['-X','utf8',resolve(root,'toolbox.py'),'catalog'],{encoding:'utf8'})).value;
 const html=await readFile(resolve(root,'web/index.html'),'utf8');
 const {document}=parseHTML(html);
-catalog.globalControls=['btn-global-reset','global-nrst-open-drain','btn-fullscreen','btn-help'].map(id=>({id,selector:'#'+id,label:document.getElementById(id)?.textContent||document.getElementById(id)?.title||''}));
+catalog.globalControls=GLOBAL_CONTROLS.map(id=>{
+  const element=document.getElementById(id);
+  return {id,selector:'#'+id,label:(element?.textContent||element?.title||element?.closest('label')?.textContent||'').trim()};
+});
 const tabs=Array.from(document.querySelectorAll('#tabs [data-tab]'),e=>e.dataset.tab);
 if([...new Set(tabs)].sort().join()!==catalog.pages.map(p=>p.id).sort().join())throw Error('网页分类和CLI分类不一致');
 for(const p of catalog.pages){
   const source=p.id==='etm'?'etm/web/index.html':null;
   const d=source?parseHTML(await readFile(resolve(root,source),'utf8')).document:document;
   const page=source?d.getElementById('etm-app'):d.getElementById('tab-'+p.id);
-  const controls=Array.from(page.querySelectorAll('input,select,textarea,button,a[download],[role="button"],[data-v]'));
+  const controls=Array.from(page.querySelectorAll('input,select,textarea,button,a[download],[role="button"],[data-v]'))
+    .filter(e=>!source||!e.closest('#etm-probe-buttons'));
   p.controls=controls.map(e=>({id:e.id||null,tag:e.tagName.toLowerCase(),type:e.getAttribute('type'),
     label:(e.getAttribute('aria-label')||e.getAttribute('title')||e.textContent||e.getAttribute('placeholder')||'').trim().replace(/\s+/g,' ').slice(0,160),
     ...(e.tagName==='SELECT'?{options:Array.from(e.querySelectorAll('option'),o=>({value:o.getAttribute('value')??o.textContent,label:o.textContent}))}:{})}));

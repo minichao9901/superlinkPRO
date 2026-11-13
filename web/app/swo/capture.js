@@ -64,7 +64,7 @@ export class SwoCapture {
     throw Error('RCC 时钟配置读回不稳定，请停止其他调试连接后重试');
   }
   async openProbe(){
-    this.probe=await OpenOcdProbe.open(await selectOpenOcdDevice());
+    this.probe=await OpenOcdProbe.open(await selectOpenOcdDevice({authorizedOnly:true}));
   }
   async targetInfo(options={}){
     return inspectTarget(a=>this.read(a),a=>this.readClockConfig(a),options);

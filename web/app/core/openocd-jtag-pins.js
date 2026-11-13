@@ -27,10 +27,3 @@ export async function prepareOpenOcdJtag(device){
   }
   return false;
 }
-
-export async function requestOpenOcdJtagHid(){
-  if (!AkaLinkHid.supported()) throw Error('请在桌面 Chrome 或 Edge 授权探针 HID');
-  const devices = await navigator.hid.requestDevice({filters:[{vendorId:0x0d28,productId:0x0204,usagePage:0xff00}]});
-  if (!devices.length) throw Error('未选择 akaLinkPro HID 接口');
-  return true;
-}

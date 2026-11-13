@@ -5,7 +5,6 @@ import {Elf} from '../elf/elf.js';
 import {SymTab} from '../dbg/symbols.js';
 import {selectRange} from './analyze.js';
 import {packRecording,unpackRecording,sha256,MAX_RAW,MAX_META} from './recording.js';
-import {AkaLinkHid} from '../hid/probe.js';
 import {matchedOptions} from './matching.js';
 import {recomputeTarget} from './target.js';
 import {COMMON_TARGETS,targetPort} from './ports.js';
@@ -28,7 +27,6 @@ export class SwoView {
     this.zoomControls=createZoomControls({onZoomOut:()=>this.zoomChart(false),onZoomIn:()=>this.zoomChart(true),onFit:()=>this.fitChart()});
     $('sw-chart-zoom').replaceChildren(this.zoomControls.element);this.zoomControls.setDisabled({zoomOut:true,zoomIn:true,fit:true});
     bind('sw-pick',async()=>{const port=await SerialSession.requestPort();await this.refreshPorts();$('sw-port').value=String(this.ports.indexOf(port));});
-    bind('sw-clock-grant',async()=>{const h=new AkaLinkHid();await h.request();await h.close();$('sw-clock-grant').textContent='时钟已授权';$('sw-match').textContent='探针时钟配置已授权；记录开始前将读回实际配置。';});
     bind('sw-chart-toggle',()=>{const box=$('sw-chart-box');box.hidden=!box.hidden;$('sw-chart-toggle').textContent=box.hidden?'展开轨迹图':'收起轨迹图';$('sw-chart-toggle').setAttribute('aria-expanded',String(!box.hidden));if(!box.hidden)this.draw();});
     const popovers=[$('sw-boundary-help'),$('sw-transition-help')];
     for(const details of popovers)details.addEventListener('toggle',()=>{if(details.open)for(const other of popovers)if(other!==details)other.open=false;});
@@ -227,7 +225,7 @@ export class SwoView {
   }
   renderCapture(){const c=this.capture,active=c.active||!!this.exporting;
     $('sw-start').disabled=active||!!this.analyzing||!this.elf||!this.entryBreakpoint;$('sw-stop').disabled=!c.active;$('sw-reset-entry').disabled=active||!this.target||!this.elf||!this.entryBreakpoint;
-    for(const id of ['sw-port','sw-pick','sw-core','sw-trace','sw-baud','sw-period','sw-seconds','sw-itm','sw-exceptions','sw-elf-pick','sw-entry-elf-pick','sw-entry-spec','sw-entry-set','sw-entry-clear','sw-demo','sw-import','sw-aligned','sw-detect','sw-auto-clock','sw-hse','sw-baud-round','sw-source-pick','sw-auto-baud','sw-model','sw-exception-rate','sw-itm-rate','sw-extra','sw-margin','sw-timestamps','sw-clock-grant'])$(id).disabled=active;
+    for(const id of ['sw-port','sw-pick','sw-core','sw-trace','sw-baud','sw-period','sw-seconds','sw-itm','sw-exceptions','sw-elf-pick','sw-entry-elf-pick','sw-entry-spec','sw-entry-set','sw-entry-clear','sw-demo','sw-import','sw-aligned','sw-detect','sw-auto-clock','sw-hse','sw-baud-round','sw-source-pick','sw-auto-baud','sw-model','sw-exception-rate','sw-itm-rate','sw-extra','sw-margin','sw-timestamps'])$(id).disabled=active;
     $('sw-symbol-search').disabled=active||!this.symTab;$('sw-entry-spec').disabled=active||!this.symTab;$('sw-entry-set').disabled=active||!this.symTab;$('sw-entry-clear').disabled=active||!this.entryBreakpoints.length;
     for(const control of document.querySelectorAll('#sw-entry-functions button,#sw-breakpoint-list input,#sw-breakpoint-list button'))control.disabled=active;
     $('sw-status').textContent=c.running?`记录中 · ${(c.bytes/1024).toFixed(1)} KiB${this.result?" · 图表为上次分析结果":""}`:(c.busy?(c.startPhase||'正在连接并配置 SWO…'):c.probe?'正在恢复 trace 配置…':c.bytes?`记录结束 · ${(c.bytes/1024).toFixed(1)} KiB · ${c.metadata.restored?'配置已恢复':'恢复未确认'}`:'尚未记录');

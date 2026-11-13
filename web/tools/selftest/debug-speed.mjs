@@ -26,7 +26,7 @@ await send('Page.enable'); await send('Runtime.enable');
 await send('Page.navigate', { url: APP });
 await sleep(900);
 await evalJs(`document.getElementById('r-range').value='0x20000000-0x20005000'`);
-await evalJs(`document.getElementById('r-usb-connect').click()`, true);
+await evalJs(`document.getElementById('btn-probe-connect').click()`, true);
 await sleep(2500);
 console.log('探针就绪:', await evalJs('!!window.__tools.rtt.probe'));
 

@@ -382,7 +382,7 @@ console.log('== 8. 失联记账：连续超时要置 lost 并停轮询 ==');
     try { await s.readStatus({ quiet: true }); } catch { /* 预期 */ }
   }
   eq(s.lost, true, '连续 3 次超时 → lost');
-  ok(s.ring.some(e => e.text.includes('拔插')), '日志里明确提示拔插 USB');
+  ok(s.ring.some(e => e.text.includes('从顶栏重新连接')), '日志指向顶栏重新连接');
   let msg = '';
   try { await s.transaction({ dev: 0x50, addr: [0], wr: [], rd: 1 }, { quiet: true }); }
   catch (e){ msg = e.message; }

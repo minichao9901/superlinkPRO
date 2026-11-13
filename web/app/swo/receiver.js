@@ -1,4 +1,4 @@
-import {AkaLinkHid,ascii} from '../hid/probe.js';
+import {AkaLinkHid,ascii,authorizedHidDevices,selectedHidDevice} from '../hid/probe.js';
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 export function receiverWords(bytes,action){
   if(bytes.length<59||bytes[0]!==58||bytes[1]!==0x19||bytes[2]!==action)throw Error('探针未支持 SWO 时钟会话，请更新配套固件');
@@ -10,7 +10,18 @@ export function receiverStatus(w){return {version:w[0],rc:w[1]|0,token:w[2],mode
 function check(s){if(s.rc<0)throw Error(`探针 SWO 配置失败 (${s.rc})`+(s.rc===-4?`：共享时钟节点 ${s.blocker} 无法保持原频率`:'：未启用目标 trace'));return s;}
 export class SwoReceiver {
   constructor(hid=new AkaLinkHid()){this.hid=hid;this.token=0;}
-  async open(serial){const dev=AkaLinkHid.pick(await navigator.hid.getDevices());if(!dev)throw Error('请先点“授权探针时钟配置”');await this.hid.open(dev);if(serial&&ascii((await this.hid.xfer(0x11)).subarray(2))!==serial){await this.hid.close();throw Error('SWD 与时钟配置必须选择同一探针');}}
+  async open(serial){
+    const selected=selectedHidDevice();
+    const devices=selected?[selected]:await authorizedHidDevices();
+    for(const device of devices){
+      await this.hid.open(device);
+      try {
+        if(!serial||ascii((await this.hid.xfer(0x11)).subarray(2))===serial)return;
+      }catch(error){await this.hid.close();throw error;}
+      await this.hid.close();
+    }
+    throw Error(devices.length?'SWD 与时钟配置必须选择同一探针':'请先授权探针 HID');
+  }
   async command(action,arg=0,mode=0){const data=new Uint8Array(9),v=new DataView(data.buffer);data[0]=action;v.setUint32(1,arg,true);v.setUint32(5,mode,true);return receiverWords(await this.hid.xfer(0x19,data),action);}
   async status(){return check(receiverStatus(await this.command(0)));}
   async diagnostics(){const w=await this.command(6);return Object.fromEntries(['overrun','framing','parity','lineBreak','droppedBytes'].map((key,i)=>[key,w[i+2]]));}

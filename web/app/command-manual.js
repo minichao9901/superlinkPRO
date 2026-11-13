@@ -1,5 +1,3 @@
-import { selectOpenOcdDevice } from './core/openocd-probe.js';
-
 const endpoint = '/command-manual';
 const root = document.getElementById('manual-document');
 const references = {
@@ -165,27 +163,6 @@ export async function showManual(sessionToken){
     for (const row of rows){
       if (row.line) appendCommand(row);
       else appendProse(row.text);
-      if (row.id === 'options'){
-        const authorize = element('button', '授权 CMSIS-DAP');
-        authorize.type = 'button';
-        const status = element('span');
-        status.setAttribute('role', 'status');
-        authorize.addEventListener('click', async () => {
-          if (running) return;
-          authorize.disabled = true;
-          try {
-            const device = await selectOpenOcdDevice();
-            status.textContent = '已授权 ' + (device.productName || 'CMSIS-DAP');
-          } catch (error){
-            status.textContent = error.message;
-          } finally {
-            authorize.disabled = false;
-          }
-        });
-        const usb = element('div', '', 'manual-usb');
-        usb.append(authorize, status);
-        root.append(usb);
-      }
     }
     loaded = true;
   } catch (error){

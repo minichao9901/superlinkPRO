@@ -31,17 +31,18 @@ try {
       else b.set([68,65,67,49,1,0,0,0]);
       return Uint8Array.of(8+b.length,cmd,action,0,0,0,0,...b);
     };
-    window.__anButtons=()=>{const a=document.getElementById('an-connect'),d=document.getElementById('an-disconnect');return {connect:a.disabled,close:d.disabled,color:getComputedStyle(a).backgroundColor,connected:__tools.analog.session.connected};};
+    window.__anButtons=()=>{const a=document.getElementById('an-once'),b=document.getElementById('an-start');return {once:a.disabled,start:b.disabled,connected:__tools.analog.session.connected};};
   `);
   const idle = await c.eval('return __anButtons();');
-  check(!idle.connect && idle.close, '初始只有连接可用');
-  await c.eval(`document.getElementById('an-connect').click();`);
+  check(idle.once && idle.start, '连接前禁止采集');
+  const connecting=c.eval(`return await __tools.analog.connect();`);
   await waitFor("typeof __anFixture.release === 'function'");
-  check(await c.eval(`const b=__anButtons();return b.connect&&b.close;`), '授权处理中禁止重复连接和关闭');
+  check(await c.eval(`const b=__anButtons();return b.once&&b.start;`), '连接处理中禁止采集');
   await c.eval(`__anFixture.hold=false;__anFixture.release();`);
   await waitFor('!__tools.analog.session._connectPromise');
+  await connecting;
   const connected = await c.eval('return __anButtons();');
-  check(connected.connected && connected.connect && !connected.close && connected.color !== idle.color, 'ADC 连接成功后连接变灰、关闭可用');
+  check(connected.connected && !connected.once && !connected.start, 'ADC 连接成功后允许采集');
   if (process.env.SHOTS){
     await c.send('Emulation.setDeviceMetricsOverride', { width:1600, height:950, deviceScaleFactor:1, mobile:false });
     mkdirSync('docs/shots', { recursive:true });
@@ -49,16 +50,14 @@ try {
     await c.send('Emulation.clearDeviceMetricsOverride');
   }
   await c.eval(`await __tools.analog.session.disconnect();`);
-  check(await c.eval(`const b=__anButtons();return !b.connected&&!b.connect&&b.close;`), '会话从外部关闭后，按钮仍同步');
-  await c.eval(`__anFixture.fail=true;document.getElementById('an-connect').click();`);
-  await waitFor("document.getElementById('an-state').textContent.includes('模拟连接失败')");
-  check(await c.eval(`const b=__anButtons();return !b.connected&&!b.connect&&b.close&&document.getElementById('an-state').textContent.includes('模拟连接失败');`), '连接失败恢复连接按钮并显示错误');
-  await c.eval(`__anFixture.fail=false;document.getElementById('an-connect').click();`);
+  check(await c.eval(`const b=__anButtons();return !b.connected&&b.once&&b.start;`), '会话从外部关闭后，采集按钮仍同步');
+  check(await c.eval(`__anFixture.fail=true;try{await __tools.analog.connect();}catch(e){return e.message==='模拟连接失败'&&__anButtons().start;}return false;`), '连接失败保留错误并禁止采集');
+  await c.eval(`__anFixture.fail=false;await __tools.analog.connect();`);
   await waitFor('__tools.analog.session.connected');
   await c.eval(`const h=__tools.analog.session.hid;h.device.opened=false;h.onDisconnect();`);
-  check(await c.eval(`const b=__anButtons();return !b.connected&&!b.connect&&!b.close;`), '掉线后可以重新连接，也可关闭遗留会话');
-  await c.eval(`document.getElementById('an-disconnect').click();`);
+  check(await c.eval(`const b=__anButtons();return !b.connected&&b.once&&b.start;`), '掉线后禁止采集');
+  await c.eval(`await __tools.analog.session.disconnect();`);
   await waitFor('!__tools.analog.session.hid');
-  check(await c.eval(`const b=__anButtons();return !b.connected&&!b.connect&&b.close&&__tools.errors.length===0;`), '关闭后恢复初始状态，无页面异常');
+  check(await c.eval(`const b=__anButtons();return !b.connected&&b.once&&b.start&&__tools.errors.length===0;`), '关闭后恢复初始状态，无页面异常');
   console.log('PASS: ' + checks + ' 项 ADC/DAC 连接按钮检查');
 } finally { c.close(); }

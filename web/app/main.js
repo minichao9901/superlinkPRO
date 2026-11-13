@@ -10,6 +10,8 @@ import { initSidebarTabs } from './ui/sidebar-tabs.js';
 import { initDockNavigation } from './ui/dock-navigation.js';
 import { initFullscreen } from './ui/fullscreen.js';
 import { initProbeStatus } from './ui/probe-status.js';
+import { initProbeConnection } from './ui/probe-connection.js';
+import { initProbeFirmwareInfo } from './ui/probe-firmware-info.js';
 import { initEventLogs } from './ui/event-logs.js';
 import { SerialSession } from './serial/session.js';
 import { Assistant } from './serial/assistant.js';
@@ -134,7 +136,10 @@ if (manualAvailable){
 const pages = { manual:{ onShow:async () => (await import('./command-manual.js')).showManual(workbenchToken) },
   serial:assistant, terminal, rtt, rttcdc:stream, scope, flash, spi, panel,
   dbg, i2c, analog, swo, etm, spicdc:spiCdc, download };
+const renderProbeConnection = initProbeConnection(tools);
+initProbeFirmwareInfo();
 initTabs(name => {
+  renderProbeConnection();
   workspace.sync();
   requestAnimationFrame(() => {
     if (!document.getElementById('tab-'+name)?.classList.contains('active')) return;

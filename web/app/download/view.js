@@ -27,11 +27,13 @@ export class DownloadView {
       if(!info.version||!/^superlinkPRO-win64\.zip$/.test(info.file)||!Number.isSafeInteger(info.bytes)||info.bytes<=0||!/^[0-9a-f]{64}$/.test(info.sha256))throw Error('完整包尚未生成，请先在本机构建工作台');
       link.href=downloadHref(info,location.href);link.removeAttribute('aria-disabled');link.removeAttribute('tabindex');
       $('download-version').textContent='v'+info.version;
+      $('download-built-at').textContent=info.builtAt ? `Windows 构建时间　${info.builtAt.replace('T',' ').replace('Z',' UTC')}` : '';
       $('download-integrity').textContent=`${(info.bytes/1048576).toFixed(1)} MiB · SHA-256 ${info.sha256}`;
       this.info=info;this.error=null;return info;
     }catch(error){
       this.info=null;this.error=error.message;
       link.removeAttribute('href');link.setAttribute('aria-disabled','true');link.setAttribute('tabindex','-1');
+      $('download-built-at').textContent='';
       $('download-version').textContent='本地构建';$('download-integrity').textContent=this.error;
       return null;
     }

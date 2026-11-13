@@ -19,6 +19,7 @@ export class EtmTarget {
     if(!Probe.supported())throw Error('请用支持 WebUSB 的桌面 Chrome / Edge 打开页面');
     const devices=(await Probe.authorized()).filter(d=>d.vendorId===0x0d28);
     let device=devices.length===1?devices[0]:null;
+    if(!device&&this.embedded)throw Error('请在工作台顶栏「连接选项」中选择 USB 探针');
     if(!device){let timer;try{device=await Promise.race([navigator.usb.requestDevice({filters:[{vendorId:0x0d28}]}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('浏览器仍在等待 USB 设备选择；请选中探针后重新连接')),30000);})]);}finally{clearTimeout(timer);}}
     this.probe=await Probe.open(device,{onLog:this.log});
     this.debugFault=false;this.probe.onLog=this.log;

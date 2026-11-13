@@ -181,7 +181,7 @@ export class I2cView {
     this._renderTable();
     this._renderScan();
     this._renderLive();
-    this._setState('未连接 —— 点「连接探针（授权）」授权 HID');
+    this._setState('未连接 —— 请从顶栏连接探针');
     // 🚨 初始也要过一遍按钮置灰：`_syncButtons` 挂在 'state' 事件上，而 `init()` 里这句
     //    是直接 `_setState` 的（不走事件）—— 不补这一下，页面刚打开时"扫描/发送"全是可点的，
     //    点了才发现没连探针（实测自测里就红在这条）。
@@ -307,16 +307,12 @@ export class I2cView {
 
   _setState(text, kind){
     const state = $('i2-state');
-    setStatus(state, text.startsWith('未连接 ——') && !kind ? '未连接' : text, kind === 'err' ? 'err' : kind === 'warn' ? 'warn' : this.session.connected ? 'ok' : '');
+    setStatus(state, text, kind === 'err' ? 'err' : kind === 'warn' ? 'warn' : this.session.connected ? 'ok' : '');
     if (state) state.title = text;
     this.pinMap?.refresh();
   }
   _syncButtons(st){
     const on = st.connected;
-    const pending = this._connecting || this._disconnecting || st.busy;
-    $('i2-connect').disabled = (on && !st.lost) || pending;
-    $('i2-choose').disabled = on || pending;
-    $('i2-disconnect').disabled = !this.session.hid || pending;
     // ⚠️ 「只看解析」不在列表里：解析是纯本地的，没接探针也该能用（写了半段先核语法很常见）
     for (const id of ['i2-cfg-get', 'i2-cfg-set', 'i2-enable', 'i2-disable', 'i2-reset', 'i2-scan',
       'i2-pintest', 'i2-dbg', 'i2-cmd-send', 'i2-cmd-run', 'i2-dsl-send', 'i2-dsl-run']){
@@ -333,36 +329,16 @@ export class I2cView {
   // ==================================================================== 连接
 
   _bindConn(){
-    $('i2-connect').addEventListener('click', async () => {
-      return this._connect(null, $('i2-mock').checked);
-    });
-    $('i2-disconnect').addEventListener('click', async () => {
-      if (this.session.busy) return;
-      this._disconnecting = true; this._syncButtons(this.session.stateInfo());
-      try { await this.session.disconnect(); }
-      catch (e){ this.session.log('e', '关闭探针失败：' + e.message); this.session._setState('关闭探针失败：' + e.message, 'err'); }
-      finally { this._disconnecting = false; this._syncButtons(this.session.stateInfo()); }
-    });
-    $('i2-choose').addEventListener('click', () => {
-      $('i2-mock').checked = false;
-      return this._connect(true, false);
-    });
-    $('i2-mock').addEventListener('change', async e => {
-      this.session.log('dim', e.target.checked ? '已切到假探针模式 —— 点「连接探针」生效' : '已取消假探针模式 —— 点「连接探针」连真探针');
+    $('i2-mock').addEventListener('change', e => {
+      this.session.log('dim', e.target.checked ? '已选择模拟模式，请从顶栏连接' : '已选择实体探针，请从顶栏连接');
     });
   }
 
-  async _connect(interactive, mock){
-    this._connecting = true; this._syncButtons(this.session.stateInfo());
+  async connect({ mock = false } = {}){
     try {
-      if (interactive == null && !mock && this.session.lost){
-        const connected = await this.session.reacquire();
-        if (connected) this.session._setState(this.session.enabled ? '已连接（桥已使能）' : '已连接（桥未使能）');
-        return connected;
-      }
-      return await this.session.connect(interactive, { mock, enable: true });
+      return await this.session.connect(false, { mock, enable: true });
     } catch (e){ this.session.log('e', '连接失败：' + e.message); this.session._setState('连接失败：' + e.message, 'err'); return false; }
-    finally { this._connecting = false; this._syncButtons(this.session.stateInfo()); }
+    finally { this._syncButtons(this.session.stateInfo()); }
   }
 
   // ==================================================================== 配置

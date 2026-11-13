@@ -24,6 +24,7 @@
 import { EP_NUM, PKT, BATCH_MAX, batchPacks } from './protocol.js';
 import { yieldTask, sleep } from '../core/pace.js';
 import { UsbLease } from '../core/usb-device.js';
+import { selectedOpenOcdDevice } from '../core/openocd-probe.js';
 
 const VID = 0x0d28;
 
@@ -55,6 +56,8 @@ export class WebUsbSpiTransport {
   /** 已授权过的探针（浏览器记得就不用再弹框）*/
   static async authorized(){
     if (!WebUsbSpiTransport.supported()) return [];
+    const selected = selectedOpenOcdDevice();
+    if (selected) return selected.vendorId === VID ? [selected] : [];
     try { return (await navigator.usb.getDevices()).filter(d => d.vendorId === VID); } catch { return []; }
   }
 

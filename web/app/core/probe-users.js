@@ -59,7 +59,7 @@ export const PROBE_FEATURES = Object.freeze([
     resources: ['spi-bulk', 'spi-pins', 'i2c-pins', 'periodic-engine', 'probe-clock'],
     active: t => !t.spiSession?.usingMock && !!(t.spiSession?.connected || t.spiSession?.dataReady),
     release: async t => { t.spi?.abortLoop?.(); t.panel?.anim?.stop?.(); await t.spiSession.teardown(); },
-    guarded: t => !t.spiSession?.usingMock && !!t.spiSession?.busy,
+    guarded: t => !t.spiSession?.usingMock && !!t.spiSession?.busy && !t.spiSession.capabilities?.().retryStop,
   },
   {
     id: 'spicdc', label: 'SPI转发', client: t => t.spiCdc?.session,

@@ -59,9 +59,9 @@ await cdp.eval(`(async()=>{ const t = window.__tools;
 await sleep(400);
 
 await cdp.eval(`(async()=>{ const s = window.__tools.spiSession; if (!s.hid) await s.connectHid(false); })()`);
-if (!await cdp.eval(`!!window.__tools.spiSession.hid`)) { await cdp.eval(`document.getElementById('sp-connect').click()`, true); await sleep(2500); }
+if (!await cdp.eval(`!!window.__tools.spiSession.hid`)) { await cdp.eval(`document.getElementById('btn-probe-hid').click()`, true); await sleep(2500); }
 await cdp.eval(`(async()=>{ const s = window.__tools.spiSession; if (!s.transport) await s.connectUsb(false); })()`);
-if (!await cdp.eval(`!!window.__tools.spiSession.transport`)) { await cdp.eval(`document.getElementById('sp-usb').click()`, true); await sleep(2500); }
+if (!await cdp.eval(`!!window.__tools.spiSession.transport`)) { await cdp.eval(`document.getElementById('btn-probe-usb').click()`, true); await sleep(2500); }
 const conn = await cdp.json(`({ hid: !!window.__tools.spiSession.hid, usb: !!window.__tools.spiSession.transport })`);
 ok(conn.hid && conn.usb, `探针两条链路都连上（hid=${conn.hid} usb=${conn.usb}）`);
 if (!conn.hid || !conn.usb) { console.log('失败项：' + failures.join('；')); process.exit(1); }

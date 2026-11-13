@@ -27,7 +27,7 @@ const POLL_MS = 1000;          // 状态/计数器轮询间隔（观察量，1 s
 const RING_MAX = 400;          // 日志 ring（切页时全量重放用）
 /** 未连接时的提示：**把"去哪儿授权"写清楚** —— 用户第一次打开会找不到入口
  *  （按钮叫"连接"，而浏览器弹的那个框才叫"授权"，词对不上就容易卡住）。 */
-const NOT_CONNECTED_HINT = '未连接 —— 点「连接探针」连接 HID，再点「连接数据端点…」连接 WebUSB';
+const NOT_CONNECTED_HINT = '未连接 —— 请从顶栏连接探针';
 
 export class SpiSession {
   constructor(){
@@ -166,7 +166,7 @@ export class SpiSession {
       const devs = await WebUsbSpiTransport.authorized();
       const useAuthorized = interactive === false || (interactive == null && devs.length > 0);
       if (useAuthorized){
-        if (!devs.length) throw new Error('没有已授权的探针（先点一次「连接数据端点」授权一次）');
+        if (!devs.length) throw new Error('请从顶栏为探针选择 USB');
         t = new WebUsbSpiTransport(devs[0], transportOpts);
         await t.open();
       } else {
@@ -225,7 +225,7 @@ export class SpiSession {
   setMockDevice(kind){
     if (this.busy) throw new Error('请先停止 SPI 任务再切换模拟器件');
     if (!this.usingMock || !this.mockProbe){
-      this.log('w', '「假器件」只在假探针模式下有意义 —— 真机上末级器件就是你接的那颗');
+      this.log('w', '「模拟器件」用于模拟模式');
       return null;
     }
     const k = this.mockProbe.setDeviceKind(kind);
@@ -467,7 +467,7 @@ export class SpiSession {
    */
   _onDataPlaneDead(e){
     const msg = e?.message || String(e);
-    this.log('e', `数据面中断：${msg} —— 点「连接数据端点」重连，或拔插一次探针`);
+    this.log('e', `USB 数据传输中断：${msg}。请从顶栏重新连接探针`);
     this._setState('数据面中断', 'err');
   }
 
@@ -510,7 +510,7 @@ export class SpiSession {
     finally { this._frameCount--; this._emit('busy', this.busy); }
   }
   async _sendFrames(items, opts){
-    if (!this.dataReady) throw new Error('数据端点没连上（先「连接数据端点」或勾「用假探针」）');
+    if (!this.dataReady) throw new Error('USB 数据端点未连接。请从顶栏连接探针，或使用模拟模式');
     const timeoutMs = opts.timeoutMs ?? 1500;
     const tag = opts.tag || 'bus';
     const frames = [], waits = [], seqs = [];

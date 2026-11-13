@@ -39,7 +39,7 @@ console.log('getDevices:', await evalJs('navigator.usb.getDevices().then(d=>JSON
 console.log('后端选择框值:', await evalJs(`document.getElementById('r-backend').value`));
 await evalJs(`document.getElementById('r-range').value='0x20000000-0x20005000'`);
 console.log('--- 点「连接探针」 ---');
-await evalJs(`document.getElementById('r-usb-connect').click()`, true);
+await evalJs(`document.getElementById('btn-probe-connect').click()`, true);
 for (let i = 0; i < 8; i++){
   await sleep(1000);
   process.stdout.write(`t=${i + 1}s `);

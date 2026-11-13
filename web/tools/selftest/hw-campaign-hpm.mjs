@@ -492,7 +492,7 @@ async function rttViewerRiscv(secs, cbAddr){
   };
   let lastErr = '';
   for (let attempt = 1; attempt <= 3; attempt++){
-    await cdp.eval(`document.getElementById('r-usb-connect').click()`, true);
+    await cdp.eval(`document.getElementById('btn-probe-connect').click()`, true);
     try {
       await cdp.waitFor(`window.__tools.rtt.rtt`, attempt === 1 ? 25000 : 15000, 'RTT 控制块定位');
       /**
@@ -592,7 +592,7 @@ async function rttForward(){
       if (b) b.click(); })()`, true).catch(() => {});
   await nap(800);
   if (!await cdp.evalJson(`!!window.__tools.hid.dev?.connected`)){
-    await cdp.eval(`document.getElementById('h-connect').click()`, true);
+    await cdp.eval(`document.getElementById('btn-probe-hid').click()`, true);
     await nap(1500);
   }
   await cdp.waitFor(`window.__tools.hid.dev?.connected`, 15000, 'HID 探针连接');
@@ -733,12 +733,12 @@ async function scopeConnect(){
   await nap(300);
   await cdp.eval(`(async()=>{ const s=window.__tools.scope; if (!s.hid) await s.connectHid(false); })()`);
   if (!await cdp.evalJson(`!!window.__tools.scope.hid`)){
-    await cdp.eval(`document.getElementById('sc-connect').click()`, true);
+    await cdp.eval(`document.getElementById('btn-probe-hid').click()`, true);
     await nap(2000);
   }
   await cdp.eval(`(async()=>{ const s=window.__tools.scope; if (!s.transport) await s.connectUsb(false); })()`);
   if (!await cdp.evalJson(`!!window.__tools.scope.transport`)){
-    await cdp.eval(`document.getElementById('sc-usb').click()`, true);
+    await cdp.eval(`document.getElementById('btn-probe-usb').click()`, true);
     await nap(2000);
   }
   const conn = { hid: await cdp.evalJson(`!!window.__tools.scope.hid`), usb: await cdp.evalJson(`!!window.__tools.scope.transport`) };

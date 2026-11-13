@@ -45,7 +45,7 @@ try{
   await c.eval(`
     const devices=(await navigator.usb.getDevices()).filter(d=>d.vendorId===0x0d28 && d.productId===0x0204);
     if(devices.length!==1)throw Error('Exactly one already authorized akaLinkPro required');
-    document.querySelector('#d-connect').click();
+    document.querySelector('#btn-probe-connect').click();
   `);
   await waitFor('window.__tools.dbg.session.connected && !window.__tools.dbg._connecting && window.__tools.dbg.session.idcode===0x1000563d');
   report.backup=await c.eval(`
