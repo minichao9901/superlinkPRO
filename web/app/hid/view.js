@@ -751,7 +751,8 @@ export class RttCdcView {
         : '';
       setStatus(el, `运行中 · 控制块 ${hex(st.cbAddr)} · 上行缓冲 ${hex(st.upAddr)} · 通道 ${st.channel}`
         + ` · 已搬运 ${kb(st.moved)}（${st.transfers} 次）· 轮询 ${st.polls}`
-        + ` · 读错 ${st.rdErr} / RdOff 错 ${st.wrErr} · 档位 ${st.swdMhz} MHz`
+        + ` · 读错 ${st.rdErr} / RdOff 错 ${st.wrErr}`
+        + (this.isRiscv ? ' · RISC-V/JTAG' : ` · 档位 ${st.swdMhz} MHz`)
         + (st.dapYield ? ` · 给 DAP 让路 ${st.dapYield} 次` : '')
         + (st.discard ? ' · 丢弃模式' : '') + stall, stall ? 'warn' : 'ok');
     } else if (st.startRc === START_PENDING){

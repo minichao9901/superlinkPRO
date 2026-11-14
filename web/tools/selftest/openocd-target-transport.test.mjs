@@ -8,7 +8,7 @@ import { OpenOcdProbe } from '../../app/core/openocd-probe.js';
 import { makeOpenOcdProfile } from '../../app/core/openocd-profile.js';
 import { OpenOcdTargetSession } from '../../app/core/openocd-session.js';
 import { inspectOpenOcdCfg } from '../../app/dbg/openocd-raw-cfg.js';
-import { programOpenOcdFlash } from '../../app/flash/openocd-program.js';
+import { programOpenOcdFlash, readFlashRange } from '../../app/flash/openocd-program.js';
 import { HPM_BOARDS } from '../../app/targets/hpm/porting.js';
 
 test('production Wasm loads all official Flash CFGs without opening hardware', async t => {
@@ -168,4 +168,18 @@ test('flash preserves uncovered bytes and validates every region before erasing'
   assert.deepEqual(await programOpenOcdFlash(probe, [part], options), { bytes:2, sectors:2, verified:true });
   assert.ok(commands.every(command => !command.startsWith('flash probe 1')));
   assert.deepEqual([...data], [0, 1, 2, 3, 4, 5, 6, 99, 100, 9, 10, 11, 12, 13, 14, 15]);
+});
+
+test('mapped XIP readback does not initialize an HPM flash bank', async () => {
+  const commands = [];
+  const bytes = Uint8Array.of(1, 2, 3, 4);
+  const link = { async request(type, options){
+    assert.equal(type, 'flashFile');
+    assert.deepEqual(options, { read:true });
+    return { bytes };
+  } };
+  const command = async line => commands.push(line);
+  assert.equal(await readFlashRange(command, link, { mappedAddress:0x80001000, length:4 }), bytes);
+  assert.deepEqual(commands, ['dump_image /flash-readback.bin 0x80001000 4']);
+  await assert.rejects(readFlashRange(command, link, { mappedAddress:0x80001000, length:8 }), /回读长度/);
 });

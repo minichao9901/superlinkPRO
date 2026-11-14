@@ -46,3 +46,25 @@ test('failed Flash readback cannot authorize boot, and omitted sector bytes are 
   assert.equal(written.get(0)[0x400], 1);
   await assert.rejects(session.bootVerifiedFlash(), /先在当前会话校验/);
 });
+
+test('verifying an HPM XIP image leaves the flash controller alone', async () => {
+  const session = new OpenOcdDebugSession();
+  session.probe = {};
+  session.hpmSdk = true;
+  session.ensureHalted = async () => {};
+  const { ranges } = hpmFlashPlan(fixture);
+  const expected = ranges.map(({ offset, length, sections }) => {
+    const bytes = new Uint8Array(length);
+    for (const section of sections) bytes.set(section.data, section.offset);
+    return { address:(0x80000000 + offset).toString(16), length, bytes };
+  });
+  let index = 0;
+  session._command = async command => {
+    const { address, length } = expected[index];
+    assert.equal(command, `dump_image /flash-readback.bin 0x${address} ${length}`);
+  };
+  session.link = { async request(){ return { bytes:expected[index++].bytes }; } };
+  const result = await session.verifyFlashElf(fixture);
+  assert.equal(index, ranges.length);
+  assert.equal(result.bytes, 47856);
+});

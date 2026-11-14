@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "esbuild": "0.25.12",
-  "builtAt": "2026-11-14T04:59:33.713Z",
+  "builtAt": "2026-11-14T06:26:47.316Z",
   "inputs": {
     "app/analog/adc-protocol.js": "8b323984063d0da5a1f9a4e07d808cec3b9647e0372ab27c7e0b0079fc280c46",
     "app/analog/dac-protocol.js": "76c4dda3cc32b52f0f5972218d33e067dda16a0ee3006421c1288b029d17db00",
@@ -12,7 +12,7 @@
     "app/analog/transport.js": "0230184196d3bb1ba972e046118e1a8321c977290a9b068617a3ba7495e91ddb",
     "app/analog/view.js": "3c249180a1ca506ac20ba3c622e92acf28b5ab9c7588684c5324e105f0fa53eb",
     "app/core/bin.js": "0a236f6fb5165ef3effec574c0d0c2486ca15200c6587740b0caa4d3158c4ae5",
-    "app/core/build.js": "3d3dee8371bcfd04bcef9cb3b82822fac8c38bfe87fff637339a3d7b960ebfcc",
+    "app/core/build.js": "adfe4a710535e2cae5f10e19cb30c37eef96acfb75f28bf57ab3973153a00f1d",
     "app/core/bus-periodic.js": "12924e2c61da32ce40cf50045d1615b3c3e350d70361850324827e625aa98c0d",
     "app/core/bus.js": "a961476670cdbbc394335fe003d4e7c7f69448e4a109569773313e22dddb6fec",
     "app/core/bytes.js": "a0a745e234bf488590698bde140035eea47f8c093bc1c978b5574d8bb4276df8",
@@ -55,7 +55,7 @@
     "app/dbg/openocd-cfg.js": "e23942d37009d9e65934149c9ff73b25fd17ed7fc6345e8b30c90b524d34ee75",
     "app/dbg/openocd-flash.js": "971c1248c0266ee8d76fe89f3e23376cdd5a839be057de7036394ade3028bf50",
     "app/dbg/openocd-raw-cfg.js": "e0b177906fec90ed68c7a0d645a04f975897b11fc19934e841d87db9aa898cc3",
-    "app/dbg/openocd-session.js": "6f7ad1aeb57031034af4e56a84af057da0bbfecf03b069b64af4885cf405e10e",
+    "app/dbg/openocd-session.js": "39c9dcbbd2a812f1138c94e6734cc4649bf6ad4e8260c491734d92477ef2dfcf",
     "app/dbg/ram-debug.js": "0778755e3e2eb6b9479e16b78b1e438b49bc49aed18198cad9a82ab12809aafc",
     "app/dbg/ram-fill.js": "ac366a556451f3c9eb89302c9e6e3206a445b45007ed529cd64be1eb3512f508",
     "app/dbg/regs.js": "89de3e7d1b210f997bd82469343721b4fe8e7745cec11cdc1f49ff047c33b0a0",
@@ -84,14 +84,14 @@
     "app/flash/inspect.js": "03c8c214fe6f81c5c4602162fbaf64c7edcb823759d7c2307e3af95089673014",
     "app/flash/inspector-view.js": "05cfeb760b888b77359548f8afa659e8f9a521e3a8e15dfe096c8df9e6a97d1a",
     "app/flash/openocd-cfgs/catalog.js": "9dd72c95486178f6fda44eb41458ecb5cc9db88df20552604fa49d0aa26e5dda",
-    "app/flash/openocd-program.js": "802be7821970adbdc33565700e8191402960c7a591fcc2e5ab52cb25d4e5e1ec",
+    "app/flash/openocd-program.js": "9aaef70cab74248a43e91d15a7051791ee4c00af3654e89646ef5058de040827",
     "app/flash/target-reset.js": "fc5cee58df6299c65e0c16d89796174f12036f3edd17cfec6549f9cfb57a31ee",
     "app/flash/upstream-config.js": "ab7fc1fab16f1d36b4e5c6fc4335f19fd54e48387f418ea180665b12d8f515fe",
     "app/flash/view.js": "5e2f8c0b564d7183402e1281d699634289db165b9e448485ecd382c8ff22719c",
     "app/hid/mock.js": "04f56fca3853628c9c1fe8fd4705330153588602b4c80a4fcfbfeb7ffd66bb1b",
     "app/hid/probe.js": "e808f486b7f66a2ecab70f508307cfa0e25c672d417544e93d9a12171a25da2d",
     "app/hid/stream.js": "33a21e3530c7e639cf6c46dae1c68f005708ad3a5030b336abd1c413a570dcd4",
-    "app/hid/view.js": "7278e9d842ae4d496c00826543e19fb9bdbc0e69bf6bf66b6e889cbb80a7b1d7",
+    "app/hid/view.js": "905b917f898006214d9e992295cf1214420c920712978982a8365b85637d27e7",
     "app/i2c/dsl.js": "c6dbe0ea012f1d33aab34d648471890712f2b518fad25cdf5f670e7a70c17f1c",
     "app/i2c/expr.js": "ea3168ff8a1bf26841545c3290b41e0f94057d095111071adad4f1eecd1e734c",
     "app/i2c/mock.js": "852a81fdca8dd4f541ceac90a97200e3bb21a112a11433332d10c62613c61888",
@@ -175,6 +175,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "3cdacb393055f3a77777295867d80fc857ec546c224e96295c0110829764267d",
-  "outputBytes": 1203793
+  "outputSha256": "cf1814f554ff9bb408805c3efe04d95defb5cf09586bc8760ff0dbc3c0cbddc2",
+  "outputBytes": 1204002
 }

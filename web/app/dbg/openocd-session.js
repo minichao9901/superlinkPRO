@@ -202,7 +202,8 @@ export class OpenOcdDebugSession extends DebugSession {
       if (!this.connected || this.bps.length) throw new Error('请先连接 HPM6800EVK 并移除断点');
       this._verifiedFlash = null;
       await this.ensureHalted();
-      await this._probeFlash(ranges);
+      // hpmFlashPlan validates the boot window. Do not reinitialize the
+      // XPI controller just to compare bytes in the memory-mapped image.
       let bytes = 0;
       for (const range of ranges){
         const readback = await this._readFlashRange(range);
@@ -218,7 +219,7 @@ export class OpenOcdDebugSession extends DebugSession {
   }
 
   _readFlashRange(range){
-    return readFlashRange(this._command.bind(this), this.link, range);
+    return readFlashRange(this._command.bind(this), this.link, { ...range, mappedAddress:0x80000000 + range.offset });
   }
 
   async bootVerifiedFlash(){

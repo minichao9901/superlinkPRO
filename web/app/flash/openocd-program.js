@@ -18,8 +18,14 @@ export async function resetAfterFlash(probe){
   throw Error('Flash 写入完成，未确认复位后的核心运行状态');
 }
 
-export async function readFlashRange(command, link, { bank = 0, offset, length }){
-  await command(`flash read_bank ${bank} /flash-readback.bin ${offset} ${length}`, TIMEOUT);
+export async function readFlashRange(command, link, { bank = 0, offset, length, mappedAddress }){
+  // HPM XPI's bank probe runs a ROM algorithm that reconfigures the live
+  // flash controller. Read the mapped window directly for a byte readback.
+  const path = '/flash-readback.bin';
+  const read = mappedAddress === undefined
+    ? `flash read_bank ${bank} ${path} ${offset} ${length}`
+    : `dump_image ${path} ${ocdHex(mappedAddress)} ${length}`;
+  await command(read, TIMEOUT);
   const { bytes } = await link.request('flashFile', { read:true });
   if (bytes.length !== length) throw Error('Flash 回读长度不匹配');
   return bytes;
@@ -39,7 +45,9 @@ export async function programOpenOcdFlash(probe, regions, { verify, progress }){
   const command = (line, timeout) => probe.command(line, timeout);
   const bankText = await command('capture {flash banks}');
   const banks = Array.from(bankText.matchAll(bankRows),
-    ([row, index, base]) => ({ index:Number(index), base:Number(base), alias:/\(virtual\)/i.test(row) }));
+    ([row, index, base]) => ({
+      index:Number(index), base:Number(base), alias:/\(virtual\)/i.test(row), mappedRead:/\(hpm_xpi\)/i.test(row),
+    }));
   if (!banks.length) throw Error('OpenOCD CFG 没有定义 Flash bank');
 
   async function probeBank(bank){
@@ -80,7 +88,9 @@ export async function programOpenOcdFlash(probe, regions, { verify, progress }){
     }
   }
 
-  const plan = banks.flatMap(bank => (bank.sectors || []).filter(s => s.patches.length).map(s => ({ ...s, bank:bank.index })));
+  const plan = banks.flatMap(bank => (bank.sectors || []).filter(s => s.patches.length).map(s => ({
+    ...s, bank:bank.index, mappedAddress:bank.mappedRead ? bank.base + s.offset : undefined,
+  })));
   if (!plan.length) throw Error('固件没有可烧录的数据');
   const read = sector => readFlashRange(command, probe.link, sector);
 
