@@ -369,7 +369,7 @@ static void scope_irq_restore(uint32_t lvl)
     enable_global_irq(lvl);
 }
 
-static void scope_tx_kick(void)
+__attribute__((section(".fast"))) static void scope_tx_kick(void)
 {
     uint32_t lvl = scope_irq_save();
 
@@ -421,7 +421,7 @@ static uint8_t scope_tx_enqueue(uint8_t buf)
 }
 
 /* 把当前填满的包交给 USB */
-static void scope_push_packet(void)
+__attribute__((section(".fast"))) static void scope_push_packet(void)
 {
     s_hdr_t = s_fill_t0;                       /* DATA 包的时间戳 = 首样本时刻 */
     (void)scope_pkt_header(SCOPE_KIND_DATA, s_fill_n, (uint16_t)(s_fill_n * s_frame_bytes));
@@ -644,7 +644,7 @@ static inline void scope_copy_var(uint8_t *dst, const uint8_t *src, uint8_t size
 
 /* 采一拍，把变量字节写进"本样本在包里的槽位"。
  * 返回 0 = 成功；-1 = 某个 span 读失败（这一拍作废，计入 swd_err）。 */
-static int scope_sample_bytes(uint8_t *dst)
+__attribute__((section(".fast"))) static int scope_sample_bytes(uint8_t *dst)
 {
     /* Single-word plans have one aligned direct span. Avoid the generic span loop. */
     if (s_pipe_ok)
@@ -1038,7 +1038,7 @@ void scope_sampler_usb_reset(void)
     s_usb_reset_req = 1U;
 }
 
-void scope_sampler_poll(void)
+__attribute__((section(".fast"))) void scope_sampler_poll(void)
 {
     if (s_usb_reset_req)
     {
@@ -1085,18 +1085,14 @@ void scope_sampler_poll(void)
         return;
     }
 
-    /* Keep interrupts enabled. Only amortize main-loop services for an explicitly
-     * enabled, bounded single-word session; slower/multi-span plans stay scalar.
-     * STOP/configuration/reset requests interrupt the deadline wait. Only the 2 us
-     * mode keeps its remaining budget across packet boundaries: an extra main-loop
-     * visit there costs samples even when reads and USB throughput have headroom. */
-    /* JTAG's held SBA read costs about 3 us. Up to 16 samples amortize the
-     * main-loop overhead at 3.25--6 us, returning at packet edges and within
-     * 96 us nominally. The posted DMI status/error checks remain unchanged. */
+    /* Keep interrupts enabled and bound each batch so other main-loop services
+     * still run. Fast single-word RISC-V and 2 us SWD continue across DATA
+     * boundaries: packet publication already costs extra time there. */
     uint8_t batched = ((s_flags & SCOPE_FLAG_FAST_BATCH) && s_pipe_ok &&
                        ((s_backend == SCOPE_BE_SWD && s_period_ticks <= 72U) ||
                         (s_backend == SCOPE_BE_RISCV && s_period_ticks <= 144U)));
     uint8_t tight = batched && s_backend == SCOPE_BE_SWD && s_period_ticks <= 48U;
+    uint8_t cross_packet = tight || (batched && s_backend == SCOPE_BE_RISCV);
     uint8_t budget = batched ? (tight ? 64U : 16U) : 1U;
     while (budget-- != 0U)
     {
@@ -1126,7 +1122,7 @@ void scope_sampler_poll(void)
             s_dropped++;
             s_t_time += s_time_step;
         }
-        if (budget == 0U || s_fill_buf >= SCOPE_TX_BUFS || (!tight && s_fill_n == 0U)) { return; }
+        if (budget == 0U || s_fill_buf >= SCOPE_TX_BUFS || (!cross_packet && s_fill_n == 0U)) { return; }
         do
         {
             if (!s_running || s_usb_reset_req || s_start_req || s_bench_req) { return; }

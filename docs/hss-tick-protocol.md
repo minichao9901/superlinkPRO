@@ -31,11 +31,13 @@ w11 低 16 位为周期原始单位；与旧状态一样，长周期在这个紧
 STATUS word 0 bit 3 advertises `SCOPE_FLAG_FAST_BATCH` (configuration flags bit 7).
 When requested for a direct single-word SWD plan at <=72 ticks (3 µs), one poll
 handles at most 16 samples and returns at packet boundaries. The tight 48-tick
-period (2 µs) use up to 64 samples and keep the budget across packet boundaries.
+period (2 µs) uses up to 64 samples and keeps the budget across packet boundaries.
+A direct single-word RISC-V/JTAG plan at <=144 ticks (6 µs) uses up to 16
+samples and also keeps the budget across packet boundaries.
 All samples still wait for their deadlines. Buffer starvation, errors or control
 requests return promptly. Interrupts remain enabled; other main-loop services
 can be delayed by at most 128 us nominal plus sample/interrupt cost.
-JTAG, multi-span, and slower plans retain the scalar scheduler. Disable bit 7 for
+ARM/JTAG, multi-word, and slower plans retain the scalar scheduler. Disable bit 7 for
 A/B measurements. This changes service cadence, not the nominal sampling period.
 
 The single-word sample path also bypasses the generic span loop. Posted reads still

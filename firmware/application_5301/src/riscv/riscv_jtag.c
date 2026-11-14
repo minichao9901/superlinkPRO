@@ -311,7 +311,7 @@ static int dmi_read(uint32_t addr, uint32_t *val)
 }
 
 /* Synchronous DMI write (2 scans: issue, then collect the write's status). */
-static int dmi_write(uint32_t addr, uint32_t data)
+__attribute__((section(".fast"))) static int dmi_write(uint32_t addr, uint32_t data)
 {
     uint64_t resp;
 
@@ -327,7 +327,7 @@ static int dmi_write(uint32_t addr, uint32_t data)
 
 /* Consume a captured SBCS without issuing another read. The block-read
  * pipeline uses this after collecting its final posted status response. */
-static uint32_t sba_clear_snapshot(uint32_t sbcs)
+__attribute__((section(".fast"))) static uint32_t sba_clear_snapshot(uint32_t sbcs)
 {
     s_last_sbcs = sbcs;
 
@@ -416,7 +416,7 @@ static int sba_write_cfg(uint32_t sbcs)
     return 0;
 }
 
-static int sba_config(uint32_t extra)
+__attribute__((section(".fast"))) static int sba_config(uint32_t extra)
 {
     uint32_t sbcs = SBCS_SBACCESS32 | SBCS_SBAUTOINC | extra;
 
@@ -584,7 +584,7 @@ int riscv_jtag_read_word(uint32_t addr, uint32_t *val)
  *     sbaddress0 = addr      -> 写地址即启动第一次读
  *     读一次 sbdata0         -> 点火：收上一拍的值，同时启动下一拍
  * 之后每次 hold_read 就是"收上一次 + 投下一次"，语义与 swd_read_word_pipe() 一致。 */
-int riscv_jtag_hold_prepare(uint32_t addr)
+__attribute__((section(".fast"))) int riscv_jtag_hold_prepare(uint32_t addr)
 {
     addr &= ~0x3U;
 
@@ -624,7 +624,7 @@ int riscv_jtag_hold_prepare(uint32_t addr)
     return 0;
 }
 
-int riscv_jtag_hold_read(uint32_t *val)
+__attribute__((section(".fast"))) int riscv_jtag_hold_read(uint32_t *val)
 {
     uint64_t resp;
 
@@ -738,7 +738,7 @@ int riscv_jtag_write_word(uint32_t addr, uint32_t val)
  * deep) supplies the previous word in the same scan. The final data response
  * is collected while posting READ SBCS; the next NOP collects that status.
  * Cached, error-free N-word reads therefore cost N+4 scans, not N+6. */
-int riscv_jtag_read_once(uint32_t addr, uint8_t *dst, uint32_t len)
+__attribute__((section(".fast"))) int riscv_jtag_read_once(uint32_t addr, uint8_t *dst, uint32_t len)
 {
     uint32_t first;
     uint32_t words;
@@ -956,7 +956,7 @@ void riscv_jtag_probe(uint32_t n, uint64_t *out)
  * 块判死，实测 RTT 桥下每块几乎必中一次 -> 搬运几乎停摆。这里按块重试：
  * 清掉 sticky 错误再重来，通常第二次就干净。
  * 另外 read_once 末尾发现 sticky 错误（op 仍是 SUCCESS 的"静默"失败）也走这里。 */
-int riscv_jtag_read(uint32_t addr, uint8_t *dst, uint32_t len)
+__attribute__((section(".fast"))) int riscv_jtag_read(uint32_t addr, uint8_t *dst, uint32_t len)
 {
     int rc = -4;
 

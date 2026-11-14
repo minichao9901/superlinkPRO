@@ -682,7 +682,13 @@ console.log('== 14. RISC-V/JTAG 目标：显示生效后端、置灰 SWD 控件�
     sc.hidXfer = async (cmd, data) => { sent = { cmd, data: Array.from(data) }; return Uint8Array.of(0x33, 0x31, 0, 0); };
     document.getElementById('sc-target').value = 'riscv';
     await sc.applyTargetType();
-    const sentRiscv = sent;                     // 记下 RISC-V 那一次（下面还要切回 SWD，别把它覆盖了）
+    const sentInMock = sent;
+    // Exercise the hardware command construction with a stubbed HID transfer.
+    const usingMock = sc.usingMock;
+    sc.usingMock = false;
+    try { await sc.confirmTargetArchitecture(); }
+    finally { sc.usingMock = usingMock; }
+    const sentRiscv = sent;
     const stRiscv = document.getElementById('sc-state').textContent;
     const labelByDropdown = document.getElementById('sc-clock-row').querySelector('span').textContent;
     document.getElementById('sc-target').value = 'swd';
@@ -692,7 +698,7 @@ console.log('== 14. RISC-V/JTAG 目标：显示生效后端、置灰 SWD 控件�
     sc.mockProbe.riscv = false;
     sc.backend = null;
     sc._applyBackendUi();
-    return { before, after, viaStatus, sent: sentRiscv, st: stRiscv, labelByDropdown, labelBackSwd,
+    return { before, after, viaStatus, sent: sentRiscv, sentInMock, st: stRiscv, labelByDropdown, labelBackSwd,
              names: [P.backendName('swd'), P.backendName('riscv')] };`);
   ok(r.after.backend === 'riscv', `DEF flags bit6 → 页面认到 RISC-V 后端（${r.after.shown}）`);
   ok(/RISC-V\/JTAG/.test(r.after.mhz), `状态栏显示后端而不是 SWD 时钟：${r.after.mhz}`);
@@ -704,6 +710,7 @@ console.log('== 14. RISC-V/JTAG 目标：显示生效后端、置灰 SWD 控件�
      `计划行改成 JTAG 的说法：${r.after.plan.slice(0, 78)}…`);
   ok(/1\.5×/.test(r.after.plan), '并给出"建议起始周期 1.5×，需实采验证"的提示');
   ok(r.viaStatus === 'riscv', '状态字 0 的 bit1 也能定后端（丢弃模式没有 DEF 包时的唯一来源）');
+  ok(r.sentInMock === null, '演示模式的目标切换不访问 HID');
   ok(r.sent && r.sent.cmd === 0x31 && r.sent.data.join(',') === '10,1',
      `目标类型切换发的是 HID 0x31 action 10（实际 cmd=0x${(r.sent?.cmd ?? 0).toString(16)} data=${r.sent?.data}`)
   ok(/RISC-V\/JTAG/.test(r.st), `切完给了明确回执：${r.st.slice(0, 60)}`);

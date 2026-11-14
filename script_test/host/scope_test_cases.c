@@ -160,13 +160,13 @@ int main(void)
     assert(scope_start_now() == 0); test_clock = s_next_tick; scope_sampler_poll();
     assert(s_backend == SCOPE_BE_RISCV && s_produced == 16 && s_dropped == 0);
     for (unsigned i = 0; i < 7; i++) { test_clock = s_next_tick; scope_sampler_poll(); }
-    assert(s_produced == 124 && s_fill_n == 0);
+    assert(s_produced == 128 && s_fill_n == 4);
     batch_buf = 0;
     while (s_pkt[batch_buf][3] != SCOPE_KIND_DATA) { batch_buf++; assert(batch_buf < SCOPE_TX_BUFS); }
     for (unsigned i = 1; i < 124; i++)
         assert(get32(s_pkt[batch_buf]+16+i*4) == get32(s_pkt[batch_buf]+16+(i-1)*4)+1);
     test_clock = s_next_tick; test_stop_call = test_calls + 3; scope_sampler_poll();
-    assert(!s_running && s_produced == 127);
+    assert(!s_running && s_produced == 131);
     reset_test(); test_read_cost = 70;
     assert(scope_sampler_configure_ticks(144, SCOPE_FLAG_RISCV | SCOPE_FLAG_DISCARD | SCOPE_FLAG_FAST_BATCH, 1, &one) == 0);
     assert(scope_start_now() == 0); test_clock = UINT32_MAX - 100; s_next_tick = test_clock;

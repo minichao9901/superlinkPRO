@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "esbuild": "0.25.12",
-  "builtAt": "2026-11-14T06:26:47.316Z",
+  "builtAt": "2026-11-14T07:17:48.711Z",
   "inputs": {
     "app/analog/adc-protocol.js": "8b323984063d0da5a1f9a4e07d808cec3b9647e0372ab27c7e0b0079fc280c46",
     "app/analog/dac-protocol.js": "76c4dda3cc32b52f0f5972218d33e067dda16a0ee3006421c1288b029d17db00",
@@ -12,7 +12,7 @@
     "app/analog/transport.js": "0230184196d3bb1ba972e046118e1a8321c977290a9b068617a3ba7495e91ddb",
     "app/analog/view.js": "3c249180a1ca506ac20ba3c622e92acf28b5ab9c7588684c5324e105f0fa53eb",
     "app/core/bin.js": "0a236f6fb5165ef3effec574c0d0c2486ca15200c6587740b0caa4d3158c4ae5",
-    "app/core/build.js": "adfe4a710535e2cae5f10e19cb30c37eef96acfb75f28bf57ab3973153a00f1d",
+    "app/core/build.js": "b8ed2a31882711a49cc108cc9c1061cab3204213a874f03877955fef16828960",
     "app/core/bus-periodic.js": "12924e2c61da32ce40cf50045d1615b3c3e350d70361850324827e625aa98c0d",
     "app/core/bus.js": "a961476670cdbbc394335fe003d4e7c7f69448e4a109569773313e22dddb6fec",
     "app/core/bytes.js": "a0a745e234bf488590698bde140035eea47f8c093bc1c978b5574d8bb4276df8",
@@ -112,7 +112,7 @@
     "app/scope/protocol.js": "eb092fa4244936e349a905f3ab3b0c5a86c6c8549b48c8b8d0e6dc9d92de81f2",
     "app/scope/render.js": "539faa88133f619836d12b3086c189367f7c28894165bc0240b6f0ff1283b6ca",
     "app/scope/store.js": "2b35389e7a55055c3bd1f753a4d406247580eb3befb0f1d604493127efbca0f3",
-    "app/scope/transport.js": "3b8e59c4bcda566f400a4daba83910564b7e562515bbafc529bee7ba4d64dff4",
+    "app/scope/transport.js": "44c8f724e5bb8481dec341b276c0e86c2bdb6e6c328ed3f6c99711c6ffdbbd7e",
     "app/scope/view.js": "e8a87411d94bbcc18034d5b43b0aef75786d266a37d02602772e6dfef70d30bb",
     "app/serial/assistant.js": "9b1862cdc4ed37f081eda6f4b323167fb168f607c0de50213d08aa9dd773be78",
     "app/serial/demo.js": "7e1cc7301b5edbcb99edaa1d2b43778aa5696a038d565b754abae5ae0a6d7ad6",
@@ -175,6 +175,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "cf1814f554ff9bb408805c3efe04d95defb5cf09586bc8760ff0dbc3c0cbddc2",
-  "outputBytes": 1204002
+  "outputSha256": "77a7255a419a26ff87c6d0f95c29b1c7cfa9a93e2026ace90896f1a7fb88d645",
+  "outputBytes": 1204013
 }

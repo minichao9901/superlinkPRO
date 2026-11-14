@@ -54,13 +54,13 @@ export class VendorEpTransport {
     // longer covers it. HPM's 8-channel/25 kHz stream is only 0.85 MB/s,
     // but decoding/drawing can pause JS for 25 ms: the old 1 MB/s cutoff
     // left just 14 ms of reads and caused USB drops despite zero probe skips.
-    // Reserve ~80 ms when possible, including already completed reads awaiting
-    // JS delivery. Limit native buffering to 16 * 8 KiB (128 KiB). This also
-    // covers observed 52 ms GC/draw pauses at HPM's 25 kHz/8-channel rate.
+    // Long captures retain samples and optional raw packets. Give Chrome's
+    // GC/drawing pauses time to finish before the probe's packet pool fills.
+    // Keep the native window within the firmware's 32-read STOP retirement limit.
     // Slow sessions retain the smaller window to avoid extra buffering delay.
     const fast = Number.isFinite(wireBps) && wireBps * 0.030 > 3 * 4096;
-    this.inFlight = fast ? Math.max(6, Math.min(16, Math.ceil(wireBps * 0.080 / 8192))) : 3;
-    this.chunkBytes = fast ? 8192 : 4096;
+    this.chunkBytes = fast ? 32768 : 4096;
+    this.inFlight = fast ? Math.max(8, Math.min(32, Math.ceil(wireBps * 0.500 / this.chunkBytes))) : 3;
   }
 
   /** 已授权过的探针（浏览器记得就不用再弹框）*/
