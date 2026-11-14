@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "esbuild": "0.25.12",
-  "builtAt": "2026-11-14T07:17:48.711Z",
+  "builtAt": "2026-11-14T09:34:30.391Z",
   "inputs": {
     "app/analog/adc-protocol.js": "8b323984063d0da5a1f9a4e07d808cec3b9647e0372ab27c7e0b0079fc280c46",
     "app/analog/dac-protocol.js": "76c4dda3cc32b52f0f5972218d33e067dda16a0ee3006421c1288b029d17db00",
@@ -12,7 +12,7 @@
     "app/analog/transport.js": "0230184196d3bb1ba972e046118e1a8321c977290a9b068617a3ba7495e91ddb",
     "app/analog/view.js": "3c249180a1ca506ac20ba3c622e92acf28b5ab9c7588684c5324e105f0fa53eb",
     "app/core/bin.js": "0a236f6fb5165ef3effec574c0d0c2486ca15200c6587740b0caa4d3158c4ae5",
-    "app/core/build.js": "b8ed2a31882711a49cc108cc9c1061cab3204213a874f03877955fef16828960",
+    "app/core/build.js": "4a21b3c01cee670258caf2b8ae76607bf3891e97655b3fe53916e7057e885d16",
     "app/core/bus-periodic.js": "12924e2c61da32ce40cf50045d1615b3c3e350d70361850324827e625aa98c0d",
     "app/core/bus.js": "a961476670cdbbc394335fe003d4e7c7f69448e4a109569773313e22dddb6fec",
     "app/core/bytes.js": "a0a745e234bf488590698bde140035eea47f8c093bc1c978b5574d8bb4276df8",
@@ -175,6 +175,6 @@
     "app/ui/workspace.js": "7510e828f99a6b68e0e531fd409efd0cfc7e423a3cdd213be64e14ef5a5f1414",
     "app/ui/zoom-controls.js": "d7520d813135941c8b0e8f5601722c45f53d2d2ed8a940f789bc032da0180ff9"
   },
-  "outputSha256": "77a7255a419a26ff87c6d0f95c29b1c7cfa9a93e2026ace90896f1a7fb88d645",
+  "outputSha256": "d1cd4d14d8c40a12b34ddea8f5a13580552b76837dbe7a62221257d30ee3ea75",
   "outputBytes": 1204013
 }

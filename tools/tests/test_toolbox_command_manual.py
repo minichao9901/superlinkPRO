@@ -52,3 +52,17 @@ class CommandManualTests(unittest.TestCase):
             self.assertEqual(argv[argv.index('--runtime') + 1], str(folder))
             self.assertEqual(argv[argv.index('--file') + 1], str(firmware.resolve()))
             self.assertFalse(launch.call_args.kwargs.get('shell', False))
+
+    def test_probe_check_and_upgrade_use_the_same_literal_file_argument(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            firmware = folder / 'probe APP.bin'
+            firmware.touch()
+            prefix = ['superlinkPRO.exe', '--workbench-cli']
+            for step, tail in (('probe-check', ['--dry-run']),
+                               ('probe-firmware', ['--backup-dir', str(folder/'artifacts')])):
+                with (folder/'output.log').open('wb') as output, patch.object(command_manual.subprocess, 'Popen') as launch:
+                    command_manual.start_command(command_manual.BY_NAME[step], {'probe-check':str(firmware)},
+                                                 folder, prefix, ROOT, output)
+                argv, = launch.call_args.args
+                self.assertEqual(argv, [*prefix, 'probe-flash', '--file', str(firmware.resolve()), *tail])

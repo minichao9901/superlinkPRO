@@ -1,7 +1,9 @@
 const endpoint = '/command-manual';
 const root = document.getElementById('manual-document');
 const references = {
-  'toolbox-cli-ai.md': 'docs/toolbox-cli-ai.md',
+  'toolbox-cli-ai.md': 'https://github.com/minichao9901/superlinkPRO/blob/main/docs/toolbox-cli-ai.md',
+  'https://github.com/minichao9901/superlinkPRO/releases': 'https://github.com/minichao9901/superlinkPRO/releases',
+  'https://dfu-util.sourceforge.net/dfu-util.1.html': 'https://dfu-util.sourceforge.net/dfu-util.1.html',
 };
 let loading = false;
 let loaded = false;
@@ -26,7 +28,7 @@ function appendInline(parent, text){
     else if (match[2]) parent.append(element('strong', match[2]));
     else if (Object.hasOwn(references, match[4])){
       const link = element('a', match[3]);
-      link.href = 'https://github.com/minichao9901/superlinkPRO/blob/main/' + references[match[4]];
+      link.href = references[match[4]];
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       parent.append(link);
@@ -79,8 +81,8 @@ function appendCommand(row){
   action.append(line, button);
   box.append(action);
   let input;
-  if (['chip', 'firmware', 'job', 'probe-firmware'].includes(row.id)){
-    const titles = {chip:'目标芯片 ID', firmware:'固件绝对路径', job:'CLI job ID', 'probe-firmware':'探针 APP BIN 绝对路径'};
+  if (['chip', 'firmware', 'job', 'probe-check'].includes(row.id)){
+    const titles = {chip:'目标芯片 ID', firmware:'固件绝对路径', job:'CLI job ID', 'probe-check':'探针 APP BIN 绝对路径'};
     const label = element('label', titles[row.id], 'manual-input');
     input = element('input');
     input.type = 'text';
@@ -111,7 +113,7 @@ function appendCommand(row){
       }
     }
     if (row.confirmation){
-      const details = row.id === 'probe-firmware' ? '探针固件 ' + values['probe-firmware']
+      const details = row.id === 'probe-firmware' ? '探针固件 ' + values['probe-check']
         : '目标 ' + values.chip + '\n固件 ' + values.firmware;
       if (!window.confirm(row.confirmation + '\n\n' + details)) return;
     }

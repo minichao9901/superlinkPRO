@@ -40,8 +40,10 @@ COMMANDS = {item.line: item for item in (
     Command('flash-result', WEB + "page flash read '#f-result'"),
     Command('flash-log', WEB + "page flash read '#f-log'"),
     Command('job', WEB + 'job JOB_ID', fields=('job',)),
+    Command('probe-check', 'python -X utf8 toolbox.py probe-flash --file "$ProbeFirmware" --dry-run',
+            fields=('probe-check',)),
     Command('probe-firmware', 'python -X utf8 toolbox.py probe-flash --file "$ProbeFirmware"',
-            '通过 HID 自动切换 DFU，备份并写入 SuperLinkPRO 探针 APP，读回校验后重启。', ('probe-firmware',)),
+            '备份并写入 SuperLinkPRO 探针 APP，读回校验后重启。需要时通过 HID 自动切换 DFU。', ('probe-check',)),
 )}
 BY_NAME = {item.name: item for item in COMMANDS.values()}
 FENCE = re.compile(r'^   ```powershell\n([^\n]+)\n   ```$', re.M)
@@ -79,11 +81,11 @@ def start_command(command, values, runtime, prefix, cwd, output):
         raise ValueError('请输入烧录器显示的内置芯片 ID')
     if 'firmware' in selected:
         selected['firmware'] = firmware_path(selected['firmware'])
-    if 'probe-firmware' in selected:
-        path = Path(selected['probe-firmware']).expanduser()
+    if 'probe-check' in selected:
+        path = Path(selected['probe-check']).expanduser()
         if not path.is_absolute() or path.suffix.lower() != '.bin' or not path.is_file():
             raise ValueError('请输入已有的探针 APP BIN 文件的绝对路径')
-        selected['probe-firmware'] = str(path.resolve())
+        selected['probe-check'] = str(path.resolve())
     if 'job' in selected and not re.fullmatch('[0-9a-f]{32}', selected['job']):
         raise ValueError('请输入 32 位十六进制的 CLI job ID')
     if command.name in ('chip', 'firmware'):
@@ -97,7 +99,7 @@ def start_command(command, values, runtime, prefix, cwd, output):
         return None
     substitutions = {'tmp/first-run-web': str(runtime), '$Chip': selected.get('chip'),
                      '$Firmware': selected.get('firmware'), 'JOB_ID': selected.get('job'),
-                     '$ProbeFirmware': selected.get('probe-firmware')}
+                     '$ProbeFirmware': selected.get('probe-check')}
     args = [substitutions.get(arg, arg) for arg in shlex.split(command.line)[4:]]
     if command.name == 'probe-firmware':
         args.extend(('--backup-dir', str(Path(output.name).parent / 'artifacts')))
