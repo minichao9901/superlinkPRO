@@ -21,8 +21,8 @@ import { store } from '../core/store.js';
 import { webClockKhz } from '../core/target-clock.js';
 import { constrainClockSelect } from '../ui/target-clock.js';
 import { supportsRiscvStreamClock,streamClockHz } from '../core/stream-clock.js';
-import { rttConfigData } from '../hid/probe.js';
-import { AkaLinkHid } from '../hid/probe.js';
+import { AkaLinkHid, rttConfigData, parseStatus, confirmStreamTarget } from '../hid/probe.js';
+import { enableJtagPins } from '../core/openocd-jtag-pins.js';
 import { Elf } from '../elf/elf.js';
 import { listSampleable } from '../elf/dwarf.js';
 import { arrayElementChannels } from './array-vars.js';
@@ -136,7 +136,8 @@ export class ScopeView {
      * 置灰、读计划的分档），不必等采样回报。
      */
     const savedTarget = store.get('rtt.target', '');
-    if (savedTarget === 'riscv' || savedTarget === 'swd') $('sc-target').value = savedTarget;
+    if (Object.values(P.BACKEND).includes(savedTarget)) $('sc-target').value = savedTarget;
+    this.targetType = $('sc-target').value;
     this.targetRiscv = $('sc-target').value === 'riscv';
     store.bind($('sc-target'), 'rtt.target');       // 这一页改 = 改同一个全局开关，落回同一个键
     $('sc-bench').addEventListener('click', () => this.bench());
@@ -264,6 +265,16 @@ export class ScopeView {
   }
 
   onShow(){
+    if (!this.running && !this._starting && !this._stopPromise){
+      const saved = store.get('rtt.target');
+      if (Object.values(P.BACKEND).includes(saved) && saved !== this.targetType){
+        $('sc-target').value = saved;
+        this.targetType = saved;
+        this.targetRiscv = saved === P.BACKEND.RISCV;
+        this._askedAt = performance.now();
+        this._applyBackendUi();
+      }
+    }
     requestAnimationFrame(() => { this._needDraw = true; });
   }
 
@@ -666,7 +677,9 @@ export class ScopeView {
           `读取耗时上界 ≤${fmtHz(advice.readCeilingHz)}，不代表持续采样能力。` +
           (fresh ? '依据当前标定。' : '依据粗估，建议先标定。') + (slow ? ` ${slow}` : '稳定性以实采跳拍/USB计数为准。')
         : '采样周期必须是大于 0 的有限数值。';
-      const short = advice.valid
+      const short = this.uiBackend() === P.BACKEND.ARM_JTAG && !fresh
+        ? 'ARM/JTAG 请先标定读取耗时'
+        : advice.valid
         ? `建议起始：${advice.recommendedUs} µs（${fmtHz(advice.recommendedHz)}）` + (slow ? `；${slow}` : fresh ? ' · 已标定' : ' · 待标定')
         : text;
       setStatus(rateHint, short, !advice.valid ? 'err' : slow ? 'warn' : '');
@@ -687,7 +700,8 @@ export class ScopeView {
     const rv = P.BACKEND_COST.riscv;
     const rvEstUs = this.planEstimateUs(plan);
     const rvEstHz = rvEstUs > 0 ? 1e6 / rvEstUs : 0;
-    const planTxt = riscv
+    const armJtag = this.uiBackend() === P.BACKEND.ARM_JTAG;
+    const planTxt = armJtag ? `ARM/JTAG 块读 ${plan.readBytes} B，每组速率以标定与实采为准` : riscv
       ? (plan.fastPath
           ? `单字 span：RISC-V/JTAG 历史读取耗时 ≈${rv.single} µs/样本（未包含完整推流开销）`
           : `RISC-V/JTAG 粗估 ≈${rvEstUs.toFixed(1)} µs/样本 → ≈${(rvEstHz / 1000).toFixed(1)} kHz` +
@@ -705,7 +719,7 @@ export class ScopeView {
         (!riscv && plan.saved > 0.15 ? `（合并省了 ${(plan.saved * 100).toFixed(0)}%）` : '') +
         benchTxt +
         '<br>时长 = 目标侧真实时间，到点自动停（缓冲只是内存上限）' +
-        (slow || (riscv
+        (armJtag ? '' : slow || (riscv
           ? `（JTAG 单字历史读取耗时 ${rv.single} µs；周期比读取耗时短会跳拍）`
           : '（周期下限 2 µs；周期 < 读一次的耗时就会跳拍丢样本）'))
       : '选好变量后会显示读计划与预计上限';
@@ -777,10 +791,18 @@ export class ScopeView {
   _captureAlive(g){ return g === this._captureGen && !this._stopPromise && !this._releasing; }
   async confirmTargetArchitecture(){
     if(this.usingMock)return;
-    const reply=await this.hidXfer(P.HID_CMD_RTT,P.targetTypeData(!!this.targetRiscv));
+    const target = this.targetType || (this.targetRiscv ? P.BACKEND.RISCV : P.BACKEND.SWD);
+    if (target === P.BACKEND.ARM_JTAG){
+      const status = await this.hidXfer(P.HID_CMD_RTT,Uint8Array.of(2));
+      if (status.length < 51 || !parseStatus(status.subarray(3,51)).supportsArmJtag)
+        throw Error('此探针固件缺少 H743 ARM/JTAG，需更新 akaLinkPro APP');
+    }
+    const reply=await this.hidXfer(P.HID_CMD_RTT,P.targetTypeData(target));
     if(!reply||reply.length<3)throw Error('目标类型确认回包不完整；未配置或启动采样');
     const rc=this.signed(reply[2]);
     if(rc!==0)throw Error(`目标类型确认失败（${rc}）；请先停止并释放占用探针的功能，未配置或启动采样`);
+    if (reply.length >= 51) confirmStreamTarget(target, parseStatus(reply.subarray(3,51)));
+    if (target === P.BACKEND.ARM_JTAG) await enableJtagPins(this.hid);
   }
   async applyCaptureClock(){
     if(this.usingMock)return;
@@ -1182,23 +1204,21 @@ export class ScopeView {
     const sel = $('sc-target');
     const riscv = sel.value === 'riscv';
     if (this._releasing || this.running || this._starting || this._stopPromise || globalThis.__tools?.hid?.last?.running){
-      sel.value = this.targetRiscv ? 'riscv' : 'swd';
+      sel.value = this.targetType || (this.targetRiscv ? 'riscv' : 'swd');
       store.set('rtt.target', sel.value);
       this.setStatusText('采样或 RTT 转发正在运行：先停止，再切目标类型', 'warn');
       return;
     }
     this.targetRiscv = riscv;
+    this.targetType = sel.value;
     this._askedAt = (globalThis.performance?.now?.() ?? Date.now());   // 见 uiBackend()：请求与生效的先后关系
     // 🚨 **先刷界面再谈连接**：这一格的意思就是"我要走哪条路"，与探针在不在线无关。
     //    老写法把刷新放在 hidXfer 之后，于是"没连探针时切下拉 → 界面一动不动"（用户实测踩到）。
     this._applyBackendUi();
-    if (!this.hid){ this.setStatusText(`已记为「${P.backendName(riscv ? P.BACKEND.RISCV : P.BACKEND.SWD)}」，但探针没连上——连上后再切一次`, 'warn'); return; }
+    if (!this.hid) return;
     try {
-      const response = await this.hidXfer(P.HID_CMD_RTT, P.targetTypeData(riscv));
-      if (!response || response.length < 3 || this.signed(response[2]) < 0)
-        throw new Error('探针拒绝切换目标类型（先停止采样和 RTT 转发）');
-      this.setStatusText(`已请求切到 ${P.backendName(riscv ? P.BACKEND.RISCV : P.BACKEND.SWD)}（HID 0x31 action 10）——`
-        + ' 探针侧目标类型是粘的；下次采样时看「生效后端」是否跟上了', 'ok');
+      await this.confirmTargetArchitecture();
+      this.setStatusText(`已请求切到 ${P.backendName(this.targetType)}`, 'ok');
     } catch (e){
       this.setStatusText('切目标类型失败：' + (e?.message || e), 'err');
     }
@@ -1218,7 +1238,7 @@ export class ScopeView {
         this.swdMhz = status.swdMhz || 0;
         this._reportedClockSelection = Number($('sc-clock').value) || 0;
       }
-      this.setBackend((w0 & 2) ? P.BACKEND.RISCV : P.BACKEND.SWD, '状态字 0');
+      this.setBackend(w0 & (1 << 17) ? P.BACKEND.ARM_JTAG : w0 & 2 ? P.BACKEND.RISCV : P.BACKEND.SWD, '状态字 0');
       this.updatePlan(); // Clock downshift can change advice without changing the backend.
     } catch { /* 回包形状不对就当没看见 */ }
   }
@@ -1246,7 +1266,7 @@ export class ScopeView {
     const riscv = cur === P.BACKEND.RISCV;
     const el = $('sc-backend');
     if (el){
-      const asked = this.targetRiscv == null ? null : (this.targetRiscv ? P.BACKEND.RISCV : P.BACKEND.SWD);
+      const asked = this.targetType || (this.targetRiscv == null ? null : this.targetRiscv ? P.BACKEND.RISCV : P.BACKEND.SWD);
       const mismatch = asked && this.backend && asked !== this.backend;
       el.textContent = this.backend
         ? `生效后端：${P.backendName(this.backend)}` + (mismatch ? `　⚠ 你选的是 ${P.backendName(asked)}，探针换了一条路` : '')
@@ -1257,9 +1277,13 @@ export class ScopeView {
     const clk = $('sc-clock');
     if (clk){
       const native=riscv&&supportsRiscvStreamClock(this._probeInfo);
+      const armJtag = cur === P.BACKEND.ARM_JTAG;
       constrainClockSelect(clk,native?'hpm':'arm');
+      for (const option of clk.options) option.disabled = armJtag && Number(option.value) > 10000;
+      if (armJtag && (!Number(clk.value) || Number(clk.value) > 10000)) clk.value = '10000';
       clk.disabled = riscv&&!native || !!(this.running || this._starting || this._stopPromise);
-      clk.title = native?'Zynq RISC-V JTAG TCK，HPM 最高 25 MHz':riscv
+      clk.title = cur === P.BACKEND.ARM_JTAG ? 'H743 JTAG 时钟请求档，实际线速由探针时序决定'
+        : native?'Zynq RISC-V JTAG TCK，HPM 最高 25 MHz':riscv
         ? 'RISC-V/JTAG 下无意义：JTAG 时序由 DMI 汇编旋钮 + delay 决定，探针会忽略这个档位'
         : '与 RTT Viewer 同款档位；固件自带失败自动降档';
     }
@@ -1272,7 +1296,7 @@ export class ScopeView {
      * 跟 `uiBackend()` 走：一选 RISC-V/JTAG 立刻改名，不等采样回报；与 RTT Viewer 页同一套口径。
      */
     const clkLbl = clkRow?.querySelector('span');
-    if (clkLbl) clkLbl.textContent = riscv ? 'JTAG 时钟' : 'SWD 时钟';
+    if (clkLbl) clkLbl.textContent = cur !== P.BACKEND.SWD ? 'JTAG 时钟' : 'SWD 时钟';
     this._applyMhzUi();                     // 🚨 立刻改这一格，别等下一次统计刷新（否则会短暂显示旧的 "SWD xx MHz"）
     this.updatePlan();                      // 计划行的速率/建议周期按后端分档
   }
@@ -1282,7 +1306,8 @@ export class ScopeView {
   _applyMhzUi(){
     const el = $('sc-mhz');
     if (!el) return;
-    el.textContent = this.uiBackend() === P.BACKEND.RISCV
+    const backend = this.uiBackend();
+    el.textContent = backend === P.BACKEND.ARM_JTAG ? `JTAG ${this.swdMhz || '—'}${this.swdMhz ? ' MHz 请求' : ''}` : backend === P.BACKEND.RISCV
       ? 'RISC-V/JTAG'
       : (this.swdMhz ? `SWD ${this.swdMhz} MHz` : 'SWD —');
   }
@@ -1339,7 +1364,7 @@ export class ScopeView {
    */
   uiBackend(){
     if (this._reportedAt && this._reportedAt >= (this._askedAt || 0)) return this.backend;
-    return this.targetRiscv == null ? this.backend : (this.targetRiscv ? P.BACKEND.RISCV : P.BACKEND.SWD);
+    return this.targetType || (this.targetRiscv == null ? this.backend : this.targetRiscv ? P.BACKEND.RISCV : P.BACKEND.SWD);
   }
 
   /**
@@ -1362,7 +1387,10 @@ export class ScopeView {
     if (this.swdMhz && selected === this._reportedClockSelection) return this.swdMhz;
     return selected / 1000 || this.swdMhz || P.COST.refMhz;
   }
-  planEstimateUs(plan){ return plan ? (this.uiBackend() === P.BACKEND.RISCV ? P.riscvPlanUs(plan) : plan.bestUs) : 0; }
+  planEstimateUs(plan){
+    if (!plan || this.uiBackend() === P.BACKEND.ARM_JTAG) return 0;
+    return this.uiBackend() === P.BACKEND.RISCV ? P.riscvPlanUs(plan) : plan.bestUs;
+  }
 
   /** SWD: ceil(M0 × 1.15 + 1 µs); JTAG: ceil(M0 × 1.5), minimum 3 µs.
    * M0 measures target reads, not packet/USB/scheduler cost. This is a starting
@@ -1409,6 +1437,7 @@ export class ScopeView {
         | ($('sc-batch')?.checked ? P.SCOPE_FLAG.FAST_BATCH : 0)
         | (this.targetRiscv ? P.SCOPE_FLAG.RISCV : 0);
       // JTAG 下 action 3（SWD 时钟）无效，别发
+      await this.confirmTargetArchitecture();
       await this.applyCaptureClock();
       const configured = await this.configureScope({ periodUs: this.periodUs(), flags, vars });
       if (!configured || configured.length < 3 || this.signed(configured[2]) < 0) throw new Error('标定配置被拒');
@@ -1569,7 +1598,7 @@ export class ScopeView {
           this._reportedClockSelection = Number($('sc-clock').value) || 0;
           // **生效**后端（DEF flags bit6）：你下发的 flags 只是请求，后端拉不起来时探针会换一条路重试，
           // 所以界面一律用生效值显示（见 web-handoff-riscv-scope.md）
-          this.setBackend(d.riscv ? P.BACKEND.RISCV : P.BACKEND.SWD, 'def');
+          this.setBackend(d.backend, 'def');
           this.updatePlan();
           // 探针回报的 span 数 vs 本地计划：不一致就说明两边的合并规则不一样了（改一边忘了另一边）
           if (d.spans && this.plan && d.spans !== this.plan.spans.length){

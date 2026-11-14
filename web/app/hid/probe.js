@@ -68,7 +68,18 @@ export function resetIoData(action, openDrain = 0){ return Uint8Array.of(action 
 
 /** action 10：切全局目标类型。Byte[0]=10（action）、Byte[1]=0 SWD/ARM | 1 RISC-V/JTAG。
  *  ⚠️ 这是**0x31** 的动作，不是 0x32 —— J-Scope 那边要发它得用 HID_CMD_RTT（见 scope/protocol.js）。*/
-export function targetTypeData(riscv){ return Uint8Array.of(RTT_ACT.TARGET, riscv ? 1 : 0); }
+export const STREAM_TARGET = { SWD:'swd', RISCV:'riscv', ARM_JTAG:'arm-jtag' };
+export function targetTypeData(target){
+  const type = target === STREAM_TARGET.ARM_JTAG ? 2 : Number(target === true || target === STREAM_TARGET.RISCV);
+  return Uint8Array.of(RTT_ACT.TARGET, type);
+}
+
+export function confirmStreamTarget(target, status){
+  if (target === STREAM_TARGET.ARM_JTAG && !status.supportsArmJtag)
+    throw Error('此探针固件缺少 H743 ARM/JTAG，需更新 akaLinkPro APP');
+  if (status.supportsArmJtag && status.targetType !== targetTypeData(target)[1])
+    throw Error('探针目标接口与请求不一致');
+}
 
 // ============================================================================
 // 组包 / 解析（导出成纯函数，Node 自测直接测）
@@ -138,6 +149,8 @@ export function parseStatus(bytes){
     running: !!(w0 & 1),
     channel: (w0 >>> 8) & 0xff,
     swdReady: !!(w0 & (1 << 16)),
+    targetType: (w0 >>> 17) & 3,
+    supportsArmJtag: !!(w0 & (1 << 19)),
     clockDelay: (w0 >>> 24) & 0xff,
     cbAddr: w1,                 // 找到的控制块地址（"SEGGER RTT" 签名处）
     upAddr: w2,                 // 上行缓冲描述符地址
@@ -540,7 +553,15 @@ export class AkaLinkHid {
 
   /** 切**全局目标类型**（HID 0x31 action 10）：false = SWD/ARM，true = RISC-V/JTAG。
    *  粘性：设一次一直有效，J-Scope 采样器的传输后端也跟着它走。 */
-  setTargetType(riscv){ return this.rtt(RTT_ACT.TARGET, targetTypeData(!!riscv)); }
+  async setTargetType(target){
+    if (target === STREAM_TARGET.ARM_JTAG){
+      const { status } = await this.status();
+      if (!status.supportsArmJtag) throw Error('此探针固件缺少 H743 ARM/JTAG，需更新 akaLinkPro APP');
+    }
+    const reply = await this.rtt(RTT_ACT.TARGET, targetTypeData(target));
+    if (reply.rc === 0) confirmStreamTarget(target, reply.status);
+    return reply;
+  }
 
   resetIo(action = RESET_IO_ACT.GET, openDrain = 0){
     return this.xfer(CMD.RESET_IO, resetIoData(action, openDrain)).then(parseResetIoResponse);

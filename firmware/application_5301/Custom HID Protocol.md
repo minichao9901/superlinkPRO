@@ -226,7 +226,7 @@ Byte[0x03-0x3F] = Command data（可选）
     Byte[0x03] = action：0=停止，1=启动，2=查状态，3=自动启动（自己搜控制块），
                   4=原始 DAP 透传（调试用），5=读探针自身内存（调试用），6=取透传结果，
                   7=运行时调参，8=纯 SWD 基准，9=取基准结果，
-                  **10=切换目标类型**（Byte[0x04]：0=SWD/ARM，1=RISC-V/JTAG，
+                  **10=切换目标类型**（Byte[0x04]：0=SWD/ARM，1=RISC-V/JTAG，2=STM32H743/ARM JTAG，
                   见下方第 17 条）
     Byte[0x04-0x07] = 目标地址（action=1 时可选，0 = 用默认搜索区间；
                                 action=8 时为目标地址）
@@ -295,6 +295,8 @@ Byte[0x03-0x3F] = Command data（可选）
    设备复位进入DFU模式，不会回复，此时连接断开
 
 16. 探针侧 HSS 采样指令 0x32（J-Scope 波形页的数据源）
+
+   STM32H743 的 ARM/JTAG 由 RTT 目标类型动作选择 `2`。RTT 状态字 0 的 bit19 表示支持该类型，bits 17–18 回报当前类型。J-Scope 状态字 0 的 bit17 和 DEF flags 的 bit8 表示实际采样后端为 ARM/JTAG。J-Scope 配置请求仍使用原有 8 位 flags，STOP、ZLP 和尾计数协议不变。使用探针端 JTAG 的 10 MHz 请求档，物理 TCK 取决于探针时序。
     探针自己按你设的周期，用 SWD 读目标 RAM 里 1~8 个变量（地址来自目标 .elf 的 DWARF），
     组 512 B 自描述包，从 **interface 0 上原本闲置的 bulk IN `0x83`** 推给主机。
     目标固件一行都不用改。

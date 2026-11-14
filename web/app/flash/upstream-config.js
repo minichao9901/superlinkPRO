@@ -15,7 +15,7 @@ async function loadScript(path){
   return scripts.get(path);
 }
 
-export async function loadBuiltinFlashCfg(family, clockKhz){
+export async function loadBuiltinFlashCfg(family, clockKhz, transport = 'swd'){
   if (!hasBuiltinFlashCfg(family)) throw Error('没有可用的官方 OpenOCD Flash CFG');
   const hpm = hpmSdkFlashConfigs[family];
   const paths = hpm ? [
@@ -26,7 +26,7 @@ export async function loadBuiltinFlashCfg(family, clockKhz){
   const files = new Map(await Promise.all(paths.map(async path => [path, await loadScript(hpm ? `hpm-sdk/${path}` : path)])));
   if (hpm) files.set('interface/cmsis-dap.cfg', await loadScript('interface/cmsis-dap.cfg'));
   const cfg = await inspectOpenOcdCfg(files.get(entry), entry, files, {
-    transport:hpm ? 'jtag' : 'swd', clockKhz, ...(hpm && {board:family}),
+    transport:hpm ? 'jtag' : transport, clockKhz, ...(hpm && {board:family}),
   });
   if (!cfg.hasFlash) throw Error('OpenOCD 官方 CFG 没有定义 Flash bank：' + entry);
   return cfg;

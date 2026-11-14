@@ -402,14 +402,15 @@ void api_param_proc_hid(uint8_t *req_hid, uint8_t *res_hid)
         case RTT_ACT_TARGET:
             /* Backend changes are global: never switch a live bridge's next
              * read/RdOff write onto another debug bus. No SWD work in this ISR. */
-            if (rtt_bridge_is_running() || scope_sampler_is_running())
+            if (rtt_bridge_target_busy() || scope_sampler_is_running())
             {
                 rc = -7;              /* busy: stop the active engine first */
             }
-            else
+            else if (req_hid[4] <= RTT_TARGET_ARM_JTAG)
             {
                 rtt_bridge_set_target(req_hid[4]);
             }
+            else { rc = -6; }
             break;
         case RTT_ACT_STATUS:
         default:

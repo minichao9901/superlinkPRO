@@ -12,6 +12,7 @@ import { Rtt } from './protocol.js';
 import { OpenOcdProbe, selectOpenOcdDevice } from '../core/openocd-probe.js';
 import { prepareOpenOcdJtag } from '../core/openocd-jtag-pins.js';
 import { makeOpenOcdProfile } from '../core/openocd-profile.js';
+import { loadBuiltinFlashCfg } from '../flash/upstream-config.js';
 import { HPM_BOARDS, hpmBoard } from '../targets/hpm/porting.js';
 import { selectedHpmBoard, rememberHpmBoard } from '../targets/hpm/select.js';
 import { MockProbe } from './mock.js';
@@ -130,16 +131,18 @@ export class RttView {
     const applyTarget = () => {
       const rv = $('r-target').value === 'riscv';
       const clkLbl = $('r-usb-clock')?.closest('label')?.querySelector('span');
-      if (clkLbl) clkLbl.textContent = rv ? 'JTAG TCK' : 'SWD 时钟';
+      if (clkLbl) clkLbl.textContent = $('r-target').value === 'swd' ? 'SWD 时钟' : 'JTAG TCK';
       $('r-reset').disabled = rv;
       $('r-reset').title = rv
         ? '使用调试页复位 RISC-V 目标'
         : '通过 OpenOCD Wasm 复位 Cortex-M';
 
-      if (chip) chip.value = rv ? (store.get('rtt.rvChip', '') || selectedHpmBoard())
+      if (chip) chip.value = $('r-target').value === 'arm-jtag' ? 'stm32h7'
+        : rv ? (store.get('rtt.rvChip', '') || selectedHpmBoard())
                                 : (store.get('rtt.armChip', store.get('rtt.ocdTarget', '')) || 'stm32f103');
       if (chip && !chip.value) chip.value = rv ? selectedHpmBoard() : 'stm32f103';
-      $('r-range').value = rv ? (rvRange(rvChipId()))
+      $('r-range').value = $('r-target').value === 'arm-jtag' ? '0x24000000-0x24080000'
+                              : rv ? (rvRange(rvChipId()))
                               : (OCD_RAM[armChipId()] || $('r-range').value);
       this._applyChipUi(false);
     };
@@ -173,12 +176,13 @@ export class RttView {
         setStatus($('r-err'), '换了芯片：已清空手填的 RTT 地址（下次连接会按新 RAM 范围自动扫描）');
       }
       const wantRv = arch === 'riscv';
-      if (wantRv !== ($('r-target').value === 'riscv')){
+      if (wantRv !== ($('r-target').value === 'riscv') || ($('r-target').value === 'arm-jtag' && id !== 'stm32h7')){
         $('r-target').value = wantRv ? 'riscv' : 'swd';
         store.set('rtt.target',$('r-target').value);
         onTargetChanged();
       } else {
-        $('r-range').value = wantRv ? (rvRange(id)) : (OCD_RAM[id] || $('r-range').value);
+        $('r-range').value = $('r-target').value === 'arm-jtag' ? '0x24000000-0x24080000'
+          : wantRv ? rvRange(id) : (OCD_RAM[id] || $('r-range').value);
         this._applyChipUi(true);
       }
     });
@@ -273,6 +277,7 @@ export class RttView {
     const target=chipSel()?.value;
     constrainClockSelect($('r-usb-clock'),target,v=>store.set('rtt.clockKhz',v));
     $('r-usb-clock').title=isHpmClockTarget(target)?'HPM JTAG TCK 最高 25 MHz；默认 8 MHz'
+      : $('r-target').value==='arm-jtag'?'H743 JTAG 时钟请求档，默认 1 MHz'
       : $('r-target').value==='riscv'?'其他 RISC-V JTAG TCK 最高 60 MHz':'SWD 时钟最高 60 MHz；默认 1 MHz';
   }
 
@@ -303,11 +308,13 @@ export class RttView {
         const riscv = $('r-target').value === 'riscv';
         const target = riscv ? rvChipId() : armChipId();
         const imported = this.importedTarget?.id === target ? this.importedTarget.cfg : null;
-        const cfg = imported || makeOpenOcdProfile({ arch:riscv ? 'riscv' : 'arm', port:hpmBoard(target), family:target,
-          clockKhz:webClockKhz($('r-usb-clock').value, target, riscv ? 8000 : 1000) });
+        const armJtag = $('r-target').value === 'arm-jtag';
+        const clockKhz = webClockKhz($('r-usb-clock').value, target, riscv ? 8000 : 1000);
+        const cfg = imported || (armJtag ? await loadBuiltinFlashCfg('stm32h7', clockKhz, 'jtag')
+          : makeOpenOcdProfile({ arch:riscv ? 'riscv' : 'arm', port:hpmBoard(target), family:target, clockKhz }));
         const device = await selectOpenOcdDevice({ authorizedOnly:true });
         if (g !== this._sessionGen) return;
-        if (riscv) await prepareOpenOcdJtag(device);
+        if (riscv || cfg.transport === 'jtag') await prepareOpenOcdJtag(device);
         if (g !== this._sessionGen) return;
         this.probe = await OpenOcdProbe.open(device, { cfg, runningMemory:true });
         if (g !== this._sessionGen) return;

@@ -40,6 +40,7 @@ import { runCmd, decodeScalar } from './cmd.js';
 import { SymTab } from './symbols.js';
 import { importOpenOcdCfg, readCfgDirectory } from './openocd-cfg.js';
 import { inspectOpenOcdCfg } from './openocd-raw-cfg.js';
+import { loadBuiltinFlashCfg } from '../flash/upstream-config.js';
 /**
  * 寄存器名**不分大小写**比。
  *
@@ -135,6 +136,7 @@ export class DbgView {
     if (arm){
       for (const chip of CHIPS.filter(chip => chip.v.startsWith('stm32') || chip.v === 'rp2350'))
         arm.appendChild(new Option(chip.label, chip.v));
+      arm.appendChild(new Option('STM32H743 / JTAG', 'stm32h743-jtag'));
       arm.value = store.get('dbg.armTarget', 'arm');
       if (!arm.value) arm.value = 'arm';
       arm.addEventListener('change', () => {
@@ -700,7 +702,7 @@ export class DbgView {
       await this._activateImportedCfg({ ...cfg, name });
       const riscv = cfg.arch === 'riscv';
       const workArea = cfg.workAreaSize != null ? `，工作区 ${hex32(cfg.workAreaBase)} / ${cfg.workAreaSize} 字节（仅供参考）` : '';
-      this._out(`已导入 OpenOCD ${cfg.kind} CFG：${name}，${riscv ? 'JTAG' : 'SWD'} ${cfg.clockKhz} kHz${workArea}`, 'ok');
+      this._out(`已导入 OpenOCD ${cfg.kind} CFG：${name}，${(cfg.transport || (riscv ? 'jtag' : 'swd')).toUpperCase()} ${cfg.clockKhz} kHz${workArea}`, 'ok');
       if (cfg.sourced?.length) this._out(`读取目录依赖：${cfg.sourced.join('、')}`, 'dim');
       if (cfg.ignored.length) this._out(`调试配置跳过：${cfg.ignored.join('、')}`, 'dim');
       return cfg;
@@ -762,19 +764,22 @@ export class DbgView {
     const boardId = riscv ? $('d-hpm-target')?.value : $('d-arm-target')?.value;
     const port = hpmBoard(imported?.boardId || boardId);
     const clockKhz = imported?.clockKhz ?? webClockKhz($('d-clock')?.value, boardId, DEFAULT_CLOCK_KHZ);
-    const cfg = mock ? null : imported?.files || imported?.raw ? imported : makeOpenOcdProfile({
+    const cfg = mock ? null : imported?.files || imported?.raw ? imported
+      : boardId === 'stm32h743-jtag' ? await loadBuiltinFlashCfg('stm32h7', clockKhz, 'jtag')
+      : makeOpenOcdProfile({
       arch:riscv ? 'riscv' : 'arm', port, clockKhz, dpidr:imported?.dpidr,
       tapIdcode:imported?.tapIdcode, irLength:imported?.irLength, hart:imported?.hart,
       family:imported?.family || boardId, name:imported?.name,
     });
     this._out('', 'dim');
-    const label = mock ? '模拟目标' : `OpenOCD Wasm / ${riscv ? 'JTAG' : 'SWD'}`;
+    const jtag = riscv || cfg?.transport === 'jtag';
+    const label = mock ? '模拟目标' : `OpenOCD Wasm / ${jtag ? 'JTAG' : 'SWD'}`;
     this._out(`──── 连接（${label}${mock ? '' : ` · ${clockKhz} kHz`}）────`, 'dim');
     if (this.clockMigrated && !imported){ this._out('（SWD 时钟默认值已从 1 MHz 改为 10 MHz —— 真机实测 PPB/内存都正常；不想要就在上面改回去）', 'dim'); this.clockMigrated = false; }
     try {
       if (!mock) await prepareProbeHandoff(this, 'dbg', '调试器要使用探针');
       if (this._disconnecting || generation !== this._connectionGen) return false;
-      if (riscv && await prepareOpenOcdJtag(device)) this._out('探针已确认处于 SWD + JTAG 模式', 'ok');
+      if (jtag && await prepareOpenOcdJtag(device)) this._out('探针已确认处于 SWD + JTAG 模式', 'ok');
       if (this._disconnecting || generation !== this._connectionGen) return false;
       this._connectionTask = this.session.exclusive(() => this.session.connect({
         mock, cfg, device,
@@ -782,7 +787,7 @@ export class DbgView {
       await this._connectionTask;
       if (this._disconnecting || generation !== this._connectionGen) return false;
     } catch (e){
-      const msg = String(e?.message || e) + (riscv && /JTAG not supported/i.test(e?.message || '')
+      const msg = String(e?.message || e) + (jtag && /JTAG not supported/i.test(e?.message || '')
         ? '。请从顶栏「连接选项」为同一只 akaLinkPro 授权 HID，再连接探针' : '');
       this._out('✗ 连接失败：' + msg, 'err');
       toast('连接失败：' + msg, 'err', 7000);

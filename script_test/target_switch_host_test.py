@@ -6,12 +6,13 @@ s=(root/'firmware/application_5301/src/api/api_param.c').read_text(encoding='utf
 case=s[s.index('        case RTT_ACT_TARGET:'):s.index('        case RTT_ACT_STATUS:',s.index('        case RTT_ACT_TARGET:'))]
 source='''#include <assert.h>
 #define RTT_ACT_TARGET 10
+#define RTT_TARGET_ARM_JTAG 2
 static int bridge, scope, changes, target;
-static int rtt_bridge_is_running(void){return bridge;}
+static int rtt_bridge_target_busy(void){return bridge;}
 static int scope_sampler_is_running(void){return scope;}
 static void rtt_bridge_set_target(unsigned kind){changes++;target=kind;}
-static int command(void){unsigned char req_hid[5]={0,0,0,10,1};int rc=0;switch(req_hid[3]){\n'''+case+'''}return rc;}
-int main(void){bridge=1;assert(command()==-7);assert(changes==0);bridge=0;scope=1;assert(command()==-7);assert(changes==0);scope=0;assert(command()==0);assert(changes==1&&target==1);return 0;}
+static int command(unsigned char kind){unsigned char req_hid[5]={0,0,0,10,kind};int rc=0;switch(req_hid[3]){\n'''+case+'''}return rc;}
+int main(void){bridge=1;assert(command(2)==-7);assert(changes==0);bridge=0;scope=1;assert(command(2)==-7);assert(changes==0);scope=0;assert(command(3)==-6);assert(command(2)==0);assert(changes==1&&target==2);return 0;}
 '''
 with tempfile.TemporaryDirectory() as d:
  p=Path(d);(p/'test.c').write_text(source)

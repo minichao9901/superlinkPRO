@@ -74,7 +74,8 @@ console.log('== 1. 采样计划（读计划 = 速率的最大杠杆）==');
   ok(rvDef.riscv === true, 'DEF flags bit6 → **生效**后端 = RISC-V（不是你下发的那个）');
   const swdDef = P.parseDef(P.buildDef({ seq: 1, swdHz: 6e7, periodUs: 100, flags: 0, vars: pack.slice(0, 2), spans: 1 }).subarray(16));
   ok(swdDef.riscv === false, 'DEF flags bit6 = 0 → SWD/ARM');
-  ok(Array.from(P.targetTypeData(true)).join(',') === '10,1' &&
+  ok(Array.from(P.targetTypeData(P.BACKEND.ARM_JTAG)).join(',') === '10,2' &&
+     Array.from(P.targetTypeData(true)).join(',') === '10,1' &&
      Array.from(P.targetTypeData(false)).join(',') === '10,0' &&
      P.HID_CMD_RTT === 0x31,
      '目标类型切换走 HID **0x31** action 10（不是 0x32），Byte[3]=10 / Byte[4]=0|1');

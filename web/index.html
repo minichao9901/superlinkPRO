@@ -16,7 +16,7 @@
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=4d613371f94f98a0';
+  window.__webBundleUrl = 'app/site/main.js?v=3cdacb393055f3a7';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -319,6 +319,7 @@
           <label class="row"><span>目标接口</span>
             <select id="r-target" title="选择目标的物理接口。OpenOCD Wasm 通过 WebUSB 驱动探针。">
               <option value="swd">SWD / ARM</option>
+              <option value="arm-jtag">STM32H743 / JTAG</option>
               <option value="riscv">RISC-V / JTAG</option>
             </select>
           </label>
@@ -457,8 +458,9 @@
           <input id="h-chan" class="num" value="0" title="RTT 上行通道号，0 = channel 0">
         </label>
         <label class="row"><span>目标接口</span>
-          <select id="h-target" title="探针的全局目标类型（HID 0x31 action 10）。SWD/ARM 走 DAPLink 的 swd_host；RISC-V/JTAG 走探针里的 DMI+SBA 引擎（TAP 复位 + IR=0x11 + 唤醒 DM）。粘性：设一次就一直有效，采样器那个后端也跟着它走">
+          <select id="h-target" title="选择探针读取目标内存的接口。H743 JTAG 需要支持 ARM/JTAG 的探针固件。">
             <option value="swd">SWD / ARM</option>
+            <option value="arm-jtag">STM32H743 / JTAG</option>
             <option value="riscv">RISC-V / JTAG</option>
           </select>
         </label>
@@ -550,8 +552,9 @@
         <label class="row"><span>周期</span><input id="sc-period" class="num" value="100" inputmode="decimal" title="µs，可填 2.25 / 2.5 / 2.75；小数周期需新版探针固件，按 24 MHz tick 量化"><em class="unit">µs</em></label>
         <label class="row"><span>时长</span><input id="sc-seconds" class="num" value="20" inputmode="numeric" title="缓冲容量 = 实测速率 × 时长（页面会显示占多少内存）"><em class="unit">s</em></label>
         <label class="row" id="sc-target-row"><span>目标接口</span>
-          <select id="sc-target" title="探针的全局目标类型（HID 0x31 action 10，与 RTT-over-JTAG 共用同一个开关）。粘性：设一次就一直有效。切到 RISC-V/JTAG 后本页后端也跟着换（探针侧采样器的传输后端 = 全局目标类型）">
+          <select id="sc-target" title="选择采样器读取目标内存的接口。H743 JTAG 需要支持 ARM/JTAG 的探针固件。">
             <option value="swd">SWD / ARM</option>
+            <option value="arm-jtag">STM32H743 / JTAG</option>
             <option value="riscv">RISC-V / JTAG</option>
           </select></label>
         <p class="hint" id="sc-backend">生效后端：未开始（采样后由探针回报）</p>
@@ -788,7 +791,7 @@
           </select>
         </label>
         <div class="row btnrow">
-          <button id="d-cfg-pick" title="导入 Cortex-M/SWD 或 RISC-V/JTAG 的 target/board CFG">导入 OpenOCD CFG…</button>
+          <button id="d-cfg-pick" title="导入 Cortex-M 的 SWD／JTAG 或 RISC-V 的 JTAG target/board CFG">导入 OpenOCD CFG…</button>
           <button id="d-cfg-clear" hidden>清除 CFG</button>
           <input type="file" id="d-cfg-file" accept=".cfg" hidden>
         </div>

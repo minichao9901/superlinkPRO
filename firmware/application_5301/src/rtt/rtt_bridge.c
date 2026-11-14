@@ -30,6 +30,7 @@
 #include "cdc_interface.h"
 #include "rtt_bridge.h"
 #include "riscv_jtag.h"
+#include "arm_jtag_mem.h"
 #include "swd_host.h"   /* ARM DAPLink 官方 SWD 访问层（见 src/swd_host/） */
 #include "hpm_clock_drv.h" /* clock_cpu_delay_ms() */
 #include "hpm_mchtmr_drv.h"
@@ -55,6 +56,7 @@ service_gate_t rtt_bridge_gate;
  *
  * 启动时若这一档用不了，会沿 45→36→30→20→10 自动往下找。 */
 #define RTT_SWD_CLOCK_HZ 45000000UL
+#define RTT_ARM_JTAG_MAX_HZ 10000000UL
 
 /* 累计多少次重扫（读失败触发的重新搜索）就自动降一档。60 MHz 那种"能跑但偶尔抖动"
  * 的档靠这个自己退回稳的档，而不是一直丢数据。 */
@@ -174,18 +176,24 @@ static void dap_cmd(const uint8_t *req, uint8_t *resp)
 /* 0 = SWD/ARM（官方 swd_host），1 = RISC-V（JTAG DMI + SBA，见 src/riscv/）。
  * 目标类型由 HID CMD_RTT action 10 设定；桥本身的逻辑（找控制块、搬环形缓冲、
  * 回写 RdOff）两边完全一样，只有底下三个原语不同。 */
-static uint8_t s_target;
+static volatile uint8_t s_target;
+static volatile uint8_t s_starting;
 
 void rtt_bridge_set_target(uint32_t kind)
 {
-    s_target = (kind != 0U) ? 1U : 0U;
+    if (kind != s_target)
+    {
+        s_swd_ready = 0U;
+        arm_jtag_mem_invalidate();
+        s_target = (uint8_t)kind;
+    }
 }
 
 /* 供 scope 采样器选择传输后端：目标类型是**全局**的（同一个开关既管 RTT 桥也管
  * J-Scope），这样网页不做任何改动就能采 RISC-V 目标。 */
-uint8_t rtt_bridge_target_is_riscv(void)
+uint8_t rtt_bridge_target(void)
 {
-    return (s_target == 1U) ? 1U : 0U;
+    return s_target;
 }
 
 /* 写目标内存里的一个字。返回 0 = 成功、-1 = 失败（与 rtt_read_bytes 同约定）。
@@ -198,7 +206,14 @@ uint8_t rtt_bridge_target_is_riscv(void)
  * 连控制块都不再读）。 */
 static int rtt_write_word(uint32_t addr, uint32_t val)
 {
-    if (s_target == 1U)
+    if (s_target == RTT_TARGET_ARM_JTAG)
+    {
+        if (rtt_bridge_swd_ensure_ready() != 0) { return -1; }
+        int rc = arm_jtag_mem_write_word(addr, val);
+        if (rc != 0) { s_swd_ready = 0U; }
+        return rc;
+    }
+    if (s_target == RTT_TARGET_RISCV)
     {
         return (riscv_jtag_write_word(addr, val) == 0) ? 0 : -1;
     }
@@ -213,7 +228,13 @@ static int rtt_write_word(uint32_t addr, uint32_t val)
  * RISC-V 这边对应的是 SBCS 的 sbbusyerror / sberror（写 1 清零）。 */
 static void rtt_clear_link_errors(void)
 {
-    if (s_target == 1U)
+    if (s_target == RTT_TARGET_ARM_JTAG)
+    {
+        arm_jtag_mem_invalidate();
+        s_swd_ready = 0U;
+        return;
+    }
+    if (s_target == RTT_TARGET_RISCV)
     {
         (void)riscv_jtag_clear_errors();
         return;
@@ -225,7 +246,14 @@ static void rtt_clear_link_errors(void)
  * only to reach Set_Clock_Delay(); it performs no SWD traffic. */
 static int rtt_swd_set_clock(uint32_t hz)
 {
-    if (s_target == 1U)
+    if (s_target == RTT_TARGET_ARM_JTAG)
+    {
+        /* Reinitialize from the main loop before the next transfer. */
+        arm_jtag_mem_invalidate();
+        s_swd_ready = 0U;
+        return 0;
+    }
+    if (s_target == RTT_TARGET_RISCV)
     {
         if (hz < 256U) { riscv_jtag_set_delay(hz); }  /* RISC-V: hz 复用为 idle 周期数；SWD 换挡阶梯是百万级数字，不能落到 idle 计数上 */
         return 0;
@@ -265,7 +293,14 @@ static void rtt_swd_settle_delay(void)
  * （含一次 nRESET 硬复位）。 */
 static int rtt_swd_init(void)
 {
-    if (s_target == 1U)
+    if (s_target == RTT_TARGET_ARM_JTAG)
+    {
+        if (s_swd_clock_hz > RTT_ARM_JTAG_MAX_HZ) { s_swd_clock_hz = RTT_ARM_JTAG_MAX_HZ; }
+        int rc = arm_jtag_mem_open(s_swd_clock_hz);
+        s_swd_ready = rc == 0;
+        return rc;
+    }
+    if (s_target == RTT_TARGET_RISCV)
     {
         /* RISC-V: 没有 SWD 握手，直接开 TAP + 加载 IR=DMI + 唤醒 DM。 */
         int rc = riscv_jtag_open();
@@ -357,7 +392,15 @@ static int rtt_read_bytes(uint32_t addr, uint8_t *dst, uint32_t len)
         {
             n = s_chunk;
         }
-        if (s_target == 1U)
+        if (s_target == RTT_TARGET_ARM_JTAG)
+        {
+            if (rtt_bridge_swd_ensure_ready() != 0 || arm_jtag_mem_read(addr + done, &dst[done], n) != 0)
+            {
+                s_swd_ready = 0U;
+                return -1;
+            }
+        }
+        else if (s_target == RTT_TARGET_RISCV)
         {
             if (riscv_jtag_read(addr + done, &dst[done], n) != 0)
             {
@@ -554,7 +597,7 @@ static int rtt_clock_step_down(void)
  * 返回 0 = 重新初始化成功。 */
 int rtt_bridge_link_recover(void)
 {
-    if (s_target == 1U)
+    if (s_target != RTT_TARGET_SWD)
     {
         s_swd_ready = 0U;
         return rtt_swd_init();
@@ -738,6 +781,11 @@ int rtt_bridge_is_running(void)
     return s_running ? 1 : 0;
 }
 
+int rtt_bridge_target_busy(void)
+{
+    return s_running || s_start_pending || s_starting;
+}
+
 /* ------------------------------------------------------------------ */
 /* 给 scope 采样器复用的 adapter（声明见 rtt_bridge.h 末尾）            */
 /* ------------------------------------------------------------------ */
@@ -756,6 +804,7 @@ int rtt_bridge_swd_is_ready(void)
 void rtt_bridge_request_swd_clock(uint32_t hz)
 {
     if (hz == 0U) { return; }
+    if (s_target == RTT_TARGET_ARM_JTAG && hz > RTT_ARM_JTAG_MAX_HZ) { hz = RTT_ARM_JTAG_MAX_HZ; }
     s_swd_clock_req = hz;
     s_swd_clock_hz = hz;
     /* 关键：把链路标成"下次要重新初始化"，让 rtt_swd_init() 去走 20 MHz 斜坡
@@ -814,6 +863,7 @@ void rtt_bridge_note_dap_activity(void)
      * riscv_jtag 的"配置已写好"缓存看不出来 —— 不清掉的话 SBA 读会**静默返回 0**
      * （实测：靶子刚被 ndmreset 烧完，探针读回全 0，OpenOCD 读同一地址却正常）。 */
     riscv_jtag_invalidate_cache();
+    arm_jtag_mem_invalidate();
 }
 
 /* Bring-up debugging: keep the last host DAP request/response so the exact
@@ -1124,6 +1174,7 @@ static void rtt_bridge_service_requests(void)
     }
     if (s_start_pending)
     {
+        s_starting = 1U;
         s_start_pending = 0U;
         /* 重启前也把没落地的 RdOff 补一笔：语义与"停桥"一样（幂等、RdOff 是绝对值），
          * 但只有**会话还活着**（s_running）时才能做 —— 主机碰过 DAP 的话，pending 已经
@@ -1133,6 +1184,7 @@ static void rtt_bridge_service_requests(void)
             rtt_bridge_flush_pending_rd();
         }
         s_start_rc = (int8_t)rtt_bridge_start(s_req_addr, s_req_size, s_req_channel);
+        s_starting = 0U;
     }
     if (s_bench_pending)
     {
@@ -1218,6 +1270,8 @@ uint32_t rtt_bridge_status(uint32_t *out, uint32_t words)
 
     w[0] = (uint32_t)s_running | ((uint32_t)s_channel << 8) |
            ((DAP_Data.debug_port == DAP_PORT_SWD) ? (1UL << 16) : 0UL) |
+           ((uint32_t)s_target << 17) |
+           (1UL << 19) | /* Explicit ARM/JTAG target support. */
            ((uint32_t)DAP_Data.clock_delay << 24);
     w[1] = s_cb_addr;
     w[2] = s_up_addr;

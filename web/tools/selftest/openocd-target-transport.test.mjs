@@ -24,6 +24,11 @@ test('production Wasm loads all official Flash CFGs without opening hardware', a
     assert.equal(cfg.raw.hpmSdk,hpm,family);
     if (hpm) assert.equal(cfg.raw.connection.board,family);
   }
+  const jtag = await loadBuiltinFlashCfg('stm32h7', 10000, 'jtag');
+  assert.equal(jtag.transport, 'jtag');
+  assert.equal(jtag.clockKhz, 10000);
+  assert.equal(jtag.stm32h7Flash, true);
+  assert.deepEqual(jtag.cores, [{target:'stm32h7x.cpu0',arch:'arm'}]);
 });
 
 test('browser Wasm uses an advancing monotonic clock for OpenOCD waits', async () => {

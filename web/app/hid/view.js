@@ -15,7 +15,8 @@ import { toast } from '../ui/toast.js';
 import { store } from '../core/store.js';
 import { bytes as fBytes } from '../core/format.js';
 import { findSymbol } from '../rtt/elf.js';
-import { AkaLinkHid, startRcText, START_PENDING } from './probe.js';
+import { AkaLinkHid, startRcText, START_PENDING, STREAM_TARGET } from './probe.js';
+import { enableJtagPins } from '../core/openocd-jtag-pins.js';
 import { MockAkaLinkHid } from './mock.js';
 import { waitMs } from '../core/pace.js';
 
@@ -72,7 +73,7 @@ export class RttCdcView {
     }
     store.set('hid.target', undefined);          // 老键退休：本页不再写它，免得两页又分家
     store.bind($('h-target'), 'rtt.target');
-    this._targetRiscv = this.isRiscv;
+    this._targetType = this.targetType;
     // 目标类型是**全局**的（粘性）：RISC-V/JTAG 下 SWD 时钟档无意义（探针忽略 action 7 的 Hz，
     // 只有 <256 的值会被当成 DMI 的 idle 周期数），所以直接置灰并说明
     this._applyTargetUi();
@@ -271,7 +272,16 @@ export class RttCdcView {
 
   // ---------------------------------------------------------------- 参数
   /** 目标类型是 RISC-V/JTAG 吗？（探针侧粘性标志，界面下拉是唯一真相）*/
-  get isRiscv(){ return $('h-target').value === 'riscv'; }
+  get targetType(){ return $('h-target').value; }
+  get isRiscv(){ return this.targetType === STREAM_TARGET.RISCV; }
+  get isArmJtag(){ return this.targetType === STREAM_TARGET.ARM_JTAG; }
+
+  async _setStreamTarget(){
+    const response = await this.dev.setTargetType(this.targetType);
+    if (response.rc !== 0) throw Error(`探针拒绝切换目标接口（${response.rc}）`);
+    if (this.isArmJtag && !this.mock) await enableJtagPins(this.dev);
+    this._targetType = this.targetType;
+  }
 
   params(){
     const num = (id, dflt) => {
@@ -289,7 +299,7 @@ export class RttCdcView {
        *    探针的 RISC-V 引擎就再也读不出目标内存 —— 现象是"桥一直找不到 RTT 控制块、
        *    读错数一直涨"，而同一个探针用 `hpm6800_rtt_loss.py`（clock 传 0）1.39 MB/s 跑得好好的。
        */
-      clockHz: this.isRiscv ? 0 : (Number($('h-clock').value) || 0),
+      clockHz: this.isRiscv ? 0 : this.isArmJtag ? 10000000 : (Number($('h-clock').value) || 0),
     };
   }
 
@@ -310,7 +320,7 @@ export class RttCdcView {
     try {
       await runProbeOperation(this, 'hid', async () => {
         await this.dev.configure({ clockHz });
-        toast(`探针 SWD 时钟已设为 ${clockHz / 1e6} MHz`, 'ok');
+        toast(`探针时钟请求已设为 ${clockHz / 1e6} MHz`, 'ok');
         await this.refresh();
       }, { reason: 'RTT 转发要调整时钟', policy: 'reject' });
     } catch (e){ toast('调时钟失败：' + (e?.message || e), 'err'); }
@@ -330,7 +340,7 @@ export class RttCdcView {
     if (this._disconnecting) return;
     const scope = globalThis.__tools?.scope;
     if (this.last?.running || this._starting || scope?.running || scope?._starting){
-      $('h-target').value = this._targetRiscv ? 'riscv' : 'swd';
+      $('h-target').value = this._targetType || 'swd';
       store.set('rtt.target', $('h-target').value);
       toast('先停止 RTT 转发和采样，再切目标类型', 'warn');
       return;
@@ -349,17 +359,15 @@ export class RttCdcView {
               '或在 0x01240000 一带手填 —— 对着 STM32 的默认窗口搜是搜不到的', 'warn', 8000);
       }
     }
-    if (!this.dev.connected){ toast(`已记为 ${riscv ? 'RISC-V/JTAG' : 'SWD/ARM'}，连上探针后再切一次`, 'warn'); return; }
+    if (!this.dev.connected){ this._targetType = this.targetType; return; }
     try {
       await runProbeOperation(this, 'hid', async () => {
-      const response = await this.dev.setTargetType(riscv);
-      if (response.rc < 0) throw new Error('探针忙：先停止 RTT 转发和采样');
-      this._targetRiscv = riscv;
+      await this._setStreamTarget();
       // 🚨 顺手把时钟字段清成 0（粘性状态里可能还留着上一次 SWD 的 45 MHz）
       if (riscv && !this.mock){
         try { await this.dev.configure({ clockHz: 0 }); } catch { /* 清不掉也不致命，start() 里还会再发一次 0 */ }
       }
-      toast(`探针目标类型已切到 ${riscv ? 'RISC-V/JTAG' : 'SWD/ARM'}（粘性，采样器也跟着走）`, 'ok');
+      toast(`探针目标接口已切到 ${$('h-target').selectedOptions[0].textContent}`, 'ok');
       await this.refresh();
       }, { mock: !!this.mock, reason: 'RTT 转发要切换目标类型', policy: 'reject' });
     } catch (e){ toast('切目标类型失败：' + (e?.message || e), 'err'); }
@@ -371,9 +379,21 @@ export class RttCdcView {
    */
   _applyTargetUi(){
     const riscv = this.isRiscv;
-    $('h-clock').disabled = riscv;
-    $('h-clock').title = riscv
+    const clock = $('h-clock');
+    const armJtag = this.isArmJtag;
+    const low = Array.from(clock.options || []).find(option => option.value === '10000000');
+    if (armJtag && !low) clock.add(new Option('10 MHz', '10000000'), 1);
+    if (!armJtag && low) low.remove();
+    for (const option of Array.from(clock.options || []))
+      option.disabled = armJtag && option.value !== '10000000';
+    if (armJtag) clock.value = '10000000';
+    else if (!clock.value) clock.value = '';
+    clock.disabled = riscv || armJtag;
+    const label = clock.closest?.('label')?.querySelector('span');
+    if (label) label.textContent = armJtag ? 'JTAG 时钟请求' : 'SWD 时钟';
+    clock.title = riscv
       ? 'RISC-V/JTAG 下必须留 0：这个字段在 JTAG 下是 DMI idle/delay 覆盖值，给成大数字会让探针读不到目标内存'
+      : armJtag ? '探针端 ARM/JTAG 使用已验证的 10 MHz 请求档'
       : '运行时调参（HID 0x31 action 7），改完立刻生效';
   }
 
@@ -389,8 +409,8 @@ export class RttCdcView {
   syncTargetTypeFromStore(){
     if (this.last?.running || this._bridgeRequested || this._starting || this._stopPromise) return false;
     const saved = store.get('rtt.target', '');
-    if (saved !== 'riscv' && saved !== 'swd') return false;
-    this._targetRiscv = saved === 'riscv';
+    if (!Object.values(STREAM_TARGET).includes(saved)) return false;
+    this._targetType = saved;
     if ($('h-target').value === saved) return false;
     $('h-target').value = saved;
     this._applyTargetUi();
@@ -472,12 +492,10 @@ export class RttCdcView {
        * 重连分支里还有一处补发（见 _ensure，2026-09 为"烧完固件切过来"加的），两处都留着。
        */
       if (!this.last?.running){
-        try {
-          await this.dev.setTargetType(this.isRiscv);
-        } catch { /* 补发失败不阻断启动：真失败会由 start 的 rc 报出来 */ }
+        await this._setStreamTarget();
         if (g !== this._engineGen) return;
       }
-      if (!auto && (p.clockHz || this.isRiscv) && !this.mock) await this.dev.configure({ clockHz: p.clockHz });
+      if ((!auto || this.isArmJtag) && (p.clockHz || this.isRiscv) && !this.mock) await this.dev.configure({ clockHz: p.clockHz });
       if (g !== this._engineGen) return;
       const before = this.last?.startRc ?? 0;
       this._bridgeRequested = true;
@@ -641,7 +659,7 @@ export class RttCdcView {
     }
     else if (st?.running) toast(this.isRiscv
       ? `桥跑起来了，但还没找到控制块（读错 ${st.rdErr}）—— 地址窗口（按 _SEGGER_RTT 填）/ JTAG 接线 / 目标是否被停住，逐项看`
-      : `桥跑起来了，但还没找到控制块（读错 ${st.rdErr}）—— 地址窗口 / SWD 接线 / 目标供电检查一下`, 'warn', 8000);
+      : `桥跑起来了，但还没找到控制块（读错 ${st.rdErr}）—— 检查地址窗口、目标接口和供电`, 'warn', 8000);
     else if (st?.startRc === START_PENDING) toast('启动还在排队（探针还没给出结果，稍后点「刷新状态」看看）', 'warn', 6000);
     else if (st?.startRc) toast('启动失败：' + startRcText(st.startRc, this.isRiscv), 'err', 6000);
   }
@@ -685,7 +703,7 @@ export class RttCdcView {
     if ($('h-stop')) $('h-stop').disabled = this._disconnecting;
     if ($('h-refresh')) $('h-refresh').disabled = this._disconnecting || this._connecting;
     const target = $('h-target'); if (target) target.disabled = engineBusy;
-    const clock = $('h-clock'); if (clock) clock.disabled = engineBusy || this.isRiscv;
+    const clock = $('h-clock'); if (clock) clock.disabled = engineBusy || this.isRiscv || this.isArmJtag;
     const resetMode = $('global-nrst-open-drain'); if (resetMode) resetMode.disabled = !this._resetIoSupported || this._disconnecting;
     // 第一行：设备信息
     if (error && !dev.connected) setStatus($('h-info'), error, 'err');
@@ -711,8 +729,8 @@ export class RttCdcView {
         ? ' —— ① 探针是不是在 SWD+JTAG 输出模式（烧录器页会自动切，也可 HID SET_CONFIG=1）；'
           + '② 地址窗口给对了吗（HPM 的控制块一般在 0x01240000 一带的 SRAM，或点「载入 ELF…」自动填）；'
           + '③ 目标在跑吗 / 查 JTAG 接线与供电'
-        : ' —— ① 是不是同时开着 RTT Viewer 的 WebUSB（它在抢同一根 SWD，先断开）；'
-          + '② 地址窗口给对了吗（Cortex-M7 要给 AXI SRAM）；③ 目标在跑吗 / 查 SWD 接线与供电';
+        : ' —— ① 断开其它正在访问目标的调试会话；'
+          + '② 核对 RTT 地址窗口（H743 夹具使用 AXI SRAM）；③ 检查目标运行状态、接线与供电';
       setStatus(el, `运行中 · 还没找到 RTT 控制块（读错 ${st.rdErr} / RdOff 错 ${st.wrErr}`
         + ` · 档位 ${st.swdMhz} MHz${st.dapYield ? ` · 给 DAP 让路 ${st.dapYield} 次` : ''}）` + why, 'err');
     }

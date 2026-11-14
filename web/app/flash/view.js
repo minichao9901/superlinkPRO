@@ -33,6 +33,7 @@ export class FlashView {
     this.inspector.init();
     for (const chip of CHIPS.filter(c => hasBuiltinFlashCfg(c.v)))
       $('f-chip').appendChild(new Option(chip.label, chip.v));
+    $('f-chip').appendChild(new Option('STM32H743 / JTAG', 'stm32h743-jtag'));
     store.bind($('f-chip'), 'flash.chip');
     if (!$('f-chip').value) $('f-chip').selectedIndex = 0;
     store.bind($('f-base'), 'flash.base');
@@ -119,7 +120,7 @@ export class FlashView {
     $('f-speed').disabled = !!imported;
     $('f-speed').title=imported ? `沿用 CFG 的 ${imported.clockKhz} kHz` : hpm
       ? 'HPM JTAG 时钟最高 25 MHz，默认 8 MHz'
-      : 'SWD 调试时钟，默认 1 MHz';
+      : family === 'stm32h743-jtag' ? 'JTAG 时钟请求，默认 1 MHz' : 'SWD 调试时钟，默认 1 MHz';
   }
 
   // ================= 烧录 =================
@@ -241,14 +242,15 @@ export class FlashView {
     const family = $('f-chip').value;
     const port = hpmBoard(family);
     const imported = this.importedTarget?.id === family ? this.importedTarget.cfg : null;
-    return imported || { builtin:family,
+    return imported || { builtin:family === 'stm32h743-jtag' ? 'stm32h7' : family,
+      transport:family === 'stm32h743-jtag' ? 'jtag' : undefined,
       clockKhz:webClockKhz($('f-speed').value, family, port ? 8000 : 1000) };
   }
 
   async _openTarget(flash, cfg = this._targetProfile()){
     const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice({ authorizedOnly:true });
-    if (cfg.builtin) cfg = { ...await loadBuiltinFlashCfg(cfg.builtin, cfg.clockKhz), family:cfg.builtin };
-    if (cfg.arch === 'riscv') await prepareOpenOcdJtag(device);
+    if (cfg.builtin) cfg = { ...await loadBuiltinFlashCfg(cfg.builtin, cfg.clockKhz, cfg.transport), family:cfg.builtin };
+    if (cfg.arch === 'riscv' || cfg.transport === 'jtag') await prepareOpenOcdJtag(device);
     return OpenOcdProbe.open(device, { cfg, onLog:line => this._log(line) });
   }
 
@@ -299,7 +301,7 @@ export class FlashView {
       if (!(await this._clearProbeUsers('读取目标身份'))) return;
       return this._usingTarget(false, async probe => {
         const id = probe.idcode;
-        this._log(probe.isRiscv ? 'JTAG TAP ' + ocdHex(id) : decodeDpIdcode(id).text);
+        this._log(probe.isRiscv || probe.cfg.transport === 'jtag' ? 'JTAG TAP ' + ocdHex(id) : decodeDpIdcode(id).text);
         if (probe.isRiscv) return { id };
         const word = addr => probe._readWord(addr).catch(() => null);
         const cpuid = await word(0xe000ed00);

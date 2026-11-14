@@ -4,7 +4,7 @@
 
 ## 内置芯片与 OpenOCD CFG
 
-「SWD / ARM」的「芯片型号」下拉包含通用 ARM/SWD 和仓库的 STM32 预设。选好即可直接连接，型号会用于会话目标和 ELF 复用。「JTAG / RISC-V」提供 HPM 板卡及「其它 RISC-V」。两种物理接口都由 OpenOCD Wasm 通过 WebUSB 驱动。断开后点击「导入 OpenOCD CFG…」会识别配置的架构并选中该 CFG。可以随时在断开状态切回内置预设，已导入的 CFG 仍可从下拉重选。
+ARM 的「芯片型号」下拉包含通用 ARM/SWD、STM32 预设及「STM32H743 / JTAG」。选好后从顶栏连接探针，型号可用于其它页面沿用目标和 ELF。「JTAG / RISC-V」提供 HPM 板卡及「其它 RISC-V」。OpenOCD Wasm 通过 WebUSB 驱动目标接口。断开后可导入 Cortex-M/SWD、Cortex-M/JTAG 或 RISC-V/JTAG 的官方 CFG，页面会保留配置的传输方式。H743 的 RTT 转发和 J-Scope 还需要支持 ARM/JTAG 的 akaLinkPro APP。
 
 优先由 OpenOCD Wasm 原样解析导入的 CFG。解析时探针不可访问。若 board CFG 引用其它脚本，用「选择 CFG 目录…」选择包含 `board`、`target` 的脚本根目录，再选「入口 CFG」。`source [find …]` 从所选脚本树解析。请选用与板卡匹配且可信的 CFG，连接时会执行其中的目标事件。入口应只声明配置，将 `init` 留给工作台连接动作。
 

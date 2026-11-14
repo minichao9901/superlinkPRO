@@ -168,6 +168,7 @@ sdk_app_src(src/easyflash/src/ef_utils.c)
 sdk_app_src(src/easyflash/port/ef_port.c)
 
 sdk_app_src(src/dap/DAP.c)
+sdk_app_src(src/dap/JTAG_DP/arm_jtag_mem.c)
 sdk_app_src(src/dap/SWO.c)
 sdk_app_src(src/dap/SW_DP/SW_SPEED_CALC.c)
 sdk_app_src(src/dap/SW_DP/SW_DP.c)

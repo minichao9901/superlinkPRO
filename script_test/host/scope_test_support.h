@@ -45,7 +45,8 @@ static int riscv_jtag_hold_prepare(uint32_t a) { return swd_read_word_hold_prepa
 static int riscv_jtag_hold_read(uint32_t *v) { return swd_read_word_pipe(v) ? 0 : -1; }
 static int riscv_jtag_is_open(void) { return 1; }
 static int riscv_jtag_open(void) { return 0; }
-static int rtt_bridge_target_is_riscv(void) { return 0; }
+#define RTT_TARGET_ARM_JTAG 2U
+static uint8_t rtt_bridge_target(void) { return 0; }
 static uint32_t rtt_bridge_swd_clock_hz(void) { return 60000000U; }
 static int rtt_bridge_swd_is_ready(void) { return 1; }
 static int rtt_bridge_swd_ensure_ready(void) { return 0; }

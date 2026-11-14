@@ -97,8 +97,8 @@ export class MockAkaLinkHid {
 
   /** HID 0x31 action 10：切全局目标类型（粘性）。假探针照实记下来，供页面自测断言。 */
   async setTargetType(riscv){
-    this.riscv = !!riscv;
-    this.calls.push(`target:${riscv ? 'riscv' : 'swd'}`);
+    this.riscv = riscv === true || riscv === 'riscv';
+    this.calls.push(`target:${typeof riscv === 'string' ? riscv : riscv ? 'riscv' : 'swd'}`);
     return { rc: 0, status: this.statusObj() };
   }
 

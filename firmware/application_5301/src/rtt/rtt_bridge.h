@@ -65,12 +65,16 @@ void rtt_bridge_trace_dap(const uint8_t *req, const uint8_t *resp);
 void rtt_bridge_request_raw(const uint8_t *req, uint32_t len);
 uint32_t rtt_bridge_raw_result(uint8_t *out, uint32_t max);
 
-/* 目标类型：0 = SWD/ARM，1 = RISC-V（JTAG）。HID CMD_RTT action 10 调用。 */
-void rtt_bridge_set_target(uint32_t kind);
+enum {
+    RTT_TARGET_SWD = 0,
+    RTT_TARGET_RISCV = 1,
+    RTT_TARGET_ARM_JTAG = 2
+};
 
-/* 1 = 当前目标类型是 RISC-V/JTAG。scope 采样器用它选传输后端（见 scope_sampler.c
- * 的 scope_be_* 分派）：类型是全局的，所以网页不做任何改动也能采 RISC-V 目标。 */
-uint8_t rtt_bridge_target_is_riscv(void);
+/* 目标类型由 HID CMD_RTT action 10 选择，RTT 和 Scope 共用。 */
+void rtt_bridge_set_target(uint32_t kind);
+uint8_t rtt_bridge_target(void);
+int rtt_bridge_target_busy(void);
 
 /* Stop bridging (the CDC keeps working as the UART bridge). */
 void rtt_bridge_stop(void);

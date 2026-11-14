@@ -140,6 +140,15 @@ foreach workbench_h7_ap [target names] {
         if (!this.idcode || this.idcode === 0xffffffff || this.cfg.tapIdcode != null && this.idcode !== this.cfg.tapIdcode)
           throw Error('OpenOCD 未识别 CFG 中的 JTAG TAP');
         if (this.physical) await link.command(`${this.cfg.target} riscv mem_access sysbus`);
+      } else if (this.cfg.transport === 'jtag'){
+        const position = await link.command(`${this.cfg.target} cget -chain-position`);
+        const tap = position.match(/^(?:TAP:\s*)?([\w.-]+)/)?.[1];
+        const chain = await link.command('capture {scan_chain}');
+        const row = chain.split('\n').map(line => line.trim().split(/\s+/))
+          .find(columns => columns[1] === tap && columns[2] === 'Y');
+        this.idcode = Number(row?.[3]) >>> 0;
+        if (!this.idcode || this.idcode === 0xffffffff)
+          throw Error('OpenOCD 未确认 Cortex-M JTAG TAP：' + tap);
       } else {
         const dap = `${this.cfg.target} cget -dap`;
         this.idcode = Number(await link.command(`capture {[${dap}] dpreg 0}`)) >>> 0;

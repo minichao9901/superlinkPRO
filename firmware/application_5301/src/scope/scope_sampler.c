@@ -84,6 +84,8 @@ _Static_assert((SCOPE_MAX_VARS * 8U) <= SCOPE_PAYLOAD, "帧装不进一个包");
 /* 传输后端（见文件后半的 scope_be_* 分派） */
 #define SCOPE_BE_SWD    0U
 #define SCOPE_BE_RISCV  1U
+#define SCOPE_BE_ARM_JTAG RTT_TARGET_ARM_JTAG
+#define SCOPE_DEF_ARM_JTAG 0x0100U
 
 /* ------------------------------------------------------------------ 状态 */
 
@@ -296,7 +298,7 @@ static void scope_make_plan(void)
      * `--set two` 就是守这条的用例。 */
     if ((s_nspans == 1U) && (s_span[0].direct != 0U) && (s_span[0].len == 4U))
     {
-        s_pipe_ok = 1U;
+        s_pipe_ok = s_backend != SCOPE_BE_ARM_JTAG;
     }
 }
 
@@ -471,6 +473,7 @@ static void scope_push_def(void)
     put32(q, s_clock_hz);
     put32(q + 4U, s_time_step);
     put16(q + 8U, (uint16_t)(s_flags |
+                             ((s_backend == SCOPE_BE_ARM_JTAG) ? SCOPE_DEF_ARM_JTAG : 0U) |
                              ((s_backend == SCOPE_BE_RISCV) ? SCOPE_FLAG_RISCV : 0U)));
     q[10] = s_nvars;
     q[11] = s_nspans;                     /* 主机拿它跟自己的计划对账 */
@@ -575,6 +578,10 @@ static void scope_req_init(void)
  * 或者由 HID 0x32 配置报文里的 SCOPE_FLAG_RISCV 位强制指定。 */
 static uint8_t scope_be_block_read(uint32_t addr, uint8_t *dst, uint32_t len)
 {
+    if (s_backend == SCOPE_BE_ARM_JTAG)
+    {
+        return rtt_bridge_read(addr, dst, len) == 0;
+    }
     if (s_backend == SCOPE_BE_RISCV)
     {
         return (uint8_t)(riscv_jtag_read(addr, dst, len) == 0);   /* 内含按块重试 */
@@ -880,7 +887,7 @@ static int scope_be_link_ready(void)
     scope_be_recheck();
 
     int rc = scope_link_try(s_backend);
-    if ((rc == 0) || ((s_flags & SCOPE_FLAG_RISCV) != 0U)) { return rc; }
+    if ((rc == 0) || s_backend == SCOPE_BE_ARM_JTAG || ((s_flags & SCOPE_FLAG_RISCV) != 0U)) { return rc; }
 
     int rc2 = scope_link_try((s_backend == SCOPE_BE_SWD) ? SCOPE_BE_RISCV : SCOPE_BE_SWD);
     if (rc2 == 0) { return 0; }
@@ -1185,8 +1192,7 @@ static int scope_configure(uint32_t period, uint8_t version, uint8_t flags, uint
      * 与 RTT 桥同一个开关 —— 这样网页不做任何改动也能采 RISC-V）。
      * 换后端必须把"链路已就绪"清掉，逼下一次重新初始化。 */
     {
-        uint8_t be = ((flags & SCOPE_FLAG_RISCV) != 0U) ? SCOPE_BE_RISCV :
-                     (rtt_bridge_target_is_riscv() ? SCOPE_BE_RISCV : SCOPE_BE_SWD);
+        uint8_t be = ((flags & SCOPE_FLAG_RISCV) != 0U) ? SCOPE_BE_RISCV : rtt_bridge_target();
         if (be != s_backend)
         {
             s_backend = be;
@@ -1202,7 +1208,12 @@ static int scope_configure(uint32_t period, uint8_t version, uint8_t flags, uint
      * 它保证下次用链路时会重新初始化并按新档装载 blob。
      * RISC-V 侧没有"时钟档"这回事（JTAG 时序由 DMI 汇编里的旋钮 + delay 决定），
      * 所以这一整段只对 SWD 后端有意义。 */
-    if (s_backend == SCOPE_BE_SWD)
+    if (s_backend == SCOPE_BE_ARM_JTAG)
+    {
+        rtt_bridge_request_swd_clock(s_clock_hz ? s_clock_hz : rtt_bridge_swd_clock_hz());
+        s_swd_ready = 0U;
+    }
+    else if (s_backend == SCOPE_BE_SWD)
     {
         if (flags & SCOPE_FLAG_DELAY0)
         {
@@ -1374,6 +1385,7 @@ uint32_t scope_sampler_status(uint32_t *out, uint32_t words)
              ((uint32_t)((s_backend == SCOPE_BE_RISCV) ? 1U : 0U) << 1) |   /* bit1 = 生效后端是 RISC-V */
              ((uint32_t)s_nspans << 8) |
              ((uint32_t)(s_swd_ready ? 1U : 0U) << 16) |
+             ((uint32_t)(s_backend == SCOPE_BE_ARM_JTAG) << 17) |
              ((uint32_t)s_nvars << 24);
     out[1] = s_clock_hz;
     out[2] = s_produced;

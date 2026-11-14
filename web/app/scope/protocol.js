@@ -10,6 +10,7 @@
  * **坏包只影响它自己、丢包能被数出来**（而不是把字节错位当成波形画出去）。
  */
 import { SCALARS } from '../elf/dwarf.js';
+import { STREAM_TARGET, targetTypeData } from '../hid/probe.js';
 
 export const MAGIC = 0x4a53;            // 'J','S'（小端存储 = 53 4a）
 export const VERSION = 1;
@@ -211,6 +212,7 @@ export function parseDef(payload, version = VERSION){
   // **生效**后端：DEF flags bit6 = 这次真的在走 RISC-V/JTAG（不是你下发的那个）
   if (version === VERSION_TICKS) out.periodUs = usForTicks(out.periodUs);
   out.riscv = !!(out.flags & SCOPE_FLAG.RISCV);
+  out.backend = out.flags & 0x100 ? BACKEND.ARM_JTAG : out.riscv ? BACKEND.RISCV : BACKEND.SWD;
   let o = 12;
   for (let i = 0; i < out.nvars; i++){
     out.vars.push({ addr: dv.getUint32(o, true), size: payload[o + 4], type: payload[o + 5],
@@ -404,8 +406,8 @@ export const SCOPE_FLAG = { ALLOW_60M: 0x01, DISCARD: 0x02, TRIGGER: 0x04, NO_YI
                             DELAY0: 0x10, CDC_OFF: 0x20, RISCV: 0x40, FAST_BATCH: 0x80 };
 
 /** 后端（生效值）。JTAG 下 action 3 / flags bit4 / swdHz / blob+clock_delay 都无意义。 */
-export const BACKEND = { SWD: 'swd', RISCV: 'riscv' };
-export const backendName = b => (b === BACKEND.RISCV ? 'RISC-V/JTAG' : b === BACKEND.SWD ? 'SWD/ARM' : '未知');
+export const BACKEND = STREAM_TARGET;
+export const backendName = b => ({swd:'SWD/ARM', riscv:'RISC-V/JTAG', 'arm-jtag':'STM32H743/JTAG'}[b] || '未知');
 
 /**
  * 每样本耗时的**实测**基线（µs）——历史锚点来自 akaLinkPro 的真机记录
@@ -424,9 +426,7 @@ export const BACKEND_COST = {
  *  Byte[0x04]：0 = SWD/ARM，1 = RISC-V/JTAG。粘性：设了就一直有效，直到下次改。 */
 export const HID_CMD_RTT = 0x31;
 export const RTT_ACT_TARGET = 10;
-export function targetTypeData(riscv){
-  return Uint8Array.of(RTT_ACT_TARGET, riscv ? 1 : 0);
-}
+export { targetTypeData };
 
 /** 单条 HID 报文的 data 上限：63 - 2（长度 + 命令） = 61 */
 export const HID_DATA_MAX = 61;
@@ -503,6 +503,7 @@ export function parseScopeStatus(bytes){
     stopping: !!(w0 & 64),
     stopAborted: !!(w0 & 128),
     riscv: !!(w0 & 2),               // **生效**后端：bit1 = 这次会话真的在走 RISC-V/JTAG
+    backend: w0 & (1 << 17) ? BACKEND.ARM_JTAG : w0 & 2 ? BACKEND.RISCV : BACKEND.SWD,
     nspans: (w0 >>> 8) & 0xff,       // 探针自己算出来的 span 数（与本地计划对账用）
     swdReady: !!(w0 & (1 << 16)),
     nvars: (w0 >>> 24) & 0xff,       // 探针收到的变量数（配置到底生效没有）
