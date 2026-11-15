@@ -1,0 +1,47 @@
+{
+  "board": "hpm5301evklite",
+  "product": "SuperLinkPRO",
+  "firmwareVersion": "0.1",
+  "builtAt": "2026-11-15T14:07:29+08:00",
+  "sourceRevision": "342b0fdd76396293b8273a61f55e98f22337ed24",
+  "firmwareRevision": "b474b93f7daf0ff6b1d53137712c8f7531d3dbde",
+  "sdk": "HPM SDK 1.11.0",
+  "toolchain": "RISC-V GCC 13.2.0",
+  "address": "0x80020000",
+  "entry": "0x80020100",
+  "crc32": "3dfbfae4",
+  "file": "akaLinkPro_App_pack.bin",
+  "bytes": 195080,
+  "sha256": "e7ec53719a7a697b8c004c89a9e621092b2952270048d42e09d4fc8efa24e5f7",
+  "files": {
+    "akaLinkPro_App.asm": {
+      "bytes": 3940880,
+      "sha256": "ed88a40811d253ef6b8a7139533da6c69c29c47f76d02fb36e7e2edcffd5f124"
+    },
+    "akaLinkPro_App.bin": {
+      "bytes": 195080,
+      "sha256": "d846cd7774174d9128d0050684090f5568e89777477d3e28e5175bfd985a5934"
+    },
+    "akaLinkPro_App.elf": {
+      "bytes": 1780248,
+      "sha256": "c288b886309fef110943f9d9f55b46232b6b455eab5653b26e8c3b04ba7bc236"
+    },
+    "akaLinkPro_App.hex": {
+      "bytes": 548780,
+      "sha256": "663debd862de29a69b220ca9d8cb360635b2964cc65985fa56c7aabc66c10c22"
+    },
+    "akaLinkPro_App.map": {
+      "bytes": 451218,
+      "sha256": "5e01889eac7095319aadb6ded8487af75b7bc9c79cfd036909f2c8be885236eb"
+    },
+    "akaLinkPro_App_pack.bin": {
+      "bytes": 195080,
+      "sha256": "e7ec53719a7a697b8c004c89a9e621092b2952270048d42e09d4fc8efa24e5f7"
+    },
+    "akaLinkPro_App_pack.hex": {
+      "bytes": 548733,
+      "sha256": "a3f4ce246b00d480f94a7a4e980e11006427a4b36c4ed06c426e3d6cd1f216d2"
+    }
+  },
+  "hardwareTest": "not run for this build"
+}
