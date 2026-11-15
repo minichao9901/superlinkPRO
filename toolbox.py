@@ -244,7 +244,7 @@ def parser():
     s = sub.add_parser('probe-flash', help='通过 HID 自动切换 DFU，烧录 SuperLinkPRO 探针的 APP 并读回校验')
     s.add_argument('--file', required=True, type=Path, help='探针打包后的 APP BIN 文件')
     s.add_argument('--serial', help='按 USB 序列号选择运行态或 DFU 探针')
-    s.add_argument('--dfu-util', type=Path, help='dfu-util 的绝对路径，省略时使用 PATH')
+    s.add_argument('--dfu-util', type=Path, help='dfu-util 的绝对路径，省略时优先使用 Windows 随包工具，其次使用 PATH')
     s.add_argument('--backup-dir', type=Path, help='新建的备份和日志目录，省略时创建临时目录')
     s.add_argument('--dry-run', action='store_true', help='只检查固件包和哈希')
     s = sub.add_parser('target-flash', help='用网页 OpenOCD Wasm 烧录目标 MCU 并校验')

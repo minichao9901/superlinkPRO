@@ -106,7 +106,7 @@
    python -X utf8 toolbox.py probe-flash --file "$ProbeFirmware" --dry-run
    ```
 
-2. 停止采集，从顶栏「连接选项」断开探针，关闭该探针的 CDC 串口。准备 PATH 中的 [dfu-util](https://dfu-util.sourceforge.net/dfu-util.1.html)。在 Windows 更新 PATH 后，重新启动工作台，并重新点击上一步检查 APP BIN。此步使用上一步核对的路径。命令会通过 HID 自动切换支持的 HPM5301 探针到 DFU，也支持已进入 DFU 的探针。执行结果包含应用区备份与日志位置。写入和读回一致、同一探针重新枚举后，结果显示 `verified: true` 和 `runtimeDetected: true`。若由 HID 进入 DFU，`enteredDfuByHid` 为 `true`。
+2. 停止采集，从顶栏「连接选项」断开探针，关闭该探针的 CDC 串口。Windows 工作台从完整 ZIP 解压后直接使用随包的 dfu-util。源码运行时需在 PATH 中提供 [dfu-util](https://dfu-util.sourceforge.net/dfu-util.1.html)，也可在终端传入 `--dfu-util`。此步使用上一步核对的路径。命令会通过 HID 自动切换支持的 HPM5301 探针到 DFU，也支持已进入 DFU 的探针。执行结果包含应用区备份与日志位置。写入和读回一致、同一探针重新枚举后，结果显示 `verified: true` 和 `runtimeDetected: true`。若由 HID 进入 DFU，`enteredDfuByHid` 为 `true`。
 
    ```powershell
    python -X utf8 toolbox.py probe-flash --file "$ProbeFirmware"

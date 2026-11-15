@@ -17,6 +17,23 @@ def app_pack(payload):
 
 
 class ProbeFlashTests(unittest.TestCase):
+    def test_windows_workbench_prefers_its_bundled_dfu_util(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            bundled = root / 'tools/dfu-util/dfu-util.exe'
+            bundled.parent.mkdir(parents=True)
+            bundled.touch()
+            explicit = root / 'different dfu-util.exe'
+            explicit.touch()
+            with patch.object(sys, 'executable', str(root/'superlinkPRO.exe')), \
+                 patch.object(sys, 'frozen', True, create=True), \
+                 patch.object(probe_flash.shutil, 'which', return_value=str(explicit)) as which:
+                self.assertEqual(probe_flash.resolve_dfu_util(None), str(bundled.resolve()))
+                self.assertEqual(probe_flash.resolve_dfu_util(explicit), str(explicit.resolve()))
+                which.assert_not_called()
+                bundled.unlink()
+                self.assertEqual(probe_flash.resolve_dfu_util(None), str(explicit.resolve()))
+
     def test_dry_run_checks_crc_without_usb_or_dfu_util(self):
         with tempfile.TemporaryDirectory() as directory:
             image = Path(directory) / 'probe.bin'

@@ -13,6 +13,7 @@
 *.bat -text
 /dist/superlinkPRO-win64.zip -text
 /dist/manifest.json -text
+/tools/vendor/dfu-util/** -text
 /web/tools/fixtures/f103ze-acceptance/*.elf -text
 
 # ── 来自 web/ 的 .gitattributes（路径同步加 web/ 前缀） ─────────────────────────

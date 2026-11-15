@@ -135,6 +135,22 @@ def wait_for_dfu(tool, serial, runtime_path, write_note):
     raise RuntimeError(f'探针 {serial} 发送 HID 切换命令后未进入 DFU{detail}')
 
 
+def resolve_dfu_util(explicit):
+    if explicit is not None:
+        tool = str(explicit.resolve())
+    else:
+        tool = None
+        if getattr(sys, 'frozen', False):
+            bundled = Path(sys.executable).resolve().parent / 'tools/dfu-util/dfu-util.exe'
+            if bundled.is_file():
+                tool = str(bundled)
+        if tool is None:
+            tool = shutil.which('dfu-util')
+    if not tool or not Path(tool).is_file():
+        raise FileNotFoundError('找不到 dfu-util，请完整解压 Windows 工作台或用 --dfu-util 指定其绝对路径')
+    return str(Path(tool).resolve())
+
+
 def flash(args):
     image = args.file.resolve()
     with image.open('rb') as source:
@@ -146,9 +162,8 @@ def flash(args):
     if args.dry_run:
         return value
 
-    tool = shutil.which('dfu-util') if args.dfu_util is None else str(args.dfu_util.resolve())
-    if not tool or not Path(tool).is_file():
-        raise FileNotFoundError('找不到 dfu-util，请加入 PATH 或用 --dfu-util 指定其绝对路径')
+    tool = resolve_dfu_util(args.dfu_util)
+    value['dfuUtil'] = tool
     path, serial, hid_path = select_device(tool, args.serial)
     if args.backup_dir:
         folder = args.backup_dir.resolve()

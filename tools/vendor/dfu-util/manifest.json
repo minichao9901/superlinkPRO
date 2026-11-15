@@ -1,0 +1,41 @@
+{
+  "program": "dfu-util 0.11",
+  "packages": {
+    "dfu-util": {
+      "version": "0.11-2",
+      "package": "https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-dfu-util-0.11-2-any.pkg.tar.zst",
+      "packageSha256": "950652382f6632ac4b7e42d39d0cda19ef593f1a490c56c814e9f65a5aabe89c",
+      "license": "GPL-2.0-only",
+      "sourcePackage": "https://repo.msys2.org/mingw/sources/mingw-w64-dfu-util-0.11-2.src.tar.zst",
+      "sourcePackageSha256": "ef9906203f900bc88ba6519fbc0f6b1f3da98bc5dcf57a22b95973f897506aa5"
+    },
+    "libusb": {
+      "version": "1.0.28-1",
+      "package": "https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-libusb-1.0.28-1-any.pkg.tar.zst",
+      "packageSha256": "a61eeec7cb51c161d436cea1c40684201c25d9c7d29070a8b4efd1b8cbfdd3af",
+      "license": "LGPL-2.1-or-later",
+      "sourcePackage": "https://repo.msys2.org/mingw/sources/mingw-w64-libusb-1.0.28-1.src.tar.zst",
+      "sourcePackageSha256": "948681b702e19cb0f90a4ced1a60a286514f9f5cbb825886e6623134b5eced05"
+    },
+    "libwinpthread": {
+      "version": "12.0.0.r747.g1a99f8514-1",
+      "package": "https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-libwinpthread-12.0.0.r747.g1a99f8514-1-any.pkg.tar.zst",
+      "packageSha256": "8a6ea065eed54a55bca897e1aef91ca0274e02223f7e1e4ca6b41595ea4a5540",
+      "license": "MIT AND BSD-3-Clause"
+    }
+  },
+  "sourceArchive": {
+    "path": "third-party/dfu-util-0.11-msys2-sources.zip",
+    "url": "https://minichao9901.github.io/superlinkPRO/third-party/dfu-util-0.11-msys2-sources.zip",
+    "sha256": "2e0b69e47e48fd05631e8403c7e322dc4ed58f8a6250fe309e73e8cf661dbb04"
+  },
+  "files": {
+    "COPYING.dfu-util": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+    "COPYING.libusb": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a",
+    "COPYING.libwinpthread": "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177",
+    "dfu-util.exe": "731a649534dfd0c0833f5f68547f8a1b3c1ad0af1e9758f78063946897d48915",
+    "libusb-1.0.dll": "eddd25df84b078158f477dfce80b26500f91ecdb5af850581d2f5d09d6f21c26",
+    "libwinpthread-1.dll": "df3b318b0ccea9a3204a7f9f3102572092fc1313a634311920bf030c9aa6dc61",
+    "README.txt": "f16085105f814388aa6d7b49a9aa3d6d68ac1e3150494d23a40ddb104de06314"
+  }
+}

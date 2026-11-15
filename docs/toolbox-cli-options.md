@@ -93,7 +93,7 @@ usage: toolbox.py probe-flash [-h] --file FILE [--serial SERIAL]
 | -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
 | --file | 探针打包后的 APP BIN 文件 | Path | 是 | 未指定 | — |
 | --serial | 按 USB 序列号选择运行态或 DFU 探针 | str | 否 | 未指定 | — |
-| --dfu-util | dfu-util 的绝对路径，省略时使用 PATH | Path | 否 | 未指定 | — |
+| --dfu-util | dfu-util 的绝对路径，省略时优先使用 Windows 随包工具，其次使用 PATH | Path | 否 | 未指定 | — |
 | --backup-dir | 新建的备份和日志目录，省略时创建临时目录 | Path | 否 | 未指定 | — |
 | --dry-run | 只检查固件包和哈希 | flag × 0 | 否 | False | — |
 

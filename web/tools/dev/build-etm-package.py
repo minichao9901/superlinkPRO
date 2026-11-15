@@ -23,6 +23,18 @@ def public_app_files(root):
 def tracked_samples(root):
     # -z preserves UTF-8, spaces and Git's otherwise C-quoted filenames.
     return [p for p in subprocess.check_output(['git','ls-files','-z','--','samples'],cwd=root).decode('utf8').split('\0') if p]
+
+
+def package_dfu_util(package):
+    vendor = ROOT.parent / 'tools/vendor/dfu-util'
+    provenance = json.loads((vendor/'manifest.json').read_text(encoding='utf8'))
+    source = ROOT/provenance['sourceArchive']['path']
+    if sha(source) != provenance['sourceArchive']['sha256']:
+        raise ValueError('dfu-util 对应源码包指纹不一致')
+    for name, digest in provenance['files'].items():
+        if sha(vendor/name) != digest:
+            raise ValueError('dfu-util 组件指纹不一致：'+name)
+    shutil.copytree(vendor, package/'tools/dfu-util')
 def package_cli(package,toolbox,node,backend):
     """Ship the Web command sources and pinned dependencies, not an SDK."""
     repo=ROOT.parent;cli=package/'cli'
@@ -103,6 +115,8 @@ def main(argv=None):
     command.append(str(ROOT/'bridge/etm/etm_bridge.py'))
     subprocess.run(command,cwd=ROOT,check=True)
     package=work/'dist'/args.app_name;toolbox=package/'toolbox';toolbox.mkdir()
+    if args.app_name == 'superlinkPRO':
+        package_dfu_util(package)
     shutil.copyfile(ROOT/'index.html',toolbox/'index.html')
     public_files=public_app_files(ROOT)
     # A pre-commit build must also ship newly introduced bundle source modules.
@@ -153,6 +167,8 @@ def main(argv=None):
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     workspace_dirty=bool(subprocess.check_output(['git','status','--porcelain','--untracked-files=normal'],cwd=ROOT,text=True).strip())
     source_scope=['web/app','web/index.html','web/samples','web/tools/dev','web/bridge/etm/etm_bridge.py','web/bridge/etm/backend','web/bridge/etm/provenance.json','etm','toolbox.py','docs/toolbox-cli-ai.md','docs/toolbox-cli-reference.json','docs/toolbox-cli-first-run.md','tools/command_manual.py','tools/probe_flash.py','tools/build_workbench.py','tools/verify_workbench_package.py']
+    if args.app_name == 'superlinkPRO':
+        source_scope += ['tools/vendor/dfu-util', 'web/third-party/dfu-util-0.11-msys2-sources.zip']
     dirty=bool(subprocess.check_output(['git','status','--porcelain','--untracked-files=normal','--',*source_scope],cwd=ROOT.parent,text=True).strip())
     inputs={name:sha(ROOT/name) for name in sorted(set(public_files+['index.html','tools/dev/serve-etm.py','tools/dev/build-etm-package.py','bridge/etm/etm_bridge.py','../toolbox.py','../docs/toolbox-cli-ai.md','../docs/toolbox-cli-reference.json','../docs/toolbox-cli-first-run.md','../tools/command_manual.py','../tools/probe_flash.py','../etm/tools/web_cli_queue.py','../tools/build_workbench.py','../tools/verify_workbench_package.py'])) if (ROOT/name).is_file()}
     build_times=dict(builtAt=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z'),

@@ -20,6 +20,12 @@ def main():
         file=(home/item['name']).resolve()
         assert file.is_relative_to(home) and file.stat().st_size==item['bytes'] and sha(file)==item['sha256'],item['name']
     result['allPackageFilesMatch']=True
+    dfu = home/'tools/dfu-util/dfu-util.exe'
+    dfu_env = dict(os.environ, PATH=os.environ['SystemRoot']+';'+os.environ['SystemRoot']+'/System32')
+    version = subprocess.run([str(dfu), '--version'], cwd=out, env=dfu_env,
+                             capture_output=True, text=True, timeout=10, check=True)
+    assert 'dfu-util 0.11' in version.stdout
+    result['bundledDfuUtil'] = version.stdout.splitlines()[0]
     if manifest.get('builtAt'):
         web=json.loads((home/'toolbox/app/site/manifest.json').read_text(encoding='utf8'))
         assert manifest['webBuiltAt']==web['builtAt']
