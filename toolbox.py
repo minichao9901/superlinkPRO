@@ -358,7 +358,7 @@ def main(argv=None, *, portable_runtime=None):
             emit({'ok': True, 'value': flash(args)}, args.out)
             return 0
         if portable_runtime is not None:
-            if args.command in ('serve', 'bridge-build', 'arm-jtag'):
+            if args.command in ('serve', 'bridge-build', 'arm-jtag', 'board-acceptance'):
                 raise ValueError('此命令需要源码仓库')
             args.runtime = args.runtime or portable_runtime
         if args.command == 'arm-jtag':

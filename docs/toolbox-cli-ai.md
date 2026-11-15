@@ -345,7 +345,7 @@ RTT Viewer 走 OpenOCD TCP 通道。把示例控制块地址换成板上 ELF 的
 
 ## 三板板卡验收入口（board-acceptance）
 
-七组各五项（`S`/`F`/`D`/`V`/`R`/`J`/`E`，共 35 个实例）的编排入口，**默认只出计划，不打开任何设备**。
+从源码仓库运行七组各五项（`S`/`F`/`D`/`V`/`R`/`J`/`E`，共 35 个实例）的编排入口。默认只出离线计划。
 
 ```powershell
 python -X utf8 toolbox.py board-acceptance --board f103ze                  # 计划（离线）

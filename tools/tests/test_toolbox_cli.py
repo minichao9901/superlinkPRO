@@ -20,6 +20,13 @@ sys.path.insert(0, str(ROOT / 'etm/tools'))
 
 
 class EntryTests(unittest.TestCase):
+    def test_frozen_cli_explains_source_only_acceptance(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            code = cli.main(['board-acceptance', '--board', 'h743'], portable_runtime='portable')
+        self.assertEqual(code, 1)
+        self.assertIn('需要源码仓库', json.loads(output.getvalue())['error'])
+
     def test_board_acceptance_uses_long_queue_timeout_by_default(self):
         with patch('tools.run_board_acceptance.main', return_value=0) as runner:
             self.assertEqual(cli.main(['board-acceptance', '--board', 'h743']), 0)
