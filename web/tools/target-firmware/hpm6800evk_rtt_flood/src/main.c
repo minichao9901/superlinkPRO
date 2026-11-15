@@ -7,8 +7,8 @@
  *   决定，主机读到的字节/秒就是 RTT 的实际交付率。
  *
  * HPM6880 侧的三个要点：
- *   1. RTT 控制块与环形缓冲放在 **AXI SRAM**：flash_xip 链接脚本里 .bss 就
- *      落在 AXI_SRAM(0x01200000)，该地址在 CPU 侧和系统总线侧完全一致，探针
+ *   1. RTT 控制块与环形缓冲放在 **非缓存 AXI SRAM**（0x01240000 起），该地址
+ *      在 CPU 侧和系统总线侧完全一致，探针
  *      用 SBA 直接就能读写（ILM/DLM 是核内地址，系统总线要走 0x01040000/
  *      0x01060000 别名，控制块里存的缓冲指针会随之对不上）。
  *   2. 主频由 board_init() 顶到芯片默认的最高档（HPM6880: 600 MHz CPU），
@@ -25,6 +25,9 @@
 #include "board.h"
 #include "SEGGER_RTT.h"
 #include "hpm_clock_drv.h"
+#ifdef SLPRO_RTT_SEQUENCE
+#include "../../rtt_sequence.h"
+#endif
 
 volatile uint32_t g_bytes;      /* 目标已写入 RTT 的字节数 */
 volatile uint32_t g_loops;      /* 写入调用次数 */
@@ -50,6 +53,9 @@ int main(void)
 
     SEGGER_RTT_Init();
     SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL);
+#ifdef SLPRO_RTT_SEQUENCE
+    rtt_sequence_stream(&g_ms, &g_bytes, &g_loops);
+#else
     SEGGER_RTT_WriteString(0, "\r\n=== HPM6800EVK RTT flood (BLOCK_IF_FIFO_FULL) ===\r\n");
 
     static const char msg[] = "hello world!\n";   /* 13 字节 */
@@ -65,4 +71,5 @@ int main(void)
             board_led_toggle();
         }
     }
+#endif
 }

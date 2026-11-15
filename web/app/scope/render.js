@@ -494,6 +494,12 @@ export function fmtHz(hz){
   return `${hz.toFixed(2)} Hz`;
 }
 
+export function fmtSampleRate(rate, channels){
+  if (!Number.isFinite(rate) || rate <= 0) return '—';
+  const unit = channels > 1 ? '组/s' : 'Sa/s';
+  return rate >= 1000 ? `${(rate / 1000).toFixed(2)} k${unit}` : `${rate.toFixed(2)} ${unit}`;
+}
+
 /** 数值格式化：大数不写满屏零 */
 export function fmtVal(v){  const a = Math.abs(v);
   if (!Number.isFinite(v)) return '—';

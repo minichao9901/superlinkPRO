@@ -69,7 +69,7 @@ ETM 联动采集的网页自动解码默认使用原生紧凑链，生成 TraceS
 | `rttcdc` | RTT 转发 | `view` 管 CDC 数据；`hid` 管目标/时钟、转发启停/状态；共享串口 `session` |
 | `spicdc` | SPI 转发 | `session` 管从机 SPI/DMA 配置与启停；`stream` 管接收显示/记录；`serial` 管 CDC |
 | `scope` | J-Scope | ELF/DWARF 变量、标量/数组/成员、1–8 通道、速率标定、采样、触发/游标、分道/缩放、CSV/原始包和质量报告 |
-| `dbg` | 调试器 | OpenOCD Wasm 通过 WebUSB 使用 SWD 或 JTAG，提供预设和 CFG 导入、断点、暂停/继续/单步、寄存器/内存、源码、调用栈与异常诊断 |
+| `dbg` | 调试器 | OpenOCD Wasm 通过 WebUSB 使用 ARM/SWD 或 RISC-V/JTAG，提供预设和 CFG 导入、断点、暂停/继续/单步、寄存器/内存、源码、调用栈与异常诊断 |
 | `flash` | 烧录器 | OpenOCD Wasm，支持 ELF/HEX/BIN、Flash 扇区烧录与读回、目标复位及 IDCODE |
 | `swo` | SWO PC 采样 | OpenOCD Wasm 配置目标寄存器，专用接收链路提供采样，支持离线分析、热点/区间/回放和导出 |
 | `etm` | ETM 执行轨迹 | OpenOCD Wasm 配置目标寄存器和断点，Kingst 采集高速 Trace，提供导入、解码和分析导出。批处理优先 `trace` |
@@ -85,7 +85,7 @@ ETM 联动采集的网页自动解码默认使用原生紧凑链，生成 TraceS
 
 ## 4. 通用接口完整说明
 
-全局参数须放在子命令前：`--runtime <目录>`、`--timeout <秒>`（默认 60）、
+全局参数须放在子命令前：`--runtime <目录>`、`--timeout <秒>`（默认 60，板卡验收默认 180）、
 `--out <新文件>`（JSON 结果，拒绝覆盖）。返回退出码 0 / 1 分别代表请求处理成功 / 失败；
 命令参数解析错误为 2。`trace` 保持原 Trace CLI 的退出码。
 
@@ -95,6 +95,7 @@ ETM 联动采集的网页自动解码默认使用原生紧凑链，生成 TraceS
 | `serve --port 8896` | 创建运行时并在前台运行本机服务；正常停止硬件后按 Ctrl+C 退出 |
 | `ping` / `status` | 执行页面就绪 / 工作台摘要 |
 | `target info / import / use` | 导入并选择 OpenOCD 核、读取共享配置、在烧录或 RTT Viewer 沿用目标；不操作硬件 |
+| `arm-jtag` | 用原生 OpenOCD 连接 F103ZE 或 H743，默认只出计划，`--execute` 执行 |
 | `page P describe [--target view]` | 当前控件 `selector/type/value/options/disabled/label`，当前公开方法及 `targets` |
 | `page P state` | 摘要、最近全局异常和页面文字；页面自己捕获的错误可能只出现在文字/日志中 |
 | `page P show` | 切换显示页面；仅投递，不保证异步 `onShow` 已完成 |
@@ -319,6 +320,53 @@ python -m unittest discover -s etm/tools/tests -p test_web_cli_queue.py
 该脚本只枚举页面、导入小型固件文件、修改/恢复波形预览频率并导出，不操作设备。
 
 2026-10-25 补充：命令参数参考覆盖63个节点，增加文档与真实解析器一致性回归；统一 CLI / HTTP 测试现为9项，全部通过。
+
+## 原生 ARM/JTAG
+
+在源码目录运行。准备原生 OpenOCD（默认使用本机 HPM SDK，也可指定 `--openocd` 和 `--openocd-scripts`），Python 需要 `hidapi`、`pyusb` 和 `libusb-package`。先释放 Web 工作台占用的探针。以下 `$ProbeSerial` 填同一探针的 USB/HID 序列号。
+
+```powershell
+python -X utf8 toolbox.py arm-jtag --board h743 --probe-serial "$ProbeSerial"
+```
+
+打印离线计划。F103ZE 用 `--board f103ze`。默认请求 1 MHz，H743 已实测命令可用 10 MHz 请求档。
+
+```powershell
+python -X utf8 toolbox.py arm-jtag --board h743 --probe-serial "$ProbeSerial" --clock-khz 10000 --execute --evidence-dir tmp/h743-arm-jtag --command 'echo [capture {mdw 0xe000ed00 1}]'
+```
+
+核对 CPU 与边界 TAP，再通过原生 OpenOCD 读取 CPUID。可重复给 `--command`，例如用 `halt`、`step`、`resume` 调试，用 `program {E:/firmware.elf} verify reset` 烧录匹配 ELF。
+
+```powershell
+python -X utf8 toolbox.py arm-jtag --board h743 --probe-serial "$ProbeSerial" --clock-khz 10000 --execute --evidence-dir tmp/h743-arm-jtag-rtt --stay-open --command 'rtt setup 0x24000014 0x100 "SEGGER RTT"' --command 'rtt start' --command 'rtt server start 9090 0'
+```
+
+RTT Viewer 走 OpenOCD TCP 通道。把示例控制块地址换成板上 ELF 的 `_SEGGER_RTT`，用 TCP 客户端连接本机 9090 端口，结束后按 Ctrl+C。RTT 转发和 J-Scope 用 `python -X utf8 tools/validate_f103_streams.py rtt|scope --help` 查看各自参数，实际采集选 `--target arm-jtag --probe-serial "$ProbeSerial" --speed 10000000`，填配套 ELF 地址与新的输出目录。F103ZE 高速流需要识别双 TAP 的探针 APP。
+
+## 三板板卡验收入口（board-acceptance）
+
+七组各五项（`S`/`F`/`D`/`V`/`R`/`J`/`E`，共 35 个实例）的编排入口，**默认只出计划，不打开任何设备**。
+
+```powershell
+python -X utf8 toolbox.py board-acceptance --board f103ze                  # 计划（离线）
+python -X utf8 toolbox.py board-acceptance --board h743 --link swd --group J
+python -X utf8 toolbox.py --runtime <运行时目录> --out <新目录> board-acceptance `
+  --board f103ze --link swd --execute                                       # 硬件执行
+python -X utf8 toolbox.py --out <新目录> board-acceptance --review <证据目录>   # 离线复核
+```
+
+- 工作台链路为 F103ZE／H743 的 `swd` 和 HPM6800EVK 的 RISC-V `jtag`。ARM/JTAG 单独按原生入口取证。
+- 门控：`--execute` 必须同时给 `--out`（新目录）与 `--runtime`（已打开执行页的运行时）；烧录组另要 `--allow-flash`，人工取证另要 `--allow-manual`；`python -O` 直接拒绝。
+- **S 组**加 `--probe-serial <探针序列号>` 对照 Web 和原生 OpenOCD 的普通块读写。H743/SWD 另跑独立 CMSIS-DAP Bulk 流水窗，需要 `pyusb` 和 `libusb-package`。执行器记录回报包长、队列深度、每包字数和读写吞吐。完整原始快照、写回与恢复证据保存在 `swd-S/sram/native-pipeline/`。
+- **J 组**分别记录 Web 和原生 EP83 的 60 秒硬件计数窗，实际周期以探针回读为准。加 `--native-scope --probe-serial <探针序列号>` 执行原生窗。脚本先确认 Web 已释放接口，再按序列号匹配 USB 与 HID。缺少原生证据时，该项仍待验。
+- **V 组**用配套 ELF 实收和测吞吐。加 `--probe-serial <探针序列号>` 还会执行有限 SRAM 夹具，检查 32 条序号、二进制下行、上下行跨尾和两侧哨兵。H743 需关闭 D-cache。Viewer 释放探针后，调试器独立回读整段 SRAM，再恢复并核对原值。
+- **R 组**执行时给 `--probe-serial <探针序列号>`。先在独立工作台授权对应 HID 和 CDC。执行器核对系统 COM、已授权 Web Serial 和独立回读所用的 USB，采集同页两次 Web 转发与一次原生 COM 转发。STOP 后分别核对实收、`moved`、`RdOff` 和目标环余量。511/512/513 B 夹具使用已核对未被目标 ELF 占用的 SRAM，测后读回原值。序号通过项需要配套序号 ELF。
+  H743 和 HPM6800EVK 的 R01 使用 `fw-seq.elf`。Web 主窗和原生主窗各 60 秒，另有同页重启短窗。R02 用固定文本 `fw.elf` 跑匹配的 8 秒窗。执行器以现场 Flash 内容识别夹具，两份证据目录可一起交给 `--review`。
+- 退出码：`0` 通过、`1` 失败或阻塞、`2` 仍有待验。
+- 计划、`ok:true`、`ack`、`click` 都只是请求被受理，**不等于验收通过**；结论只来自 `--execute` 的证据和 `--review` 的复核（要求会话完成、源码干净、计划与种子逐字一致、通过行夹具指纹匹配）。
+- 实例判据与证据字段见 [主清单](板卡验收清单.md)，展开条件见 [用例参考](板卡验收用例参考.md)。没有批准门槛的性能项只报基线（待定标），不借用其他探针或其他板卡的速度。
+
+等价直接入口：`python -X utf8 tools/run_board_acceptance.py <同上参数>`。离线回归：`python -X utf8 -m unittest tools.tests.test_toolbox_board_acceptance -v`。
 
 ## 火焰图 SVG
 

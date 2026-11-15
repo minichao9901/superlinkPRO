@@ -148,7 +148,7 @@ export function createWorkbenchAutomation(tools,win=globalThis.window){
         arch:cfg.arch,transport:cfg.transport||(cfg.arch==='riscv'?'jtag':'swd'),clockKhz:cfg.clockKhz,
         hasFlash:!!(cfg.hasFlash||cfg.files),sha256:cfg.hash??null,hardwareAccessed:false,...tools.sessionTarget.info()};
     }
-    const targets={view,session:view.session||view.s,
+    const targets={view,session:view.session||view.s,probe:tools.probeConnection,
       ...(m.page==='rttcdc'?{hid:tools.hid}:{}),
       ...(['spi','panel'].includes(m.page)?{session:tools.spiSession}:{}),
       ...(m.page==='spicdc'?{stream:view.stream,serial:tools.session}:{}),

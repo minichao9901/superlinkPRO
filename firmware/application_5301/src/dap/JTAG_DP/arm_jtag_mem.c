@@ -6,8 +6,9 @@
 #include "JTAG_DP.h"
 #include "arm_jtag_mem.h"
 
-#define H743_CPU_TAP 0x0ba00477U
+#define ARM_CPU_TAP 0x0ba00477U /* F103ZE and H743 differ in the version nibble. */
 #define H743_BOUNDARY_TAP 0x06450041U
+#define F103ZE_BOUNDARY_TAP 0x06414041U
 #define TAP_ID_MASK 0x0fffffffU
 #define AP_PAGE_SIZE 1024U
 #define BLOCK_WORDS 256U
@@ -63,20 +64,22 @@ static int check_status(void)
     return 0;
 }
 
-static int select_h743_chain(void)
+static int select_arm_chain(void)
 {
     const uint8_t high[8] = { 255, 255, 255, 255, 255, 255, 255, 255 };
     const uint8_t low = 0;
     uint8_t ids[8];
-    JTAG_Sequence_Slow(0, 0x46, high, ids); /* Test-Logic-Reset */
-    JTAG_Sequence_Slow(0, 1, &low, ids);    /* Run-Test/Idle */
-    JTAG_Sequence_Slow(0, 0x41, high, ids);
-    JTAG_Sequence_Slow(0, 2, &low, ids);    /* Shift-DR */
-    JTAG_Sequence_Slow(0, 0x80, high, ids); /* Default IDCODEs, LSB first */
-    JTAG_Sequence_Slow(0, 0x42, high, ids + 4);
-    JTAG_Sequence_Slow(0, 1, &low, ids + 4);
-    if ((get_word(ids) & TAP_ID_MASK) != H743_CPU_TAP ||
-        (get_word(ids + 4) & TAP_ID_MASK) != H743_BOUNDARY_TAP)
+    const uint32_t delay = DAP_Data.clock_delay;
+    JTAG_Sequence_Slow(delay, 0x46, high, ids); /* Test-Logic-Reset */
+    JTAG_Sequence_Slow(delay, 1, &low, ids);    /* Run-Test/Idle */
+    JTAG_Sequence_Slow(delay, 0x41, high, ids);
+    JTAG_Sequence_Slow(delay, 2, &low, ids);    /* Shift-DR */
+    JTAG_Sequence_Slow(delay, 0x80, high, ids); /* Default IDCODEs, LSB first */
+    JTAG_Sequence_Slow(delay, 0x42, high, ids + 4);
+    JTAG_Sequence_Slow(delay, 1, &low, ids + 4);
+    const uint32_t cpu = get_word(ids) & TAP_ID_MASK;
+    const uint32_t boundary = get_word(ids + 4) & TAP_ID_MASK;
+    if (cpu != ARM_CPU_TAP || (boundary != H743_BOUNDARY_TAP && boundary != F103ZE_BOUNDARY_TAP))
     {
         return -1;
     }
@@ -100,10 +103,10 @@ int arm_jtag_mem_open(uint32_t clock_hz)
     DAP_ExecuteCommand(clock, response);
     if (response[1] != DAP_OK) { return -2; }
     DAP_ExecuteCommand(swj, response);
-    /* Allow extra turnaround on AP transactions when the H7 is running.
+    /* Allow extra turnaround on AP transactions while the target is running.
      * The SWJ clock curve is calibrated for SWD, not the JTAG GPIO path. */
     if (DAP_Data.clock_delay < 6U) { DAP_Data.clock_delay = 6U; }
-    if (response[1] != DAP_OK || select_h743_chain() != 0) { return -2; }
+    if (response[1] != DAP_OK || select_arm_chain() != 0) { return -2; }
     DAP_ExecuteCommand(settings, response);
     if (write_register(DP_SELECT, 0U) ||
         write_register(DP_CTRL_STAT, CDBGPWRUPREQ | CSYSPWRUPREQ | DP_ERROR_FLAGS))

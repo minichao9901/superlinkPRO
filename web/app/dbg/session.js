@@ -59,7 +59,7 @@ export class DebugSession {
     /**
      * 架构描述子：寄存器名 / 指令长度 / 调用解码 / 落点计算 / 返回地址校验。
      * 默认是 ARM/Cortex-M（app/dbg/thumb.js 的 ARM_ARCH）；RISC-V 那份在 rv.js（RV_ARCH），
-     * 由 `RiscvDebugSession`（app/dbg/riscv.js）覆盖低层硬件访问 + 换掉这个对象。
+     * RISC-V 的 OpenOCD 会话在 app/dbg/openocd-session.js 中覆盖低层硬件访问。
      */
     this.arch = ARM_ARCH;
     /**
@@ -247,8 +247,7 @@ export class DebugSession {
   /** 读 DHCSR 刷新"停住/在跑"，停住时顺手把 PC 也读回来 */
   async refresh(){
     if (!this.probe) return { halted: false, pc: 0 };
-    const v = await this.probe._readWord(DHCSR);
-    this.halted = ((v >>> 17) & 1) === 1;
+    this.halted = await this._pollHalted();
     if (this.halted) this.pc = await this.readReg('PC');
     if(this._frames&&(!this.halted||this.pc!==this._framePc))this.clearFrames();
     return this.statusInfo();
@@ -275,7 +274,7 @@ export class DebugSession {
   async run(){
     this.clearFrames();
     await this._clearDfsr();
-    await this.probe.run();
+    if (!(this.probe instanceof OpenOcdProbe) || await this.probe.isHalted()) await this.probe.run();
     this.halted = false;
   }
 
@@ -617,8 +616,9 @@ export class DebugSession {
           try { this.halted = await this._pollHalted(); } catch { /* 读一次失败不算停 */ }
           if (this.halted) return align2(await this.readReg(this.arch.PC));
         }
-        await this.probe.halt().catch(() => {});
+        await this.probe.halt();
         await this.refresh();
+        if (!this.halted) throw Error(`${what}：超时后未能确认目标暂停`);
         this._log(`${what}：${timeoutMs} ms 内没停下来（已把目标暂停在 0x${((this.pc >>> 0)).toString(16)}）`, 'warn');
         return null;
       };
@@ -1168,7 +1168,7 @@ export class DebugSession {
 
   /**
    * 断点写进硬件 —— 名字按架构不同：ARM 是 FPB 比较器（`_programFpb`）、
-   * RISC-V 是触发器（`RiscvDebugSession` 覆盖本方法）。`_withBpCleared` 这类共用逻辑
+   * RISC-V 触发器由 OpenOCD RISC-V 会话管理。`_withBpCleared` 这类共用逻辑
    * 一律走这个入口，别直接叫 `_programFpb`。
    */
   async _programBps(){ return await this._programFpb(); }
@@ -1178,6 +1178,7 @@ export class DebugSession {
    * 单步/临时断点的等待循环都走这里，别再直接读 DHCSR。
    */
   async _pollHalted(){
+    if (this.probe instanceof OpenOcdProbe) return await this.probe.isHalted();
     const v = await this.probe._readWord(DHCSR);
     return ((v >>> 17) & 1) === 1;
   }

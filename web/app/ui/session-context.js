@@ -11,7 +11,13 @@ export function initSessionContext(tools){
   const viewFor=page=>page==='rttcdc'?tools.hid:tools[page];
   const rows=new Map(),localTargets=new Map(),elfBindings=new Map();let applying=false;
   const option=id=>{const el=$(id);return el?.selectedOptions?.[0]?.textContent||el?.value||'';};
-  const generic=(page,arch)=>localTargets.get(page)?.arch===arch?localTargets.get(page):{id:arch,arch,label:arch==='arm'?'ARM / SWD（未绑定板型）':'RISC-V / JTAG（未绑定板型）'};
+  const streamFor=target=>target.arch==='riscv'?'riscv':'swd';
+  const generic=(page,stream)=>{
+    const local=localTargets.get(page);
+    if(local&&streamFor(local)===stream)return local;
+    return stream==='swd'?{id:'arm',arch:'arm',label:'ARM / SWD（未绑定板型）'}
+      :{id:'riscv',arch:'riscv',label:'RISC-V / JTAG（未绑定板型）'};
+  };
   const imported=cfg=>({id:`cfg:${cfg.hash}:${cfg.target}`,arch:cfg.arch,transport:cfg.transport,label:`CFG · ${cfg.target}`,cfg});
   const readTarget=page=>{
     if(page==='flash'||page==='rtt'){
@@ -20,7 +26,6 @@ export function initSessionContext(tools){
     }
     if(page==='flash'){const id=$('f-chip').value;return {id,arch:hpmBoard(id)?'riscv':'arm',label:option('f-chip')};}
     if(page==='rtt'){
-      if($('r-target').value==='arm-jtag')return {id:'stm32h743-jtag',arch:'arm',label:'STM32H743 / JTAG'};
       const id=$('r-chip').value;return {id,arch:$('r-target').value==='riscv'?'riscv':'arm',label:option('r-chip')};
     }
     if(page==='dbg'){
@@ -33,21 +38,19 @@ export function initSessionContext(tools){
       const id=$('d-arm-target')?.value;
       return id&&id!=='arm'?{id,arch:'arm',label:option('d-arm-target')}:{id:'arm',arch:'arm',label:'ARM / SWD（未绑定板型）'};
     }
-    const stream=$(prefix[page]+'-target').value;
-    if(stream==='arm-jtag')return {id:'stm32h743-jtag',arch:'arm',label:'STM32H743 / JTAG'};
-    return generic(page,stream==='riscv'?'riscv':'arm');
+    return generic(page,$(prefix[page]+'-target').value);
   };
   const busy=page=>applying||sessionContextBusy(tools,page);
   const publishTarget=(selected,previous)=>{
     // A generic architecture selection cannot erase a more precise session
     // board. The page itself remains explicitly unbound until adoption.
     const clearsCfg=previous?.id.startsWith('cfg:')&&context.target?.id===previous.id;
-    if(!clearsCfg&&selected.id===selected.arch&&context.target?.arch===selected.arch&&context.target.id!==selected.id)return;
+    if(!clearsCfg&&selected.id===selected.arch&&
+      context.target?.arch===selected.arch&&context.target.id!==selected.id)return;
     context.setTarget(selected);
   };
   const supports=(page,target)=>{
     if(target.cfg)return page==='dbg'||page==='rtt'||page==='flash'&&target.cfg.hasFlash;
-    if(target.id==='stm32h743-jtag')return true;
     if(target.id.startsWith('cfg:'))return false;
     if(page==='flash'||page==='rtt')return [...$(prefix[page]+'-chip').options].some(o=>o.value===target.id);
     if(page!=='dbg')return true;
@@ -90,7 +93,7 @@ export function initSessionContext(tools){
         if(old)[...chip.options].find(o=>o.value===old.id)?.remove();
         view.importedTarget=target;
         if(page==='rtt'){
-          $('r-target').value=target.arch==='riscv'?'riscv':target.transport==='jtag'?'arm-jtag':'swd';
+          $('r-target').value=streamFor(target);
           view._applyTargetUi();
         }
         const group=page==='rtt'?chip.querySelector(`optgroup[data-arch="${target.arch}"]`):chip;
@@ -104,10 +107,11 @@ export function initSessionContext(tools){
     }
     if(target.arch==='riscv')rememberHpmBoard(target.id);
     if(page==='flash'){$('f-chip').value=target.id;store.set('flash.chip',target.id);tools.flash._applyChip();}
-    const stream = target.id==='stm32h743-jtag' ? 'arm-jtag' : target.arch==='riscv'?'riscv':'swd';
+    const stream = streamFor(target);
     if(page==='rtt'){
       $('r-target').value=stream;store.set('rtt.target',stream);
-      store.set(target.arch==='riscv'?'rtt.rvChip':'rtt.armChip',stream==='arm-jtag'?'stm32h7':target.id);tools.rtt._applyTargetUi();
+      store.set(target.arch==='riscv'?'rtt.rvChip':'rtt.armChip',target.id);
+      tools.rtt._applyTargetUi();
     }
     if(page==='dbg'){
       $('d-backend').value=target.arch==='riscv'?'riscv':'webusb';store.set('dbg.backend',$('d-backend').value);

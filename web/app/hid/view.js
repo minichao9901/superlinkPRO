@@ -16,7 +16,6 @@ import { store } from '../core/store.js';
 import { bytes as fBytes } from '../core/format.js';
 import { findSymbol } from '../rtt/elf.js';
 import { AkaLinkHid, startRcText, START_PENDING, STREAM_TARGET } from './probe.js';
-import { enableJtagPins } from '../core/openocd-jtag-pins.js';
 import { MockAkaLinkHid } from './mock.js';
 import { waitMs } from '../core/pace.js';
 
@@ -72,6 +71,7 @@ export class RttCdcView {
       store.set('rtt.target', store.get('hid.target'));
     }
     store.set('hid.target', undefined);          // 老键退休：本页不再写它，免得两页又分家
+    if (store.get('rtt.target') === STREAM_TARGET.ARM_JTAG) store.set('rtt.target', STREAM_TARGET.SWD);
     store.bind($('h-target'), 'rtt.target');
     this._targetType = this.targetType;
     // 目标类型是**全局**的（粘性）：RISC-V/JTAG 下 SWD 时钟档无意义（探针忽略 action 7 的 Hz，
@@ -274,12 +274,10 @@ export class RttCdcView {
   /** 目标类型是 RISC-V/JTAG 吗？（探针侧粘性标志，界面下拉是唯一真相）*/
   get targetType(){ return $('h-target').value; }
   get isRiscv(){ return this.targetType === STREAM_TARGET.RISCV; }
-  get isArmJtag(){ return this.targetType === STREAM_TARGET.ARM_JTAG; }
 
   async _setStreamTarget(){
     const response = await this.dev.setTargetType(this.targetType);
     if (response.rc !== 0) throw Error(`探针拒绝切换目标接口（${response.rc}）`);
-    if (this.isArmJtag && !this.mock) await enableJtagPins(this.dev);
     this._targetType = this.targetType;
   }
 
@@ -299,7 +297,7 @@ export class RttCdcView {
        *    探针的 RISC-V 引擎就再也读不出目标内存 —— 现象是"桥一直找不到 RTT 控制块、
        *    读错数一直涨"，而同一个探针用 `hpm6800_rtt_loss.py`（clock 传 0）1.39 MB/s 跑得好好的。
        */
-      clockHz: this.isRiscv ? 0 : this.isArmJtag ? 10000000 : (Number($('h-clock').value) || 0),
+      clockHz: this.isRiscv ? 0 : (Number($('h-clock').value) || 0),
     };
   }
 
@@ -380,20 +378,9 @@ export class RttCdcView {
   _applyTargetUi(){
     const riscv = this.isRiscv;
     const clock = $('h-clock');
-    const armJtag = this.isArmJtag;
-    const low = Array.from(clock.options || []).find(option => option.value === '10000000');
-    if (armJtag && !low) clock.add(new Option('10 MHz', '10000000'), 1);
-    if (!armJtag && low) low.remove();
-    for (const option of Array.from(clock.options || []))
-      option.disabled = armJtag && option.value !== '10000000';
-    if (armJtag) clock.value = '10000000';
-    else if (!clock.value) clock.value = '';
-    clock.disabled = riscv || armJtag;
-    const label = clock.closest?.('label')?.querySelector('span');
-    if (label) label.textContent = armJtag ? 'JTAG 时钟请求' : 'SWD 时钟';
+    clock.disabled = riscv;
     clock.title = riscv
       ? 'RISC-V/JTAG 下必须留 0：这个字段在 JTAG 下是 DMI idle/delay 覆盖值，给成大数字会让探针读不到目标内存'
-      : armJtag ? '探针端 ARM/JTAG 使用已验证的 10 MHz 请求档'
       : '运行时调参（HID 0x31 action 7），改完立刻生效';
   }
 
@@ -409,7 +396,7 @@ export class RttCdcView {
   syncTargetTypeFromStore(){
     if (this.last?.running || this._bridgeRequested || this._starting || this._stopPromise) return false;
     const saved = store.get('rtt.target', '');
-    if (!Object.values(STREAM_TARGET).includes(saved)) return false;
+    if (saved !== STREAM_TARGET.SWD && saved !== STREAM_TARGET.RISCV) return false;
     this._targetType = saved;
     if ($('h-target').value === saved) return false;
     $('h-target').value = saved;
@@ -495,7 +482,7 @@ export class RttCdcView {
         await this._setStreamTarget();
         if (g !== this._engineGen) return;
       }
-      if ((!auto || this.isArmJtag) && (p.clockHz || this.isRiscv) && !this.mock) await this.dev.configure({ clockHz: p.clockHz });
+      if (!auto && (p.clockHz || this.isRiscv) && !this.mock) await this.dev.configure({ clockHz: p.clockHz });
       if (g !== this._engineGen) return;
       const before = this.last?.startRc ?? 0;
       this._bridgeRequested = true;
@@ -591,18 +578,26 @@ export class RttCdcView {
     this._statusSource = { dev: this.dev, device: this.dev.device, generation: this._engineGen };
   }
 
-  async refresh(){
-    if (this._starting || this._stopPromise || this._disconnecting || this.dev._pending) return;
+  async refresh({ strict = false } = {}){
+    if (this._starting || this._stopPromise || this._disconnecting || this.dev._pending){
+      if (strict) throw Error('RTT 状态查询与探针当前操作冲突');
+      return;
+    }
     try {
       const dev = this.dev, device = dev.device, generation = this._engineGen;
       const r = await this.dev.status();
-      if (this.dev !== dev || dev.device !== device || generation !== this._engineGen) return;
+      if (this.dev !== dev || dev.device !== device || generation !== this._engineGen){
+        if (strict) throw Error('查询 RTT 状态期间探针会话已变化');
+        return;
+      }
       this._noteProgress(r.status);
       this._acceptStatus(r.status);
       this.render();
+      if (strict) return this.summary();
     } catch (e){
       this._statusError = e?.message || String(e);
       this.render({ error: this._statusError });
+      if (strict) throw e;
     }
   }
 
@@ -703,7 +698,7 @@ export class RttCdcView {
     if ($('h-stop')) $('h-stop').disabled = this._disconnecting;
     if ($('h-refresh')) $('h-refresh').disabled = this._disconnecting || this._connecting;
     const target = $('h-target'); if (target) target.disabled = engineBusy;
-    const clock = $('h-clock'); if (clock) clock.disabled = engineBusy || this.isRiscv || this.isArmJtag;
+    const clock = $('h-clock'); if (clock) clock.disabled = engineBusy || this.isRiscv;
     const resetMode = $('global-nrst-open-drain'); if (resetMode) resetMode.disabled = !this._resetIoSupported || this._disconnecting;
     // 第一行：设备信息
     if (error && !dev.connected) setStatus($('h-info'), error, 'err');
@@ -772,6 +767,7 @@ export class RttCdcView {
       supported: AkaLinkHid.supported(),
       mock: !!this.mock,
       connected: this.dev.connected,
+      probeSerial: this.info?.sn || null,
       label: this.dev.connected ? this.dev.label : '',
       running: !!st?.running,
       cbAddr: st ? hex(st.cbAddr) : '',
@@ -781,6 +777,7 @@ export class RttCdcView {
       dapYield: st?.dapYield ?? 0,
       rescans: st?.rescans ?? 0,
       rdErr: st?.rdErr ?? 0,
+      wrErr: st?.wrErr ?? 0,
       swdMhz: st?.swdMhz ?? 0,
       stall: this._stall || 0,
       state: $('h-state').textContent,

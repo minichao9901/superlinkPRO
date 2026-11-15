@@ -40,7 +40,6 @@ import { runCmd, decodeScalar } from './cmd.js';
 import { SymTab } from './symbols.js';
 import { importOpenOcdCfg, readCfgDirectory } from './openocd-cfg.js';
 import { inspectOpenOcdCfg } from './openocd-raw-cfg.js';
-import { loadBuiltinFlashCfg } from '../flash/upstream-config.js';
 /**
  * 寄存器名**不分大小写**比。
  *
@@ -136,7 +135,6 @@ export class DbgView {
     if (arm){
       for (const chip of CHIPS.filter(chip => chip.v.startsWith('stm32') || chip.v === 'rp2350'))
         arm.appendChild(new Option(chip.label, chip.v));
-      arm.appendChild(new Option('STM32H743 / JTAG', 'stm32h743-jtag'));
       arm.value = store.get('dbg.armTarget', 'arm');
       if (!arm.value) arm.value = 'arm';
       arm.addEventListener('change', () => {
@@ -691,6 +689,7 @@ export class DbgView {
         try { cfg.family = importOpenOcdCfg(text,name,directory).family; } catch { /* Original CFG can define other targets. */ }
       }
       catch (rawError){
+        if (rawError.code === 'ARM_JTAG_CLI_ONLY') throw rawError;
         try { cfg = importOpenOcdCfg(text,name,directory); }
         catch (legacyError){ throw Error(`${rawError.message}；兼容导入：${legacyError.message}`); }
       }
@@ -765,14 +764,13 @@ export class DbgView {
     const port = hpmBoard(imported?.boardId || boardId);
     const clockKhz = imported?.clockKhz ?? webClockKhz($('d-clock')?.value, boardId, DEFAULT_CLOCK_KHZ);
     const cfg = mock ? null : imported?.files || imported?.raw ? imported
-      : boardId === 'stm32h743-jtag' ? await loadBuiltinFlashCfg('stm32h7', clockKhz, 'jtag')
       : makeOpenOcdProfile({
       arch:riscv ? 'riscv' : 'arm', port, clockKhz, dpidr:imported?.dpidr,
       tapIdcode:imported?.tapIdcode, irLength:imported?.irLength, hart:imported?.hart,
       family:imported?.family || boardId, name:imported?.name,
     });
     this._out('', 'dim');
-    const jtag = riscv || cfg?.transport === 'jtag';
+    const jtag = riscv;
     const label = mock ? '模拟目标' : `OpenOCD Wasm / ${jtag ? 'JTAG' : 'SWD'}`;
     this._out(`──── 连接（${label}${mock ? '' : ` · ${clockKhz} kHz`}）────`, 'dim');
     if (this.clockMigrated && !imported){ this._out('（SWD 时钟默认值已从 1 MHz 改为 10 MHz —— 真机实测 PPB/内存都正常；不想要就在上面改回去）', 'dim'); this.clockMigrated = false; }
@@ -1152,6 +1150,7 @@ export class DbgView {
     try {
       this.mem = await this.session.memRead(this.memAddr, len);
       this.renderMem();
+      if (!auto) this._manualMemReadId = (this._manualMemReadId || 0) + 1;
       return true;
     } catch (e){
       this.mem = new Uint8Array(0);
@@ -2492,6 +2491,8 @@ export class DbgView {
       backend: s.backendName,
       halted: s.halted,
       targetState: !s.connected ? 'disconnected' : s.stateKnown === false ? 'unknown' : s.halted ? 'halted' : 'running',
+        idcode: s.connected ? s.idcode >>> 0 : null,
+        probeSerial: s.connected ? (s.probe?.device?.serialNumber || s.memory?.device?.serialNumber || null) : null,
       pc: s.pc >>> 0,
       clockKhz: (s.clockHz / 1000) | 0,
       regs: s.regList().length,
@@ -2512,6 +2513,7 @@ export class DbgView {
       symRows: $('d-sym-list')?.querySelectorAll('.symrow').length || 0,
       memAddr: hex32(this.memAddr),
       memLen: this.mem.length,
+      manualMemReadId: this._manualMemReadId || 0,
       watching: this.watching,
       outLines: $('d-out')?.childNodes.length || 0,
     };

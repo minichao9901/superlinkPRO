@@ -22,13 +22,12 @@ import { webClockKhz } from '../core/target-clock.js';
 import { constrainClockSelect } from '../ui/target-clock.js';
 import { supportsRiscvStreamClock,streamClockHz } from '../core/stream-clock.js';
 import { AkaLinkHid, rttConfigData, parseStatus, confirmStreamTarget } from '../hid/probe.js';
-import { enableJtagPins } from '../core/openocd-jtag-pins.js';
 import { Elf } from '../elf/elf.js';
 import { listSampleable } from '../elf/dwarf.js';
 import { arrayElementChannels } from './array-vars.js';
 import * as P from './protocol.js';
 import { SampleStore, Trigger, TRIG, TRIG_NAME, findTrigger, windowFor } from './store.js';
-import { ScopeRenderer, legendRows, fmtTime, fmtVal, fmtHz } from './render.js';
+import { ScopeRenderer, legendRows, fmtTime, fmtVal, fmtHz, fmtSampleRate } from './render.js';
 import { VendorEpTransport, MockTransport } from './transport.js';
 import { MockScopeProbe } from './mock.js';
 import { bytes as fmtBytes, fileStamp, download } from '../core/format.js';
@@ -136,7 +135,8 @@ export class ScopeView {
      * 置灰、读计划的分档），不必等采样回报。
      */
     const savedTarget = store.get('rtt.target', '');
-    if (Object.values(P.BACKEND).includes(savedTarget)) $('sc-target').value = savedTarget;
+    if (savedTarget === P.BACKEND.ARM_JTAG) store.set('rtt.target', P.BACKEND.SWD);
+    if (savedTarget === P.BACKEND.SWD || savedTarget === P.BACKEND.RISCV) $('sc-target').value = savedTarget;
     this.targetType = $('sc-target').value;
     this.targetRiscv = $('sc-target').value === 'riscv';
     store.bind($('sc-target'), 'rtt.target');       // 这一页改 = 改同一个全局开关，落回同一个键
@@ -267,7 +267,7 @@ export class ScopeView {
   onShow(){
     if (!this.running && !this._starting && !this._stopPromise){
       const saved = store.get('rtt.target');
-      if (Object.values(P.BACKEND).includes(saved) && saved !== this.targetType){
+      if ((saved === P.BACKEND.SWD || saved === P.BACKEND.RISCV) && saved !== this.targetType){
         $('sc-target').value = saved;
         this.targetType = saved;
         this.targetRiscv = saved === P.BACKEND.RISCV;
@@ -678,7 +678,7 @@ export class ScopeView {
           (fresh ? '依据当前标定。' : '依据粗估，建议先标定。') + (slow ? ` ${slow}` : '稳定性以实采跳拍/USB计数为准。')
         : '采样周期必须是大于 0 的有限数值。';
       const short = this.uiBackend() === P.BACKEND.ARM_JTAG && !fresh
-        ? 'ARM/JTAG 请先标定读取耗时'
+        ? 'ARM/JTAG 采样请使用原生 CLI'
         : advice.valid
         ? `建议起始：${advice.recommendedUs} µs（${fmtHz(advice.recommendedHz)}）` + (slow ? `；${slow}` : fresh ? ' · 已标定' : ' · 待标定')
         : text;
@@ -701,7 +701,7 @@ export class ScopeView {
     const rvEstUs = this.planEstimateUs(plan);
     const rvEstHz = rvEstUs > 0 ? 1e6 / rvEstUs : 0;
     const armJtag = this.uiBackend() === P.BACKEND.ARM_JTAG;
-    const planTxt = armJtag ? `ARM/JTAG 块读 ${plan.readBytes} B，每组速率以标定与实采为准` : riscv
+    const planTxt = armJtag ? 'ARM/JTAG 采样请使用原生 CLI' : riscv
       ? (plan.fastPath
           ? `单字 span：RISC-V/JTAG 历史读取耗时 ≈${rv.single} µs/样本（未包含完整推流开销）`
           : `RISC-V/JTAG 粗估 ≈${rvEstUs.toFixed(1)} µs/样本 → ≈${(rvEstHz / 1000).toFixed(1)} kHz` +
@@ -792,17 +792,11 @@ export class ScopeView {
   async confirmTargetArchitecture(){
     if(this.usingMock)return;
     const target = this.targetType || (this.targetRiscv ? P.BACKEND.RISCV : P.BACKEND.SWD);
-    if (target === P.BACKEND.ARM_JTAG){
-      const status = await this.hidXfer(P.HID_CMD_RTT,Uint8Array.of(2));
-      if (status.length < 51 || !parseStatus(status.subarray(3,51)).supportsArmJtag)
-        throw Error('此探针固件缺少 H743 ARM/JTAG，需更新 akaLinkPro APP');
-    }
     const reply=await this.hidXfer(P.HID_CMD_RTT,P.targetTypeData(target));
     if(!reply||reply.length<3)throw Error('目标类型确认回包不完整；未配置或启动采样');
     const rc=this.signed(reply[2]);
     if(rc!==0)throw Error(`目标类型确认失败（${rc}）；请先停止并释放占用探针的功能，未配置或启动采样`);
     if (reply.length >= 51) confirmStreamTarget(target, parseStatus(reply.subarray(3,51)));
-    if (target === P.BACKEND.ARM_JTAG) await enableJtagPins(this.hid);
   }
   async applyCaptureClock(){
     if(this.usingMock)return;
@@ -1277,13 +1271,9 @@ export class ScopeView {
     const clk = $('sc-clock');
     if (clk){
       const native=riscv&&supportsRiscvStreamClock(this._probeInfo);
-      const armJtag = cur === P.BACKEND.ARM_JTAG;
       constrainClockSelect(clk,native?'hpm':'arm');
-      for (const option of clk.options) option.disabled = armJtag && Number(option.value) > 10000;
-      if (armJtag && (!Number(clk.value) || Number(clk.value) > 10000)) clk.value = '10000';
       clk.disabled = riscv&&!native || !!(this.running || this._starting || this._stopPromise);
-      clk.title = cur === P.BACKEND.ARM_JTAG ? 'H743 JTAG 时钟请求档，实际线速由探针时序决定'
-        : native?'Zynq RISC-V JTAG TCK，HPM 最高 25 MHz':riscv
+      clk.title = native?'RISC-V JTAG TCK，HPM 最高 25 MHz':riscv
         ? 'RISC-V/JTAG 下无意义：JTAG 时序由 DMI 汇编旋钮 + delay 决定，探针会忽略这个档位'
         : '与 RTT Viewer 同款档位；固件自带失败自动降档';
     }
@@ -1552,10 +1542,6 @@ export class ScopeView {
   /** 数据面回调：字节流 → 包 → 解码 → 缓冲（+触发 +统计）*/
   onChunk(chunk){
     this._lastPktAt = performance.now();       // 看门狗据此判"流断没断"（见 _startWatchdog）
-    if (this.captureRaw && !this._replaying){
-      const copy = chunk instanceof Uint8Array ? chunk.slice() : new Uint8Array(chunk);
-      this.raw.push(copy); this.rawBytes = (this.rawBytes || 0) + copy.length;
-    }
     for (const pkt of this.stream.push(chunk)){
       /**
        * 🚨 **等 DEF 当"起跑线"**：探针的 4 个包缓冲和主机侧在飞的读里，
@@ -1589,6 +1575,12 @@ export class ScopeView {
         return;
       }
       if (!st.ok && st.why === 'gap') this.lost += st.missing || 1;
+      // Keep the exported JSP on the same generation as the displayed capture.
+      // Carry residual packets in stalePackets instead of prefixing the new file.
+      if (this.captureRaw && !this._replaying && (this.defVars || pkt.kind === P.KIND.DEF)){
+        this.raw.push(pkt.raw);
+        this.rawBytes = (this.rawBytes || 0) + pkt.raw.length;
+      }
       switch (pkt.kind){
         case P.KIND.DEF: {
           const d = P.parseDef(pkt.payload, pkt.version);
@@ -1909,8 +1901,12 @@ export class ScopeView {
     this.usedLod = usedLod;
     const st = this.store;
     const rate = st?.rate() || 0;
+    const channels = st?.width || 1;
+    const period = this.periodActualUs || this._periodUs;
+    const actualRate = fmtSampleRate(rate, channels);
     $('sc-samples').textContent = String(st?.count || 0);
-    $('sc-rate').textContent = rate ? `${(rate / 1000).toFixed(2)} kHz` : '0 Hz';
+    $('sc-rate').textContent = `实得 ${actualRate}` +
+      (st && period > 0 ? ` · 标称 ${fmtSampleRate(1e6 / period, channels)}` : '');
     $('sc-packets').textContent = String(this.packets);
     // 🚨 三种"丢"要**分开显示**：探针跳拍是探针 CPU 的账，USB 是主机排空的账，缺口是链路层。
     //    overrun（缓冲满之后还在来的帧）单独算一类 —— 它以前被混进"缺口"，
@@ -1953,7 +1949,7 @@ export class ScopeView {
       const spanUs = st.timeAt(st.count - 1) - st.timeAt(0);
       const lag = this._periodUs && rate && rate < 1e6 / this._periodUs * 0.8;
       this.setStatusText(`采样中 ${fmtTime(spanUs)} / ${fmtTime(this._stopAfterUs)}` +
-        `（${st.count} 样本 · 实得 ${(rate / 1000).toFixed(1)} kHz · 缓冲 ${Math.round(st.count / st.capacity * 100)}%）` +
+        `（${st.count} ${channels > 1 ? '组' : '样本'} · 实得 ${actualRate} · 缓冲 ${Math.round(st.count / st.capacity * 100)}%）` +
         (lag ? `　⚠️ 探针跟不上 ${this._periodUs} µs 的周期，时间轴会有空洞（点「标定真实速率」看它到底要多久）` : ''),
         lag ? 'warn' : '');
     }
@@ -1987,6 +1983,7 @@ export class ScopeView {
     return {
       state: this.state,
       mode: this.usingMock ? 'mock' : 'real',
+      probeSerial: this._probeInfo?.sn || null,
       elf: this.elf,
       vars: (this.selected.length ? this.selected : []).map(v => `${v.name}:${v.scalar}@0x${v.addr.toString(16)}`),
       varCount: this.selected.length,
@@ -2008,12 +2005,14 @@ export class ScopeView {
       blob: this.blob || null,
       connectErr: this.connectErr || null,
       rateHz: Math.round(st?.rate() || 0),
+      durationUs: st?.count > 1 ? st.timeAt(st.count - 1) - st.timeAt(0) : 0,
       trigger: { mode: this.trigger.mode, hit: this.trigger.hitIndex, hits: this.trigger.hits,
                  marker: !!this.renderer.trigger },
       view: { start: Math.round(this.renderer.view.start), end: Math.round(this.renderer.view.end) },
       lod: !!this.usedLod,
       resyncs: this.stream.resyncs,
       definitionReceived: Array.isArray(this.defVars),
+      definitionVariables: this.defVars,
       awaitingDefinition: !!this._awaitDef,
       stalePackets: this.stalePackets || 0,
       captureFlags: this._captureFlags || 0,
@@ -2022,6 +2021,7 @@ export class ScopeView {
       transport: this.transport ? {running:this.transport.running,chunks:this.transport.chunks,bytes:this.transport.bytes,errors:this.transport.errors,lastError:this.transport.lastError} : null,
       raw: this.raw.length,
       running: this.running,
+      stopping: !!this._stopPromise,
       mockVars: this.mockVars().map(v => v.name),
     };
   }

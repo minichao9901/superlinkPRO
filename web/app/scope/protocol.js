@@ -407,7 +407,7 @@ export const SCOPE_FLAG = { ALLOW_60M: 0x01, DISCARD: 0x02, TRIGGER: 0x04, NO_YI
 
 /** 后端（生效值）。JTAG 下 action 3 / flags bit4 / swdHz / blob+clock_delay 都无意义。 */
 export const BACKEND = STREAM_TARGET;
-export const backendName = b => ({swd:'SWD/ARM', riscv:'RISC-V/JTAG', 'arm-jtag':'STM32H743/JTAG'}[b] || '未知');
+export const backendName = b => ({swd:'SWD/ARM', riscv:'RISC-V/JTAG', 'arm-jtag':'ARM/JTAG'}[b] || '未知');
 
 /**
  * 每样本耗时的**实测**基线（µs）——历史锚点来自 akaLinkPro 的真机记录

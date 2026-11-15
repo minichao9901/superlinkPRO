@@ -61,10 +61,8 @@ export class OpenOcdProbe {
     this.isRiscv = cfg.arch === 'riscv';
     this.physical = this.isRiscv && runningMemory;
     this.skipNames = this.isRiscv;
-    // Commit the read cursor between shorter reads on the generic
-    // RISC-V and HPM6800 RTT paths, even when the whole ring is full.
     this.rttLivePreview = this.physical && !cfg.boardId;
-    this.rttPollLimit = (this.rttLivePreview || this.physical && cfg.boardId === 'hpm6800evk') ? 8192 : undefined;
+    if (this.rttLivePreview || this.physical && cfg.boardId === 'hpm6800evk') this.rttPollLimit = 8192;
   }
 
   get _faulted(){ return !!this.link && !this.link.worker; }
@@ -112,6 +110,7 @@ foreach workbench_h7_ap [target names] {
   }
 
   async connect(){
+    if (!this.isRiscv && this.cfg.transport === 'jtag') throw Error('ARM/JTAG 请使用原生 CLI');
     const link = this.link = new OpenOcdTargetSession(line => this.onLog?.(line));
     try {
       await link.open(this.cfg, this.device);
@@ -140,15 +139,6 @@ foreach workbench_h7_ap [target names] {
         if (!this.idcode || this.idcode === 0xffffffff || this.cfg.tapIdcode != null && this.idcode !== this.cfg.tapIdcode)
           throw Error('OpenOCD 未识别 CFG 中的 JTAG TAP');
         if (this.physical) await link.command(`${this.cfg.target} riscv mem_access sysbus`);
-      } else if (this.cfg.transport === 'jtag'){
-        const position = await link.command(`${this.cfg.target} cget -chain-position`);
-        const tap = position.match(/^(?:TAP:\s*)?([\w.-]+)/)?.[1];
-        const chain = await link.command('capture {scan_chain}');
-        const row = chain.split('\n').map(line => line.trim().split(/\s+/))
-          .find(columns => columns[1] === tap && columns[2] === 'Y');
-        this.idcode = Number(row?.[3]) >>> 0;
-        if (!this.idcode || this.idcode === 0xffffffff)
-          throw Error('OpenOCD 未确认 Cortex-M JTAG TAP：' + tap);
       } else {
         const dap = `${this.cfg.target} cget -dap`;
         this.idcode = Number(await link.command(`capture {[${dap}] dpreg 0}`)) >>> 0;
@@ -236,7 +226,8 @@ foreach workbench_h7_ap [target names] {
   }
 
   async _usesF103SramImage(address, length){
-    if (this.cfg?.family !== 'stm32f103' || this.cfg.raw || length < 4096 || address % 4 || length % 4 ||
+    if (this.cfg?.family !== 'stm32f103' || this.cfg.raw ||
+        length < 4096 || address % 4 || length % 4 ||
         address < 0x20000000 || address + length > 0x20010000) return false;
     if (this._f103HighDensity === undefined){
       const device = await this._readWord(0xe0042000).catch(() => null);

@@ -119,6 +119,10 @@ static uint32_t clock_init_480mhz(void)
   return (err == 0u) ? 480u : 64u;                    /* 失败就按 64MHz 继续跑 */
 }
 
+#ifdef SLPRO_RTT_SEQUENCE
+#include "../../rtt_sequence.h"
+#endif
+
 void SysTick_Handler(void){ g_ms++; }
 
 int main(void){
@@ -128,16 +132,22 @@ int main(void){
   SCB_CCR |= (1u << 17);                              /* I-Cache 开，D-Cache 故意不开 */
 
   SEGGER_RTT_Init();
+#ifndef SLPRO_RTT_SEQUENCE
   SEGGER_RTT_WriteString(0, "\r\n=== H743 RTT 吞吐测试：480MHz + BLOCK_IF_FIFO_FULL ===\r\n");
+#endif
 
   SYST_RVR = (g_sysclk_mhz * 1000u) - 1u;             /* 1 ms（SysTick 跟 CPU 时钟：480MHz → 479999） */
   SYST_CVR = 0;
   SYST_CSR = 7;
 
+#ifdef SLPRO_RTT_SEQUENCE
+  rtt_sequence_stream(&g_ms, &g_bytes, &g_loops);
+#else
   static const char msg[] = "hello world!\n";         /* 13 字节 */
   for (;;){
     unsigned n = SEGGER_RTT_Write(0, msg, sizeof(msg) - 1);
     g_bytes += n;
     g_loops++;
   }
+#endif
 }

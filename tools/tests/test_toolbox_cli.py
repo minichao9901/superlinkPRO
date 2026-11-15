@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from unittest.mock import patch
 
@@ -19,14 +20,37 @@ sys.path.insert(0, str(ROOT / 'etm/tools'))
 
 
 class EntryTests(unittest.TestCase):
+    def test_board_acceptance_uses_long_queue_timeout_by_default(self):
+        with patch('tools.run_board_acceptance.main', return_value=0) as runner:
+            self.assertEqual(cli.main(['board-acceptance', '--board', 'h743']), 0)
+            args = runner.call_args.args[0]
+            self.assertEqual(args[args.index('--timeout') + 1], '180')
+            self.assertEqual(cli.main(['--timeout', '240', 'board-acceptance', '--board', 'h743']), 0)
+            args = runner.call_args.args[0]
+            self.assertEqual(args[args.index('--timeout') + 1], '240.0')
+
     def test_all_cli_arguments_have_current_explanations(self):
         spec = importlib.util.spec_from_file_location('cli_options_under_test', ROOT / 'tools/build_cli_options.py')
         reference = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(reference)
         text, count = reference.render()
-        self.assertEqual(count, 70)
+        self.assertEqual(count, 72)
         self.assertEqual(text, (ROOT / 'docs/toolbox-cli-options.md').read_text(encoding='utf-8'))
         self.assertIn('必须且只能选一项', text)
+        self.assertIn('toolbox.py board-acceptance', text)
+        self.assertIn('toolbox.py arm-jtag', text)
+
+    def test_arm_jtag_plan_requires_no_browser_or_hardware(self):
+        with patch('tools.arm_jtag_cli.jtag_pins') as pins, patch.object(cli, 'Client') as client:
+            with contextlib.redirect_stdout(io.StringIO()) as stdout:
+                status = cli.main(['arm-jtag', '--board', 'h743', '--probe-serial', 'TEST',
+                                   '--command', 'mdw 0xe000ed00 1'])
+            self.assertEqual(status, 0)
+            plan = json.loads(stdout.getvalue())['value']
+            self.assertFalse(plan['execute'])
+            self.assertEqual(plan['commands'], ['mdw 0xe000ed00 1'])
+            pins.assert_not_called()
+            client.assert_not_called()
 
     def test_catalog_and_reference_cover_all_pages(self):
         reference = cli.load_json(ROOT / 'docs/toolbox-cli-reference.json')
@@ -118,11 +142,9 @@ class TransportTests(unittest.TestCase):
             Path(folder, 'toolbox-runtime.json').write_text(json.dumps({'url': 'http://127.0.0.1:' + str(server.server_port)}))
             client = cli.Client(folder, 5)
             wid = 'c' * 32
-            ready = threading.Event()
             failures = []
             def worker():
                 try:
-                    ready.set()
                     job = client.http('poll', {'worker': wid})['job']
                     if job is None:
                         job = client.http('poll', {'worker': wid})['job']
@@ -132,11 +154,11 @@ class TransportTests(unittest.TestCase):
                     failures.append(error)
             thread = threading.Thread(target=worker)
             thread.start()
-            ready.wait(1)
             try:
-                # Wait for registration rather than retry a mutating command.
-                import time
-                time.sleep(.05)
+                deadline = time.monotonic() + 3
+                while not client.http('health')['ready']:
+                    self.assertLess(time.monotonic(), deadline, 'worker did not register')
+                    time.sleep(.05)
                 result = client.request({'action': 'workbench', 'page': 'analog', 'op': 'describe'})
                 self.assertTrue(result['ok'])
                 self.assertEqual(result['value']['controls'], ['real'])

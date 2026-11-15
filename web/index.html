@@ -16,7 +16,7 @@
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=d1cd4d14d8c40a12';
+  window.__webBundleUrl = 'app/site/main.js?v=ffe182c78141ec07';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -319,7 +319,6 @@
           <label class="row"><span>目标接口</span>
             <select id="r-target" title="选择目标的物理接口。OpenOCD Wasm 通过 WebUSB 驱动探针。">
               <option value="swd">SWD / ARM</option>
-              <option value="arm-jtag">STM32H743 / JTAG</option>
               <option value="riscv">RISC-V / JTAG</option>
             </select>
           </label>
@@ -458,9 +457,8 @@
           <input id="h-chan" class="num" value="0" title="RTT 上行通道号，0 = channel 0">
         </label>
         <label class="row"><span>目标接口</span>
-          <select id="h-target" title="选择探针读取目标内存的接口。H743 JTAG 需要支持 ARM/JTAG 的探针固件。">
+          <select id="h-target" title="选择探针读取目标内存的接口">
             <option value="swd">SWD / ARM</option>
-            <option value="arm-jtag">STM32H743 / JTAG</option>
             <option value="riscv">RISC-V / JTAG</option>
           </select>
         </label>
@@ -552,9 +550,8 @@
         <label class="row"><span>周期</span><input id="sc-period" class="num" value="100" inputmode="decimal" title="µs，可填 2.25 / 2.5 / 2.75；小数周期需新版探针固件，按 24 MHz tick 量化"><em class="unit">µs</em></label>
         <label class="row"><span>时长</span><input id="sc-seconds" class="num" value="20" inputmode="numeric" title="缓冲容量 = 实测速率 × 时长（页面会显示占多少内存）"><em class="unit">s</em></label>
         <label class="row" id="sc-target-row"><span>目标接口</span>
-          <select id="sc-target" title="选择采样器读取目标内存的接口。H743 JTAG 需要支持 ARM/JTAG 的探针固件。">
+          <select id="sc-target" title="选择采样器读取目标内存的接口">
             <option value="swd">SWD / ARM</option>
-            <option value="arm-jtag">STM32H743 / JTAG</option>
             <option value="riscv">RISC-V / JTAG</option>
           </select></label>
         <p class="hint" id="sc-backend">生效后端：未开始（采样后由探针回报）</p>

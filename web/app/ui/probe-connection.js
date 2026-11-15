@@ -132,22 +132,27 @@ export function initProbeConnection(tools){
     } finally { await client.close(); }
   }
 
-  async function prepare(kind){
+  async function prepare(kind, expected = null){
     if (busy) return;
     busy = true;
     message = '';
     const tab = activeTab();
     render();
     try {
+      if (expected && (tab !== expected.tab || mock(tab)))
+        throw Error('当前工具页未就绪或处于模拟模式');
       if (kind === 'both' && mock(tab)){ await attach(tab, null, null); return; }
       let usb = kind === 'hid' ? selected.usb : resolveDevice('usb');
       let hid = kind === 'usb' ? selected.hid : resolveDevice('hid');
+      if (expected && (!usb || !hid || usb.serialNumber?.toUpperCase() !== expected.serial.toUpperCase()))
+        throw Error('取得指定探针的已授权 USB 和 HID 才能开始');
       const chooseUsb = supported.usb && (kind === 'usb' || kind === 'both' && !usb);
       const chooseHid = supported.hid && (kind === 'hid' || kind === 'both' && !hid && !chooseUsb);
       if (chooseUsb) usb = await selectOpenOcdDevice({ forcePick:true, all:$('probe-usb-all').checked });
       if (chooseHid) hid = await requestHidDevice();
       await tools.hid._initialReconnect;
       if (usb && hid && (usb !== selected.usb || hid !== selected.hid) && !await sameProbe(usb, hid)){
+        if (expected) throw Error('指定 USB 和已授权 HID 的探针序列号不一致');
         message = 'USB 和 HID 对应不同设备。请在顶栏选择同一只探针。';
         if (kind === 'hid') usb = null;
         else hid = null;
@@ -168,9 +173,14 @@ export function initProbeConnection(tools){
         message ||= '当前工具未接通，请查看工具状态';
       if (!message && kind === 'both' && waitingHid()) message = 'USB 已就绪，请再点一次「连接 HID」';
       if (message) toast(message, 'warn', 6000);
+      if (expected){
+        if (tab !== activeTab() || message) throw Error(message || '连接期间工具页已切换');
+        return { connected:true, serial:usb.serialNumber, tab };
+      }
     } catch (error){
       message = error.message;
       toast(message, 'err', 6000);
+      if (expected) throw error;
     } finally {
       busy = false;
       refreshGrants();
@@ -181,7 +191,7 @@ export function initProbeConnection(tools){
   connect.onclick = () => prepare('both');
   usbButton.onclick = () => { menu.open = false; return prepare('usb'); };
   hidButton.onclick = () => { menu.open = false; return prepare('hid'); };
-  disconnect.onclick = async () => {
+  async function closeSelected(strict = false){
     if (busy) return;
     menu.open = false;
     busy = true;
@@ -190,10 +200,29 @@ export function initProbeConnection(tools){
       await release('从顶栏断开探针');
       remember(null, null);
       message = '';
+      return true;
     } catch (error){
       message = error.message;
       toast('断开失败：' + message, 'err', 6000);
+      if (strict) throw error;
     } finally { busy = false; render(); }
+  }
+  disconnect.onclick = () => closeSelected();
+  tools.probeConnection = {
+    state(){
+      const { owners, pending, failures } = manager.summary();
+      return { tab:activeTab(), busy, scanning, disconnectable:!disconnect.disabled,
+        owners, pending, failures };
+    },
+    async connectAuthorized(serial, tab){
+      if (typeof serial !== 'string' || !serial.trim() || busy) throw Error('缺少探针序列号或顶栏正在操作');
+      await refreshGrants();
+      return prepare('both', { serial, tab });
+    },
+    disconnect(){
+      if (disconnect.disabled) throw Error('顶栏断开暂不可用');
+      return closeSelected(true);
+    },
   };
   for (const kind of ['usb', 'hid']){
     navigator[kind]?.addEventListener('connect', refreshGrants);
@@ -209,7 +238,7 @@ export function initProbeConnection(tools){
     if (event.key === 'Escape'){ menu.open = false; menu.querySelector('summary').focus(); }
   });
   const timer = setInterval(render, 500);
-  window.addEventListener('pagehide', () => clearInterval(timer), { once:true });
+  window.addEventListener('pagehide', () => { scan++; clearInterval(timer); }, { once:true });
   refreshGrants();
   return render;
 }

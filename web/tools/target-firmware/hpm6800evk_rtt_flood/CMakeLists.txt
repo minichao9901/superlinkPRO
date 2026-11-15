@@ -12,6 +12,10 @@ project(hpm6800evk_rtt_flood)
 sdk_compile_definitions(-DCONFIG_NDEBUG_CONSOLE=1)
 # 32 KB 上行缓冲：足够大才能把"目标产速"和"探针取速"解耦，测出来的才是交付率
 sdk_compile_definitions(-DBUFFER_SIZE_UP=32768)
+option(SLPRO_RTT_SEQUENCE "Build the paced RTT sequence fixture" OFF)
+if(SLPRO_RTT_SEQUENCE)
+    sdk_compile_definitions(-DSLPRO_RTT_SEQUENCE=1)
+endif()
 
 # 本地 SDK 的 drivers/src/hpm_enet_drv.c 被改过，无条件 #include "trace_log.h"
 # （RTT trace 那套工具的遗留），而该头文件只存在于 lwip_tcpecho 例程里。任何

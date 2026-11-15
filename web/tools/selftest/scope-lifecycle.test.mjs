@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {ScopeView} from '../../app/scope/view.js';
+import {buildData, buildDef, PACKET, PacketStream, SeqTracker} from '../../app/scope/protocol.js';
 const gate=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
 const tick=()=>new Promise(r=>setImmediate(r));
 globalThis.document={getElementById:id=>({value:id==='sc-period'?'100':'0'})};
@@ -53,3 +54,18 @@ console.log('scope-lifecycle: HID close failure retains handle and ownership unt
  assert.equal(await v.disconnect(),true);assert.deepEqual(events,['mock:false','探针连接已关闭']);
 }
 console.log('scope-lifecycle: user disconnect stops capture and closes USB/HID; mock disconnect exits mock mode PASS');
+{
+ const v=Object.create(ScopeView.prototype);
+ const vars=[{addr:0x24001200,scalar:'u32',size:4}];
+ const def=buildDef({seq:0,periodUs:80,vars,spans:1});
+ const data=buildData({seq:1,tUs:80,n:1,payload:Uint8Array.of(1,2,3,4)});
+ const old=buildData({seq:99,tUs:7600,n:1,payload:Uint8Array.of(4,3,2,1)});
+ const chunk=new Uint8Array(PACKET*3);chunk.set(old);chunk.set(def,PACKET);chunk.set(data,PACKET*2);
+ Object.assign(v,{captureRaw:true,raw:[],rawBytes:0,_awaitDef:true,packets:0,lost:0,
+  stream:new PacketStream(),seqT:new SeqTracker(),setBackend(){},updatePlan(){}});
+ v.onChunk(chunk);
+ assert.equal(v.stalePackets,1);
+ assert.equal(v.rawBytes,PACKET*2);
+ assert.deepEqual(v.raw,[def,data]);
+}
+console.log('scope-lifecycle: JSP export begins at the new DEF after residual DATA PASS');

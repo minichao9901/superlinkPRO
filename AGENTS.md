@@ -10,6 +10,9 @@
 3. 阅读 [CLI 总指南](docs/toolbox-cli-ai.md) 和相关模块文档，再查看实际代码。进入子目录前阅读适用的子目录 `AGENTS.md`。
 4. 根据最新源码、版本清单和对应验收报告判断当前能力。历史交接文档中的分支、绝对路径、性能数字及限制只代表当时版本，不应直接当成现状。
 5. 先完成用户授权范围内的工作；需要硬件时确认设备、目标和正在运行的任务。纯离线任务不复位、烧录或抢占设备。
+6. 涉及板卡验收或正式发布时，按 [最小板卡验收](docs/板卡验收清单.md) 选本轮板卡与链路，逐项报告七组用例和交付结果。每条链路选一个主测档，J-Scope 另确认稳定上限。正式发布一并处理固定安装、Pages、Releases 和线上下载验证，范围以用户要求为准。工作台验收入口为 `python -X utf8 toolbox.py board-acceptance --board <f103ze|h743|hpm6800evk> [--link swd|jtag] [--group S|F|D|V|R|J|E]`。默认只出离线计划，加 `--execute`（并给 `--out` 新目录与 `--runtime`）才允许硬件，`--review` 只复核证据。计划、`ok:true`、`ack`、`click` 都不算通过。ARM/JTAG 使用 [原生 CLI](docs/toolbox-cli-ai.md#原生-armjtag)。
+
+7. 使用 DeepSeek Harness 时，由主会话统一派发。整个任务累计最多三个子代理，每个子任务的委派额度为零，子代理禁止再派子代理。
 
 ## 2. 目录与事实来源
 

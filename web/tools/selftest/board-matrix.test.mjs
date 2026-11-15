@@ -10,7 +10,9 @@ assert.deepEqual(active.map(([id]) => id), ['f103cb', 'f103ze', 'h743', '6800evk
 for (const [id, board] of active) {
   assert.ok(board.label && board.chip && board.target, `${id}: 板卡基本字段缺失`);
   assert.ok(board.examples, `${id}: 没有例程表`);
-  for (const example of ['rtt', 'scope', 'dbgstress']) {
+  const required = ['rtt', 'scope', 'dbgstress'];
+  if (id !== '5301evklite') required.push('rtt-seq');
+  for (const example of required) {
     const item = board.examples[example];
     assert.ok(item, `${id}/${example}: 缺少例程`);
     assert.ok(fs.existsSync(diskPath(item.project)), `${id}/${example}: project 不存在 ${item.project}`);

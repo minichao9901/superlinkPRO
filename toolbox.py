@@ -232,7 +232,7 @@ def target_flash(client, args):
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--runtime', help='工作台运行时目录（不是 trace native 运行时）')
-    p.add_argument('--timeout', type=float, default=60, help='等待结果秒数；超时不取消/不重试')
+    p.add_argument('--timeout', type=float, help='等待结果秒数；默认 60，板卡验收默认 180；超时不取消/不重试')
     p.add_argument('--out', help='JSON结果文件，拒绝覆盖')
     sub = p.add_subparsers(dest='command', required=True)
     c = sub.add_parser('catalog', help='离线列出全部页面分类和功能范围')
@@ -304,7 +304,34 @@ def parser():
     c = targets.add_parser('use', help='沿用会话目标并返回应用结果；目标变更会清除本页旧文件及地址')
     c.add_argument('page', choices=['flash', 'rtt'])
     sub.add_parser('trace', help='原样转交全部现有ETM Trace CLI参数（trace之后的--help）')
-    s=sub.add_parser('bridge-build',help='构建并验收Windows工作台，安装到dist/superlinkPRO，保留data')
+    j = sub.add_parser('arm-jtag', help='使用原生 OpenOCD 操作 STM32 ARM/JTAG')
+    j.add_argument('--board', required=True, choices=['f103ze', 'h743'], help='所连 STM32 板卡')
+    j.add_argument('--probe-serial', required=True, help='精确绑定 USB 和 HID 的探针序列号')
+    j.add_argument('--clock-khz', type=int, default=1000, help='OpenOCD 请求的 TCK，单位 kHz')
+    j.add_argument('--command', dest='tcl_command', action='append', help='OpenOCD Tcl 指令，可重复')
+    j.add_argument('--stay-open', action='store_true', help='执行指令后保持 OpenOCD 运行，供 RTT TCP 等连接；Ctrl+C 退出')
+    j.add_argument('--evidence-dir', type=Path, help='保存 OpenOCD 配置、脚本和日志的新目录')
+    j.add_argument('--openocd', type=Path, help='原生 OpenOCD 可执行文件')
+    j.add_argument('--openocd-scripts', type=Path, help='原生 OpenOCD 脚本目录')
+    j.add_argument('--execute', action='store_true', help='执行硬件操作，省略时只输出计划')
+    b = sub.add_parser('board-acceptance',
+                       help='三板板卡验收：默认离线 plan，--execute 才访问硬件，--review 只复核证据')
+    b.add_argument('--board', choices=['f103ze', 'h743', 'hpm6800evk'], help='目标板卡')
+    b.add_argument('--link', action='append', choices=['swd', 'jtag'],
+                   help='工作台链路，可重复；jtag 适用于 RISC-V')
+    b.add_argument('--group', action='append', choices=['S', 'F', 'D', 'V', 'R', 'J', 'E'],
+                   help='只跑指定组（七组各五项），可重复；省略时全跑')
+    b.add_argument('--seed', type=int, default=20261122, help='计划种子；复核时按它逐字重算计划')
+    b.add_argument('--execute', action='store_true',
+                   help='真正访问硬件；省略时只出计划，绝不打开设备')
+    b.add_argument('--allow-flash', action='store_true', help='允许烧写目标 Flash（F 组需要）')
+    b.add_argument('--allow-manual', action='store_true', help='允许记录人工取证事件')
+    b.add_argument('--native-scope', action='store_true', help='增加原生 EP83 60 秒窗，需要 --probe-serial')
+    b.add_argument('--probe-serial', help='RTT 验收及原生访问所用的 USB/HID 探针序列号')
+    b.add_argument('--print-plan', action='store_true', help='把完整计划打到标准输出')
+    b.add_argument('--review', nargs='+', metavar='SUMMARY_DIR',
+                   help='离线复核已完成的证据目录（与 --execute 互斥）')
+    s = sub.add_parser('bridge-build', help='构建并验收Windows工作台，安装到dist/superlinkPRO，保留data')
     s.add_argument('--install-dir',type=Path,default=ROOT/'dist/superlinkPRO',help='工作台安装目录；更新前归档旧程序并保留data')
     s.add_argument('--candidate-only',action='store_true',help='只构建和验收候选，不替换dist安装目录')
     return p
@@ -317,6 +344,8 @@ def main(argv=None, *, portable_runtime=None):
     p = parser()
     args = p.parse_args(argv)
     try:
+        if args.timeout is None:
+            args.timeout = 180 if args.command == 'board-acceptance' else 60
         if args.timeout <= 0:
             raise ValueError('timeout必须大于0')
         if args.out and Path(args.out).exists():
@@ -329,13 +358,45 @@ def main(argv=None, *, portable_runtime=None):
             emit({'ok': True, 'value': flash(args)}, args.out)
             return 0
         if portable_runtime is not None:
-            if args.command in ('serve', 'bridge-build'):
-                raise ValueError('此命令需要源码仓库；启动已打包的工作台请直接运行 EXE')
+            if args.command in ('serve', 'bridge-build', 'arm-jtag'):
+                raise ValueError('此命令需要源码仓库')
             args.runtime = args.runtime or portable_runtime
+        if args.command == 'arm-jtag':
+            from tools.arm_jtag_cli import run
+            try:
+                emit({'ok': True, 'value': run(args)}, args.out)
+            except KeyboardInterrupt:
+                return 130
+            return 0
         if args.command == 'bridge-build':
             command=[sys.executable,'-X','utf8',str(ROOT/'tools/build_workbench.py'),'--out',str(args.install_dir)]
             if args.candidate_only:command.append('--candidate-only')
             return subprocess.call(command)
+        if args.command == 'board-acceptance':
+            # 统一入口转交验收 runner：它自己再校验 plan/execute/review 的边界。
+            from tools.run_board_acceptance import main as board_main
+            extra = []
+            for name, option in (('board', '--board'), ('seed', '--seed'), ('probe_serial', '--probe-serial'),
+                                 ('timeout', '--timeout')):
+                value = getattr(args, name, None)
+                if value is not None:
+                    extra += [option, str(value)]
+            if args.review:
+                extra += ['--review', *args.review]
+            for name, option in (('link', '--link'), ('group', '--group')):
+                for value in getattr(args, name, None) or []:
+                    extra += [option, str(value)]
+            for name, option in (('execute', '--execute'), ('allow_flash', '--allow-flash'),
+                                 ('allow_manual', '--allow-manual'),
+                                 ('native_scope', '--native-scope'),
+                                 ('print_plan', '--print-plan')):
+                if getattr(args, name, False):
+                    extra.append(option)
+            if args.runtime:
+                extra += ['--runtime', str(args.runtime)]
+            if args.out:
+                extra += ['--out', str(args.out)]
+            return board_main(extra)
         if not args.runtime:
             p.error('此命令需要 --runtime 目录')
         if args.command == 'serve':

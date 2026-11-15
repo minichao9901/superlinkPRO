@@ -25,10 +25,12 @@ export async function inspectOpenOcdCfg(text, entry, directory, connection){
     const cores = [];
     for (const target of names){
       const type = await session.command(`capture {${target} cget -type}`);
-      if (['swd','jtag'].includes(transport) && type === 'cortex_m') cores.push({target,arch:'arm'});
+      if (transport === 'jtag' && type === 'cortex_m')
+        throw Object.assign(Error('ARM/JTAG 请使用原生 CLI'), {code:'ARM_JTAG_CLI_ONLY'});
+      if (transport === 'swd' && type === 'cortex_m') cores.push({target,arch:'arm'});
       if (transport === 'jtag' && type === 'riscv') cores.push({target,arch:'riscv'});
     }
-    if (!cores.length) throw Error('CFG 没有 Cortex-M / SWD、Cortex-M / JTAG 或 RISC-V / JTAG 核');
+    if (!cores.length) throw Error('CFG 没有 Cortex-M / SWD 或 RISC-V / JTAG 核');
     const clock = await session.command('capture {adapter speed}');
     const clockKhz = Number(clock.match(/(\d+)\s*kHz/i)?.[1]);
     if (!(clockKhz >= 1 && clockKhz <= (hpmSdk ? 25000 : 60000))) throw Error(`CFG 时钟须在 1–${hpmSdk ? 25000 : 60000} kHz`);

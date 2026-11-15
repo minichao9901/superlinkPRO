@@ -5,8 +5,10 @@ import { readFile } from 'node:fs/promises';
 import { upstreamFlashConfigs, hpmSdkFlashConfigs } from '../../app/flash/openocd-cfgs/catalog.js';
 import { loadBuiltinFlashCfg } from '../../app/flash/upstream-config.js';
 import { OpenOcdProbe } from '../../app/core/openocd-probe.js';
+import { AkaLinkHid } from '../../app/hid/probe.js';
 import { makeOpenOcdProfile } from '../../app/core/openocd-profile.js';
 import { OpenOcdTargetSession } from '../../app/core/openocd-session.js';
+import { DebugSession } from '../../app/dbg/session.js';
 import { inspectOpenOcdCfg } from '../../app/dbg/openocd-raw-cfg.js';
 import { programOpenOcdFlash, readFlashRange } from '../../app/flash/openocd-program.js';
 import { HPM_BOARDS } from '../../app/targets/hpm/porting.js';
@@ -24,11 +26,31 @@ test('production Wasm loads all official Flash CFGs without opening hardware', a
     assert.equal(cfg.raw.hpmSdk,hpm,family);
     if (hpm) assert.equal(cfg.raw.connection.board,family);
   }
-  const jtag = await loadBuiltinFlashCfg('stm32h7', 10000, 'jtag');
-  assert.equal(jtag.transport, 'jtag');
-  assert.equal(jtag.clockKhz, 10000);
-  assert.equal(jtag.stm32h7Flash, true);
-  assert.deepEqual(jtag.cores, [{target:'stm32h7x.cpu0',arch:'arm'}]);
+  for (const family of ['stm32h7', 'stm32f103'])
+    await assert.rejects(loadBuiltinFlashCfg(family,1000,'jtag'), /原生 CLI/);
+});
+
+test('the browser rejects ARM JTAG before sending any target command', async () => {
+  const probe = new OpenOcdProbe({}, {arch:'arm', transport:'jtag', clockKhz:1000});
+  await assert.rejects(probe.connect(), /原生 CLI/);
+  assert.equal(probe.link, undefined);
+  const hid = new AkaLinkHid();
+  hid.rtt = async () => assert.fail('ARM JTAG must never send a WebHID command');
+  await assert.rejects(hid.setTargetType('arm-jtag'), /原生 CLI/);
+});
+
+test('Cortex-M debugger checks OpenOCD state before using a stale halted state', async () => {
+  const session = new DebugSession();
+  const probe = session.probe = new OpenOcdProbe({}, makeOpenOcdProfile());
+  session.halted = true;
+  probe.isHalted = async () => false;
+  probe.run = async () => assert.fail('resume must not be sent to a running target');
+  probe._readWord = async () => assert.fail('OpenOCD polling owns the core state');
+  probe.writeMem = async () => {};
+  assert.equal((await session.refresh()).halted, false);
+  session.halted = true;
+  await session.run();
+  assert.equal(session.halted, false);
 });
 
 test('browser Wasm uses an advancing monotonic clock for OpenOCD waits', async () => {

@@ -14,7 +14,7 @@ import { hpmBoard } from '../targets/hpm/porting.js';
 import { rememberHpmBoard } from '../targets/hpm/select.js';
 import { DBGMCU_BASES, FLASH_SIZE_REGS, decodeCpuid, decodeDpIdcode, decodeStm32Dev, refineByFlash, saneFlashKb } from './devid.js';
 import { parseFirmware } from './image.js';
-import { programOpenOcdFlash, resetAfterFlash } from './openocd-program.js';
+import { programOpenOcdFlash, readFlashRange, resetAfterFlash } from './openocd-program.js';
 import { hasBuiltinFlashCfg, loadBuiltinFlashCfg } from './upstream-config.js';
 import { OpenOcdResetSession } from './target-reset.js';
 import { FirmwareInspector } from './inspector-view.js';
@@ -33,7 +33,6 @@ export class FlashView {
     this.inspector.init();
     for (const chip of CHIPS.filter(c => hasBuiltinFlashCfg(c.v)))
       $('f-chip').appendChild(new Option(chip.label, chip.v));
-    $('f-chip').appendChild(new Option('STM32H743 / JTAG', 'stm32h743-jtag'));
     store.bind($('f-chip'), 'flash.chip');
     if (!$('f-chip').value) $('f-chip').selectedIndex = 0;
     store.bind($('f-base'), 'flash.base');
@@ -120,7 +119,7 @@ export class FlashView {
     $('f-speed').disabled = !!imported;
     $('f-speed').title=imported ? `沿用 CFG 的 ${imported.clockKhz} kHz` : hpm
       ? 'HPM JTAG 时钟最高 25 MHz，默认 8 MHz'
-      : family === 'stm32h743-jtag' ? 'JTAG 时钟请求，默认 1 MHz' : 'SWD 调试时钟，默认 1 MHz';
+      : 'SWD 调试时钟，默认 1 MHz';
   }
 
   // ================= 烧录 =================
@@ -242,15 +241,14 @@ export class FlashView {
     const family = $('f-chip').value;
     const port = hpmBoard(family);
     const imported = this.importedTarget?.id === family ? this.importedTarget.cfg : null;
-    return imported || { builtin:family === 'stm32h743-jtag' ? 'stm32h7' : family,
-      transport:family === 'stm32h743-jtag' ? 'jtag' : undefined,
+    return imported || { builtin:family,
       clockKhz:webClockKhz($('f-speed').value, family, port ? 8000 : 1000) };
   }
 
   async _openTarget(flash, cfg = this._targetProfile()){
     const device = this.selectDevice ? await this.selectDevice() : await selectOpenOcdDevice({ authorizedOnly:true });
-    if (cfg.builtin) cfg = { ...await loadBuiltinFlashCfg(cfg.builtin, cfg.clockKhz, cfg.transport), family:cfg.builtin };
-    if (cfg.arch === 'riscv' || cfg.transport === 'jtag') await prepareOpenOcdJtag(device);
+    if (cfg.builtin) cfg = { ...await loadBuiltinFlashCfg(cfg.builtin, cfg.clockKhz), family:cfg.builtin };
+    if (cfg.arch === 'riscv') await prepareOpenOcdJtag(device);
     return OpenOcdProbe.open(device, { cfg, onLog:line => this._log(line) });
   }
 
@@ -301,7 +299,7 @@ export class FlashView {
       if (!(await this._clearProbeUsers('读取目标身份'))) return;
       return this._usingTarget(false, async probe => {
         const id = probe.idcode;
-        this._log(probe.isRiscv || probe.cfg.transport === 'jtag' ? 'JTAG TAP ' + ocdHex(id) : decodeDpIdcode(id).text);
+        this._log(probe.isRiscv ? 'JTAG TAP ' + ocdHex(id) : decodeDpIdcode(id).text);
         if (probe.isRiscv) return { id };
         const word = addr => probe._readWord(addr).catch(() => null);
         const cpuid = await word(0xe000ed00);
@@ -351,6 +349,21 @@ if {[llength [info commands stm32h7x_mrw]] &&
         return { id, cpuid, devId:device?.devId, flashKb };
       }, cfg);
     }, '读取目标身份');
+  }
+
+  /** Independent readback for the board acceptance runner. */
+  async readFlashBytes(address, length){
+    const cfg = this._targetProfile();
+    const base = cfg.flashBase ? Number(cfg.flashBase) : hpmBoard(cfg.builtin) ? 0x80000000 : 0x08000000;
+    if (!Number.isSafeInteger(address) || !Number.isSafeInteger(length) ||
+        address < base || length < 1 || length > 0x40000 || address + length > base + 0x02000000)
+      throw Error('Flash 回读范围无效');
+    if (this.busy) throw Error('烧录器正在操作');
+    return this._withProbeOwnership(async () => {
+      await this._clearProbeUsers('独立回读 Flash');
+      return this._usingTarget(false, async probe => readFlashRange(probe.command.bind(probe), probe.link,
+        { mappedAddress:address, length }), cfg);
+    }, '独立回读 Flash');
   }
 
   _bar(pct){

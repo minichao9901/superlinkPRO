@@ -20,6 +20,7 @@ import { SerialSession } from '../serial/session.js';
 import { DemoPort, demoEnabled } from '../serial/demo.js';
 import { bytes as fBytes, rate as fRate, fileStamp, download, stamp as stampOf } from '../core/format.js';
 import { AnsiDisplay, BurstGuard, terminalBytes } from '../core/display-stream.js';
+import { waitMs } from '../core/pace.js';
 
 const portKey = p => {
   try { const i = p.getInfo?.() || {}; return `${i.usbVendorId ?? 0}-${i.usbProductId ?? 0}`; } catch { return 'x'; }
@@ -250,7 +251,7 @@ export class RttCdcStreamView {
   /** Finite CLI recording independent of the 2 MiB display history. */
   async captureWindow({seconds=1,maxMiB=32}={}){
     if(!this.s.isOpen)throw Error('先连接接收串口');
-    if(this._windowRecording)throw Error('已有窗口记录正在进行');
+    if(this._windowRecording || this._forwardCapture)throw Error('已有窗口记录正在进行');
     if(!Number.isFinite(seconds)||seconds<.1||seconds>30||!Number.isInteger(maxMiB)||maxMiB<1||maxMiB>64)
       throw Error('记录窗口须为0.1..30秒，缓存须为1..64MiB');
     this._windowRecording=true;
@@ -272,6 +273,189 @@ export class RttCdcStreamView {
     return {name,bytes,observedBytes,seconds:elapsed,activeSeconds,firstChunkBytes,
       activeBytesPerSecond:activeSeconds?(observedBytes-firstChunkBytes)/activeSeconds:0,complete:bytes>0&&observedBytes===bytes&&!closed&&!error,
       limitExceeded:observedBytes>bytes,portClosed:closed,error,bytesPerSecond:bytes/elapsed};
+  }
+
+  /**
+   * 已授权**真实**串口的 VID/PID 清单（验收 runner 用来核对「Windows COM ↔ 探针序列号」）。
+   *
+   * 为什么单列一个方法：串口选择器 `#c-port` 的选项里可能有演示假串口（?demo=serial 的
+   * DemoPort，没有 getInfo），Python 端只该按**真实**端口做「同一 VID/PID 唯一匹配」。
+   * 只用 SerialPort.getInfo() 的只读信息：不 requestPort（不弹 chooser）、不 open、
+   * 不改 this.ports 的选择序号。index 与 `#c-port` 的选项下标一致，Python 直接 set 它。
+   */
+  forwardPortOptions(){
+    if (demoEnabled()) return [];                    // 演示假串口不算授权真实串口
+    const ports = Array.isArray(this.ports) ? this.ports : [];
+    const out = [];
+    ports.forEach((p, index) => {
+      let info = null;
+      try { info = p?.getInfo?.() || null; } catch { info = null; }
+      const vendorId = info?.usbVendorId, productId = info?.usbProductId;
+      // 没有 USB 描述符（或读不到）的端口没法做 VID/PID 唯一匹配，不能算进来
+      if (!Number.isInteger(vendorId) || !Number.isInteger(productId)) return;
+      out.push({ index, vendorId, productId });
+    });
+    return out;
+  }
+
+  /**
+   * 验收 runner 的「RTT 转发窗口采集」：START → 收 `seconds` 秒 → STOP → 排空到最终 moved。
+   *
+   * 和 captureWindow（只按时间窗收数，不碰探针）的区别 —— 这里**要证明转发链路不丢字节**：
+   *   ① 串口与 HID 必须**由上游**先选好/打开（本方法不弹 chooser、不 open、不关任何会话）；
+   *   ② 探针侧已经有一支桥在跑时**拒绝**（不接管别人的桥）；
+   *   ③ 监听在 HidView.start() **之前**挂上，START 之后探针立刻往 CDC 搬字节，晚一步就丢头；
+   *   ④ STOP 走生产 HidView.stop()（探针确认 running=false 才返回），然后继续收：
+   *      CDC/USB/Web Serial 里还有在途字节 —— 直到浏览器收到的字节数补齐探针报的最终
+   *      `moved` 才算完整，超出排空时限如实报 incomplete。
+   *
+   * 业务异常（启动失败、STOP 未确认、端口断开、限额截断）**不抛**：先用生产 STOP 收尾清理，
+   * 再把失败与原始探针状态一起返回，由 runner 落证据。参数/前置条件错误才抛。
+   *
+   * @returns {{name:string,bytes:number,observedBytes:number,seconds:number,bytesPerSecond:number,
+   *   complete:boolean,start:object,stop:object,canRestart:boolean,started:boolean,startError:?string,stopError:?string,
+   *   error:?string,drainTimedOut:boolean,limitExceeded:boolean,portClosed:boolean,
+   *   limitBytes:number,windowBytes:number,drainBytes:number,drainSeconds:number,drainMs:number,
+   *   startSeconds:number,preWindowBytes:number,activeSeconds:number,firstChunkBytes:number,elapsedSeconds:number}}
+   */
+  async captureForwardWindow({ seconds = 2, maxMiB = 8, drainMs = 5000 } = {}){
+    const hid = globalThis.__tools?.hid;
+    if (this.tab !== 'rttcdc' || !hid || typeof hid.start !== 'function' || typeof hid.stop !== 'function')
+      throw Error('RTT 转发控制面不可用（HidView 未就绪）');
+    if (!this.s?.isOpen) throw Error('先连接接收串口：串口与 HID 应由上游选中并打开');
+    if (!hid.dev?.connected) throw Error('探针 HID 未连接：上游须先连接探针');
+    if (this._forwardCapture || this._windowRecording) throw Error('已有窗口记录正在进行');
+    // 探针侧粘性状态：桥在跑 / 启动还在排队 / 别人持有 HID 租约 → 一律不接管
+    if (hid.last?.running || hid._bridgeRequested || hid._starting || hid._stopPromise || hid._disconnecting ||
+        hid.probeManager?.leases?.has?.('hid'))
+      throw Error('探针侧 RTT 桥已在运行或被占用：本接口不接管已有桥，请先停止后再采集');
+    if (!Number.isFinite(seconds) || seconds < 0.1 || seconds > 60)
+      throw Error('采集窗口须为 0.1..60 秒');
+    if (!Number.isInteger(maxMiB) || maxMiB < 1 || maxMiB > 64)
+      throw Error('缓存须为 1..64 MiB 的整数');
+    if (!Number.isFinite(drainMs) || drainMs < 0 || drainMs > 30000)
+      throw Error('排空超时须为 0..30000 毫秒');
+
+    this._forwardCapture = true;
+    const limit = maxMiB * 1024 * 1024;
+    const startedAt = performance.now();
+    const chunks = [];
+    let bytes = 0, observedBytes = 0, closed = false, error = null;
+    let firstDataAt = null, lastDataAt = null, firstChunkBytes = 0;
+    // ① 监听必须先于 START（START 之后探针立刻开始搬字节）
+    const offData = this.s.on('data', b => {
+      observedBytes += b.length;
+      if (b.length){
+        const now = performance.now();
+        if (firstDataAt === null){ firstDataAt = now; firstChunkBytes = b.length; }
+        lastDataAt = now;
+      }
+      const take = Math.min(b.length, limit - bytes);
+      if (take > 0){ chunks.push(b.slice(0, take)); bytes += take; }
+    });
+    const offClose = this.s.on('close', () => { closed = true; });
+    const offError = this.s.on('error', e => { error = e?.message || String(e); });
+
+    let started = false, startError = null, stopError = null;
+    let start = null;
+    let windowObservedBytes = 0, windowSeconds = 0, startSeconds = 0;
+    let windowBaseBytes = 0, windowEndBytes = 0;
+    let drainTimedOut = false, stopAt = null;
+    try {
+      /**
+       * 🚨 判定只能按「=== false 才是失败」：生产 HidView.start() 成功时返回 **undefined**
+       *    （`_startBridge` 直接把 `_startBridgeNow` 的返回值交出去，成功路径没有 return），
+       *    只有失败才返回 false，被其它操作挡住时更是直接 return。所以再补一条硬条件：
+       *    探针状态必须真的 `running` —— 否则 START 还在排队/被挡，采集窗口没有意义。
+       */
+      let startResult = null;
+      try { startResult = await hid.start(); }
+      catch (e){ startError = e?.message || String(e); startResult = false; }
+      started = startResult !== false && hid.last?.running === true;
+      if (started) start = {cbAddr: hid.last.cbAddr, channel: hid.last.channel,
+        targetType: hid.last.targetType, chunkBytes: hid.last.chunkBytes, swdMhz: hid.last.swdMhz};
+      if (!started) startError = startError || hid._statusError
+        || (hid.last?.startRc ? `启动 RTT 转发失败（探针返回码 ${hid.last.startRc}）` : '')
+        || '探针未确认 START：RTT 桥没进入运行状态';
+      if (started){
+        // 窗口从「探针确认 running」起算：START 排队/搜控制块的耗时不算进测速窗口
+        const windowStartAt = performance.now();
+        startSeconds = Math.max(0, (windowStartAt - startedAt) / 1000);
+        windowBaseBytes = observedBytes;          // 窗口之前就到的字节不算这一次的实收
+        await new Promise(r => setTimeout(r, seconds * 1000));
+        windowEndBytes = observedBytes;
+        windowObservedBytes = windowEndBytes - windowBaseBytes;
+        stopAt = performance.now();
+        windowSeconds = (stopAt - windowStartAt) / 1000;
+        // ② STOP：生产 HidView.stop() 会等探针真正 running=false 才返回
+        try { await hid.stop(); }
+        catch (e){ stopError = e?.message || String(e); }
+        // ③ 排空：STOP 只是让探针不再搬，CDC/USB/Web Serial 里的在途字节还会继续到
+        const movedFinal = Number(hid.last?.moved) || 0;
+        const deadline = performance.now() + drainMs;
+        while (!stopError && !closed && !error && observedBytes < movedFinal && performance.now() < deadline){
+          await waitMs(Math.min(25, Math.max(0, deadline - performance.now())));
+        }
+        drainTimedOut = movedFinal > 0 && observedBytes < movedFinal;
+      } else {
+        // 启动失败也要用生产 STOP 收尾：别把半启动的桥留给下一位
+        try { await hid.stop(); }
+        catch (e){ stopError = e?.message || String(e); }
+        windowSeconds = Math.max(0, (performance.now() - startedAt) / 1000);
+      }
+    } finally {
+      offData(); offClose(); offError();
+      this._forwardCapture = false;
+    }
+
+    const st = hid.last || {};
+    const stop = {
+      running: typeof st.running === 'boolean' ? st.running : null,
+      moved: Number.isSafeInteger(st.moved) ? st.moved : null,
+      rdErr: Number.isSafeInteger(st.rdErr) ? st.rdErr : null,
+      wrErr: Number.isSafeInteger(st.wrErr) ? st.wrErr : null,
+      cbAddr: Number(st.cbAddr) || 0, upAddr: Number(st.upAddr) || 0, channel: Number(st.channel) || 0,
+      chunkBytes: Number(st.chunkBytes) || 0, targetType: Number(st.targetType) || 0,
+      swdMhz: Number(st.swdMhz) || 0, transfers: Number(st.transfers) || 0, polls: Number(st.polls) || 0,
+      emptyRing: Number(st.emptyRing) || 0, dapYield: Number(st.dapYield) || 0, rescans: Number(st.rescans) || 0,
+      startRc: st.startRc === undefined ? null : st.startRc, discard: !!st.discard,
+    };
+    const limitExceeded = observedBytes > bytes;
+    const elapsedSeconds = Math.max(0, (performance.now() - startedAt) / 1000);
+    const canRestart = stop.running === false && !stopError && !!hid.dev?.connected && !!this.s?.isOpen &&
+      globalThis.document?.getElementById?.('h-start')?.disabled !== true;
+    const name = `${this.owner}-forward-raw-${fileStamp()}.bin`;
+    download(name, new Blob(chunks, { type: 'application/octet-stream' }));
+    const complete = bytes > 0 && !limitExceeded && !closed && !error && !startError && canRestart &&
+      stop.startRc === 0 && stop.rdErr === 0 && stop.wrErr === 0 && !stop.discard &&
+      observedBytes === stop.moved;
+    if (!complete){
+      const why = startError || stopError || error || (closed ? '串口已断开' : '')
+        || (limitExceeded ? `超出 ${maxMiB} MiB 限额` : '')
+        || (drainTimedOut ? `STOP 后 ${drainMs} ms 内没收齐最终 moved（已收 ${observedBytes} / 探针 ${stop.moved}）` : '')
+        || `收尾计数或引擎状态异常（实收 ${observedBytes}，探针 ${stop.moved}）`;
+      this._forwardNote('转发采集不完整：' + why);
+    }
+    return {
+      name, bytes, observedBytes, limitBytes: limit,
+      // Throughput ends when STOP is issued. The raw file also includes the tail.
+      seconds: windowSeconds, windowBytes: windowObservedBytes,
+      bytesPerSecond: windowSeconds > 0 ? windowObservedBytes / windowSeconds : 0,
+      startSeconds,
+      preWindowBytes: windowBaseBytes,
+      drainBytes: observedBytes - windowEndBytes,
+      drainSeconds: stopAt === null ? 0 : Math.max(0, (performance.now() - stopAt) / 1000),
+      elapsedSeconds, drainMs, drainTimedOut,
+      complete, start, stop, canRestart, started,
+      startError, stopError, error, portClosed: closed, limitExceeded,
+      activeSeconds: firstDataAt !== null && lastDataAt > firstDataAt ? (lastDataAt - firstDataAt) / 1000 : 0,
+      firstChunkBytes,
+    };
+  }
+
+  /** 采集结论要看得见（失败不走 toast：CLI 场景没人点弹窗） */
+  _forwardNote(msg){
+    try { const el = this.$('c-err'); if (el) setStatus(el, msg, msg ? 'err' : null); } catch { /* 无 DOM 的离线回归 */ }
   }
 
   save(){

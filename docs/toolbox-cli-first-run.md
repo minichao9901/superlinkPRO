@@ -32,7 +32,7 @@
 
 ## 2. 接入探针并预览固件
 
-用 USB 数据线连接 SuperLinkPRO。按目标板针脚图连接 SWD 或 JTAG 和共地，核对供电和 I/O 电平。确认其他工作台已释放探针。
+用 USB 数据线连接 SuperLinkPRO。按目标板针脚图连接 ARM/SWD 或 RISC-V/JTAG 和共地，核对供电和 I/O 电平。确认其他工作台已释放探针。F103ZE 和 H743 的 ARM/JTAG 从源码终端使用原生 CLI。 [原生 ARM/JTAG](toolbox-cli-ai.md#原生-armjtag)
 
 在顶栏点「连接探针」。首次使用时按提示选择 USB；如果按钮变为「连接 HID」，再点一次，为同一只探针授权 HID。akaLinkPro 使用 JTAG 时，工作台通过 HID 配置探针引脚。已有授权时，顶栏会先枚举并复用设备。需要指定设备时，在「连接选项」分别使用「选择 USB」和「选择 HID」，核对两项属于同一只探针。
 
@@ -42,7 +42,7 @@
    python -X utf8 toolbox.py --runtime tmp/first-run-web page flash describe
    ```
 
-2. 按板型和实际接线输入内置芯片 ID。STM32H743 接 SWD 用 `stm32h7`，接 ARM JTAG 用 `stm32h743-jtag`。HPM6800EVK 接 RISC-V JTAG，用 `hpm6800evk`。
+2. 按板型和实际接线输入内置芯片 ID。STM32H743 接 SWD 用 `stm32h7`。HPM6800EVK 接 RISC-V JTAG，用 `hpm6800evk`。
 
    ```powershell
    $Chip = Read-Host '输入目标芯片 ID'
@@ -60,7 +60,7 @@
    python -X utf8 toolbox.py --runtime tmp/first-run-web target-flash --chip "$Chip" --file "$Firmware" --prepare-only
    ```
 
-5. 读取目标身份。STM32H743 所在系列的 `devId` 为 `0x450`，ARM JTAG 下还会显示 TAP ID。HPM6800EVK 的 `id` 对应 JTAG TAP `0x1000563d`。CLI 的 JSON 可能用十进制显示这些值。结合板卡丝印确认型号，读不到身份时先检查芯片选项、接线和探针授权。
+5. 读取目标身份。STM32H743 所在系列的 `devId` 为 `0x450`。HPM6800EVK 的 `id` 对应 JTAG TAP `0x1000563d`。CLI 的 JSON 可能用十进制显示这些值。结合板卡丝印确认型号，读不到身份时先检查芯片选项、接线和探针授权。
 
    ```powershell
    python -X utf8 toolbox.py --runtime tmp/first-run-web page flash invoke readIdcode

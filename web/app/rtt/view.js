@@ -12,7 +12,6 @@ import { Rtt } from './protocol.js';
 import { OpenOcdProbe, selectOpenOcdDevice } from '../core/openocd-probe.js';
 import { prepareOpenOcdJtag } from '../core/openocd-jtag-pins.js';
 import { makeOpenOcdProfile } from '../core/openocd-profile.js';
-import { loadBuiltinFlashCfg } from '../flash/upstream-config.js';
 import { HPM_BOARDS, hpmBoard } from '../targets/hpm/porting.js';
 import { selectedHpmBoard, rememberHpmBoard } from '../targets/hpm/select.js';
 import { MockProbe } from './mock.js';
@@ -128,26 +127,26 @@ export class RttView {
 
 
     const chip = chipSel();                 // 合并后的芯片下拉（ARM 组 + RISC-V 组，见文件头的辅助函数）
-    const applyTarget = () => {
-      const rv = $('r-target').value === 'riscv';
+    const applyTarget = ({ keepChip = false } = {}) => {
+      const transport = $('r-target').value;
+      const rv = transport === 'riscv';
       const clkLbl = $('r-usb-clock')?.closest('label')?.querySelector('span');
-      if (clkLbl) clkLbl.textContent = $('r-target').value === 'swd' ? 'SWD 时钟' : 'JTAG TCK';
+      if (clkLbl) clkLbl.textContent = transport === 'swd' ? 'SWD 时钟' : 'JTAG TCK';
       $('r-reset').disabled = rv;
       $('r-reset').title = rv
         ? '使用调试页复位 RISC-V 目标'
         : '通过 OpenOCD Wasm 复位 Cortex-M';
 
-      if (chip) chip.value = $('r-target').value === 'arm-jtag' ? 'stm32h7'
-        : rv ? (store.get('rtt.rvChip', '') || selectedHpmBoard())
-                                : (store.get('rtt.armChip', store.get('rtt.ocdTarget', '')) || 'stm32f103');
+      if (chip && !keepChip) chip.value = rv ? (store.get('rtt.rvChip', '') || selectedHpmBoard())
+        : (store.get('rtt.armChip', store.get('rtt.ocdTarget', '')) || 'stm32f103');
       if (chip && !chip.value) chip.value = rv ? selectedHpmBoard() : 'stm32f103';
-      $('r-range').value = $('r-target').value === 'arm-jtag' ? '0x24000000-0x24080000'
-                              : rv ? (rvRange(rvChipId()))
-                              : (OCD_RAM[armChipId()] || $('r-range').value);
-      this._applyChipUi(false);
+      $('r-range').value = rv ? rvRange(rvChipId())
+        : (OCD_RAM[armChipId()] || $('r-range').value);
+      this._applyChipUi();
     };
     // Restore architecture before deriving chip, range, labels and reset capability.
     store.bind($('r-target'), 'rtt.target');
+    if (!$('r-target').value) $('r-target').value = 'swd';
     const savedRange = store.get('rtt.range', null);
     applyTarget();
     if (savedRange !== null) $('r-range').value = savedRange;
@@ -157,12 +156,12 @@ export class RttView {
     /**
      * 合并后的芯片下拉：换芯片 = ① 记到**那一组自己的键**（两块各自记住上次选的）
      * ② RAM 窗口跟着换 ③ 跨组时把目标类型也切过去。
-     * RISC-V 只能 JTAG ⇒ 选 RISC-V 那颗就切 RISC-V/JTAG；选 ARM 那颗切回 SWD
-     * （桥侧对 ARM 用 JTAG 是**你自己的 cfg** 的事，这个下拉不管传输）。
+     * 内置芯片与导入配置分别选用各自声明的传输方式。
      */
     chip?.addEventListener('change', () => {
       const id = chip.value, arch = chipArchOf(id);
-      store.set(arch === 'riscv' ? 'rtt.rvChip' : 'rtt.armChip', id);
+      const imported = this.importedTarget?.id === id ? this.importedTarget.cfg : null;
+      if (!imported) store.set(arch === 'riscv' ? 'rtt.rvChip' : 'rtt.armChip', id);
       if (arch === 'riscv') rememberHpmBoard(id);
       /**
        * 🚨 **换芯片必须清掉手填的 RTT 地址**：`#r-addr` 绑的是 `rtt.addr`，它是"上一个目标
@@ -176,15 +175,12 @@ export class RttView {
         setStatus($('r-err'), '换了芯片：已清空手填的 RTT 地址（下次连接会按新 RAM 范围自动扫描）');
       }
       const wantRv = arch === 'riscv';
-      if (wantRv !== ($('r-target').value === 'riscv') || ($('r-target').value === 'arm-jtag' && id !== 'stm32h7')){
-        $('r-target').value = wantRv ? 'riscv' : 'swd';
-        store.set('rtt.target',$('r-target').value);
-        onTargetChanged();
-      } else {
-        $('r-range').value = $('r-target').value === 'arm-jtag' ? '0x24000000-0x24080000'
-          : wantRv ? rvRange(id) : (OCD_RAM[id] || $('r-range').value);
-        this._applyChipUi(true);
-      }
+      const transport = wantRv ? 'riscv' : 'swd';
+      $('r-target').value = transport;
+      store.set('rtt.target', transport);
+      this._applyTargetUi({ keepChip:true });
+      if (imported) $('r-range').value = '';
+      if (this.probe) this.disconnect();
     });
 
     // ---------- 连接按钮 ----------
@@ -265,19 +261,16 @@ export class RttView {
   }
 
 
-  _applyChipUi(applyRange){
+  _applyChipUi(){
     this._applyClockLimit();
-    const t = armChipId();
     const note = $('r-chip-note');
     if (note) note.hidden = chipArchOf(chipSel()?.value || '') !== 'riscv';
-    if (applyRange && $('r-target').value !== 'riscv' && OCD_RAM[t]) $('r-range').value = OCD_RAM[t];
   }
 
   _applyClockLimit(){
     const target=chipSel()?.value;
     constrainClockSelect($('r-usb-clock'),target,v=>store.set('rtt.clockKhz',v));
     $('r-usb-clock').title=isHpmClockTarget(target)?'HPM JTAG TCK 最高 25 MHz；默认 8 MHz'
-      : $('r-target').value==='arm-jtag'?'H743 JTAG 时钟请求档，默认 1 MHz'
       : $('r-target').value==='riscv'?'其他 RISC-V JTAG TCK 最高 60 MHz':'SWD 时钟最高 60 MHz；默认 1 MHz';
   }
 
@@ -308,13 +301,11 @@ export class RttView {
         const riscv = $('r-target').value === 'riscv';
         const target = riscv ? rvChipId() : armChipId();
         const imported = this.importedTarget?.id === target ? this.importedTarget.cfg : null;
-        const armJtag = $('r-target').value === 'arm-jtag';
         const clockKhz = webClockKhz($('r-usb-clock').value, target, riscv ? 8000 : 1000);
-        const cfg = imported || (armJtag ? await loadBuiltinFlashCfg('stm32h7', clockKhz, 'jtag')
-          : makeOpenOcdProfile({ arch:riscv ? 'riscv' : 'arm', port:hpmBoard(target), family:target, clockKhz }));
+        const cfg = imported || makeOpenOcdProfile({ arch:riscv ? 'riscv' : 'arm', port:hpmBoard(target), family:target, clockKhz });
         const device = await selectOpenOcdDevice({ authorizedOnly:true });
         if (g !== this._sessionGen) return;
-        if (riscv || cfg.transport === 'jtag') await prepareOpenOcdJtag(device);
+        if (riscv) await prepareOpenOcdJtag(device);
         if (g !== this._sessionGen) return;
         this.probe = await OpenOcdProbe.open(device, { cfg, runningMemory:true });
         if (g !== this._sessionGen) return;
@@ -509,7 +500,8 @@ export class RttView {
     clearTimeout(this.timer);
     this.running = true;
 
-    this.stats.polls = 0; this.stats.bytes = 0; this.stats.lost = 0;
+    this.stats.polls = 0; this.stats.bytes = 0; this.stats.lost = 0; this.stats.corrupt = 0;
+    this._corruptRun = 0;
     this.stats.lastBytes=0;this.stats.lastPolls=0;this._lastStatsAt=performance.now();
     this._ringBackpressure = false;
     this.fullPolls = 0; this.highPolls = 0; this.peak = 0; this._faults = 0;
@@ -820,6 +812,8 @@ export class RttView {
   // ================= 统计 / 保存 =================
   summary(){
     return {connected:!!this.probe,running:this.running,backend:this.backend || 'openocd',
+      probeSerial:this.probe?.device?.serialNumber || null,
+      ringBytes:this.rtt?.up?.[0]?.size ?? null,pollingMs:this.interval,
       clockKhz:this.probe?.clockHz ? this.probe.clockHz / 1000 : null, pollLimit:this.probe?.rttPollLimit ?? null,
       stats:{...this.stats},controlBlock:this.rtt?.addr??null,
       bufferedBytes:this.recBytes,displaySuppressed:this.suppressed,error:$('r-err').textContent};

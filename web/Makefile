@@ -532,6 +532,7 @@ hw-campaign-h743: page-prep build-h743-examples
 
 build-h743-examples:
 	pwsh -NoProfile -File tools/target-firmware/stm32h743_rtt_speed/build.ps1
+	pwsh -NoProfile -File tools/target-firmware/stm32h743_rtt_speed/build.ps1 -Sequence
 	pwsh -NoProfile -File tools/target-firmware/stm32h743_scope/build.ps1
 	pwsh -NoProfile -File tools/target-firmware/stm32h743_dbgstress/build.ps1
 
@@ -553,6 +554,7 @@ hw-campaign-hpm-5301evklite: FLOW_LOCAL = --local
 
 build-6800evk-examples:
 	pwsh -NoProfile -File tools/target-firmware/hpm6800evk_rtt_flood/build.ps1 -BuildType flash_xip
+	pwsh -NoProfile -File tools/target-firmware/hpm6800evk_rtt_flood/build.ps1 -BuildType flash_xip -Sequence
 	pwsh -NoProfile -File tools/target-firmware/hpm6800evk_scope/build.ps1 -BuildType flash_xip
 	pwsh -NoProfile -File tools/target-firmware/hpm6800evk_dbgstress/build.ps1 -BuildType flash_xip
 

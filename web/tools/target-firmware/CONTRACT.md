@@ -10,8 +10,8 @@
 | --- | --- | --- | --- | --- | --- |
 | F103CB | `stm32f103_rtt_speed/build-cb/fw.elf` | `stm32f103_rtt_seq/build-cb/fw.elf` | `stm32f103_scope/build-cb/fw.elf` | `stm32f103_dbgstress/build-cb/fw.elf` | `0x20000000-0x20005000` |
 | F103ZE | `stm32f103_rtt_speed/build-ze/fw.elf` | `stm32f103_rtt_seq/build-ze/fw.elf` | `stm32f103_scope/build/fw.elf` | `stm32f103_dbgstress/build/fw.elf` | `0x20000000-0x20010000` |
-| H743 | `stm32h743_rtt_speed/build/fw.elf` | — | `stm32h743_scope/build/fw.elf` | `stm32h743_dbgstress/build/fw.elf` | `0x24000000-0x24005000` |
-| 6800EVK | `hpm6800evk_rtt_flood/build/flash_xip/output/demo.elf` | — | `hpm6800evk_scope/build/flash_xip/output/demo.elf` | `hpm6800evk_dbgstress/build/flash_xip/output/demo.elf` | 从 ELF 符号取 |
+| H743 | `stm32h743_rtt_speed/build/fw.elf` | `stm32h743_rtt_speed/build-seq/fw.elf` | `stm32h743_scope/build/fw.elf` | `stm32h743_dbgstress/build/fw.elf` | `0x24000000-0x24005000` |
+| 6800EVK | `hpm6800evk_rtt_flood/build/flash_xip/output/demo.elf` | `hpm6800evk_rtt_flood/build-seq/flash_xip/output/demo.elf` | `hpm6800evk_scope/build/flash_xip/output/demo.elf` | `hpm6800evk_dbgstress/build/flash_xip/output/demo.elf` | 从 ELF 符号取 |
 
 四块活动板卡都由以下入口构建：
 
@@ -30,8 +30,7 @@ make test-board-matrix      # 只检查清单、脚本和产物是否一致
 - **RTT 洪水**：阻塞式 `SEGGER_RTT_Write()` 连续写固定 13 字节，`g_bytes`、`g_loops`、
   `g_ms` 用于主机侧对账。ZE 使用 32 KiB 上行缓冲，CB 使用 12 KiB；这是容量差异，
   不改变协议或判决口径。
-- **RTT 序号**：同样的固定长度记录带递增序号，用于检测错位、重复和丢字节；只在 F103
-  上保留，因为它服务于 SWD/RTT 链路的字节级诊断。
+- **RTT 序号**：固定 13 字节的 `seq NNNNNNN\r\n` 用于检测错位、重复和丢字节。H743 和 6800EVK 的 `-Sequence` 构建发布为 `fw-seq.elf`，每毫秒最多 32 条，Web 和原生各采 60 秒。F103 沿用既有序号夹具和 8 秒窗。固定文本吞吐用 `fw.elf`。
 - **J-Scope**：所有活动板卡都暴露连续变量块、散落变量、时基计数、撕裂读和混叠测试量。
   H743 把数据放 AXI SRAM，6800EVK 按其 SDK 的非缓存区域布局；主机按 ELF 符号取地址。
 - **调试压力**：四块板卡都使用同一组多文件调用链、结构体/位域、断点、单步和复位语义；

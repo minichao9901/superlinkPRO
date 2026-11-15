@@ -18,14 +18,14 @@ Unified AI entry: python -X utf8 toolbox.py --help. See docs/toolbox-cli-ai.md.
 
 ```text
 usage: toolbox.py [-h] [--runtime RUNTIME] [--timeout TIMEOUT] [--out OUT]
-                  {catalog,serve,ping,status,probe-flash,target-flash,job,ack,request,batch,page,target,trace,bridge-build} ...
+                  {catalog,serve,ping,status,probe-flash,target-flash,job,ack,request,batch,page,target,trace,arm-jtag,board-acceptance,bridge-build} ...
 ```
 
 | 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
 |---|---|---|---|---|---|
 | -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
 | --runtime | 工作台运行时目录（不是 trace native 运行时） | str | 否 | 未指定 | — |
-| --timeout | 等待结果秒数；超时不取消/不重试 | float | 否 | 60 | — |
+| --timeout | 等待结果秒数；默认 60，板卡验收默认 180；超时不取消/不重试 | float | 否 | 未指定 | — |
 | --out | JSON结果文件，拒绝覆盖 | str | 否 | 未指定 | — |
 
 ## toolbox.py catalog
@@ -430,6 +430,61 @@ usage: toolbox.py target use [-h] {flash,rtt}
 |---|---|---|---|---|---|
 | -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
 | page | 网页功能分类，取下面 choices 中的值；先 describe 再操作。 | str | 是 | 未指定 | ['flash', 'rtt'] |
+
+## toolbox.py arm-jtag
+
+使用原生 OpenOCD 操作 STM32 ARM/JTAG
+
+```text
+usage: toolbox.py arm-jtag [-h] --board {f103ze,h743}
+                           --probe-serial PROBE_SERIAL [--clock-khz CLOCK_KHZ]
+                           [--command TCL_COMMAND] [--stay-open]
+                           [--evidence-dir EVIDENCE_DIR] [--openocd OPENOCD]
+                           [--openocd-scripts OPENOCD_SCRIPTS] [--execute]
+```
+
+| 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
+|---|---|---|---|---|---|
+| -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+| --board | 所连 STM32 板卡 | str | 是 | 未指定 | ['f103ze', 'h743'] |
+| --probe-serial | 精确绑定 USB 和 HID 的探针序列号 | str | 是 | 未指定 | — |
+| --clock-khz | OpenOCD 请求的 TCK，单位 kHz | int | 否 | 1000 | — |
+| --command | OpenOCD Tcl 指令，可重复 | str | 否 | 未指定 | — |
+| --stay-open | 执行指令后保持 OpenOCD 运行，供 RTT TCP 等连接；Ctrl+C 退出 | flag × 0 | 否 | False | — |
+| --evidence-dir | 保存 OpenOCD 配置、脚本和日志的新目录 | Path | 否 | 未指定 | — |
+| --openocd | 原生 OpenOCD 可执行文件 | Path | 否 | 未指定 | — |
+| --openocd-scripts | 原生 OpenOCD 脚本目录 | Path | 否 | 未指定 | — |
+| --execute | 执行硬件操作，省略时只输出计划 | flag × 0 | 否 | False | — |
+
+## toolbox.py board-acceptance
+
+三板板卡验收：默认离线 plan，--execute 才访问硬件，--review 只复核证据
+
+```text
+usage: toolbox.py board-acceptance [-h] [--board {f103ze,h743,hpm6800evk}]
+                                   [--link {swd,jtag}]
+                                   [--group {S,F,D,V,R,J,E}] [--seed SEED]
+                                   [--execute] [--allow-flash]
+                                   [--allow-manual] [--native-scope]
+                                   [--probe-serial PROBE_SERIAL]
+                                   [--print-plan]
+                                   [--review SUMMARY_DIR [SUMMARY_DIR ...]]
+```
+
+| 参数 / 选项 | 说明 | 类型 / 数量 | 必填 | 默认值 | 可选值 |
+|---|---|---|---|---|---|
+| -h / --help | show this help message and exit | flag × 0 | 否 | 未指定 | — |
+| --board | 目标板卡 | str | 否 | 未指定 | ['f103ze', 'h743', 'hpm6800evk'] |
+| --link | 工作台链路，可重复；jtag 适用于 RISC-V | str | 否 | 未指定 | ['swd', 'jtag'] |
+| --group | 只跑指定组（七组各五项），可重复；省略时全跑 | str | 否 | 未指定 | ['S', 'F', 'D', 'V', 'R', 'J', 'E'] |
+| --seed | 计划种子；复核时按它逐字重算计划 | int | 否 | 20261122 | — |
+| --execute | 真正访问硬件；省略时只出计划，绝不打开设备 | flag × 0 | 否 | False | — |
+| --allow-flash | 允许烧写目标 Flash（F 组需要） | flag × 0 | 否 | False | — |
+| --allow-manual | 允许记录人工取证事件 | flag × 0 | 否 | False | — |
+| --native-scope | 增加原生 EP83 60 秒窗，需要 --probe-serial | flag × 0 | 否 | False | — |
+| --probe-serial | RTT 验收及原生访问所用的 USB/HID 探针序列号 | str | 否 | 未指定 | — |
+| --print-plan | 把完整计划打到标准输出 | flag × 0 | 否 | False | — |
+| --review | 离线复核已完成的证据目录（与 --execute 互斥） | str × + | 否 | 未指定 | — |
 
 ## toolbox.py bridge-build
 
@@ -1230,4 +1285,4 @@ usage: toolbox.py trace record sources [-h] --record RECORD
 | --sources-json | 路径→正文的源码字典 | Path | 否 | 未指定 | — |
 | --source-root | 只读取此目录内、ELF记录的实际源码路径；不猜basename | Path | 否 | 未指定 | — |
 
-共覆盖 **70 个命令/分类节点**。
+共覆盖 **72 个命令/分类节点**。

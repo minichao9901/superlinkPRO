@@ -9,11 +9,11 @@
   ⚠️ 用户定调：**H743 走 flash 版，不做纯 RAM 运行版**（2026-10）。
      早先那个 `-Ram` 分支与 `ld/stm32h743_ram.ld` 已删除 —— 需要时从 git 历史里取。
 #>
-param([switch]$Clean)
+param([switch]$Clean, [switch]$Sequence)
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-$build = Join-Path $root 'build'
+$build = Join-Path $root $(if ($Sequence) { 'build-seq' } else { 'build' })
 
 $gcc = (Get-Command arm-none-eabi-gcc -ErrorAction SilentlyContinue).Source
 if (-not $gcc){
@@ -46,6 +46,7 @@ $cflags = @(
   '-Wl,--gc-sections', "-Wl,-Map=$build\fw.map"
 )
 
+if ($Sequence) { $cflags += '-DSLPRO_RTT_SEQUENCE=1' }
 & $gcc @cflags @sources -o $elf
 if ($LASTEXITCODE -ne 0) { throw "编译失败 (exit $LASTEXITCODE)" }
 
@@ -55,7 +56,7 @@ $binout = Join-Path $build 'fw.bin'
 
 # 📦 把 ELF 复制到目录根：仓库里"给用户直接下载"的那份就是它（与 hpm6800evk_* 同约定）。
 #    改了源码重跑本脚本，这份会被覆盖 —— 别让入库的 ELF 和源码漂开（页面靠它取符号地址）。
-$pub = Join-Path $root 'fw.elf'
+$pub = Join-Path $root $(if ($Sequence) { 'fw-seq.elf' } else { 'fw.elf' })
 Copy-Item -Force $elf $pub
 
 Write-Output ""
