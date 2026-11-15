@@ -64,11 +64,7 @@ export function initSessionContext(tools){
   };
   const invalidate=page=>{
     const view=viewFor(page);view.sharedElfSha=null;elfBindings.delete(page);
-    if(page==='rtt'){$('r-addr').value='';store.set('rtt.addr','');}
-    if(page==='rttcdc'){
-      $('h-addr').value='';$('h-size').value='0';
-      store.set('hid.addr','');store.set('hid.size','0');
-    }
+    if(page==='rtt'||page==='rttcdc')view.clearAddress();
     if(page==='scope'){
       view.selected=[];view.all=[];view.elf=null;view.arrayGroups=[];view.dwarf=null;view.ram=[];view.skipped=[];
       $('sc-arrayexamples').replaceChildren();$('sc-arrayinfo').textContent='请重新载入匹配 ELF';
@@ -100,7 +96,6 @@ export function initSessionContext(tools){
         const opt=document.createElement('option');opt.value=target.id;opt.textContent=target.label;
         group.append(opt);chip.value=target.id;
         if(page==='flash')view._applyChip();
-        if(page==='rtt')$('r-range').value='';
       }
       localTargets.set(page,target);
       return;

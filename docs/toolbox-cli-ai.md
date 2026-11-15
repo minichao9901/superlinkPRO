@@ -65,8 +65,8 @@ ETM 联动采集的网页自动解码默认使用原生紧凑链，生成 TraceS
 |---|---|---|
 | `serial` | 串口助手 | 端口和参数、ASCII/HEX/ANSI、时间戳、定时/快捷发送、DTR/RTS、接收/记录；`view.sendText`、`session.write` |
 | `terminal` | 终端 | 交互输入、ANSI、回显、键盘映射、粘贴、清空/保存；`event` 和共享 `session` |
-| `rtt` | RTT Viewer | OpenOCD Wasm / WebUSB、模拟目标、RTT 搜索和通道、上下行、ELF、接收记录 |
-| `rttcdc` | RTT 转发 | `view` 管 CDC 数据；`hid` 管目标/时钟、转发启停/状态；共享串口 `session` |
+| `rtt` | RTT Viewer | OpenOCD Wasm / WebUSB、模拟目标、ELF 或精确地址定位、上下行、接收记录 |
+| `rttcdc` | RTT 转发 | `view` 管 CDC 数据，`hid` 管目标、时钟、精确地址及转发启停，共用串口 `session` |
 | `spicdc` | SPI 转发 | `session` 管从机 SPI/DMA 配置与启停；`stream` 管接收显示/记录；`serial` 管 CDC |
 | `scope` | J-Scope | ELF/DWARF 变量、标量/数组/成员、1–8 通道、速率标定、采样、触发/游标、分道/缩放、CSV/原始包和质量报告 |
 | `dbg` | 调试器 | OpenOCD Wasm 通过 WebUSB 使用 ARM/SWD 或 RISC-V/JTAG，提供预设和 CFG 导入、断点、暂停/继续/单步、寄存器/内存、源码、调用栈与异常诊断 |

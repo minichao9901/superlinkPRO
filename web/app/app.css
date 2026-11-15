@@ -1458,6 +1458,30 @@ fieldset,.toolbar,.sendbar,.stats,.an-measurements,.an-plot,
 .scope-counters summary{cursor:pointer;white-space:nowrap}
 .scope-counters>span{position:absolute;bottom:calc(100% + 4px);right:0;max-width:340px;padding:8px;background:var(--bg2);border:1px solid var(--line);border-radius:4px;z-index:3}
 
+:is(#tab-rtt,#tab-rttcdc,#tab-scope)[data-workspace] .side{padding-right:10px}
+:is(#tab-rtt,#tab-rttcdc)[data-workspace] .side{gap:12px}
+:is(#tab-rtt,#tab-rttcdc,#tab-scope) .side>fieldset,
+#tab-scope .tool-side-panel>fieldset,
+#tab-scope .scope-connection-details{
+  border:1px solid var(--line);border-radius:8px;background:var(--bg2);padding:7px 12px 11px;
+}
+:is(#tab-rtt,#tab-rttcdc,#tab-scope) .side fieldset>legend{
+  padding:0 5px;margin-left:-5px;font-size:13px;letter-spacing:0;
+}
+:is(#tab-rtt,#tab-rttcdc,#tab-scope) .side .row{gap:8px;margin:8px 0}
+:is(#tab-rtt,#tab-rttcdc,#tab-scope) .side .row>span:first-child{color:var(--fg2)}
+:is(#tab-rtt,#tab-rttcdc,#tab-scope) .side .session-context-card{gap:6px;margin-bottom:0}
+:is(#tab-rttcdc,#tab-scope) .side .connection-summary{padding:7px 3px}
+#tab-rttcdc .side :is(.hint,#h-state,#c-note){font-size:12px;line-height:1.45}
+#tab-scope .scope-connection-details{margin:8px 0 12px;padding:8px 10px}
+#tab-scope #sc-rate-advice{margin:9px 0 5px;font-size:12px;line-height:1.5}
+#tab-scope .tool-side-actions{padding:8px 3px 2px}
+@media(min-width:1040px){
+  :is(#tab-rtt,#tab-rttcdc,#tab-scope)[data-workspace]:not(.sidebar-collapsed):not([data-focus])>.ws{
+    grid-template-columns:308px minmax(0,1fr);gap:10px;
+  }
+}
+
 /* Firmware inspection stays local; large files render one page at a time. */
 #f-main [hidden]{display:none!important}
 .firmware-tabs{display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--line);flex:none}

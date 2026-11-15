@@ -534,8 +534,8 @@ async function rttViewer(secs){
   await cdp.eval(`(()=>{ const a=document.getElementById('r-record-auto');
     if (a?.checked){ a.checked=false; a.dispatchEvent(new Event('change')); }
   })()`);
-  await cdp.eval(`(()=>{const b=document.getElementById('r-backend'); b.value='webusb'; b.dispatchEvent(new Event('change'));})()`);
-  await cdp.eval(`document.getElementById('r-range').value=${JSON.stringify(BOARD.viewerRange)}`);
+  const load = await feedRttElf('rtt', FW.spam);
+  if (!load) throw Error('Viewer 无法从测速 ELF 读取 _SEGGER_RTT');
   await nap(500);
   let lastErr = '';
   for (let attempt = 1; attempt <= 3; attempt++){
@@ -569,43 +569,18 @@ async function rttViewer(secs){
 }
 
 /* ------------- 1b/1c) RTT 转发：速率判决（>2.5 MB/s）+ 10 s 存盘（页面记录到文件） ------------- */
-/**
- * 把固件喂给转发页的「载入 ELF…」（页面自己从符号表取 `_SEGGER_RTT` 当搜索起点）。
- *
- * 为什么 H743 必须走这条：**H7 的 DTCM(0x20000000) 探针走 AHB-AP 读不到**，固件的 RTT 环
- * 只能放 AXI SRAM(`_SEGGER_RTT = 0x24000014`)，而转发页那个「自动搜控制块」按钮是从
- * 0x20000000 起扫 64 KB —— 正好扫不到（按钮的 title 里也写着这条）。
- *
- * `_elfInput` 是页面动态建的隐藏 file input（没有 id，CDP 选不中），所以这里用
- * `DataTransfer` 把 File 塞进 `input.files` 再派发 change —— 走的就是用户点「载入 ELF…」那条路。
- */
-async function feedHidElf(file){
+async function feedRttElf(view, file){
   const b64 = fs.readFileSync(file).toString('base64');
-  return await cdp.evalJson(`(async()=>{ const bin = atob(${JSON.stringify(b64)}); const u = new Uint8Array(bin.length);
-      for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
-      const dt = new DataTransfer(); dt.items.add(new File([u], ${JSON.stringify(path.basename(file))}));
-      const inp = window.__tools.hid._elfInput;
-      if (!inp) return { err: '页面里没有 hid._elfInput' };
-      inp.files = dt.files; inp.dispatchEvent(new Event('change'));
-      await new Promise(r => setTimeout(r, 500));
-      return { addr: document.getElementById('h-addr').value, size: document.getElementById('h-size').value }; })()`);
+  return await cdp.evalJson(`(async()=>{ const bin = atob(${JSON.stringify(b64)});
+    const bytes = Uint8Array.from(bin, char => char.charCodeAt(0));
+    return await window.__tools[${JSON.stringify(view)}].loadElfFile(
+      new File([bytes], ${JSON.stringify(path.basename(file))})); })()`);
 }
-/**
- * 启动转发：真机编排优先用 ELF 精确地址，避免 F103 小 SRAM 的大范围扫描越过有效窗口。
- * 页面上的「自动搜控制块」仍保留给没有 ELF 的手工场景；H743 也必须走 ELF。
- */
-async function startForward(label = '', forceElf = false){
-  const useElf = BOARD.findCb === 'elf' || BOARD.findCb === 'auto' || forceElf;
-  if (useElf){
-    const r = await feedHidElf(FW.spam);
-    if (r.err) throw new Error('喂 ELF 给转发页失败：' + r.err);
-    console.log(`   [转发]${label} 从 ELF 取控制块：h-addr=${r.addr} · h-size=${r.size}`);
-    const expected = BOARD.findCb === 'elf' ? /^0x24/ : /^0x20/;
-    if (!expected.test(String(r.addr))) throw new Error(`页面没从 ELF 里取到 _SEGGER_RTT（拿到 ${r.addr}）`);
-    await cdp.eval(`document.getElementById('h-start').click()`, true);
-  } else {
-    await cdp.eval(`document.getElementById('h-auto').click()`, true);
-  }
+async function startForward(label = ''){
+  if (!await feedRttElf('hid', FW.spam)) throw Error('转发页无法从测速 ELF 读取 _SEGGER_RTT');
+  const address = await cdp.evalJson(`document.getElementById('h-addr').value`);
+  console.log(`   [转发]${label} 从 ELF 取得控制块 ${address}`);
+  await cdp.eval(`document.getElementById('h-start').click()`, true);
 }
 async function rttForward(){
   await cdp.eval(`document.querySelector('.tab[data-tab="rttcdc"]').click()`);

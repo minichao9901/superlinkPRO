@@ -580,7 +580,7 @@ async function rttForward(){
   await cdp.eval(`document.querySelector('.tab[data-tab="rttcdc"]').click()`);
   // 先把控制块地址填好（HPM 在 AXI SRAM，自动搜从 0x20000000 起扫不到）
   await cdp.eval(`(()=>{ document.getElementById('h-addr').value = '0x' + (${cbAddr}).toString(16);
-                         document.getElementById('h-size').value = '0x1000'; })()`);
+                         })()`);
   console.log(`   [转发] 控制块地址取自 ELF：0x${cbAddr.toString(16)}（HPM 自动搜扫不到这个区）`);
   /**
    * ⚠️ 页面里这个按钮早叫 **`h-refresh`**（「刷新」）；`#h-reconnect` 是**陈旧 id**

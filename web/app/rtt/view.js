@@ -16,46 +16,12 @@ import { HPM_BOARDS, hpmBoard } from '../targets/hpm/porting.js';
 import { selectedHpmBoard, rememberHpmBoard } from '../targets/hpm/select.js';
 import { MockProbe } from './mock.js';
 import { findSymbol } from './elf.js';
-import { parseRanges } from '../core/bin.js';
 import { parseHex, textToBytes } from '../core/hex.js';
 import { waitMs,yieldTask } from '../core/pace.js';
 import { rate as fRate, bytes as fBytes, fileStamp, download, stamp as stampOf } from '../core/format.js';
 
 const EOL = { cr: '\r', crlf: '\r\n', lf: '\n', none: '' };
 const MAX_RAW = 2 * 1024 * 1024;
-
-/**
- * 各目标系列的默认 RAM 扫描范围（RTT 控制块一般在 RAM 起始附近，范围取各系列常见最小值，
- * 宁小勿大：扫到未映射地址轻则读到 0、重则 FAULT）。选目标时自动填入，可手改。
- */
-const OCD_RAM = {
-  stm32c0: '0x20000000-0x20003000',   // 12K
-  stm32f0:  '0x20000000-0x20002000',  // 8K 起
-  stm32f1:  '0x20000000-0x20005000',  // F103C8 20K
-  stm32f103:'0x20000000-0x20005000',
-  stm32f2:  '0x20000000-0x20020000',  // 128K
-  stm32f3:  '0x20000000-0x2000a000',  // 40K 起
-  stm32f4:  '0x20000000-0x20020000',  // 128K
-  stm32f7:  '0x20000000-0x20020000',
-  stm32g0:  '0x20000000-0x20008000',  // 32K
-  stm32g4:  '0x20000000-0x20008000',
-  stm32h7:  '0x20000000-0x20020000',  // DTCM 128K
-  stm32h7b0:'0x20000000-0x20020000',  // H7B0（桥预设名就是这个）：DTCM 128K，RTT 缓冲放这儿
-  stm32h7a3:'0x20000000-0x20020000',  // H7A3/B3 同族，DTCM 也是 128K
-  stm32h7b3:'0x20000000-0x20020000',
-  stm32h5:  '0x20000000-0x20020000',  // H503 128K
-  stm32l0:  '0x20000000-0x20005000',  // 20K
-  stm32l1:  '0x20000000-0x20004000',  // 16K
-  stm32l4:  '0x20000000-0x2000c000',  // 48K
-  stm32l5:  '0x20000000-0x20010000',  // 64K
-  stm32u5:  '0x20000000-0x20020000',
-  stm32wb:  '0x20000000-0x20040000',  // WB55 256K
-  stm32wl:  '0x20000000-0x20010000',  // WLE5 64K
-  rp2350:   '0x20000000-0x20082000',  // 520 KiB
-};
-
-const rvRange = id => hpmBoard(id)?.memory.rttRange || '0x01240000-0x01250000';
-
 
 const chipSel = () => document.getElementById('r-chip');
 const chipArchOf = id => {
@@ -104,13 +70,11 @@ export class RttView {
   init(){
     const group = document.querySelector('#r-chip optgroup[data-arch="riscv"]');
     if (group) group.replaceChildren(...HPM_BOARDS.map(b => new Option(b.name, b.id)),
-      new Option('其它 RISC-V（自己填 RAM 范围）', 'riscv-other'));
+      new Option('其它 RISC-V', 'riscv-other'));
 
     this.tx = new RxBuffer($('r-rx'), { mode: 'ascii', maxLines: 4000, maxRaw: MAX_RAW });
 
     // ---------- 设置 ----------
-    store.bind($('r-range'), 'rtt.range');
-    store.bind($('r-addr'), 'rtt.addr');
     store.bind($('r-poll'), 'rtt.poll');
     store.bind($('r-eol'), 'rtt.eol');
     // 芯片（合并后的 `#r-chip`）不再用 store.bind：两块选项各有自己的键，
@@ -140,22 +104,22 @@ export class RttView {
       if (chip && !keepChip) chip.value = rv ? (store.get('rtt.rvChip', '') || selectedHpmBoard())
         : (store.get('rtt.armChip', store.get('rtt.ocdTarget', '')) || 'stm32f103');
       if (chip && !chip.value) chip.value = rv ? selectedHpmBoard() : 'stm32f103';
-      $('r-range').value = rv ? rvRange(rvChipId())
-        : (OCD_RAM[armChipId()] || $('r-range').value);
       this._applyChipUi();
     };
     // Restore architecture before deriving chip, range, labels and reset capability.
     store.bind($('r-target'), 'rtt.target');
     if (!$('r-target').value) $('r-target').value = 'swd';
-    const savedRange = store.get('rtt.range', null);
     applyTarget();
-    if (savedRange !== null) $('r-range').value = savedRange;
     this._applyTargetUi = applyTarget;       // 供明确的会话目标沿用入口刷新本地配置
-    const onTargetChanged = () => { applyTarget(); if (this.probe) this.disconnect(); };
+    const onTargetChanged = () => {
+      this.clearAddress();
+      applyTarget();
+      if (this.probe) this.disconnect().catch(error => this._err(error));
+    };
     $('r-target').addEventListener('change', onTargetChanged);
     /**
      * 合并后的芯片下拉：换芯片 = ① 记到**那一组自己的键**（两块各自记住上次选的）
-     * ② RAM 窗口跟着换 ③ 跨组时把目标类型也切过去。
+     * ② 清除上个目标的 RTT 地址 ③ 跨组时把目标接口也切过去。
      * 内置芯片与导入配置分别选用各自声明的传输方式。
      */
     chip?.addEventListener('change', () => {
@@ -163,23 +127,12 @@ export class RttView {
       const imported = this.importedTarget?.id === id ? this.importedTarget.cfg : null;
       if (!imported) store.set(arch === 'riscv' ? 'rtt.rvChip' : 'rtt.armChip', id);
       if (arch === 'riscv') rememberHpmBoard(id);
-      /**
-       * 🚨 **换芯片必须清掉手填的 RTT 地址**：`#r-addr` 绑的是 `rtt.addr`，它是"上一个目标
-       *    `.bss` 里的地址"，换目标后必然失效；旧值留着会让 locate() 直接去读那一格并抛 FAULT
-       *    （2026-10 现场：HPM6800 的 0x4c0003c0 落到 H743 上）。清空后 locate() 会走
-       *    "按新芯片 RAM 范围自动扫描"，这才是换目标该有的行为。
-       */
-      if (String($('r-addr').value || '').trim()){
-        $('r-addr').value = '';
-        store.set('rtt.addr', '');
-        setStatus($('r-err'), '换了芯片：已清空手填的 RTT 地址（下次连接会按新 RAM 范围自动扫描）');
-      }
+      this.clearAddress();
       const wantRv = arch === 'riscv';
       const transport = wantRv ? 'riscv' : 'swd';
       $('r-target').value = transport;
       store.set('rtt.target', transport);
       this._applyTargetUi({ keepChip:true });
-      if (imported) $('r-range').value = '';
       if (this.probe) this.disconnect();
     });
 
@@ -211,7 +164,7 @@ export class RttView {
 
     this._elfInput = document.createElement('input');
     this._elfInput.type = 'file';
-    this._elfInput.accept = '.elf,.axf,.out,.bin';
+    this._elfInput.accept = '.elf,.axf,.out';
     this._elfInput.style.display = 'none';
     this._elfInput.addEventListener('change', () => this._loadElf());
     document.body.appendChild(this._elfInput);
@@ -235,7 +188,7 @@ export class RttView {
       if (!this.running) return;
       if (document.hidden){
         this._wasRunning = true;
-        setStatus($('r-err'), '页面在后台：浏览器会限速定时器，RTT 轮询会变慢（数据不丢，切回来会补上）', null);
+        setStatus($('r-err'), '页面在后台：浏览器会限速定时器，RTT 轮询会变慢，请留意目标缓冲水位', null);
       } else if (this._wasRunning){
         this._wasRunning = false;
         setStatus($('r-err'), '', null);
@@ -332,7 +285,7 @@ export class RttView {
           if (g === this._sessionGen && this.probe === probeNow){
             this._err(e);
             setStatus($('r-err'), '探针已连接 · RTT 控制块未就绪：' + (e?.message || e)
-              + ' —— 探针保持连接；点【扫描控制块】或【载入 ELF】可重试', 'warn');
+              + '。请核对 ELF 或控制块地址', 'warn');
           }
         }
       }
@@ -376,7 +329,7 @@ export class RttView {
     if(this._pollTask)await this._pollTask.catch(()=>{});
     this._pollTask=null;
     await this.rtt?.drain?.();
-    await this._scanTask?.catch(() => {});
+    await this._rttStartTask?.catch(() => {});
     await this._resetTask?.catch(() => {});
     if (this.rec.active || this.rec.needsClose || this.rec.starting || this.rec.draining){
       const info = await this.rec.stop();
@@ -403,13 +356,13 @@ export class RttView {
 
   async _startRtt(g){
     if (!this.probe || this._disconnectPromise || this._resetTask) return;
-    if (this._scanTask) return this._scanTask;
-    this._scanTask = this._scanRtt(g);
-    try { return await this._scanTask; }
-    finally { this._scanTask = null; }
+    if (this._rttStartTask) return this._rttStartTask;
+    this._rttStartTask = this._openRtt(g);
+    try { return await this._rttStartTask; }
+    finally { this._rttStartTask = null; }
   }
 
-  async _scanRtt(g){
+  async _openRtt(g){
     if (g === undefined) g = this._sessionGen = (this._sessionGen || 0) + 1;
     const probe = this.probe;
     const active = () => g === this._sessionGen && this.probe === probe;
@@ -420,50 +373,32 @@ export class RttView {
     await this._pollTask?.catch(() => {});
     await oldRtt?.drain?.();
     if (!active()) return;
-    const addrText = String($('r-addr').value || '').trim();
-    const addr = addrText ? Number(addrText) : 0;
-    const ranges = parseRanges($('r-range').value);
-    setStatus($('r-err'), '正在查找 RTT 控制块…');
-    const locate = a => Rtt.locate(probe, {
-      addr: a, ranges,
-      onProgress: (p, at) => setStatus($('r-err'), `扫描控制块 ${(p * 100) | 0}%  @0x${at.toString(16)}`),
-    });
-    let found;
-    try {
-      found = await locate(addr);
-    } catch (e){
-      /**
-       * 🚨 手填地址读不通时**不要直接失败**：`#r-addr` 是 store 绑定的（键 `rtt.addr`），
-       *    换固件/换目标后它仍然保留上一次的值。2026-10 现场就是这么翻的车 ——
-       *    同一个 origin 下的老页面留下了 F103 时代的 `0x4c0003c0`（HPM6800 的地址），
-       *    换到 H743 后那格必然读 FAULT，于是"探针好好的却报连接失败"。
-       *    探针本身是好的 ⇒ 退回"按当前 RAM 范围自动扫描"，扫到就把地址回填。
-       */
-      if (!addr || !ranges.length || !active()) throw e;
-      setStatus($('r-err'), `地址 0x${addr.toString(16)} 读不通（${e.message}）—— 改为在 RAM 范围内自动扫描…`, 'warn');
-      found = await locate(0);
-      if (!active()) return;
-      if (found){
-        $('r-addr').value = '0x' + found.toString(16);
-        store.set('rtt.addr', $('r-addr').value);
-        toast(`已自动找回 RTT 控制块 0x${found.toString(16)}（原地址 0x${addr.toString(16)} 无效）`, 'ok');
-      }
+    const address = this._probeMock ? probe.cbAddr : Number($('r-addr').value.trim());
+    $('r-cb').textContent = '—';
+    $('r-up').textContent = $('r-down').textContent = '0';
+    if (!address && !$('r-addr').value.trim()){
+      setStatus($('r-err'), '探针已连接 · 请载入 ELF 或填写控制块地址');
+      return;
     }
+    if (!Number.isInteger(address) || address <= 0 || address > 0xffffffff - 24 || address % 4)
+      throw Error('请填写有效的 4 字节对齐控制块地址');
+    setStatus($('r-err'), '正在验证 RTT 控制块…');
+    const check = await Rtt.validate(probe, address);
     if (!active()) return;
-    if (!found) throw new Error('没找到 SEGGER RTT 控制块：固件里编进 RTT 了吗？RAM 范围填对了吗？（也可以载入 .elf 用符号定位）');
-    const rtt = new Rtt(probe, { addr: found });
-    await rtt.init(found);
+    if (!check.ok) throw Error(`0x${address.toString(16)} 处的 RTT 控制块校验失败：${check.reason}`);
+    const rtt = new Rtt(probe, { addr: address });
+    await rtt.init();
     if (!active()) return;
     const inff = rtt.info();
-    $('r-cb').textContent = '0x' + found.toString(16);
-    $('r-up').textContent = inff.maxUp;
-    $('r-down').textContent = inff.maxDown;
     const nm = await rtt.name('up', 0);
     if (!active()) return;
     this.rtt = rtt;
+    $('r-cb').textContent = '0x' + address.toString(16);
+    $('r-up').textContent = inff.maxUp;
+    $('r-down').textContent = inff.maxDown;
     $('r-chlabel').textContent = `下行 ch0${nm ? ' · ' + nm : ''}`;
     const sz = inff.up[0]?.size || 0;
-    setStatus($('r-err'), `控制块 0x${found.toString(16)}，上行缓冲 ${sz} B${inff.maxUp > 1 ? `（固件声明 ${inff.maxUp} 个上行通道，本页读 ch0）` : ''}`, 'ok');
+    setStatus($('r-err'), `控制块 0x${address.toString(16)}，上行缓冲 ${sz} B${inff.maxUp > 1 ? `（固件声明 ${inff.maxUp} 个上行通道，本页读 ch0）` : ''}`, 'ok');
     this._startPoll(g);
     this._armIdleWatchdog();
   }
@@ -581,7 +516,7 @@ export class RttView {
       const hdr = await probe.readMem(rtt.addr, 16);
       if (!active()) return false;
       if (String.fromCharCode(...hdr.subarray(0, 10)) !== 'SEGGER RTT')
-        throw Error('目标 RTT 控制块已变化，请重新扫描');
+        throw Error('目标 RTT 控制块已变化，请重新载入 ELF 或验证地址');
       setStatus($('r-err'), '调试口已恢复', 'ok');
       return true;
     } catch (e){
@@ -752,7 +687,7 @@ export class RttView {
     try {
       const rtt = this.rtt;
       const generation = this._sessionGen;
-      if (!rtt || this._disconnectPromise || this._resetTask) throw Error('RTT 还没就绪（先扫描控制块）');
+      if (!rtt || this._disconnectPromise || this._resetTask) throw Error('RTT 还没就绪，请先载入 ELF 或验证控制块地址');
       const n = await rtt.writeDown(0, bytes);
       if (generation !== this._sessionGen) return;
       if (n < bytes.length) toast(`下行缓冲只写进 ${n}/${bytes.length} 字节（固件没在取？）`, 'warn');
@@ -761,7 +696,7 @@ export class RttView {
   }
 
   async resetTarget(){
-    if (this._disconnectPromise || this._scanTask || this._resetTask) return;
+    if (this._disconnectPromise || this._rttStartTask || this._resetTask) return;
     this._resetTask = this._resetTarget();
     try { return await this._resetTask; }
     finally { this._resetTask = null; }
@@ -794,19 +729,45 @@ export class RttView {
   }
 
   // ================= ELF =================
-  async _loadElf(){ return await this.loadElfFile(this._elfInput.files?.[0]); }
-  async loadElfFile(f, buffer){
-    if (!f) return false;
+  clearAddress(){
+    this._elfRevision = (this._elfRevision || 0) + 1;
+    $('r-addr').value = '';
+  }
+
+  async _loadElf(){
+    const file = this._elfInput.files?.[0];
+    this._elfInput.value = '';
+    return await this.loadElfFile(file);
+  }
+
+  async loadElfFile(file, buffer){
+    if (!file) return false;
+    const revision = this._elfRevision = (this._elfRevision || 0) + 1;
     try {
-      const buf = buffer || await f.arrayBuffer();
-      const sym = findSymbol(buf, '_SEGGER_RTT');
-      if (!sym){ toast(`${f.name} 里没有 _SEGGER_RTT 符号（strip 过了？）→ 改用扫描`, 'warn', 6000); return; }
-      $('r-addr').value = '0x' + sym.addr.toString(16);
-      store.set('rtt.addr', $('r-addr').value);
-      this.onElfLoaded?.(buf, f.name);
-      toast(`从 ELF 拿到 _SEGGER_RTT = 0x${sym.addr.toString(16)}（${sym.size} B）`, 'ok', 6000);
+      const bytes = buffer ?? await file.arrayBuffer();
+      if (revision !== this._elfRevision) return false;
+      if (this._connectPromise || this._disconnectPromise || this._rttStartTask || this._resetTask)
+        throw Error('探针操作尚未完成，请稍后载入 ELF');
+      const symbol = findSymbol(bytes, '_SEGGER_RTT');
+      if (!Number.isInteger(symbol?.addr) || symbol.addr <= 0 || symbol.addr > 0xffffffff - 24 || symbol.addr % 4)
+        throw Error(`${file.name} 中没有可用的 _SEGGER_RTT 地址，请载入包含符号表的 ELF`);
+      const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      const machine = new DataView(data.buffer, data.byteOffset, data.byteLength).getUint16(18, data[5] === 1);
+      if (machine !== ($('r-target').value === 'riscv' ? 243 : 40))
+        throw Error('ELF 架构与 Viewer 的目标接口不匹配');
+      const address = '0x' + symbol.addr.toString(16);
+      $('r-addr').value = address;
+      this.onElfLoaded?.(bytes, file.name);
+      setStatus($('r-err'), `${file.name} · _SEGGER_RTT ${address}`, 'ok');
+      if (this.probe && !this._probeMock){
+        try { await this._startRtt(); }
+        catch (error){ this._err(error); }
+      }
       return true;
-    } catch (e){ this._err(e); }
+    } catch (error){
+      this._err(error);
+      return false;
+    }
   }
 
   // ================= 统计 / 保存 =================
@@ -848,16 +809,17 @@ export class RttView {
       this._zeroHinted = true;
       const errEl = $('r-err');
       if (errEl && !errEl.textContent){
-        setStatus(errEl, '控制块在、轮询也在跑，但 4 秒没读到任何字节：' +
-          '① 目标固件没在写 RTT（或没在跑）；② 同一个 RTT 环被别的读者拿走了 —— 本页「RTT 转发」的探针桥在跑就先停它；' +
-          '③ 地址是手填的话清空它重扫一次', 'warn');
+        setStatus(errEl, '4 秒未收到 RTT 输出。请检查目标是否在写入，或是否有其他端在读取同一缓冲。', 'warn');
         this._zeroHintSet = true;
       }
     } else if (this._zeroHintSet && s.bytes > 0){
       this._zeroHintSet = false;
       setStatus($('r-err'), '', null);
     }
-    if (!this.rtt && this.probe) $('r-cb').textContent = '查找中…';
+    if (!this.rtt && this.probe){
+      const status = this._rttStartTask && (this._probeMock || $('r-addr').value.trim()) ? '校验中…' : '—';
+      if ($('r-cb').textContent !== status) $('r-cb').textContent = status;
+    }
   }
 
   // ================= 高速自动关显示 =================

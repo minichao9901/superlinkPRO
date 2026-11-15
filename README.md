@@ -45,7 +45,7 @@ AI / 脚本统一入口：`python -X utf8 toolbox.py catalog`。覆盖全部 Web
 | 页面 | 能做什么 | 实测 / 状态 |
 |---|---|---|
 | **串口 / 终端** | Web Serial + WebUSB 双后端，HEX/文本、发送历史、记录到文件 | 稳定 |
-| **RTT Viewer** | OpenOCD Wasm / WebUSB，沿用调试目标，按 ELF、扫描范围或手工地址定位 RTT 控制块 | [F103ZE、H743、HPM6800EVK 和 RP2350 验收](web/docs/dbg-page.md#内置芯片与-openocd-cfg) |
+| **RTT Viewer** | OpenOCD Wasm / WebUSB，沿用调试目标，从匹配的 ELF 读取 `_SEGGER_RTT`，也可手填确切地址 | [F103ZE、H743、HPM6800EVK 和 RP2350 验收](web/docs/dbg-page.md#内置芯片与-openocd-cfg) |
 | **RTT 转发** | 探针侧桥把 RTT 搬到 CDC，主机直接用串口工具 | **3.05 MB/s**（60 MHz 档） |
 | **J-Scope 波形** | 8 变量、多泳道/叠加、A/B 游标、实时 CSV / 原始包流 | 单变量 **495.8 kHz @ 2 µs**（名义 500 kHz；探针跳拍 ≈0.8%、探针本体 629 kHz；稳定窗 USB 丢 0 / 读错 0，边界另计）；8 通道 50 kHz 零丢 |
 | **烧录器** | OpenOCD Wasm，支持 ELF / HEX / BIN，按目标 Flash bank 擦写、读回和复位 | [RP2350 原版 CFG 四扇区逐字节读回](docs/validation/rp2350-cfg-shared-hw-20261108.md) |

@@ -677,10 +677,12 @@ export class ScopeView {
           `读取耗时上界 ≤${fmtHz(advice.readCeilingHz)}，不代表持续采样能力。` +
           (fresh ? '依据当前标定。' : '依据粗估，建议先标定。') + (slow ? ` ${slow}` : '稳定性以实采跳拍/USB计数为准。')
         : '采样周期必须是大于 0 的有限数值。';
+      const qualifier = advice.aboveReadCeiling ? ' · 周期过短' : advice.aboveRecommendation ? ' · 高于建议速率'
+        : advice.normalized ? ' · 周期已量化' : fresh ? ' · 已标定' : ' · 待标定';
       const short = this.uiBackend() === P.BACKEND.ARM_JTAG && !fresh
         ? 'ARM/JTAG 采样请使用原生 CLI'
         : advice.valid
-        ? `建议起始：${advice.recommendedUs} µs（${fmtHz(advice.recommendedHz)}）` + (slow ? `；${slow}` : fresh ? ' · 已标定' : ' · 待标定')
+        ? `建议 ${advice.recommendedUs} µs · ${fmtHz(advice.recommendedHz)}${qualifier}`
         : text;
       setStatus(rateHint, short, !advice.valid ? 'err' : slow ? 'warn' : '');
       rateHint.title = text;

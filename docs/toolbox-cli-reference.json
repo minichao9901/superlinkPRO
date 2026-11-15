@@ -513,58 +513,10 @@
           ]
         },
         {
-          "id": "r-usb-clock",
-          "tag": "select",
-          "type": null,
-          "label": "选择目标接口时钟，默认 SWD 1 MHz、JTAG 8 MHz",
-          "options": [
-            {
-              "value": "0",
-              "label": "自动"
-            },
-            {
-              "value": "1000",
-              "label": "1 MHz"
-            },
-            {
-              "value": "5000",
-              "label": "5 MHz"
-            },
-            {
-              "value": "10000",
-              "label": "10 MHz"
-            },
-            {
-              "value": "20000",
-              "label": "20 MHz"
-            },
-            {
-              "value": "30000",
-              "label": "30 MHz"
-            },
-            {
-              "value": "40000",
-              "label": "40 MHz"
-            },
-            {
-              "value": "45000",
-              "label": "45 MHz"
-            },
-            {
-              "value": "50000",
-              "label": "50 MHz"
-            },
-            {
-              "value": "60000",
-              "label": "60 MHz"
-            }
-          ]
-        },
-        {
           "id": "r-chip",
           "tag": "select",
           "type": null,
-          "label": "选择目标芯片以填入默认 RAM 扫描范围；范围也可手动修改",
+          "label": "选择 OpenOCD 目标配置",
           "options": [
             {
               "value": "stm32f103",
@@ -656,21 +608,57 @@
             },
             {
               "value": "riscv-other",
-              "label": "其它 RISC-V（自己填 RAM 范围）"
+              "label": "其它 RISC-V"
             }
           ]
         },
         {
-          "id": "r-range",
-          "tag": "input",
+          "id": "r-usb-clock",
+          "tag": "select",
           "type": null,
-          "label": ""
-        },
-        {
-          "id": "r-addr",
-          "tag": "input",
-          "type": null,
-          "label": "留空 = 自动扫描 / 读 ELF"
+          "label": "选择目标接口时钟，默认 SWD 1 MHz、JTAG 8 MHz",
+          "options": [
+            {
+              "value": "0",
+              "label": "自动"
+            },
+            {
+              "value": "1000",
+              "label": "1 MHz"
+            },
+            {
+              "value": "5000",
+              "label": "5 MHz"
+            },
+            {
+              "value": "10000",
+              "label": "10 MHz"
+            },
+            {
+              "value": "20000",
+              "label": "20 MHz"
+            },
+            {
+              "value": "30000",
+              "label": "30 MHz"
+            },
+            {
+              "value": "40000",
+              "label": "40 MHz"
+            },
+            {
+              "value": "45000",
+              "label": "45 MHz"
+            },
+            {
+              "value": "50000",
+              "label": "50 MHz"
+            },
+            {
+              "value": "60000",
+              "label": "60 MHz"
+            }
+          ]
         },
         {
           "id": "r-elf",
@@ -679,16 +667,22 @@
           "label": "载入 ELF…"
         },
         {
-          "id": "r-find",
-          "tag": "button",
-          "type": null,
-          "label": "扫描控制块"
-        },
-        {
           "id": "r-poll",
           "tag": "input",
           "type": null,
           "label": ""
+        },
+        {
+          "id": "r-addr",
+          "tag": "input",
+          "type": null,
+          "label": "填写控制块确切地址"
+        },
+        {
+          "id": "r-find",
+          "tag": "button",
+          "type": null,
+          "label": "验证地址"
         },
         {
           "id": "r-reset",
@@ -814,35 +808,39 @@
       "methodSourceHints": [
         {
           "name": "connectProbe",
-          "line": 278
+          "line": 231
         },
         {
           "name": "disconnect",
-          "line": 354
+          "line": 307
         },
         {
           "name": "onShow",
-          "line": 678
+          "line": 613
         },
         {
           "name": "resetTarget",
-          "line": 763
+          "line": 698
+        },
+        {
+          "name": "clearAddress",
+          "line": 732
         },
         {
           "name": "loadElfFile",
-          "line": 798
+          "line": 743
         },
         {
           "name": "summary",
-          "line": 813
+          "line": 774
         },
         {
           "name": "saveRaw",
-          "line": 953
+          "line": 915
         },
         {
           "name": "save",
-          "line": 960
+          "line": 922
         }
       ]
     },
@@ -872,19 +870,13 @@
           "id": "h-addr",
           "tag": "input",
           "type": null,
-          "label": "控制块搜索起点。Cortex-M7（H743 / H7B3 等）的 DTCM 探针读不到，要给 AXI SRAM（如 0x24000000）"
+          "label": "载入 ELF 或填写确切地址"
         },
         {
           "id": "h-elf",
           "tag": "button",
           "type": null,
-          "label": "从 ELF 里读 _SEGGER_RTT 符号，顺手把搜索长度收成 0x1000"
-        },
-        {
-          "id": "h-size",
-          "tag": "input",
-          "type": null,
-          "label": "0 = 探针默认 64 KB（从上面的地址起搜）"
+          "label": "从 ELF 读取 _SEGGER_RTT 地址"
         },
         {
           "id": "h-chan",
@@ -928,12 +920,6 @@
           "label": "停止"
         },
         {
-          "id": "h-auto",
-          "tag": "button",
-          "type": null,
-          "label": "让探针自己从 0x20000000 起扫 64 KB 找 \"SEGGER RTT\" 签名"
-        },
-        {
           "id": "h-refresh",
           "tag": "button",
           "type": null,
@@ -968,13 +954,13 @@
           "id": "c-open",
           "tag": "button",
           "type": null,
-          "label": "连接"
+          "label": "打开接收口"
         },
         {
           "id": "c-close",
           "tag": "button",
           "type": null,
-          "label": "断开"
+          "label": "关闭接收口"
         },
         {
           "id": null,
@@ -1064,39 +1050,39 @@
       "methodSourceHints": [
         {
           "name": "onShow",
-          "line": 139
+          "line": 142
         },
         {
           "name": "refreshPorts",
-          "line": 153
+          "line": 156
         },
         {
           "name": "pickPort",
-          "line": 180
+          "line": 194
         },
         {
           "name": "connect",
-          "line": 193
+          "line": 206
         },
         {
           "name": "captureWindow",
-          "line": 252
+          "line": 270
         },
         {
           "name": "forwardPortOptions",
-          "line": 286
+          "line": 304
         },
         {
           "name": "captureForwardWindow",
-          "line": 321
+          "line": 339
         },
         {
           "name": "save",
-          "line": 461
+          "line": 479
         },
         {
           "name": "summary",
-          "line": 587
+          "line": 605
         }
       ]
     },
@@ -1401,20 +1387,8 @@
           "id": "sc-clock",
           "tag": "select",
           "type": null,
-          "label": "与 RTT Viewer 同款档位；固件自带失败自动降档",
+          "label": "探针读取目标的时钟档位",
           "options": []
-        },
-        {
-          "id": "sc-cdcoff",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
-        },
-        {
-          "id": "sc-batch",
-          "tag": "input",
-          "type": "checkbox",
-          "label": ""
         },
         {
           "id": "sc-bench",
@@ -1427,6 +1401,18 @@
           "tag": "button",
           "type": null,
           "label": "按当前计划的有效标定：SWD 取读取耗时×1.15+1µs，JTAG 取×1.5，向上取整且不小于3µs；这是起始建议，稳定性以实采计数为准"
+        },
+        {
+          "id": "sc-cdcoff",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
+        },
+        {
+          "id": "sc-batch",
+          "tag": "input",
+          "type": "checkbox",
+          "label": ""
         },
         {
           "id": "sc-elf",
@@ -1656,163 +1642,163 @@
         },
         {
           "name": "mockVars",
-          "line": 741
+          "line": 743
         },
         {
           "name": "periodUs",
-          "line": 746
+          "line": 748
         },
         {
           "name": "rateAdvice",
-          "line": 747
+          "line": 749
         },
         {
           "name": "rateWarning",
-          "line": 751
+          "line": 753
         },
         {
           "name": "seconds",
-          "line": 758
+          "line": 760
         },
         {
           "name": "start",
-          "line": 761
+          "line": 763
         },
         {
           "name": "confirmTargetArchitecture",
-          "line": 792
+          "line": 794
         },
         {
           "name": "applyCaptureClock",
-          "line": 801
+          "line": 803
         },
         {
           "name": "stop",
-          "line": 1128
+          "line": 1130
         },
         {
           "name": "applyTargetType",
-          "line": 1186
+          "line": 1188
         },
         {
           "name": "setBackend",
-          "line": 1242
+          "line": 1244
         },
         {
           "name": "benchKeyOf",
-          "line": 1304
+          "line": 1306
         },
         {
           "name": "benchFresh",
-          "line": 1321
+          "line": 1323
         },
         {
           "name": "benchKeyWhy",
-          "line": 1330
+          "line": 1332
         },
         {
           "name": "uiBackend",
-          "line": 1355
+          "line": 1357
         },
         {
           "name": "fastWordUs",
-          "line": 1369
+          "line": 1371
         },
         {
           "name": "planClockMhz",
-          "line": 1375
+          "line": 1377
         },
         {
           "name": "planEstimateUs",
-          "line": 1380
+          "line": 1382
         },
         {
           "name": "recPeriodUsFor",
-          "line": 1388
+          "line": 1390
         },
         {
           "name": "bench",
-          "line": 1404
+          "line": 1406
         },
         {
           "name": "applyRecPeriod",
-          "line": 1484
+          "line": 1486
         },
         {
           "name": "isReal",
-          "line": 1499
-        },
-        {
-          "name": "signed",
-          "line": 1500
-        },
-        {
-          "name": "hidXfer",
           "line": 1501
         },
         {
+          "name": "signed",
+          "line": 1502
+        },
+        {
+          "name": "hidXfer",
+          "line": 1503
+        },
+        {
           "name": "configureScope",
-          "line": 1507
+          "line": 1509
         },
         {
           "name": "readScopeMetrics",
-          "line": 1518
+          "line": 1520
         },
         {
           "name": "onChunk",
-          "line": 1543
+          "line": 1545
         },
         {
           "name": "clear",
-          "line": 1692
+          "line": 1694
         },
         {
           "name": "trigCfg",
-          "line": 1711
+          "line": 1713
         },
         {
           "name": "applyTrigger",
-          "line": 1722
+          "line": 1724
         },
         {
           "name": "findNextTrigger",
-          "line": 1747
+          "line": 1749
         },
         {
           "name": "clearTrigger",
-          "line": 1763
+          "line": 1765
         },
         {
           "name": "exportCsv",
-          "line": 1771
+          "line": 1773
         },
         {
           "name": "saveRaw",
-          "line": 1790
+          "line": 1792
         },
         {
           "name": "replayFile",
-          "line": 1798
+          "line": 1800
         },
         {
           "name": "setStatusText",
-          "line": 1869
+          "line": 1871
         },
         {
           "name": "syncButtons",
-          "line": 1876
+          "line": 1878
         },
         {
           "name": "drawFrame",
-          "line": 1897
+          "line": 1899
         },
         {
           "name": "renderLegend",
-          "line": 1958
+          "line": 1960
         },
         {
           "name": "summary",
-          "line": 1981
+          "line": 1983
         }
       ]
     },

@@ -2422,7 +2422,7 @@ export class DbgView {
       el.textContent = `ELF 符号 ${s.name} = ${hex32(s.addr)}${s.size ? `（${s.size} 字节）` : ''}`
         + (manual ? `　·　地址格填了 ${hex32(manual)}（以它为准）` : '　·　地址留空就用它');
     } else {
-      el.textContent = '这份 ELF 里没找到 _SEGGER_RTT 符号 —— 在「地址」里手填，或用 RTT 转发页的自动搜索';
+      el.textContent = '这份 ELF 里没有 _SEGGER_RTT 符号。可在「地址」填写控制块的确切地址。';
     }
   }
 

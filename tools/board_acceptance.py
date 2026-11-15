@@ -1399,7 +1399,7 @@ class Driver:
         if len(choices) != 1:
             raise Pending('浏览器须已有唯一授权的 akaLinkPro CDC 端口')
         mode = {'swd': 'swd', 'jtag': 'riscv'}[self.link]
-        controls = {'#h-target': mode, '#h-addr': hex(address), '#h-size': '0x1000', '#h-chan': '0',
+        controls = {'#h-target': mode, '#h-addr': hex(address), '#h-chan': '0',
                     '#c-port': str(choices[0]['index']), '#c-record-auto': False}
         if self.link == 'swd' and case['requestedHz']:
             controls['#h-clock'] = str(case['requestedHz'])

@@ -21,6 +21,8 @@ async function fixture(run){
   get('f-chip').value=get('r-chip').value='stm32f103';get('r-target').value=get('h-target').value=get('sc-target').value='swd';get('d-backend').value='webusb';
   const view=()=>({session:{bps:[],bpNotes:new Map(),regs:[]},watch:{items:[]},renderVars(){},updatePlan(){},renderElfInfo(){},renderBps(){},renderWatch(){},_fileInfo(){},_applyChip(){},_applyTargetUi(){},_applyBackendUi(){},async _syncBackend(){}});
   const tools={flash:view(),rtt:view(),dbg:view(),scope:view(),hid:view()};
+  tools.rtt.clearAddress=()=>{get('r-addr').value='';};
+  tools.hid.clearAddress=()=>{get('h-addr').value='';};
   const context=initSessionContext(tools);
   const card=page=>(page==='scope'?get('sc-side-capture-panel'):page==='dbg'?get('d-side-session-panel'):get('tab-'+page).side).children[0];
   const adopt=page=>card(page).children[2];

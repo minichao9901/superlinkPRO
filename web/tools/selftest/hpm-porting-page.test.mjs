@@ -28,11 +28,11 @@ try {
     result.selected=store.get('target.hpmBoard');
     store.set('rtt.target','riscv');
     $('r-target').value='riscv';$('r-chip').value='hpm6800evk';
-    $('r-range').value='0x01240000-0x01250000';rtt.onShow();
-    result.rttBoard=$('r-chip').value;result.defaultRange=$('r-range').value;
-    $('r-range').value='0x12340000-0x12341000';$('r-addr').value='0x12340040';
+    $('r-addr').value='0x01240000';$('r-chip').dispatchEvent(new Event('change'));rtt.onShow();
+    result.rttBoard=$('r-chip').value;result.oldAddress=$('r-addr').value;
+    $('r-addr').value='0x12340040';
     rememberHpmBoard('hpm6750evk2');rtt.onShow();
-    result.customRange=$('r-range').value;result.elfAddr=$('r-addr').value;
+    result.elfAddr=$('r-addr').value;
     $('f-chip').value='hpm6800evk';flash.onShow();result.flashBoard=$('f-chip').value;
     dbg.onShow();result.debugBoard=$('d-hpm-target').value;
     dbg.session.port=resolveHpmTarget('hpm5301evklite');
@@ -50,12 +50,12 @@ try {
   })()`);
   for(const selector of ['d-hpm-target','r-chip','f-chip']){assert.deepEqual(result[selector],ids);pass++;}
   assert.equal(result.rvVisible,true);assert.equal(result.armHidden,true);pass++;
-  assert.equal(result.selected,'hpm5301evklite');assert.equal(result.rttBoard,'hpm5301evklite');
-  assert.equal(result.defaultRange,'0x00080000-0x00090000');pass++;
-  assert.equal(result.customRange,'0x12340000-0x12341000');assert.equal(result.elfAddr,'0x12340040');pass++;
+  assert.equal(result.selected,'hpm5301evklite');assert.equal(result.rttBoard,'hpm6800evk');
+  assert.equal(result.oldAddress,'');pass++;
+  assert.equal(result.elfAddr,'0x12340040');pass++;
   assert.equal(result.flashBoard,'hpm6750evk2');assert.equal(result.debugBoard,'hpm6750evk2');pass++;
   assert.equal(result.activePort,'hpm5301evklite');assert.equal(result.activeDisabled,true);pass++;
   assert.equal(result.afterDisconnect,'hpm6e00evk');pass++;
   assert.equal(result.genericOption,true);assert.equal(result.genericRemembered,'riscv-other');pass++;
-  console.log(`HPM porting page: ${pass} passed; generated selectors, shared selection, custom ranges and active-session isolation; no hardware accessed`);
+  console.log(`HPM porting page: ${pass} passed; generated selectors, shared selection, exact RTT address and active-session isolation; no hardware accessed`);
 } finally {c.close();}

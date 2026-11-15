@@ -1,4 +1,5 @@
 import { PROBE_FEATURES } from '../core/probe-users.js';
+import { isProbeCdcPort } from '../core/cdc-mode.js';
 import { setFlag } from './dom.js';
 
 /** Only inspect local connection/lease state; never query hardware from the header. */
@@ -19,7 +20,12 @@ export function initProbeStatus(tools){
     ['spi', () => `控制${tools.spiSession.connected?'已连接':'未连接'} · 数据${tools.spiSession.dataReady?'已连接':'未连接'}`],
     ['panel', () => `共享 SPI：控制${tools.spiSession.connected?'已连接':'未连接'} · 数据${tools.spiSession.dataReady?'已连接':'未连接'}`],
     ['scope', () => `探针${tools.scope.hid?.connected||tools.scope.usingMock?'已连接':'未连接'} · 数据${tools.scope.transport||tools.scope.usingMock?'已连接':'未连接'}`],
-    ['rttcdc', () => `转发${tools.hid.last?.running?'运行中':tools.probeManager?.failures.has('hid')?'状态未确认':'未启动'} · 接收口${tools.session.isOpen?'已打开':'未打开'}`],
+    ['rttcdc', () => {
+      const producer = tools.hid.last?.running ? '运行中' : tools.probeManager?.failures.has('hid') ? '状态未确认' : '未启动';
+      const {isOpen, port} = tools.session;
+      const receiver = !isOpen ? '未打开' : !tools.hid.mock && !isProbeCdcPort(port) ? '选错' : '已打开';
+      return `转发${producer} · 接收口${receiver}`;
+    }],
     ['spicdc', () => `转发${tools.spiCdc.session.running?'运行中':'未启动'} · 接收口${tools.session.isOpen?'已打开':'未打开'}`],
   ].map(([name, read]) => {
     const side=document.querySelector(`#tab-${name} .side`);

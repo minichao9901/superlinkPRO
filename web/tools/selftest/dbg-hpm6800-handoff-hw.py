@@ -160,7 +160,7 @@ def main():
         require(not inv('rttcdc', 'summary')['open'], 'browser serial port already in use')
         owned = True
         controls_to_restore = {
-            'rttcdc': ['#h-target', '#h-addr', '#h-size', '#h-chan'],
+            'rttcdc': ['#h-target', '#h-addr', '#h-chan'],
             'scope': ['#sc-target', '#sc-search', '#sc-period', '#sc-seconds', '#sc-cdcoff'],
         }
         for page, controls in controls_to_restore.items():
@@ -195,7 +195,7 @@ def main():
         write_scratch(ring)
         require(read_scratch() == ring, 'scratch readback failed')
         dbg('run')
-        for selector, value in [('#h-addr', hex(SCRATCH)), ('#h-size', '0x1000'), ('#h-chan', '0')]:
+        for selector, value in [('#h-addr', hex(SCRATCH)), ('#h-chan', '0')]:
             set_value('rttcdc', selector, value)
         evidence['rtt'] = {}
         start_rtt_and_read(evidence['rtt'])

@@ -318,7 +318,7 @@ export async function runUiSelfTest(tools){
     if (!sel) throw new Error('没有目标类型下拉 #r-target');
     const vals = [...sel.options].map(o => o.value);
     for (const v of ['swd', 'riscv']) if (!vals.includes(v)) throw new Error(`目标类型下拉少了 ${v}（现有 ${vals.join('/')}）`);
-    const keepTarget = sel.value, keepRange = $('r-range').value;
+    const keepTarget = sel.value, keepAddr = $('r-addr').value;
 
     // 先切到 SWD 记下 ARM 组那颗（下拉只显示当前目标类型那一组，所以要切过去才看得到）
     sel.value = 'swd';
@@ -337,7 +337,7 @@ export async function runUiSelfTest(tools){
      * 组归属看 `<optgroup data-arch>`；RISC-V 那颗只能 JTAG ⇒ 选中它要自动把目标类型切过去；
      * 切回 ARM 那颗则切回 SWD（ARM 走 JTAG 是桥侧 cfg 的事，这个下拉不管传输）。
      * ⚠️ 别假设切到 RISC-V 后停在 HPM6800EVK：那是**用户存过的**设置（本站 profile 里就存着
-     *    hpm5301evklite），所以下面显式选一颗再验 RAM 窗口。
+     *    hpm5301evklite），所以下面显式选一颗再验旧地址清理。
      */
     const chip = $('r-chip');
     if (!chip) throw new Error('没有合并后的芯片下拉 #r-chip');
@@ -351,15 +351,16 @@ export async function runUiSelfTest(tools){
     if (!groups.riscv.includes(chip.value)) throw new Error('目标类型 = RISC-V 时，芯片下拉该自动停在 RISC-V 组那颗，实际 ' + chip.value);
     const keepRvChip = chip.value;              // 复原用（这一颗是 RISC-V 组"上次选的"）
 
-    chip.value = 'hpm6800evk';                  // 显式选一颗：RAM 窗口要跟着换
+    $('r-addr').value = '0x24000014';
+    chip.value = 'hpm6800evk';
     chip.dispatchEvent(new Event('change'));
     await new Promise(r => setTimeout(r, 40));
-    if (!$('r-range').value.startsWith('0x01240000')) throw new Error('选 HPM6800EVK 后 RAM 范围不对：' + $('r-range').value);
 
+    if ($('r-addr').value) throw new Error('换目标后保留了旧 RTT 控制块地址');
+    if ($('r-range')) throw new Error('Viewer 仍显示 RAM 扫描范围');
     chip.value = 'hpm6300evk';
     chip.dispatchEvent(new Event('change'));
     await new Promise(r => setTimeout(r, 40));
-    if (!$('r-range').value.startsWith('0x010C0000')) throw new Error('换 HPM6300EVK 后 RAM 范围没跟着变：' + $('r-range').value);
 
     sel.value = 'swd';                          // 切回 SWD：芯片该回到 ARM 组**上次那颗**
     sel.dispatchEvent(new Event('change'));
@@ -371,7 +372,6 @@ export async function runUiSelfTest(tools){
     chip.dispatchEvent(new Event('change'));
     await new Promise(r => setTimeout(r, 60));
     if (sel.value !== 'riscv') throw new Error('选 RISC-V 组的芯片后目标类型没自动切到 RISC-V（实际 ' + sel.value + '）');
-    if (!$('r-range').value.startsWith('0x01240000')) throw new Error('选 HPM6800EVK 后范围不对：' + $('r-range').value);
     chip.value = 'stm32f103';                   // 再挑 ARM 那颗 → 目标类型切回 SWD
     chip.dispatchEvent(new Event('change'));
     await new Promise(r => setTimeout(r, 60));
@@ -385,7 +385,7 @@ export async function runUiSelfTest(tools){
     chip.value = keepTarget === 'riscv' ? keepRvChip : keepChip;
     chip.dispatchEvent(new Event('change'));    // 让两组各自的键回到原值
     await new Promise(r => setTimeout(r, 40));
-    $('r-range').value = keepRange;
+    $('r-addr').value = keepAddr;
     if ($('r-reset').disabled && keepTarget === 'swd') throw new Error('切回 SWD 后「复位目标」该恢复可用');
     return `下拉 ${vals.join('/')} · 芯片合并成一个（ARM ${groups.arm.length} 项 + RISC-V ${groups.riscv.length} 项）· 跨组自动切目标类型、组内各记各的`;
   });

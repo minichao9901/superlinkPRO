@@ -1,7 +1,7 @@
 /**
  * 从 ELF 里找符号（默认找 _SEGGER_RTT）。
  * 为什么要它：控制块在 RAM 里的地址不固定，扫描要好几秒；ELF 里符号是现成的。
- * 支持 ELF32 / ELF64、大小端；没有符号表（strip 过的）就返回 null，让调用方退回扫描。
+ * 支持 ELF32 / ELF64、大小端；没有符号表（strip 过的）就返回 null。
  */
 import { u32le, latin1 } from '../core/bin.js';
 

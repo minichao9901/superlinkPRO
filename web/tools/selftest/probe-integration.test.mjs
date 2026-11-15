@@ -38,6 +38,7 @@ Object.assign(dbg, { session: { connected: false }, _out(){}, _disconnectNow: as
 dbg._connectNow = async () => { events.push('dbg:setup'); dbg.session.connected = true; };
 const flash = Object.create(FlashView.prototype); Object.assign(flash, { busy: false, file: { name: 'fw.bin' } });
 const hid = Object.create(RttCdcView.prototype); Object.assign(hid, { mock: null, last: { running: false }, render(){}, dev: { stop: () => assert.fail('queued bridge never acquired the engine') } });
+hid.params = () => ({addr:0x20000000,size:10});
 hid._startBridgeNow = () => assert.fail('queued bridge START must be cancelled');
 const i2c = new I2cSession();
 i2c._connectNow = async () => { i2c.hid = { connected: true }; events.push('i2c:setup'); return true; };
@@ -116,9 +117,10 @@ console.log('probe-integration: manual release and managed takeover share one co
 const pendingBridge = Object.create(RttCdcView.prototype);
 const bridgeEvents = [];
 Object.assign(pendingBridge, {
-  mock: null, last: { running: false }, render(){}, persist(){}, params: () => ({}), _ensure: async () => true,
+  mock: null, last: { running: false }, render(){}, persist(){}, params: () => ({addr:0x20000000,size:10}), _ensure: async () => true,
   _settle: async function(){ this.last = { running: false, startRc: -100 }; },
   dev: {
+    setTargetType: async () => ({ rc: 0 }),
     start: async () => ({ rc: 0 }),
     stop: async () => { bridgeEvents.push('STOP'); return { rc: 0, status: { running: false, startRc: -100 } }; },
     status: async () => { bridgeEvents.push('STOP-confirmed'); return { status: { running: false, startRc: 0 } }; },
