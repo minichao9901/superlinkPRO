@@ -36,3 +36,13 @@ Edge 分别测试源码模块和合并包。模拟目标中，侧栏 ELF 和 Int
 | RAM 下载并调试 | 声明 64 KiB 后使用下载按钮。镜像及 BSS 共 48,784 字节回读一致，VTOR 为 `0x20000000`。停于 `main = 0x20000250`，指令单步到 `0x20000252`。继续后调试页 RTT 显示 `M0+ RT-Thread Nano` 和 `msh >`。 |
 
 本轮板卡为 Zynq Cortex-M0+ / SWD 1 MHz。S 组确认镜像范围和回读，D 组确认建链、暂停、单步和继续，V 组在调试页由 ELF 定位并实收 RTT。F 组 Flash、E 组 ETM 不适用于本轮目标和镜像。R 组转发、J 组 J-Scope 及各组性能用例本轮未测。
+
+### 合并文件选择器复验
+
+源码提交 `94d3ec4`。在 8880 的 Chrome WebUSB 会话中将 `rtthread_nano.elf` 选入一次，先点击「仅写入内存」，再沿用该文件点击「下载并停在 main」。
+
+- 在 `0x20000000` 回读 ELF 的 31,808 字节文件段，逐字节匹配且覆盖 `0x200000e0` 的哨兵。文件段 SHA-256 为 `c3d6dbdde06020b2233d3eb8d78fe69ac55481a15beb28461c2b6969a0a2b4c6`。BSS、PC、MSP、xPSR 和停机状态与写前一致。
+- 声明 64 KiB RAM 后使用同一文件运行到 `main = 0x20000250`，含清零 BSS 的 48,784 字节再次回读一致，VTOR 为 `0x20000000`。单步到 `0x20000252`，继续后在调试页 RTT 实收 `M0+ RT-Thread Nano` 和 `msh >`。
+- Edge 的源码和合并包回归确认 ELF 两项动作接收同一 File，BIN 选中后出现地址框，HEX 和 BIN 只显示内存写入口。冻结 EXE 的浏览器回归重复通过。
+
+实板回读和日志位于本机 `tmp/cm0p-web-ram-20261117/unified-chrome-webusb/`。
