@@ -156,7 +156,9 @@ python -X utf8 toolbox.py --runtime $runtime target info
 
 ### Windows 桥包默认队列
 
-双击 `superlinkPRO.exe` 或 `etm-bridge.exe` 后，保持自动打开的工作台标签页运行。从解压目录运行：
+双击 `superlinkPRO.exe` 或 `etm-bridge.exe` 后，保持自动打开的工作台标签页运行。再次双击会打开同一工作台服务。如果 Chrome 或 Edge 无法使用原有配置目录，启动器会用 `data/browser-profile/` 下的独立配置打开工作台。首次使用该浏览器配置时需按浏览器提示授权设备。
+
+从解压目录运行：
 
 ```powershell
 .\workbench-cli.cmd ping

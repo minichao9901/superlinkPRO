@@ -1,5 +1,5 @@
 """Portable ETM workbench. Runtime and assets are bundled; user data stays beside the EXE."""
-import argparse,gzip,hashlib,importlib.util,json,os,secrets,socket,sys,tempfile,threading,time,uuid,webbrowser,zipfile
+import argparse,gzip,hashlib,importlib.util,json,os,secrets,socket,subprocess,sys,tempfile,threading,time,uuid,webbrowser,zipfile
 from pathlib import Path
 from urllib.request import urlopen
 from flask import send_file,request
@@ -104,6 +104,105 @@ def cli_browser_url(folder,entry):
     token=(folder/'cli-token').read_text(encoding='ascii')
     return state['url']+'/'+(entry or '#flash')+'?trace-cli='+token
 
+def windows_browser_handoff(url, profile_folder):
+    """Keep the default browser, using a separate profile if Chromium cannot reuse its own."""
+    import ctypes
+    from ctypes import wintypes
+
+    class ShellExecuteInfo(ctypes.Structure):
+        _fields_ = [
+            ('cbSize',wintypes.DWORD),('fMask',wintypes.ULONG),('hwnd',wintypes.HWND),
+            ('lpVerb',wintypes.LPCWSTR),('lpFile',wintypes.LPCWSTR),('lpParameters',wintypes.LPCWSTR),
+            ('lpDirectory',wintypes.LPCWSTR),('nShow',ctypes.c_int),('hInstApp',wintypes.HINSTANCE),
+            ('lpIDList',ctypes.c_void_p),('lpClass',wintypes.LPCWSTR),('hkeyClass',wintypes.HKEY),
+            ('dwHotKey',wintypes.DWORD),('hIcon',wintypes.HANDLE),('hProcess',wintypes.HANDLE),
+        ]
+
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    shell = ctypes.WinDLL('shell32', use_last_error=True)
+    shell.ShellExecuteExW.argtypes = [ctypes.POINTER(ShellExecuteInfo)]
+    kernel.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    kernel.WaitForSingleObject.restype = wintypes.DWORD
+    kernel.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    shell_no_async, shell_process_handle, shell_no_error_ui = 0x100, 0x40, 0x400
+    wait_signaled, wait_timeout = 0, 258
+    profile_in_use = 21
+    chromium_handed_off = (24, 38)  # Existing process notified or browser relaunched without elevation.
+    info = ShellExecuteInfo(cbSize=ctypes.sizeof(ShellExecuteInfo),
+                            fMask=shell_no_async | shell_process_handle | shell_no_error_ui,
+                            lpVerb='open', lpFile=url, nShow=1)
+
+    # Child browser processes should use the Windows DLL search path, not the
+    # private PyInstaller libraries used by the bundled native tools.
+    frozen = getattr(sys,'frozen',False)
+    if frozen:
+        old_directory = ctypes.create_unicode_buffer(32768)
+        kernel.GetDllDirectoryW(len(old_directory), old_directory)
+        if not kernel.SetDllDirectoryW(None):
+            raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        if not shell.ShellExecuteExW(ctypes.byref(info)):
+            return False
+        if not info.hProcess:
+            return True
+        try:
+            status = kernel.WaitForSingleObject(info.hProcess, 2500)
+            if status == wait_timeout:
+                return True
+            code = wintypes.DWORD()
+            if status != wait_signaled or not kernel.GetExitCodeProcess(info.hProcess,ctypes.byref(code)):
+                return False
+        finally:
+            kernel.CloseHandle(info.hProcess)
+        if code.value == 0 or code.value in chromium_handed_off:
+            return True
+        if code.value != profile_in_use:
+            return False
+
+        association = ctypes.WinDLL('shlwapi').AssocQueryStringW
+        association.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.LPCWSTR,
+                                wintypes.LPCWSTR, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
+        executable = ctypes.create_unicode_buffer(32768)
+        size = wintypes.DWORD(len(executable))
+        if association(0x1000, 2, 'http', 'open', executable, ctypes.byref(size)) != 0:
+            return False
+        browser = Path(executable.value)
+        if browser.name.lower() not in ('chrome.exe','msedge.exe'):
+            return False
+        profile = profile_folder / browser.stem.lower()
+        profile.mkdir(parents=True, exist_ok=True)
+        process = subprocess.Popen([str(browser), '--user-data-dir='+str(profile), '--no-first-run', url])
+        try:
+            opened = process.wait(timeout=2.5) in (0, *chromium_handed_off)
+        except subprocess.TimeoutExpired:
+            opened = True
+        if opened:
+            print('浏览器原有配置目录正在占用，已打开工作台专用浏览器会话。',flush=True)
+        return opened
+    finally:
+        if frozen:
+            kernel.SetDllDirectoryW(old_directory.value or None)
+
+def open_workbench_browser(url, profile_folder, *, background_notice=False):
+    try:
+        opened = windows_browser_handoff(url, profile_folder) if os.name=='nt' and not os.environ.get('BROWSER') else webbrowser.open(url)
+    except OSError:
+        opened = False
+    if not opened:
+        address = url.partition('#')[0]
+        message = '工作台已运行，请在浏览器中打开 '+address
+        print(message, file=sys.stderr, flush=True)
+        if os.name=='nt':
+            import ctypes
+            notify = ctypes.windll.user32.MessageBoxW
+            args = (None, message, 'SuperLinkPRO', 0x30)
+            if background_notice:
+                threading.Thread(target=notify, args=args, daemon=True).start()
+            else:
+                notify(*args)
+    return opened
+
 def main():
     home=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else HERE
     runtime=Path(sys._MEIPASS) if getattr(sys,'frozen',False) else HERE
@@ -137,6 +236,7 @@ def main():
     entry='' if workbench else '#etm'
     cli_enabled=not args.no_workbench_cli
     folder=cli_runtime(data,port)
+    profiles=data/'browser-profile'
     app=application.app
     app.view_functions['launcher_info']=lambda:dict(protocol=1,portable=True,version=version,packageId=package_id,port=port,dataDirectory=str(data),engine=engine,workbenchCli=cli_enabled,**build_times)
     archive_guard=threading.Lock()
@@ -161,7 +261,7 @@ def main():
         if existing.get('engine')!=engine:raise ValueError('已有工作台使用不同解码引擎，请先退出已有工作台再重新启动；不会停止已有服务')
         if existing.get('workbenchCli',False)!=cli_enabled:raise ValueError('已有工作台的 CLI 开关不同，请先退出后再重新启动')
         print('同版本工作台已运行：'+url+entry,flush=True)
-        if not args.no_browser:webbrowser.open(cli_browser_url(folder,entry) if cli_enabled else url+entry)
+        if not args.no_browser:open_workbench_browser(cli_browser_url(folder,entry) if cli_enabled else url+entry, profiles)
         return
     try:http=make_server('127.0.0.1',port,application,threaded=True)
     except (OSError,SystemExit):raise ValueError(f'端口 {port} 已被占用，请修改 etm.config.json 的 port；不会停止已有服务')
@@ -182,7 +282,8 @@ def main():
         print('KingstVIS 需开启 Socket 并使能五路通道。',flush=True)
         print('工作台：'+url+entry+'（退出按 Ctrl+C）',flush=True)
         if cli_enabled:print('工作台 CLI 运行时：'+str(folder),flush=True)
-        if not args.no_browser:webbrowser.open(cli_browser_url(folder,entry) if cli_enabled else url+entry)
+        if not args.no_browser:
+            open_workbench_browser(cli_browser_url(folder,entry) if cli_enabled else url+entry, profiles, background_notice=True)
         http.serve_forever()
     except KeyboardInterrupt:pass
     finally:http.server_close()
@@ -201,7 +302,8 @@ if __name__=='__main__':
                 parser.add_argument('--runtime',type=Path,default=default)
                 args=parser.parse_args(options[1:])
                 toolbox.Client(args.runtime).http('health')
-                webbrowser.open(cli_browser_url(args.runtime,'#flash'))
+                profiles=home/'data/browser-profile' if args.runtime.resolve()==default.resolve() else args.runtime/'browser-profile'
+                open_workbench_browser(cli_browser_url(args.runtime,'#flash'), profiles)
             else:
                 sys.exit(toolbox.main(options,portable_runtime=default))
         elif len(sys.argv)>1 and sys.argv[1] in ('--cli','--cli-host'):

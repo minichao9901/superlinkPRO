@@ -61,3 +61,11 @@ Windows 打包源码 `a931e7265a3b4b929a425884e415f32efe13e889`，运行时来�
 | Release | [SuperLinkPRO 1.1.0-web.26](https://github.com/minichao9901/superlinkPRO/releases/tag/workbench-v1.1.0-web.26) 已公开，ZIP 资产大小及 GitHub SHA-256 与本机清单一致。 |
 
 从 GitHub Pages 和 Release 分别匿名下载完整 ZIP，各 104,123,583 字节。两份文件重新计算的 SHA-256 均与本机清单一致。
+
+### 本机双击启动诊断
+
+2026-11-17 的现场中，8878 正由已安装的 web.26 提供服务。EXE SHA-256 与发布验收一致，文件无互联网区域标记。用户报告双击无界面后，以无参数重试，启动器获取同版本服务的 `/etm-launcher.json`，返回 0，浏览器端未出现新的首页请求。
+
+读取 Windows 进程令牌确认工作台为 Medium（RID `0x2000`），当前 Chrome 主进程为 High（RID `0x3000`）。在独立冻结启动探针中，以 Medium 直接调用 Chrome，子进程退出码为 21，工作台没有收到导航。清除冻结进程专用 DLL 搜索目录后结果相同。以 High 的原生 Python 调用同一路径的 Chrome 成功，HTTP 首页及带授权的 CLI 队列可用。Windows 对跨完整性级别的窗口消息有 UIPI 限制，Chromium 在 Windows 使用窗口消息协调复用已有配置目录的浏览器实例。 [Windows 消息限制](https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-sendmessage) · [Chromium 单实例实现](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/chrome/browser/process_singleton_win.cc)
+
+本轮已在现有 Chrome 打开 8878 调试页并核对工作台 CLI 握手。普通权限 Chrome 配合同一 EXE 的 Explorer 双击仍待人工复验。
