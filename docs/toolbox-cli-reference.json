@@ -1965,7 +1965,7 @@
           "id": "d-elf-pick",
           "tag": "button",
           "type": null,
-          "label": "载入 ELF…"
+          "label": "载入 ELF 符号…"
         },
         {
           "id": "d-elf-file",
@@ -1974,16 +1974,34 @@
           "label": ""
         },
         {
+          "id": "d-image-file",
+          "tag": "input",
+          "type": "file",
+          "label": "选择要加载的镜像"
+        },
+        {
+          "id": "d-image-address",
+          "tag": "input",
+          "type": null,
+          "label": "BIN 加载地址"
+        },
+        {
+          "id": "d-image-load",
+          "tag": "button",
+          "type": null,
+          "label": "按镜像地址写内存，保持目标运行状态"
+        },
+        {
           "id": "d-ram-debug",
           "tag": "button",
           "type": null,
-          "label": "将 ELF 下载到可写 RAM，回读校验后停在 main 或入口"
+          "label": "将 ELF 下载到可写 RAM，回读校验后运行到 main 并暂停"
         },
         {
-          "id": "d-ram-elf",
-          "tag": "input",
-          "type": "file",
-          "label": ""
+          "id": "d-image-pick",
+          "tag": "button",
+          "type": null,
+          "label": "授权 load_image 和 dump_image 读写此目录下的镜像文件"
         },
         {
           "id": "d-ram-start",
@@ -2002,30 +2020,6 @@
           "tag": "button",
           "type": null,
           "label": "声明 RAM"
-        },
-        {
-          "id": "d-image-file",
-          "tag": "input",
-          "type": "file",
-          "label": "选择要加载的镜像"
-        },
-        {
-          "id": "d-image-address",
-          "tag": "input",
-          "type": null,
-          "label": "BIN 加载地址"
-        },
-        {
-          "id": "d-image-load",
-          "tag": "button",
-          "type": null,
-          "label": "加载镜像"
-        },
-        {
-          "id": "d-image-pick",
-          "tag": "button",
-          "type": null,
-          "label": "授权 load_image 和 dump_image 读写此目录下的镜像文件"
         },
         {
           "id": "d-reset-halt",
@@ -2465,203 +2459,203 @@
       "methodSourceHints": [
         {
           "name": "initSidebar",
-          "line": 379
+          "line": 374
         },
         {
           "name": "selectSidebar",
-          "line": 393
+          "line": 388
         },
         {
           "name": "renderElfInfo",
-          "line": 399
+          "line": 394
         },
         {
           "name": "onShow",
-          "line": 408
+          "line": 403
         },
         {
           "name": "connect",
-          "line": 755
+          "line": 748
         },
         {
           "name": "disconnect",
-          "line": 832
+          "line": 825
         },
         {
           "name": "refreshAll",
-          "line": 893
+          "line": 886
         },
         {
           "name": "afterStop",
-          "line": 907
+          "line": 900
         },
         {
           "name": "renderRegs",
-          "line": 951
+          "line": 944
         },
         {
           "name": "presentBacktrace",
-          "line": 1053
+          "line": 1046
         },
         {
           "name": "presentSelectedFrame",
-          "line": 1072
+          "line": 1065
         },
         {
           "name": "presentLocals",
-          "line": 1078
+          "line": 1071
         },
         {
           "name": "renderDwt",
-          "line": 1092
+          "line": 1085
         },
         {
           "name": "renderBps",
-          "line": 1106
+          "line": 1099
         },
         {
           "name": "readMem",
-          "line": 1147
+          "line": 1140
         },
         {
           "name": "renderMem",
-          "line": 1182
+          "line": 1175
         },
         {
           "name": "writeMemEdit",
-          "line": 1240
+          "line": 1233
         },
         {
           "name": "pickImageDirectory",
-          "line": 1383
+          "line": 1376
         },
         {
           "name": "imageDirectoryStatus",
-          "line": 1394
+          "line": 1387
         },
         {
           "name": "runLine",
-          "line": 1402
+          "line": 1395
         },
         {
           "name": "configureRamWindow",
-          "line": 1597
+          "line": 1610
         },
         {
           "name": "launchRamElf",
-          "line": 1605
+          "line": 1618
         },
         {
           "name": "loadElfBuffer",
-          "line": 1633
+          "line": 1646
         },
         {
           "name": "loadBundledSvd",
-          "line": 1711
+          "line": 1724
         },
         {
           "name": "loadSvdText",
-          "line": 1737
+          "line": 1750
         },
         {
           "name": "renderSyms",
-          "line": 1891
+          "line": 1904
         },
         {
           "name": "addWatch",
-          "line": 1962
+          "line": 1975
         },
         {
           "name": "delWatch",
-          "line": 1983
+          "line": 1996
         },
         {
           "name": "watchItems",
-          "line": 1990
+          "line": 2003
         },
         {
           "name": "clearWatch",
-          "line": 1994
+          "line": 2007
         },
         {
           "name": "refreshWatch",
-          "line": 2002
+          "line": 2015
         },
         {
           "name": "renderWatch",
-          "line": 2052
+          "line": 2065
         },
         {
           "name": "writeWatch",
-          "line": 2167
+          "line": 2180
         },
         {
           "name": "pickSourceDir",
-          "line": 2233
+          "line": 2246
         },
         {
           "name": "renderSource",
-          "line": 2300
+          "line": 2313
         },
         {
           "name": "toggleSourceBp",
-          "line": 2393
+          "line": 2406
         },
         {
           "name": "runToLine",
-          "line": 2411
+          "line": 2424
         },
         {
           "name": "stepOver",
-          "line": 2448
-        },
-        {
-          "name": "stepInto",
-          "line": 2450
-        },
-        {
-          "name": "stepOut",
-          "line": 2452
-        },
-        {
-          "name": "showSource",
           "line": 2461
         },
         {
+          "name": "stepInto",
+          "line": 2463
+        },
+        {
+          "name": "stepOut",
+          "line": 2465
+        },
+        {
+          "name": "showSource",
+          "line": 2474
+        },
+        {
           "name": "rttStart",
-          "line": 2501
+          "line": 2514
         },
         {
           "name": "rttStop",
-          "line": 2532
+          "line": 2545
         },
         {
           "name": "rttClear",
-          "line": 2539
+          "line": 2552
         },
         {
           "name": "summary",
-          "line": 2559
+          "line": 2572
         },
         {
           "name": "for",
-          "line": 2599
+          "line": 2612
         },
         {
           "name": "if",
-          "line": 2605
+          "line": 2618
         },
         {
           "name": "if",
-          "line": 2606
+          "line": 2619
         },
         {
           "name": "if",
-          "line": 2607
+          "line": 2620
         },
         {
           "name": "if",
-          "line": 2608
+          "line": 2621
         }
       ]
     },

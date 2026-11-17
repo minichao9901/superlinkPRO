@@ -205,12 +205,7 @@ export class DbgView {
     });
     on('d-elf-pick', 'click', () => $('d-elf-file')?.click());
     on('d-elf-file', 'change', e => this._loadElfFile(e.target.files?.[0]));
-    on('d-ram-debug', 'click', () => $('d-ram-elf')?.click());
-    on('d-ram-elf', 'change', e => {
-      const file = e.target.files?.[0];
-      e.target.value = '';
-      if (file) void this.launchRamElf(file).catch(() => {});
-    });
+    on('d-ram-debug', 'click', () => { void this._loadSelectedImage(true); });
     on('d-ram-apply','click',() => this.configureRamWindow($('d-ram-start').value,$('d-ram-length').value).catch(e => this._out(e.message,'err')));
     on('d-image-pick', 'click', () => this.pickImageDirectory());
     on('d-image-file', 'change', e => { void this._selectImageFile(e.target); });
@@ -545,8 +540,6 @@ export class DbgView {
     if(!this.session.connected || !this.session.halted || (this._btSnapshotValid && this.session.pc!==this._btSnapshotPc)) this._invalidateBacktrace();
     const c = connected ?? this.session.connected;
     this._syncCfgControls(c);
-    const ram = $('d-ram-debug');
-    if (ram) ram.disabled = !c || !this._ramDebugFamily();
     this._syncImageControls(c);
     const customRam = c && this.session.canConfigureRamWindow;
     if ($('d-ram-range')) $('d-ram-range').hidden = !customRam;
@@ -1404,14 +1397,25 @@ export class DbgView {
   }
 
   _syncImageControls(connected = this.session.connected){
+    const type = this.imageSelection?.type;
+    if ($('d-image-file')) $('d-image-file').disabled = this.imageLoading;
     const address = $('d-image-address-row');
-    if (address) address.hidden = this.imageSelection?.type !== 'bin';
+    if (address) address.hidden = type !== 'bin';
     const load = $('d-image-load');
-    if (load) load.disabled = !connected || !this.imageSelection || this.imageLoading;
+    if (load) load.disabled = !connected || !type || this.imageLoading;
+    const launch = $('d-ram-debug');
+    if (launch){
+      launch.hidden = type !== 'elf';
+      launch.disabled = launch.hidden || !connected || this.imageLoading || !this._ramDebugFamily();
+    }
   }
 
   async _selectImageFile(input){
     this.imageSelection = null;
+    const binAddress = $('d-image-address');
+    if (binAddress) binAddress.value = '';
+    const progress = $('d-image-progress');
+    if (progress) progress.textContent = '';
     this._syncImageControls();
     const file = input.files?.[0];
     if (!file) return;
@@ -1421,16 +1425,17 @@ export class DbgView {
         detectImageType(new Uint8Array(await file.slice(0, 9).arrayBuffer()));
       if (input.files?.[0] !== file) return;
       this.imageSelection = { file, type };
-      $('d-image-progress').textContent = type === 'bin' ? '填写 BIN 的加载地址' : '使用镜像内的加载地址';
+      if (progress && type === 'bin') progress.textContent = '填写 BIN 的加载地址';
       this._syncImageControls();
     } catch (error){
-      if (input.files?.[0] === file) $('d-image-progress').textContent = '读取镜像失败：' + error.message;
+      if (progress && input.files?.[0] === file) progress.textContent = '读取镜像失败：' + error.message;
     }
   }
 
-  async _loadSelectedImage(){
+  async _loadSelectedImage(launch = false){
     if (!this.imageSelection || !this.session.connected || this.imageLoading) return;
     const { file, type } = this.imageSelection;
+    if (launch && (type !== 'elf' || !this._ramDebugFamily())) return;
     const address = type === 'bin' ? $('d-image-address').value.trim() : '0';
     const offset = Number(address);
     if (!/^(?:0x[\da-f]+|\d+)$/i.test(address) || offset > 0xffffffff){
@@ -1440,8 +1445,16 @@ export class DbgView {
     this.imageLoading = true;
     this._syncImageControls();
     try {
-      const line = `load_image ${JSON.stringify(file.name)} ${offset} ${type}`;
-      await this._runLine(line, { read: async () => new Uint8Array(await file.arrayBuffer()) });
+      if (launch){
+        $('d-image-progress').textContent = '正在下载并运行到 main…';
+        const result = await this.launchRamElf(file, 'main');
+        $('d-image-progress').textContent = `已停在 main（${hex32(result.address)}）`;
+      } else {
+        const line = `load_image ${JSON.stringify(file.name)} ${offset} ${type}`;
+        await this._runLine(line, { read: async () => new Uint8Array(await file.arrayBuffer()) });
+      }
+    } catch (error){
+      $('d-image-progress').textContent = '未完成：' + error.message;
     } finally {
       this.imageLoading = false;
       this._syncImageControls();

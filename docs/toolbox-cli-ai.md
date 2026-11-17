@@ -171,7 +171,7 @@ python -X utf8 toolbox.py --runtime $runtime target info
 
 使用原版 Cortex-M0+ / SWD CFG 时，连接后用同一方法声明片上 SRAM。Zynq 上的 Nano bitstream 用 `configureRamWindow --args '[536870912,65536]'`。`launchRamElf` 传入链接至该 SRAM、带向量表和 `main` 行号的 ELF 文件。页面核对可写 VTOR，下载、读回后停在 `main`。
 
-侧栏「镜像文件」也可直接加载本地文件。自动化先用 `page dbg describe` 获取文件、地址和按钮控件，上传到 `#d-image-file`。BIN 需填 `#d-image-address`，ELF、Intel HEX 和 S19 使用文件内地址。点击 `#d-image-load` 后用页面日志及目标内存回读确认。命令行的 `load_image` 和 `dump_image` 仍通过标签页授权的镜像目录工作。
+侧栏「镜像文件」共用一个本地文件选择器。自动化先用 `page dbg describe` 获取控件，再上传到 `#d-image-file`。点「仅写入内存」`#d-image-load` 时，ELF、Intel HEX 和 S19 使用文件内地址，BIN 需填 `#d-image-address`。ELF 可直接改点「下载并停在 main」`#d-ram-debug`，自定义目标需要先声明可写 RAM。通过日志、停点和内存回读确认。命令行的 `load_image` 和 `dump_image` 通过标签页授权的镜像目录工作。
 
 ## 5. 示例：参数、文件、导出
 

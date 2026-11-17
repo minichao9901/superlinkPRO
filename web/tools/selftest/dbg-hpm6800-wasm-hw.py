@@ -90,7 +90,7 @@ def main():
     try:
         controls = {x['selector'] for x in cli('describe')['controls']}
         methods = {x['name'] for x in cli('describe', '--target', 'session')['methods']}
-        require({'#d-ram-elf', '#d-step-over'} <= controls and {'readReg', 'memRead'} <= methods,
+        require({'#d-image-file', '#d-ram-debug', '#d-step-over'} <= controls and {'readReg', 'memRead'} <= methods,
                 'unexpected workbench CLI')
         require('command' not in methods, 'this RAM session exposes a raw OpenOCD command')
         original = status()
@@ -98,7 +98,8 @@ def main():
         require(original['connected'] and original['backend'] == BACKEND and original['clockKhz'] == 8000
                 and original['src']['ready'] and not original['bps'], 'connect the HPM CFG with no breakpoints first')
         entered = True
-        cli('upload', '#d-ram-elf', str(args.elf.resolve()))
+        cli('upload', '#d-image-file', str(args.elf.resolve()))
+        cli('click', '#d-ram-debug')
         wait_until(lambda s: s['elf'] and s['halted'] and s['pc'] == 0x18008 and s['src']['cur'])
         require(read_ilm() == PAYLOAD, 'ELF ILM readback mismatch')
         report['ilmReadback'] = PAYLOAD.hex()

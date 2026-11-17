@@ -16,7 +16,7 @@
   var mode = new URLSearchParams(location.search).get('modules');
   var local = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1;
   window.__useWebBundle = mode === 'bundle' || (mode !== 'source' && !local);
-  window.__webBundleUrl = 'app/site/main.js?v=2a43d71b7f76d4d1';
+  window.__webBundleUrl = 'app/site/main.js?v=164d2d9aa6d068e8';
   var preload = document.createElement('link');
   preload.rel = 'modulepreload';
   preload.href = window.__useWebBundle ? window.__webBundleUrl : 'app/main.js';
@@ -805,20 +805,8 @@
       <fieldset>
         <legend>符号文件</legend>
         <div class="row btnrow">
-          <button id="d-elf-pick">载入 ELF…</button>
+          <button id="d-elf-pick">载入 ELF 符号…</button>
           <input type="file" id="d-elf-file" accept=".elf,.axf,.out,.bin" hidden>
-        </div>
-        <div class="row btnrow">
-          <button id="d-ram-debug" disabled title="将 ELF 下载到可写 RAM，回读校验后停在 main 或入口">下载到 RAM 并调试</button>
-          <input type="file" id="d-ram-elf" accept=".elf,.axf,.out" hidden>
-        </div>
-        <div id="d-ram-range" hidden>
-          <div class="row btnrow">
-            <input id="d-ram-start" size="11" placeholder="0x80000000" aria-label="可写 RAM 起始地址">
-            <input id="d-ram-length" size="8" placeholder="0x20000" aria-label="可写 RAM 字节数">
-            <button id="d-ram-apply">声明 RAM</button>
-          </div>
-          <p id="d-ram-range-status" class="hint" role="status"></p>
         </div>
         <p class="hint" id="d-elf-info">未载入 ELF</p>
       </fieldset>
@@ -828,13 +816,24 @@
         <div class="row btnrow">
           <input id="d-image-file" type="file" accept=".elf,.axf,.out,.bin,.hex,.ihex,.ihx,.s19,.s28,.s37,.srec,.mot" aria-label="选择要加载的镜像">
         </div>
+        <label class="row" id="d-image-address-row" hidden>BIN 加载地址 <input id="d-image-address" size="11" placeholder="0x20000000" aria-label="BIN 加载地址"></label>
         <div class="row btnrow">
-          <label id="d-image-address-row" hidden>BIN 加载地址 <input id="d-image-address" size="11" placeholder="0x20000000" aria-label="BIN 加载地址"></label>
-          <button id="d-image-load" disabled>加载镜像</button>
+          <button id="d-image-load" disabled title="按镜像地址写内存，保持目标运行状态">仅写入内存</button>
+          <button id="d-ram-debug" hidden disabled title="将 ELF 下载到可写 RAM，回读校验后运行到 main 并暂停">下载并停在 main</button>
         </div>
         <p class="hint" id="d-image-progress" role="status" aria-live="polite"></p>
         <div class="row btnrow"><button id="d-image-pick" title="授权 load_image 和 dump_image 读写此目录下的镜像文件">选择镜像目录…</button></div>
         <p class="hint" id="d-image-dir">当前标签页未选择镜像目录</p>
+      </fieldset>
+
+      <fieldset id="d-ram-range" hidden>
+        <legend>可写 RAM</legend>
+        <div class="row btnrow">
+          <input id="d-ram-start" size="11" placeholder="0x80000000" aria-label="可写 RAM 起始地址">
+          <input id="d-ram-length" size="8" placeholder="0x20000" aria-label="可写 RAM 字节数">
+          <button id="d-ram-apply">声明 RAM</button>
+        </div>
+        <p id="d-ram-range-status" class="hint" role="status"></p>
       </fieldset>
 
       <fieldset>

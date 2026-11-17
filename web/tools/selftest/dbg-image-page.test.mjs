@@ -42,6 +42,7 @@ for (const mode of ['source', 'bundle']){
       $('d-side-session-tab').click();
       const missing=await view.runLine('dump_image before.bin 0x20001000 4');
       const sidebarPc=view.session.pc, sidebarHalted=view.session.halted, sidebarSymbols=view.session.sym;
+      const initialActions=$('d-image-load').disabled && $('d-ram-debug').hidden && $('d-image-address-row').hidden;
       const selectImage = (name, content) => {
         const files = new DataTransfer();
         files.items.add(new File([content], name));
@@ -55,6 +56,7 @@ for (const mode of ['source', 'bundle']){
       };
       selectImage('image with spaces.bin', Uint8Array.of(13,14));
       const binaryAddressVisible = !$('d-image-address-row').hidden;
+      const binaryLaunchHidden = $('d-ram-debug').hidden;
       $('d-image-load').click();
       const binAddressRequired = $('d-image-progress').textContent.includes('填写 BIN');
       $('d-image-address').value = '0x20000f00';
@@ -62,6 +64,7 @@ for (const mode of ['source', 'bundle']){
       const binReadback = [...await view.session.memRead(0x20000f00,2)];
       selectImage('image.hex', [':020000042000DA',':020F10001516B4',':00000001FF'].join(String.fromCharCode(10)));
       const hexAddressHidden = $('d-image-address-row').hidden;
+      const hexLaunchHidden = $('d-ram-debug').hidden;
       await loadSidebarImage();
       const hexReadback = [...await view.session.memRead(0x20000f10,2)];
       const elf=new Uint8Array(86), header=new DataView(elf.buffer);
@@ -72,9 +75,23 @@ for (const mode of ['source', 'bundle']){
       [1,84,0x20000f20,0x20000f20,2,2,5].forEach((value,i)=>header.setUint32(52+4*i,value,true));
       elf.set([23,24],84);
       selectImage('image.elf',elf);
+      const elfLaunchVisible = !$('d-ram-debug').hidden;
       const elfAddressHidden = $('d-image-address-row').hidden;
       await loadSidebarImage();
       const elfReadback = [...await view.session.memRead(0x20000f20,2)];
+      const originalFamily=view._ramDebugFamily, originalLaunch=view.launchRamElf;
+      const selected=$('d-image-file').files[0];
+      let sharedElf=false;
+      view._ramDebugFamily=()=> 'stm32f1';
+      view.launchRamElf=async (file,stop)=>{
+        sharedElf=file===selected && stop==='main' && $('d-image-load').disabled && $('d-image-file').disabled;
+        return {address:0x20000f20};
+      };
+      view._syncButtons();
+      $('d-ram-debug').click();
+      for (let i=0; i<150 && $('d-ram-debug').disabled; i++) await new Promise(r=>setTimeout(r,20));
+      const sharedPicker = sharedElf && !$('d-ram-elf') && $('d-image-progress').textContent.includes('已停在 main');
+      view._ramDebugFamily=originalFamily;view.launchRamElf=originalLaunch;view._syncButtons();
       const sidebarStatePreserved = view.session.pc===sidebarPc && view.session.halted===sidebarHalted &&
         view.session.sym===sidebarSymbols && !view.imageFiles.root;
       const storage=await navigator.storage.getDirectory(),root=await storage.getDirectoryHandle('${directory}',{create:true});
@@ -109,12 +126,15 @@ for (const mode of ['source', 'bundle']){
       const help=await view.runLine('h');
       const statePreserved=view.session.pc===pc&&view.session.halted===halted&&view.session.sym===symbols;
       return {mode:'${mode}',requestedMode,missing:missing.error,loaded:loaded.error||loaded.lines.at(-1).t,
-        binaryAddressVisible,binAddressRequired,binReadback,hexAddressHidden,hexReadback,elfAddressHidden,elfReadback,sidebarStatePreserved,
+        initialActions,binaryAddressVisible,binaryLaunchHidden,binAddressRequired,binReadback,hexAddressHidden,hexLaunchHidden,hexReadback,
+        elfAddressHidden,elfLaunchVisible,elfReadback,sharedPicker,sidebarStatePreserved,
         dumped:dumped.error||dumped.lines.at(-1).t,roundtrip:actual.length===bytes.length&&actual.every((b,i)=>b===bytes[i])&&back.length===bytes.length&&back.every((b,i)=>b===bytes[i]),
         statePreserved,cancelled:!!cancelled.cancelled,preserved:[...preserved],traversal:traversal.error,
         empty:!empty.error&&emptySize===0,completion,fillOk,fillCompletion,help:help.lines.some(l=>l.t.includes('load_image filename'))&&help.lines.some(l=>l.t.includes('dump_image filename'))&&help.lines.some(l=>l.t.includes('fill_ram'))&&help.lines.some(l=>l.t.includes('fill_inc')),
         label:$('d-image-dir').textContent,errors:window.__tools.errors};`);
     assert.equal(result.requestedMode, 'readwrite');
+    assert.equal(result.initialActions, true); assert.equal(result.sharedPicker, true);
+    assert.equal(result.binaryLaunchHidden, true); assert.equal(result.hexLaunchHidden, true); assert.equal(result.elfLaunchVisible, true);
     assert.equal(result.binaryAddressVisible, true); assert.equal(result.binAddressRequired, true);
     assert.equal(result.hexAddressHidden, true); assert.equal(result.elfAddressHidden, true);
     assert.deepEqual(result.binReadback, [13,14]); assert.deepEqual(result.hexReadback, [21,22]);
