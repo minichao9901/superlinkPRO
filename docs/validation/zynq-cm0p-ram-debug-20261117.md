@@ -46,3 +46,18 @@ Edge 分别测试源码模块和合并包。模拟目标中，侧栏 ELF 和 Int
 - Edge 的源码和合并包回归确认 ELF 两项动作接收同一 File，BIN 选中后出现地址框，HEX 和 BIN 只显示内存写入口。冻结 EXE 的浏览器回归重复通过。
 
 实板回读和日志位于本机 `tmp/cm0p-web-ram-20261117/unified-chrome-webusb/`。
+
+## web.26 分发
+
+Windows 打包源码 `a931e7265a3b4b929a425884e415f32efe13e889`，运行时来源 `94d3ec4f9b3e1e130005f571b2354bbc370981db`，分发提交 `d78690e`。Web 构建为 `2026-11-17T01:58:44.530Z`，Windows 构建为 `2026-11-17T02:02:09Z`。
+
+| 对象 | 结果 |
+| --- | --- |
+| 冻结候选 | 3,570 个条目逐一校验，CLI 队列、HTTP 下载、原生 Trace 解码与查询导出通过。 |
+| 本机 EXE | `dist/superlinkPRO/superlinkPRO.exe`，SHA-256 `a9bdbd04e6ee459a7b49054dd7ccd57de0b3f7de8ecffb39175f38221d4bd4ae`。8878 在 Edge 通过合并选择器、三种镜像格式和内存回读回归。 |
+| 本机数据 | `data/` 原位保留 107 个文件，104 项逐文件 SHA-256 一致。3 个正在占用的临时文件核对为原路径、大小、修改时间和文件标识。 |
+| Windows ZIP | 104,123,583 字节，SHA-256 `cc01bf808623f26254d19b665d23f98cc4be9f73b45dae43e6f08e69bc95e94b`。 |
+| Pages | [工作流 44000882368](https://github.com/minichao9901/superlinkPRO/actions/runs/44000882368) 部署成功。公开页面在 Edge 载入 web.26 合并包，共用选择器及 ELF、HEX、BIN 回读通过浏览器模拟目标验证。 |
+| Release | [SuperLinkPRO 1.1.0-web.26](https://github.com/minichao9901/superlinkPRO/releases/tag/workbench-v1.1.0-web.26) 已公开，ZIP 资产大小及 GitHub SHA-256 与本机清单一致。 |
+
+从 GitHub Pages 和 Release 分别匿名下载完整 ZIP，各 104,123,583 字节。两份文件重新计算的 SHA-256 均与本机清单一致。
