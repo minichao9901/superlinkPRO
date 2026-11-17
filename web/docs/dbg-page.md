@@ -33,6 +33,8 @@ HPM6800EVK 可直接导入 SDK v1.11.0 原名 `boards/openocd/boards/hpm6800evk.
 
 STM32F103xE 使用经型号校验的 64 KiB SRAM，nRF52832 使用 FICR 报告的容量。ELF 必须是小端 ARM ELF32 可执行文件，向量表放在 `0x20000000`，所有 `PT_LOAD` 的加载和运行地址一致，含 BSS 均位于片上 SRAM。初始 MSP 放在已加载段上方并按 8 字节对齐。调试器填零段内 BSS，要求复位入口和带行号的 `main` 都位于 ELF 的可执行段。nRF52832 的支持范围目前由软件测试覆盖，真机验收待补。
 
+导入 Cortex-M0+ / SWD 原版 CFG 后，连接时核对核心类型。在「符号文件」声明实际可写 SRAM，Zynq 的 Nano bitstream 填 `0x20000000`、`65536`。点击「下载到 RAM 并调试」选择 RAM 版 ELF。工作台复位并停核，核对 VTOR 可重定位，按上述 ARM ELF 规则下载并停在 `main`。点击「继续」运行。 [Zynq 实板验证](../../docs/validation/zynq-cm0p-ram-debug-20261117.md)
+
 F103 的 FPB 无法在 SRAM 地址匹配。启动、运行到光标和基于临时断点的源码步进会在已下载的可执行段中暂时写入 `BKPT`，停下后恢复并回读原指令。手动添加的持久断点沿用现有 FPB 能力。 [F103ZE 真机验收与示例](../../docs/validation/ram-debug-f103ze-20261107/README.md)
 
 ## RAM 模式填充
@@ -50,6 +52,8 @@ fill_inc 0x20001000 1024 0xFC
 两条命令分块写入并逐块回读核对，支持 Ctrl+C 中断；失败或中断保留已写内容，并提示已核对字节数。操作使用当前调试会话，不自动暂停、复位或运行 CPU；需要稳定回读时先使用 `halt`。请填写当前目标实际可用的 RAM 地址范围。无需选择镜像目录。自动化回归：`node tools/selftest/dbg-ram-fill.test.mjs`，已纳入 `make test-dbg`。
 
 ## 镜像加载与导出
+
+在「镜像文件」选择本地镜像，再点「加载镜像」。ELF、Intel HEX 和 S19 用文件内的地址，BIN 需要填写目标地址，支持十六进制或十进制。此入口复用 `load_image` 的解析和内存写入，无需选择镜像目录。需要设置启动寄存器并停在 `main` 时，使用「下载到 RAM 并调试」。
 
 在调试器侧栏点击“选择镜像目录…”并授予读写权限，该目录就是镜像命令的工作目录。状态显示当前标签页所选目录和读写授权；另开标签页需要重新选择。文件名与子目录使用相对路径；包含空格时用双引号或大括号。目录授权由浏览器管理，支持桌面 Chrome / Edge 的 localhost 与 HTTPS 页面。
 

@@ -169,6 +169,10 @@ python -X utf8 toolbox.py --runtime $runtime target info
 
 通用 RV32 CFG 连接后，用 `page dbg invoke configureRamWindow --args '[2147483648,131072]'` 声明板卡的可写 RAM（这里以 Zynq BRAM 为例）。然后用 `page dbg invoke launchRamElf --args-file ram-elf.json` 等待下载校验和停机；`ram-elf.json` 例如 `[{"$file":"E:/project/debug_demo.elf","kind":"file"},"auto"]`，可把 `auto` 改为 `entry` 或 `main`。该入口无需镜像目录。`runLine` 命令出错会使 CLI 操作失败；先核对结果与目标状态再继续。
 
+使用原版 Cortex-M0+ / SWD CFG 时，连接后用同一方法声明片上 SRAM。Zynq 上的 Nano bitstream 用 `configureRamWindow --args '[536870912,65536]'`。`launchRamElf` 传入链接至该 SRAM、带向量表和 `main` 行号的 ELF 文件。页面核对可写 VTOR，下载、读回后停在 `main`。
+
+侧栏「镜像文件」也可直接加载本地文件。自动化先用 `page dbg describe` 获取文件、地址和按钮控件，上传到 `#d-image-file`。BIN 需填 `#d-image-address`，ELF、Intel HEX 和 S19 使用文件内地址。点击 `#d-image-load` 后用页面日志及目标内存回读确认。命令行的 `load_image` 和 `dump_image` 仍通过标签页授权的镜像目录工作。
+
 ## 5. 示例：参数、文件、导出
 
 在调试页通过 `upload` 上传 `describe` 返回的 CFG 文件控件，等 CFG 状态显示入口和核心后，可用 `set` 选择 CFG 调试核。烧录页与 RTT Viewer 可 `click` 各自的「沿用目标」，然后核对当前目标显示，再上传 ELF 和启动硬件操作。原版 CFG 需要提供全部脚本依赖；烧录还要求 CFG 声明 Flash bank。

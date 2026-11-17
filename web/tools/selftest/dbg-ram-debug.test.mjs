@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { OpenOcdProbe } from '../../app/core/openocd-probe.js';
 import { ramDebugPlan, RAM_BASE as F103_RAM, readRamDebugSize } from '../../app/dbg/ram-debug.js';
 import { DebugSession } from '../../app/dbg/session.js';
+import { DbgView } from '../../app/dbg/view.js';
 
 const main = F103_RAM + 0x104;
 const symbols = {
@@ -86,4 +88,38 @@ test('Nordic RAM profile requires read-only silicon identity and uses actual SRA
   assert.equal(ramDebugPlan(elf.buffer, symbols, size).sp, F103_RAM + size);
   words.set(0x10000100, 0x52840);
   await assert.rejects(readRamDebugSize(addr => words.get(addr), 'nrf52'), /nRF52832/);
+});
+
+test('Cortex-M0+ CFG enables RAM launch after declaration and checks image bounds before reset', async () => {
+  const view = new DbgView();
+  const session = view.session;
+  const cfg = { raw: {}, family:'cortex-m' };
+  view._activeCfg = () => cfg;
+  const probe = session.probe = new OpenOcdProbe(null, cfg);
+  probe.armPart = 0xc20;
+  assert.throws(() => session.configureRamWindow(F103_RAM, 65536), /Cortex-M0\+/);
+
+  probe.armPart = 0xc60;
+  assert.equal(view._ramDebugFamily(), null);
+  assert.throws(() => session.configureRamWindow(0x80000000, 65536), /0x20000000/);
+  assert.throws(() => session.configureRamWindow(F103_RAM, 0.5), /长度/);
+  await assert.rejects(session._startRamDebug(ramElf().buffer, symbols, 'cortex-m0plus'), /先声明/);
+  session.configureRamWindow(F103_RAM, 0x104);
+  assert.equal(view._ramDebugFamily(), 'cortex-m0plus');
+  session.resetHalt = async () => assert.fail('out-of-window ELF reached reset');
+  await assert.rejects(session._startRamDebug(ramElf().buffer, symbols, 'cortex-m0plus'), /PT_LOAD/);
+  await session.disconnect();
+  assert.equal(session.ramWindow, null);
+});
+
+test('Cortex-M0+ rejects a missing VTOR before writing the ELF to SRAM', async () => {
+  const session = new DebugSession();
+  const probe = session.probe = new OpenOcdProbe(null, {raw:{}});
+  probe.armPart = 0xc60;
+  probe._readWord = async () => 0;
+  session.configureRamWindow(F103_RAM, 65536);
+  session.resetHalt = async () => { session.halted = true; };
+  session.readReg = async () => 0x01000000;
+  session.memWrite = async address => assert.equal(address, 0xe000ed08);
+  await assert.rejects(session._startRamDebug(ramElf().buffer, symbols, 'cortex-m0plus'), /向量表地址回读失败/);
 });

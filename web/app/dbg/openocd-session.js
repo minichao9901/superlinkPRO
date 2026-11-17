@@ -139,8 +139,10 @@ export class OpenOcdDebugSession extends DebugSession {
 
   _command(line, timeoutMs){ return this.link.command(line, timeoutMs); }
 
+  get canConfigureRamWindow(){ return this.connected && this.importedCfg && !this.hpm6800; }
+
   configureRamWindow(start, length){
-    if (!this.connected || !this.importedCfg || this.hpm6800) throw Error('请先连接使用自定义 CFG 的 RISC-V 目标');
+    if (!this.canConfigureRamWindow) throw Error('请先连接使用自定义 CFG 的 RISC-V 目标');
     if (this.bpDetails.size) throw Error('修改 RAM 范围前请清空断点');
     if (!Number.isInteger(start) || !Number.isInteger(length) || start < 0 || start % 2 ||
         length < 2 || length > MAX_RAM || start + length > 0x100000000)

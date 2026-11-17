@@ -73,7 +73,7 @@ export function imageCommand(command, args){
   return { filename, offset, type, min, max: length === null ? Number.MAX_SAFE_INTEGER : min + length };
 }
 
-function detect(bytes){
+export function detectImageType(bytes){
   // OpenOCD probes the first nine bytes, irrespective of filename extension.
   if (bytes.length < 9) return 'bin';
   if (bytes[0] === 0x7f && bytes[1] === 69 && bytes[2] === 76 && bytes[3] === 70) return 'elf';
@@ -168,7 +168,7 @@ function elf(bytes){
 }
 
 export function parseImage(bytes, type = null){
-  type ??= detect(bytes);
+  type ??= detectImageType(bytes);
   if (!IMAGE_TYPES.includes(type)) throw new Error('不支持的镜像格式：' + type);
   const sections = type === 'bin' ? [{ addr: 0, data: bytes }] : type === 'ihex' ? ihex(bytes) : type === 's19' ? srecord(bytes) : elf(bytes);
   return { type, sections };

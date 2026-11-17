@@ -54,6 +54,7 @@ export class DebugSession {
     this.name = '';
     this.idcode = 0;
     this.regs = [];                        // refreshRegs() 的缓存
+    this.ramWindow = null;
     this.busy = false;                     // 正在做一次"用户动作"（按钮据此禁用）
     this.log = null;                       // (text, cls) => void
     /**
@@ -79,6 +80,17 @@ export class DebugSession {
 
   get connected(){ return !!this.probe; }
   get bpCapacity(){ return this.caps.numCode || 0; }
+  get canConfigureRamWindow(){
+    return this.probe instanceof OpenOcdProbe && !!this.probe.cfg.raw && this.probe.armPart === 0xc60;
+  }
+
+  configureRamWindow(start, length){
+    if (!this.canConfigureRamWindow) throw Error('请先连接使用原版 CFG 的 Cortex-M0+');
+    if (start !== RAM_BASE || !Number.isInteger(length) || length < 8 || length > 64 * 1024 * 1024)
+      throw Error('Cortex-M0+ RAM 起始地址须为 0x20000000，长度为 8 B 至 64 MiB');
+    if (this.ramWindow?.end !== start + length) this.ramCode = null;
+    return this.ramWindow = Object.freeze({ start, end: start + length });
+  }
 
   _log(t, c){ try { this.log?.(t, c); } catch { /* 日志不影响主流程 */ } }
 
@@ -151,6 +163,7 @@ export class DebugSession {
       this._cStepWorks = null;
       if (requestedClock) await this._setVerifiedClock(requestedClock);
       else if (!mock) await this.verifyClock();
+      if (cfg?.raw) await this.probe.readArmPart();
       await this.refresh();
       await this.bpInit();
       this._log(`已连接：${this.name} · ${this.clockHz / 1000} kHz · IDCODE ${hex32(this.idcode)}`, 'ok');
@@ -236,6 +249,7 @@ export class DebugSession {
     this.dwt = new DwtWatchpoints(this);
     this.probe = null;
     this.ramCode = null;
+    this.ramWindow = null;
     this.halted = false; this.regs = []; this._prev = null;
     this.bps = [];
     this._cStepWorks = null;              // 换了目标/重连之后重新探一次 C_STEP
@@ -960,11 +974,21 @@ export class DebugSession {
   async _startRamDebug(buffer, symbols, family){
     if (this.arch !== ARM_ARCH || !(this.probe instanceof OpenOcdProbe))
       throw new Error('请先通过 WebUSB 连接 Cortex-M');
-    const size = await readRamDebugSize(addr => this.probe._readWord(addr), family);
+    const custom = family === 'cortex-m0plus';
+    if (custom && (!this.canConfigureRamWindow || !this.ramWindow))
+      throw Error('请先声明当前 Cortex-M0+ 目标的可写 RAM');
+    const size = custom ? this.ramWindow.end - this.ramWindow.start
+      : await readRamDebugSize(addr => this.probe._readWord(addr), family);
     const { segments, code, sp, entry, main } = ramDebugPlan(buffer, symbols, size);
     await this.resetHalt();
     if (!this.halted || ((await this.readReg('XPSR')) & 0x1ff))
       throw new Error('复位后未停在 Cortex-M 线程模式，未写入 SRAM');
+    const setVector = async () => {
+      const vtor = 0xe000ed08;
+      await this.memWrite(vtor, u32leBytes(RAM_BASE));
+      if ((await this.probe._readWord(vtor)) !== RAM_BASE) throw new Error('RAM 向量表地址回读失败');
+    };
+    if (custom) await setVector(); // VTOR is optional on Cortex-M0+.
     for (const { addr, data } of segments){
       for (let offset = 0; offset < data.length; offset += 4096){
         const chunk = data.subarray(offset, offset + 4096);
@@ -974,9 +998,7 @@ export class DebugSession {
           throw new Error(`RAM 镜像回读校验失败（${hex32(addr + offset)}）`);
       }
     }
-    const vtor = 0xe000ed08;
-    await this.memWrite(vtor, u32leBytes(RAM_BASE));
-    if ((await this.probe._readWord(vtor)) !== RAM_BASE) throw new Error('RAM 向量表地址回读失败');
+    if (!custom) await setVector();
     await this.writeReg('MSP', sp);
     await this.writeReg('XPSR', 0x01000000);
     await this.writeReg('PC', entry);

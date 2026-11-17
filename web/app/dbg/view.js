@@ -62,9 +62,15 @@ import { SvdValueState, svdAutoReadReason } from './svd-state.js';
 import { BUNDLED_SVDS } from './svd/bundled.js';
 import { FaultPanel } from './fault-panel.js';
 import { ImageFiles } from './image-files.js';
+import { detectImageType } from './image.js';
 
 const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); return el; };
 const baseName = p => String(p || '').replace(/\\/g, '/').split('/').pop();
+const imageTypesByExtension = new Map([
+  ['bin', 'bin'], ['elf', 'elf'], ['axf', 'elf'], ['out', 'elf'],
+  ['hex', 'ihex'], ['ihex', 'ihex'], ['ihx', 'ihex'],
+  ['s19', 's19'], ['s28', 's19'], ['s37', 's19'], ['srec', 's19'], ['mot', 's19'],
+]);
 
 export class DbgView {
   constructor(){
@@ -86,6 +92,8 @@ export class DbgView {
     this.watchBusy = false;
     this.src = new SourceStore();          // 源码文件仓（用户授权一次目录）
     this.imageFiles = new ImageFiles();    // load_image / dump_image 的授权工作目录
+    this.imageSelection = null;
+    this.imageLoading = false;
     this.openOcdConfig = null;
     this.srcCur = null;                    // {file, line, addr} 当前源码位置
     this.srcShown = null;                  // 已经画出来的视图（用于只在位置变化时滚动）
@@ -205,6 +213,8 @@ export class DbgView {
     });
     on('d-ram-apply','click',() => this.configureRamWindow($('d-ram-start').value,$('d-ram-length').value).catch(e => this._out(e.message,'err')));
     on('d-image-pick', 'click', () => this.pickImageDirectory());
+    on('d-image-file', 'change', e => { void this._selectImageFile(e.target); });
+    on('d-image-load', 'click', () => { void this._loadSelectedImage(); });
     window.addEventListener('focus',() => { void this.imageDirectoryStatus(); });
     on('d-svd-pick', 'click', () => $('d-svd-file')?.click());
     on('d-svd-file', 'change', e => this._loadSvdFile(e.target.files?.[0]));
@@ -537,11 +547,17 @@ export class DbgView {
     this._syncCfgControls(c);
     const ram = $('d-ram-debug');
     if (ram) ram.disabled = !c || !this._ramDebugFamily();
-    const customRam = c && this.session instanceof OpenOcdDebugSession && this.session.importedCfg && !this.session.hpm6800;
+    this._syncImageControls(c);
+    const customRam = c && this.session.canConfigureRamWindow;
     if ($('d-ram-range')) $('d-ram-range').hidden = !customRam;
+    const riscvRam = this.session instanceof OpenOcdDebugSession;
+    if (customRam && $('d-ram-start')) $('d-ram-start').placeholder = riscvRam ? '0x80000000' : '0x20000000';
+    if (customRam && $('d-ram-length')) $('d-ram-length').placeholder = riscvRam ? '0x20000' : '字节数';
     if ($('d-ram-range-status')){
       const w = customRam && this.session.ramWindow;
-      $('d-ram-range-status').textContent = w ? `可写 RAM：${hex32(w.start)} 起 ${w.end-w.start} 字节` : '先声明板卡的可写 RAM 范围，再下载或设置软件断点';
+      $('d-ram-range-status').textContent = w ? `可写 RAM：${hex32(w.start)} 起 ${w.end-w.start} 字节`
+        : riscvRam ? '先声明板卡的可写 RAM 范围，再下载或设置软件断点'
+          : '填写 0x20000000 和板卡的实际可写 SRAM 字节数，再下载 ELF';
     }
     if ($('d-hpm-target')) $('d-hpm-target').disabled = c || !!this._connecting;
     const h = halted ?? this.session.halted;
@@ -632,7 +648,10 @@ export class DbgView {
     if (this.session instanceof OpenOcdDebugSession) return this.session.ramWindow ? 'riscv' : null;
     if (this.session.backendName !== 'OpenOCD Wasm / WebUSB') return null;
     const cfg = this._activeCfg();
-    if (cfg) return ['stm32f1', 'nrf52'].includes(cfg.family) ? cfg.family : null;
+    if (cfg){
+      if (['stm32f1', 'nrf52'].includes(cfg.family)) return cfg.family;
+      return this.session.canConfigureRamWindow && this.session.ramWindow ? 'cortex-m0plus' : null;
+    }
     return ['arm', 'stm32f103'].includes($('d-arm-target')?.value || 'arm') ? 'stm32f1' : null;
   }
 
@@ -1381,6 +1400,55 @@ export class DbgView {
   }
 
   async runLine(text){
+    return await this._runLine(text);
+  }
+
+  _syncImageControls(connected = this.session.connected){
+    const address = $('d-image-address-row');
+    if (address) address.hidden = this.imageSelection?.type !== 'bin';
+    const load = $('d-image-load');
+    if (load) load.disabled = !connected || !this.imageSelection || this.imageLoading;
+  }
+
+  async _selectImageFile(input){
+    this.imageSelection = null;
+    this._syncImageControls();
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const extension = file.name.split('.').at(-1).toLowerCase();
+      const type = imageTypesByExtension.get(extension) ||
+        detectImageType(new Uint8Array(await file.slice(0, 9).arrayBuffer()));
+      if (input.files?.[0] !== file) return;
+      this.imageSelection = { file, type };
+      $('d-image-progress').textContent = type === 'bin' ? '填写 BIN 的加载地址' : '使用镜像内的加载地址';
+      this._syncImageControls();
+    } catch (error){
+      if (input.files?.[0] === file) $('d-image-progress').textContent = '读取镜像失败：' + error.message;
+    }
+  }
+
+  async _loadSelectedImage(){
+    if (!this.imageSelection || !this.session.connected || this.imageLoading) return;
+    const { file, type } = this.imageSelection;
+    const address = type === 'bin' ? $('d-image-address').value.trim() : '0';
+    const offset = Number(address);
+    if (!/^(?:0x[\da-f]+|\d+)$/i.test(address) || offset > 0xffffffff){
+      $('d-image-progress').textContent = '请填写 BIN 的 32 位加载地址（十六进制或十进制）';
+      return;
+    }
+    this.imageLoading = true;
+    this._syncImageControls();
+    try {
+      const line = `load_image ${JSON.stringify(file.name)} ${offset} ${type}`;
+      await this._runLine(line, { read: async () => new Uint8Array(await file.arrayBuffer()) });
+    } finally {
+      this.imageLoading = false;
+      this._syncImageControls();
+    }
+  }
+
+  async _runLine(text, imageFiles){
     const line = String(text || '').trim();
     if (!line) return { lines: [] };
     if (this._disconnecting || this._connecting) return { cancelled: true, lines: [] };
@@ -1389,9 +1457,12 @@ export class DbgView {
     if (/^(c|cont|continue|g|s|step|n|next|si|fin|finish|out|rc|runto|halt|stop|pause|reset|mw|ms|fill_ram|fill_inc|load_image)(\s|$)/i.test(line) || /^(r|reg|regs)\s+\S+\s+\S+/i.test(line))
       this.faultPanel?.invalidate('目标控制或写入命令，现场转为历史记录');
     this._out('> ' + line, 'cmd');
-    if (/^(load_image|dump_image)(\s|$)/i.test(line)) await this.imageDirectoryStatus();
-    if (line !== this.hist[this.hist.length - 1]) this.hist.push(line);
-    this.histIdx = -1;
+    const imageCommand = /^(load_image|dump_image)(\s|$)/i.test(line);
+    if (!imageFiles){
+      if (imageCommand) await this.imageDirectoryStatus();
+      if (line !== this.hist[this.hist.length - 1]) this.hist.push(line);
+      this.histIdx = -1;
+    }
     this.cancelFlag = false;
     let res;
     try {
@@ -1399,7 +1470,7 @@ export class DbgView {
       res = await this.session.exclusive(async () => {
         if (this._disconnecting) throw Object.assign(new Error('已中断'), { cancelled: true });
         const result = await runCmd(line, this.session, {
-          view: this, signal: () => this.cancelFlag,
+          view: this, imageFiles, signal: () => this.cancelFlag,
           onProgress: ({ command, done, total }) => {
             const el = $('d-image-progress'); if (el) el.textContent = `${command}：${done} / ${total} 字节`;
           },
@@ -1416,7 +1487,7 @@ export class DbgView {
       for (const l of res.lines || []) this._out(l.t, l.c || '');
       return res;
     } catch (e){
-      if (/^(load_image|dump_image)(\s|$)/i.test(line)){
+      if (imageCommand){
         const el = $('d-image-progress'); if (el) el.textContent = e?.cancelled ? '已中断' : '未完成：' + (e?.message || e);
       }
       if (e?.cancelled){ this._out(`（${e.message || '已中断'}）`, 'warn'); return { cancelled: true, lines: [] }; }
@@ -1525,7 +1596,6 @@ export class DbgView {
 
   async configureRamWindow(start,length){
     const number = v => typeof v === 'string' && !/^(0x[\da-f]+|\d+)$/i.test(v.trim()) ? NaN : Number(v);
-    if (!(this.session instanceof OpenOcdDebugSession)) throw Error('当前会话不支持声明可写 RAM');
     const range = await this.session.exclusive(() => this.session.configureRamWindow(number(start),number(length)));
     this._syncButtons();
     this._out(`已声明可写 RAM：${hex32(range.start)} 起 ${range.end-range.start} 字节`, 'ok');
@@ -1537,6 +1607,8 @@ export class DbgView {
     const ok = await this._act('下载到 RAM 并调试', async () => {
       try {
       const family = this._ramDebugFamily();
+      if (this.session.canConfigureRamWindow && !this.session.ramWindow)
+        throw new Error('请先声明当前目标的可写 RAM');
       if (!this.session.connected || !family)
         throw new Error('请先通过 WebUSB 连接支持 RAM 调试的目标');
       const buf = await file.arrayBuffer();
