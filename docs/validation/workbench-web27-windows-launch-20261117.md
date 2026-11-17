@@ -15,3 +15,7 @@ web.26 的工作台服务已经健康运行时，普通权限 EXE 交给高权�
 | 冻结验证 | 3,570 项文件清单、CLI、HTTP 与离线 Trace 验证通过。此轮未进行板卡硬件操作。 |
 
 固定 EXE SHA-256 为 `c7383f6ded83ea816168b736d3ab120cda93d396dd7b36f2ea489a767f0bbc6b`。Windows ZIP 大小为 104,127,846 字节，SHA-256 为 `d7f4bc45a833dbbfb5d9b16c6438cd80ccb314b06b2b8c2844dc40f16e2a7218`。本机验证保存在 `tmp/windows-launcher-20261117/`。
+
+分发提交 `1291cdedbf398de9f28dbc2ec0f83c94c3b387aa`，标签 `workbench-v1.1.0-web.27`。Pages 工作流部署成功，公开工作台在浏览器加载 web.27。Release 已公开，服务端 ZIP 大小和 SHA-256 与本机清单一致。 [Pages 工作流](https://github.com/minichao9901/superlinkPRO/actions/runs/44014666357) · [公开工作台](https://minichao9901.github.io/superlinkPRO/) · [GitHub Release](https://github.com/minichao9901/superlinkPRO/releases/tag/workbench-v1.1.0-web.27)
+
+分别从 Pages 和 Release 匿名下载完整 Windows ZIP，重新计算的大小和 SHA-256 均与本机清单一致。
