@@ -94,6 +94,26 @@ for (const mode of ['source', 'bundle']){
       view._ramDebugFamily=originalFamily;view.launchRamElf=originalLaunch;view._syncButtons();
       const sidebarStatePreserved = view.session.pc===sidebarPc && view.session.halted===sidebarHalted &&
         view.session.sym===sidebarSymbols && !view.imageFiles.root;
+      Object.defineProperty(view.session,'canConfigureRamWindow',{value:true,configurable:true});
+      const arm=new Uint8Array(96), armHeader=new DataView(arm.buffer);
+      arm.set([0x7f,69,76,70,1,1,1]);
+      armHeader.setUint16(16,2,true);
+      armHeader.setUint16(18,40,true);
+      armHeader.setUint32(28,52,true);
+      armHeader.setUint16(42,32,true);
+      armHeader.setUint16(44,1,true);
+      [1,84,0x20000000,0x20000000,12,12,5].forEach((value,i)=>armHeader.setUint32(52+4*i,value,true));
+      armHeader.setUint32(84,0x20010000,true);
+      armHeader.setUint32(88,0x20000009,true);
+      selectImage('ram.elf',arm);
+      for(let i=0;i<100&&!$('d-ram-length').value;i++)await new Promise(r=>setTimeout(r,20));
+      const ramPrefill=$('d-ram-start').value==='0x20000000' && $('d-ram-length').value==='65536' &&
+        !$('d-ram-range').hidden && !view.session.ramWindow;
+      $('d-ram-length').value='0x12000';
+      view._syncButtons();
+      const manualRamPreserved=$('d-ram-length').value==='0x12000';
+      delete view.session.canConfigureRamWindow;
+      view._syncButtons();
       const storage=await navigator.storage.getDirectory(),root=await storage.getDirectoryHandle('${directory}',{create:true});
       window.__imageTestRoot=root;window.__imagePicker=globalThis.showDirectoryPicker;
       let requestedMode='';globalThis.showDirectoryPicker=async options=>{requestedMode=options.mode;return root;};
@@ -127,13 +147,14 @@ for (const mode of ['source', 'bundle']){
       const statePreserved=view.session.pc===pc&&view.session.halted===halted&&view.session.sym===symbols;
       return {mode:'${mode}',requestedMode,missing:missing.error,loaded:loaded.error||loaded.lines.at(-1).t,
         initialActions,binaryAddressVisible,binaryLaunchHidden,binAddressRequired,binReadback,hexAddressHidden,hexLaunchHidden,hexReadback,
-        elfAddressHidden,elfLaunchVisible,elfReadback,sharedPicker,sidebarStatePreserved,
+        elfAddressHidden,elfLaunchVisible,elfReadback,sharedPicker,sidebarStatePreserved,ramPrefill,manualRamPreserved,
         dumped:dumped.error||dumped.lines.at(-1).t,roundtrip:actual.length===bytes.length&&actual.every((b,i)=>b===bytes[i])&&back.length===bytes.length&&back.every((b,i)=>b===bytes[i]),
         statePreserved,cancelled:!!cancelled.cancelled,preserved:[...preserved],traversal:traversal.error,
         empty:!empty.error&&emptySize===0,completion,fillOk,fillCompletion,help:help.lines.some(l=>l.t.includes('load_image filename'))&&help.lines.some(l=>l.t.includes('dump_image filename'))&&help.lines.some(l=>l.t.includes('fill_ram'))&&help.lines.some(l=>l.t.includes('fill_inc')),
         label:$('d-image-dir').textContent,errors:window.__tools.errors};`);
     assert.equal(result.requestedMode, 'readwrite');
     assert.equal(result.initialActions, true); assert.equal(result.sharedPicker, true);
+    assert.equal(result.ramPrefill, true); assert.equal(result.manualRamPreserved, true);
     assert.equal(result.binaryLaunchHidden, true); assert.equal(result.hexLaunchHidden, true); assert.equal(result.elfLaunchVisible, true);
     assert.equal(result.binaryAddressVisible, true); assert.equal(result.binAddressRequired, true);
     assert.equal(result.hexAddressHidden, true); assert.equal(result.elfAddressHidden, true);

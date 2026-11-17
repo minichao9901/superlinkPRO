@@ -63,6 +63,7 @@ import { BUNDLED_SVDS } from './svd/bundled.js';
 import { FaultPanel } from './fault-panel.js';
 import { ImageFiles } from './image-files.js';
 import { detectImageType } from './image.js';
+import { suggestRamWindow } from './ram-debug.js';
 
 const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); return el; };
 const baseName = p => String(p || '').replace(/\\/g, '/').split('/').pop();
@@ -93,6 +94,7 @@ export class DbgView {
     this.src = new SourceStore();          // 源码文件仓（用户授权一次目录）
     this.imageFiles = new ImageFiles();    // load_image / dump_image 的授权工作目录
     this.imageSelection = null;
+    this.ramFieldSuggestion = null;
     this.imageLoading = false;
     this.openOcdConfig = null;
     this.srcCur = null;                    // {file, line, addr} 当前源码位置
@@ -541,17 +543,7 @@ export class DbgView {
     const c = connected ?? this.session.connected;
     this._syncCfgControls(c);
     this._syncImageControls(c);
-    const customRam = c && this.session.canConfigureRamWindow;
-    if ($('d-ram-range')) $('d-ram-range').hidden = !customRam;
-    const riscvRam = this.session instanceof OpenOcdDebugSession;
-    if (customRam && $('d-ram-start')) $('d-ram-start').placeholder = riscvRam ? '0x80000000' : '0x20000000';
-    if (customRam && $('d-ram-length')) $('d-ram-length').placeholder = riscvRam ? '0x20000' : '字节数';
-    if ($('d-ram-range-status')){
-      const w = customRam && this.session.ramWindow;
-      $('d-ram-range-status').textContent = w ? `可写 RAM：${hex32(w.start)} 起 ${w.end-w.start} 字节`
-        : riscvRam ? '先声明板卡的可写 RAM 范围，再下载或设置软件断点'
-          : '填写 0x20000000 和板卡的实际可写 SRAM 字节数，再下载 ELF';
-    }
+    this._syncRamWindowFields(c);
     if ($('d-hpm-target')) $('d-hpm-target').disabled = c || !!this._connecting;
     const h = halted ?? this.session.halted;
     for (const id of ['d-cont', 'd-step', 'd-halt', 'd-mem-read']){
@@ -1410,6 +1402,36 @@ export class DbgView {
     }
   }
 
+  _syncRamWindowFields(connected = this.session.connected){
+    const custom = connected && this.session.canConfigureRamWindow;
+    if ($('d-ram-range')) $('d-ram-range').hidden = !custom;
+    const arch = this.session.isRiscv ? 'riscv' : 'arm';
+    const hint = this.imageSelection?.ramSuggestion;
+    const protectedRange = arch === 'riscv' && hint &&
+      this.session.sbaFence?.some(range => hint.start < range.end && hint.start + hint.length > range.start);
+    const suggestion = custom && hint?.arch === arch && !protectedRange ? hint : null;
+    const previous = this.ramFieldSuggestion;
+    if (suggestion !== previous){
+      const update = (id, oldValue, newValue) => {
+        const field = $(id);
+        if (field && (!field.value.trim() || field.value === oldValue)) field.value = newValue;
+      };
+      update('d-ram-start', previous ? hex32(previous.start) : '', suggestion ? hex32(suggestion.start) : '');
+      update('d-ram-length', previous ? String(previous.length) : '', suggestion ? String(suggestion.length) : '');
+      this.ramFieldSuggestion = suggestion;
+    }
+    const status = $('d-ram-range-status');
+    if (!status) return;
+    const declared = this.session.ramWindow;
+    if (declared){
+      status.textContent = `已声明 RAM：${hex32(declared.start)} 起 ${declared.end-declared.start} 字节`;
+    } else if (suggestion){
+      status.textContent = `ELF 建议 ${hex32(suggestion.start)} 起 ${suggestion.length} 字节。可修改，确认后点「声明 RAM」`;
+    } else {
+      status.textContent = '选择 RAM 版 ELF 获取建议，或手动填写板卡的可写范围';
+    }
+  }
+
   async _selectImageFile(input){
     this.imageSelection = null;
     const binAddress = $('d-image-address');
@@ -1417,6 +1439,7 @@ export class DbgView {
     const progress = $('d-image-progress');
     if (progress) progress.textContent = '';
     this._syncImageControls();
+    this._syncRamWindowFields();
     const file = input.files?.[0];
     if (!file) return;
     try {
@@ -1424,9 +1447,17 @@ export class DbgView {
       const type = imageTypesByExtension.get(extension) ||
         detectImageType(new Uint8Array(await file.slice(0, 9).arrayBuffer()));
       if (input.files?.[0] !== file) return;
-      this.imageSelection = { file, type };
+      const selection = this.imageSelection = { file, type };
       if (progress && type === 'bin') progress.textContent = '填写 BIN 的加载地址';
       this._syncImageControls();
+      if (type === 'elf'){
+        // A flash-linked or unusual ELF can still be inspected or loaded normally.
+        const hint = await file.arrayBuffer().then(suggestRamWindow).catch(() => null);
+        if (this.imageSelection === selection){
+          selection.ramSuggestion = hint;
+          this._syncRamWindowFields();
+        }
+      }
     } catch (error){
       if (progress && input.files?.[0] === file) progress.textContent = '读取镜像失败：' + error.message;
     }

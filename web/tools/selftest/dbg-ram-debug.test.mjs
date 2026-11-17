@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { OpenOcdProbe } from '../../app/core/openocd-probe.js';
-import { ramDebugPlan, RAM_BASE as F103_RAM, readRamDebugSize } from '../../app/dbg/ram-debug.js';
+import { ramDebugPlan, RAM_BASE as F103_RAM, readRamDebugSize, suggestRamWindow } from '../../app/dbg/ram-debug.js';
 import { DebugSession } from '../../app/dbg/session.js';
 import { DbgView } from '../../app/dbg/view.js';
 
@@ -39,6 +39,28 @@ test('RAM launch plan loads file bytes and zeroes BSS', () => {
   assert.equal(plan.main, main);
   assert.deepEqual(plan.code, [{ start: F103_RAM + 0x100, end: F103_RAM + 0x108 }]);
   assert.deepEqual([...plan.segments[2].data], [42, 0, 0, 0, 0, 0, 0, 0]);
+});
+
+test('ELF RAM suggestion includes the Cortex-M initial stack', () => {
+  assert.deepEqual(suggestRamWindow(ramElf().buffer), {arch:'arm', start:F103_RAM, length:65536});
+  const flash = ramElf();
+  flash.setUint32(64, 0x08000000, true);
+  assert.throws(() => suggestRamWindow(flash.buffer), /PT_LOAD/);
+});
+
+test('RV32 ELF RAM suggestion includes distinct load addresses and BSS', () => {
+  const elf = ramElf();
+  elf.setUint16(18, 243, true);
+  const base = 0x80000000;
+  elf.setUint32(60, base, true);
+  elf.setUint32(64, base + 0x300, true);
+  elf.setUint32(92, base + 0x100, true);
+  elf.setUint32(96, base + 0x100, true);
+  elf.setUint32(124, base + 0x308, true);
+  elf.setUint32(128, base + 0x308, true);
+  assert.deepEqual(suggestRamWindow(elf.buffer), {arch:'riscv', start:base, length:0x310});
+  elf.setUint32(64, 0x08000000, true);
+  assert.equal(suggestRamWindow(elf.buffer), null);
 });
 
 test('RAM launch rejects a Flash load, mismatched run address, overlap, BSS overflow and invalid vectors', () => {

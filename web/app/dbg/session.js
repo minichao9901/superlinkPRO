@@ -9,7 +9,7 @@ import { align2, hex32, u32leBytes } from './fmt.js';
 import { backtrace } from './backtrace.js';
 import { DwtWatchpoints } from './dwt.js';
 import { thumbLen, decodeCall, nextAddrsOf, ARM_ARCH } from './thumb.js';
-import { RAM_BASE, ramDebugPlan, readRamDebugSize } from './ram-debug.js';
+import { MAX_RAM_BYTES, RAM_BASE, ramDebugPlan, readRamDebugSize } from './ram-debug.js';
 
 // Cortex-M 的调试寄存器（PPB）
 const DHCSR = 0xe000edf0, DFSR = 0xe000ed30, AIRCR = 0xe000ed0c, DEMCR = 0xe000edfc;
@@ -86,7 +86,7 @@ export class DebugSession {
 
   configureRamWindow(start, length){
     if (!this.canConfigureRamWindow) throw Error('请先连接使用原版 CFG 的 Cortex-M0+');
-    if (start !== RAM_BASE || !Number.isInteger(length) || length < 8 || length > 64 * 1024 * 1024)
+    if (start !== RAM_BASE || !Number.isInteger(length) || length < 8 || length > MAX_RAM_BYTES)
       throw Error('Cortex-M0+ RAM 起始地址须为 0x20000000，长度为 8 B 至 64 MiB');
     if (this.ramWindow?.end !== start + length) this.ramCode = null;
     return this.ramWindow = Object.freeze({ start, end: start + length });

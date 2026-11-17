@@ -2,6 +2,7 @@ import { elfProgram } from './image.js';
 import { align2, hex32 } from './fmt.js';
 
 export const RAM_BASE = 0x20000000;
+export const MAX_RAM_BYTES = 64 * 1024 * 1024;
 const F103_RAM_BYTES = 64 * 1024;
 
 /** Resolve the executable SRAM bounds from silicon identification, independent of CFG work-area. */
@@ -21,11 +22,8 @@ export async function readRamDebugSize(readWord, family){
   return F103_RAM_BYTES;
 }
 
-/** ARM ELF with an executable RAM image and a vector table at SRAM base. */
-export function ramDebugPlan(buffer, symbols, ramSize = F103_RAM_BYTES){
-  const ramEnd = RAM_BASE + ramSize;
-  const bytes = new Uint8Array(buffer);
-  const { wide, little, type, machine, headers, range } = elfProgram(bytes);
+function armRamImage(bytes, program, ramEnd){
+  const { wide, little, type, machine, headers, range } = program;
   if (wide || !little || type !== 2 || machine !== 40)
     throw new Error('请选择为目标 SRAM 链接的小端 ARM ELF32 可执行文件');
 
@@ -42,7 +40,7 @@ export function ramDebugPlan(buffer, symbols, ramSize = F103_RAM_BYTES){
   if (vectors?.physical !== RAM_BASE || vectors.size < 8)
     throw new Error('RAM ELF 必须在 0x20000000 提供 Cortex-M 向量表');
 
-  const view = new DataView(buffer, vectors.offset, 8);
+  const view = new DataView(bytes.buffer, bytes.byteOffset + vectors.offset, 8);
   const sp = view.getUint32(0, true), reset = view.getUint32(4, true);
   const entry = align2(reset);
   if (sp <= end || sp > ramEnd || sp % 8 !== 0)
@@ -52,6 +50,41 @@ export function ramDebugPlan(buffer, symbols, ramSize = F103_RAM_BYTES){
   const executable = addr => code.some(r => r.start <= addr && addr + 2 <= r.end);
   if (!(reset & 1) || !executable(entry))
     throw new Error('向量表的复位入口必须是 RAM 代码段中的 Thumb 地址');
+  return { loads, code, executable, sp, entry };
+}
+
+/** Suggest the window required by the ELF. The target's memory map is separate. */
+export function suggestRamWindow(buffer){
+  const bytes = new Uint8Array(buffer);
+  const program = elfProgram(bytes);
+  if (program.wide || !program.little || program.type !== 2) return null;
+  if (program.machine === 40){
+    const { sp } = armRamImage(bytes, program, RAM_BASE + MAX_RAM_BYTES);
+    return { arch:'arm', start:RAM_BASE, length:sp - RAM_BASE };
+  }
+  if (program.machine !== 243) return null;
+  let start = 0x100000000, end = 0;
+  for (const h of program.headers){
+    if (h.type !== 1 || !(h.memory || h.size)) continue;
+    if (h.size > h.memory) return null;
+    start = Math.min(start, h.virtual);
+    end = Math.max(end, h.virtual + h.memory);
+    if (h.size){
+      program.range(h.offset, h.size);
+      start = Math.min(start, h.physical);
+      end = Math.max(end, h.physical + h.size);
+    }
+  }
+  start -= start % 2;
+  const length = end - start;
+  if (end > 0x100000000 || length < 2 || length > MAX_RAM_BYTES) return null;
+  return { arch:'riscv', start, length };
+}
+
+/** ARM ELF with an executable RAM image and a vector table at SRAM base. */
+export function ramDebugPlan(buffer, symbols, ramSize = F103_RAM_BYTES){
+  const bytes = new Uint8Array(buffer);
+  const { loads, code, executable, sp, entry } = armRamImage(bytes, elfProgram(bytes), RAM_BASE + ramSize);
   const main = symbols.find('main');
   if (main?.kind !== 'func' || !executable(align2(main.addr)) || !symbols.lines?.at(align2(main.addr)))
     throw new Error('RAM ELF 需要位于代码段且带 DWARF 行号的 main 函数（编译时加 -g）');

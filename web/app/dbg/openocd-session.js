@@ -4,6 +4,7 @@ import { waitMs } from '../core/pace.js';
 import { hpmBoard } from '../targets/hpm/porting.js';
 import { DebugSession } from './session.js';
 import { elfProgram } from './image.js';
+import { MAX_RAM_BYTES } from './ram-debug.js';
 import { hpmFlashGeometry, hpmFlashPlan } from './openocd-flash.js';
 import { readFlashRange, writeFlashRange } from '../flash/openocd-program.js';
 import { RV_ARCH } from './rv.js';
@@ -17,7 +18,6 @@ const openOcdRegName = name => name === 's0' ? 'fp' : name;
 
 const ILM = Object.freeze({ start:0, end:ILM_END });
 const fits = (window, addr, length) => window && addr >= window.start && addr + length <= window.end;
-const MAX_RAM = 64 * 1024 * 1024;
 const sameBytes = (a, b) => a.length === b.length && a.every((byte,i) => byte === b[i]);
 const hex = addr => '0x' + addr.toString(16);
 
@@ -145,7 +145,7 @@ export class OpenOcdDebugSession extends DebugSession {
     if (!this.canConfigureRamWindow) throw Error('请先连接使用自定义 CFG 的 RISC-V 目标');
     if (this.bpDetails.size) throw Error('修改 RAM 范围前请清空断点');
     if (!Number.isInteger(start) || !Number.isInteger(length) || start < 0 || start % 2 ||
-        length < 2 || length > MAX_RAM || start + length > 0x100000000)
+        length < 2 || length > MAX_RAM_BYTES || start + length > 0x100000000)
       throw Error('RAM 起始地址须为偶数，长度为 2 B 至 64 MiB，且不能越过 32 位地址空间');
     const end = start + length;
     if (this.sbaFence.some(r => start < r.end && end > r.start)) throw Error('RAM 范围与受保护的 Flash/XIP 地址重叠');
