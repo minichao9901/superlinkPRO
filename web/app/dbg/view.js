@@ -1,6 +1,6 @@
 /**
  * 「调试器」页（#dbg）—— 零安装的极简调试前端：暂停/继续/单步/复位、寄存器、内存、
- * 硬件断点、符号列表、监视窗口、源码行、命令行（gdb 风格的最小子集）、RTT 输出同屏。
+ * 硬件断点、符号列表、监视窗口、源码行、命令行（gdb 风格的最小子集）、RTT 终端同屏。
  *
  * 分工：**这个文件只管 DOM**，所有语义都在
  *   app/dbg/session.js（会话：运行控制 / 寄存器 / 内存 / FPB 断点）
@@ -56,7 +56,8 @@ import { completeLine } from './complete.js';
 import { SourceStore, sourceRootSuggestions } from './source.js';
 import { sourceTokens } from './source-syntax.js';
 import { hex32, parseBytes } from './fmt.js';
-import { Rtt } from '../rtt/protocol.js';
+import { Rtt, CB_ID } from '../rtt/protocol.js';
+import { latin1, u32le } from '../core/bin.js';
 import { parseSvdXml, decodeSvdRegister, svdSummary } from './svd.js';
 import { SvdValueState, svdAutoReadReason } from './svd-state.js';
 import { BUNDLED_SVDS } from './svd/bundled.js';
@@ -66,6 +67,10 @@ import { detectImageType } from './image.js';
 import { suggestRamWindow } from './ram-debug.js';
 
 const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); return el; };
+const RTT_INPUT_LIMIT = 16 * 1024;
+const RTT_INPUT_CHUNK = 1024;
+const RTT_INPUT_STALL_MS = 1000;
+const rttEncoder = new TextEncoder();
 const baseName = p => String(p || '').replace(/\\/g, '/').split('/').pop();
 const imageTypesByExtension = new Map([
   ['bin', 'bin'], ['elf', 'elf'], ['axf', 'elf'], ['out', 'elf'],
@@ -80,6 +85,9 @@ export class DbgView {
     this.sym = null;
     this._memAddrStale = false;      // 内存窗口里那个"上一块板子留下的地址"要不要停用自动读
     this.rtt = null;
+    this.rttPolling = null;
+    this.rttInput = null;
+    this.rttStatus = '';
     this.elfName = '';
     this.mem = new Uint8Array(0);
     this.memAddr = 0;
@@ -87,7 +95,6 @@ export class DbgView {
     this.hist = [];
     this.histIdx = -1;
     this.watching = false;
-    this.rttTimer = null;
     this.autoRead = true;
     this.watch = new WatchList();          // 监视窗口
     this.watchBusy = false;
@@ -234,7 +241,13 @@ export class DbgView {
     on('d-rtt-stop', 'click', () => this.rttStop());
     on('d-rtt-clear', 'click', () => this.rttClear());
     const rttChk = $('d-rtt-on');
-    if (rttChk) store.bind(rttChk, 'dbg.rttAuto', 'checked');
+    if (rttChk){
+      store.bind(rttChk, 'dbg.rttAuto', 'checked');
+      rttChk.addEventListener('change', () => {
+        if (rttChk.checked && this.session.connected && !this.rttPolling) void this._startRtt(true);
+        if (!rttChk.checked && this.rttPolling?.automatic && !this.rtt) this.rttStop();
+      });
+    }
     const ra = $('d-rtt-addr');
     if (ra){ store.bind(ra, 'dbg.rttAddr'); ra.addEventListener('input', () => this._renderRttSym()); }
 
@@ -303,6 +316,7 @@ export class DbgView {
      */
     document.addEventListener('keydown', (e) => {
       if (!this._visible()) return;
+      if (e.target === this.rttTerminal?.textarea) return;
       if (e.altKey || e.metaKey) return;
       const ctrl = e.ctrlKey;
       if (e.key === 'F10'){ e.preventDefault(); this.stepOver(); return; }
@@ -460,6 +474,7 @@ export class DbgView {
     if (save) store.set('dbg.dock', name);
     // 内存页刚露出来时按当前宽度决定一行几个字节（面板是隐藏的时候量不到宽度）
     if (name === 'mem' && this.mem.length) this.renderMem();
+    if (name === 'rtt') this._ensureRttTerminal();
     if(name==='svd'&&this.svd&&this.session.connected&&this.session.halted)this._act('刷新 SVD',()=>this._readSvdRegister({automatic:true}));
   }
 
@@ -744,9 +759,10 @@ export class DbgView {
     this._connecting = true;
     this._syncCfgControls();
     if ($('d-hpm-target')) $('d-hpm-target').disabled = true;
+    let connected;
     try {
       const device = $('d-backend')?.value === 'mock' ? null : await selectOpenOcdDevice({ authorizedOnly:true });
-      return await runProbeOperation(this, 'dbg', () => this._connectNow(generation, device), {
+      connected = await runProbeOperation(this, 'dbg', () => this._connectNow(generation, device), {
         mock: $('d-backend')?.value === 'mock', reason: '调试器要使用探针', recovery: true,
       });
     } catch (e){ this._out('✗ 连接失败：' + e.message, 'err'); toast(e.message, 'err'); return false; }
@@ -755,6 +771,8 @@ export class DbgView {
       this._syncCfgControls();
       if ($('d-hpm-target')) $('d-hpm-target').disabled = !!this.session?.connected;
     }
+    if (connected && $('d-rtt-on')?.checked) await this._startRtt(true);
+    return connected;
   }
 
   async _connectNow(generation = this._connectionGen = (this._connectionGen || 0) + 1, device){
@@ -809,8 +827,8 @@ export class DbgView {
     this._syncButtons(true);
     this.renderBps();
     this._out(`目标${this.session.halted ? '处于停止状态' : '正在运行'}`, 'dim');
-    if ($('d-rtt-on')?.checked) this.rttStart().catch(() => {});
-    else if (!this.session.halted) this._startWatch();
+    this.cancelFlag = false;
+    if (!this.session.halted) this._startWatch();
     return true;
   }
 
@@ -1589,7 +1607,6 @@ export class DbgView {
          */
         const r = await this.session.tryExclusive(() => this.session.refresh());
         if (r.skipped) continue;
-        if (this.rtt && polls % 2 === 0) await this.session.tryExclusive(() => this._rttPump());
         // 「运行中也刷新」开关（默认关）：直接读 RAM，目标照跑
         if ($('d-watch-live')?.checked && polls % 2 === 0) await this.session.tryExclusive(() => this._refreshWatchLocked());
         if(!this.session.halted&&$('d-svd-live')?.checked&&this.dockTab==='svd'&&$('tab-dbg')?.classList.contains('active')&&performance.now()>=this._svdNextReadAt){
@@ -2542,60 +2559,194 @@ export class DbgView {
     }
   }
 
-  async rttStart(){
-    if (!this.session.connected){ this._out('✗ 先连接目标', 'err'); return false; }
+  _rttLocation(){
     const manual = parseNumSafe($('d-rtt-addr')?.value);
-    let addr = manual;
-    let from = manual ? '手填地址' : '';
-    if (!addr){
-      const v = this.sym?.rttSym?.() || this.sym?.find?.('_SEGGER_RTT');
-      if (v?.addr){ addr = v.addr; from = `ELF 符号 ${v.name || '_SEGGER_RTT'}`; }
-    }
-    if (!addr){
-      this._out('✗ 不知道 RTT 控制块地址：载入 .elf（用 _SEGGER_RTT 符号）或在「地址」里手填', 'err');
+    if (manual) return { addr: manual, from: '手填地址' };
+    const symbol = this.sym?.rttSym?.() || this.sym?.find?.('_SEGGER_RTT');
+    return symbol?.addr ? { addr: symbol.addr, from: `ELF 符号 ${symbol.name || '_SEGGER_RTT'}` } : null;
+  }
+
+  async rttStart(){
+    return this._startRtt(false);
+  }
+
+  async _startRtt(automatic){
+    if (!this.session.connected || this._disconnecting){ this._out('✗ 先连接目标', 'err'); return false; }
+    const location = this._rttLocation();
+    if (!location && !automatic){
+      this._showRttStatus('请载入含 _SEGGER_RTT 的 ELF 或填写控制块地址。');
       return false;
     }
-    return await this._act('定位 RTT', async () => {
-      const mem = {
-        readMem: (a, n) => this.session.memRead(a, n),
-        writeMem: (a, b) => this.session.memWrite(a, b),
-        skipNames: !!this.session.isRiscv,
-      };
-      const rtt = new Rtt(mem, { addr });
-      await rtt.init(addr);
-      this.rtt = rtt;
-      this._out(`RTT 控制块 @ ${hex32(addr)}（${from}）：上行通道 ${rtt.maxUp} 个（第 1 个 ${rtt.up[0]?.size || 0} B）、下行 ${rtt.maxDown} 个`, 'ok');
-      const info = $('d-rtt-info');
-      if (info) info.textContent = `已连上 @ ${hex32(addr)}（${from}）`;
-      this._renderRttSym();
-      await this._rttPump();
-      this._startWatch();          // 跑着的时候也持续泵
-    });
+    this._releaseRttLink();
+    const poll = { automatic, location: automatic ? null : location, retryAt: 0 };
+    this.rttPolling = poll;
+    this._showRttStatus(location ? '正在定位 RTT…' : '等待 ELF 的 _SEGGER_RTT 符号或控制块地址。');
+    await this._pollRtt(poll);
+    if (this.rttPolling === poll) void this._rttLoop(poll);
+    return this.rttPolling === poll && !!this.rtt;
+  }
+
+  async _rttLoop(poll){
+    while (this.rttPolling === poll && this.session.connected){
+      await waitMs(150);
+      if (this.rttPolling !== poll || !this.session.connected) return;
+      await this._pollRtt(poll);
+    }
+  }
+
+  async _pollRtt(poll){
+    const location = poll.location || this._rttLocation();
+    if (!location || performance.now() < poll.retryAt) return;
+    try {
+      await this.session.tryExclusive(async () => {
+        if (this.rttPolling !== poll) return;
+        if (!this.rtt) await this._locateRtt(poll, location);
+        if (this.rttPolling === poll) await this._rttPump();
+      });
+    } catch (e){
+      if (this.rttPolling !== poll) return;
+      this._releaseRttLink();
+      poll.retryAt = performance.now() + 1000;
+      const detail = String(e?.message || e).replaceAll('\0', '');
+      this._showRttStatus(`等待目标初始化 RTT @ ${hex32(location.addr)}，将自动重试（${detail}）`);
+    }
+  }
+
+  async _locateRtt(poll, { addr, from }){
+    const session = this.session;
+    const mem = {
+      readMem: (a, n) => session.memRead(a, n),
+      writeMem: (a, b) => session.memWrite(a, b),
+      skipNames: !!session.isRiscv,
+    };
+    const rtt = new Rtt(mem, { addr });
+    await rtt.init(addr);
+    if (this.rttPolling !== poll) return;
+    poll.location = { addr, from };
+    this.rtt = rtt;
+    this._out(`RTT 控制块 @ ${hex32(addr)}（${from}）：上行通道 ${rtt.maxUp} 个（第 1 个 ${rtt.up[0]?.size || 0} B）、下行 ${rtt.maxDown} 个`, 'ok');
+    const canSend = rtt.down[0]?.size > 1;
+    this._showRttStatus(`已连上 @ ${hex32(addr)}（${from}） · ${canSend ? '点击终端输入' : '下行通道 0 不可用，仅接收'}`);
+    const terminal = this._ensureRttTerminal();
+    if (terminal) terminal.options.disableStdin = !canSend;
+    this._renderRttSym();
   }
 
   rttStop(){
+    this.rttPolling = null;
+    this._releaseRttLink();
+    this._showRttStatus('已停止。');
+  }
+
+  _releaseRttLink(){
     this.rtt = null;
-    if (this.rttTimer){ clearInterval(this.rttTimer); this.rttTimer = null; }
+    this.rttInput = null;
+    if (this.rttTerminal) this.rttTerminal.options.disableStdin = true;
+  }
+
+  _showRttStatus(status){
+    this.rttStatus = status;
+    this._setRttStatus();
+  }
+
+  _setRttStatus(message = ''){
     const info = $('d-rtt-info');
-    if (info) info.textContent = '已停止。';
+    const text = message ? `${this.rttStatus} · ${message}` : this.rttStatus;
+    if (info && info.textContent !== text) info.textContent = text;
+  }
+
+  _ensureRttTerminal(){
+    if (this.rttTerminal) return this.rttTerminal;
+    const host = $('d-rtt');
+    if (!host || !globalThis.Terminal) return null;
+    const terminal = new globalThis.Terminal({
+      fontFamily: '"Cascadia Mono","JetBrains Mono",Consolas,monospace',
+      fontSize: 13, lineHeight: 1.15, scrollback: 3000,
+      cursorBlink: true, convertEol: true, disableStdin: !(this.rtt?.down[0]?.size > 1),
+      theme: { background: '#0a0f15', foreground: '#e6edf3', cursor: '#58a6ff', selectionBackground: '#264f78' },
+    });
+    const fit = new globalThis.FitAddon.FitAddon();
+    terminal.loadAddon(fit);
+    terminal.open(host);
+    terminal.textarea?.setAttribute('aria-label', 'RTT 终端输入');
+    terminal.onData(data => this._queueRttInput(data));
+    const resize = () => { if (host.clientWidth && host.clientHeight) fit.fit(); };
+    new ResizeObserver(resize).observe(host);
+    resize();
+    this.rttTerminal = terminal;
+    return terminal;
+  }
+
+  _queueRttInput(data){
+    const rtt = this.rtt;
+    if (!this.session.connected || !(rtt?.down[0]?.size > 1)) return;
+    const bytes = rttEncoder.encode(data);
+    if (!bytes.length) return;
+    if (bytes.length + (this.rttInput?.pending ?? 0) > RTT_INPUT_LIMIT){
+      this._setRttStatus('本次输入未发送，待发送数据最多 16 KiB');
+      return;
+    }
+    if (this.rttInput){
+      this.rttInput.chunks.push(bytes);
+      this.rttInput.pending += bytes.length;
+      return;
+    }
+    const input = { chunks: [bytes], pending: bytes.length };
+    this.rttInput = input;
+    this._setRttStatus();
+    void this._drainRttInput(rtt, input);
+  }
+
+  async _drainRttInput(rtt, input){
+    let offset = 0;
+    let lastWrite = performance.now();
+    try {
+      while (this.rttInput === input && input.pending){
+        const bytes = input.chunks[0].subarray(offset, offset + RTT_INPUT_CHUNK);
+        const sent = await this.session.exclusive(async () => {
+          if (this.rttInput !== input || this.rtt !== rtt || !this.session.connected) return null;
+          const header = await rtt.mem.readMem(rtt.addr, 24);
+          if (this.rttInput !== input) return null;
+          if (latin1(header.subarray(0, CB_ID.length)) !== CB_ID ||
+              u32le(header, 16) !== rtt.maxUp || u32le(header, 20) !== rtt.maxDown){
+            this._releaseRttLink();
+            this._showRttStatus('RTT 控制块已变化，正在重新定位…');
+            return null;
+          }
+          return rtt.writeDown(0, bytes);
+        });
+        if (sent === null || this.rttInput !== input) return;
+        if (sent){
+          lastWrite = performance.now();
+          input.pending -= sent;
+          offset += sent;
+          if (offset === input.chunks[0].length){ input.chunks.shift(); offset = 0; }
+        } else {
+          if (performance.now() - lastWrite >= RTT_INPUT_STALL_MS){
+            this._setRttStatus(`下行缓冲无可用空间，${input.pending} B 未发送`);
+            return;
+          }
+          await waitMs(50);
+        }
+      }
+    } catch (e){
+      if (this.rttInput === input) this._setRttStatus(`下行写入失败：${e?.message || e}`);
+    } finally {
+      if (this.rttInput === input) this.rttInput = null;
+    }
   }
 
   rttClear(){
-    const el = $('d-rtt');
-    if (el) el.textContent = '';
+    this.rttTerminal?.write('\x1b[2J\x1b[H\x1b[3J');
   }
 
   async _rttPump(){
-    if (!this.rtt) return;
-    // 🚨 readUp 返回的是 {bytes, lost, level…} 而不是 Uint8Array（这个坑写错过一次）
-    const res = await this.rtt.readUp(0);
-    const bytes = res?.bytes;
-    if (!bytes?.length) return;
-    const el = $('d-rtt');
-    if (!el) return;
-    el.textContent += new TextDecoder().decode(bytes);
-    if (el.textContent.length > 40000) el.textContent = el.textContent.slice(-24000);
-    el.scrollTop = el.scrollHeight;
+    const rtt = this.rtt;
+    if (!rtt?.maxUp) return;
+    const terminal = this._ensureRttTerminal();
+    if (!terminal) return;
+    const { bytes } = await rtt.readUp(0);
+    if (this.rtt === rtt && bytes.length) terminal.write(bytes);
   }
 
   // ================================================================ 自检摘要

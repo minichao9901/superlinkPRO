@@ -49,7 +49,7 @@ AI / 脚本统一入口：`python -X utf8 toolbox.py catalog`。覆盖全部 Web
 | **RTT 转发** | 探针侧桥把 RTT 搬到 CDC，主机直接用串口工具 | **3.05 MB/s**（60 MHz 档） |
 | **J-Scope 波形** | 8 变量、多泳道/叠加、A/B 游标、实时 CSV / 原始包流 | 单变量 **495.8 kHz @ 2 µs**（名义 500 kHz；探针跳拍 ≈0.8%、探针本体 629 kHz；稳定窗 USB 丢 0 / 读错 0，边界另计）；8 通道 50 kHz 零丢 |
 | **烧录器** | OpenOCD Wasm，支持 ELF / HEX / BIN，按目标 Flash bank 擦写、读回和复位 | [RP2350 原版 CFG 四扇区逐字节读回](docs/validation/rp2350-cfg-shared-hw-20261108.md) |
-| **调试器** | 断点/单步/寄存器/RAM、**源码级单步**（F10/F11/跳出）、结构体树、命令行 | ARM + RISC-V，与 gdb 逐地址对照通过 |
+| **调试器** | 断点/单步/寄存器/RAM、**源码级单步**（F10/F11/跳出）、结构体树、命令行和 RTT 交互终端 | ARM + RISC-V，与 gdb 逐地址对照通过 |
 | **SWO 执行轨迹** | 目标 SWO（NRZ）经 VCOM 接收、**PC 采样**、源码级回放与完整导出；UART 240 MHz，**最高 30 Mbaud（30 MHz 时钟）** | 30 Mbaud 连续 6 s：**2,424,768 PC / 12.9 MB**（≈404k PC/s），畸形包 / overflow / 未知 PC / UART 错误 0 |
 | **ETM 执行轨迹** | ETMv4 / ETMv3.4 四线并行采集、TPIU 解复用、源码回放、**周期计数** | H743 10 ms → **210,706 指令**；F103ZE 172,596 指令 |
 | **SPI / I2C 桥** | 通用帧 DSL、寄存器面板、定时采集、SPI/NOR Flash 测试 | SPI 发图 **6.29 MB/s**（四线 16.77） |

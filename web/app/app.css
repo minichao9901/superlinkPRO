@@ -1120,7 +1120,7 @@ fieldset.folded > legend::after{content:' · 已折叠';color:var(--fg2);font-si
 #tab-dbg .wkid.bf .vl{color:#ffd479}
 
 /* RTT tab */
-#tab-dbg #d-rtt{flex:1 1 auto;min-height:0;overflow:auto;margin:0}
+#tab-dbg #d-rtt{overflow:hidden}
 
 /* 断点列表（还在侧栏） */
 #tab-dbg .bplist{max-height:120px;overflow:auto;font-size:var(--text-xs)}
@@ -1138,9 +1138,6 @@ fieldset.folded > legend::after{content:' · 已折叠';color:var(--fg2);font-si
   #tab-dbg .grip-v{display:none}
   #tab-dbg .dbgdock{flex:1 1 100%;max-width:none;min-height:220px;max-height:46vh}
 }
-
-/* RTT 输出窗在没有数据时的占位（.rx 的默认文案是"接收区"，这里说清楚该点什么） */
-#tab-dbg #d-rtt:empty::before{content:"（点「定位并开始」：留空地址就用 .elf 里的 _SEGGER_RTT 符号）";color:#4a5563}
 
 /* Selected debugger frames and locals; scoped to the debugger tab. */
 #tab-dbg #d-bt-list button[aria-pressed="true"]{background:var(--bg3);font-weight:700}

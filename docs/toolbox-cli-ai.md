@@ -69,7 +69,7 @@ ETM 联动采集的网页自动解码默认使用原生紧凑链，生成 TraceS
 | `rttcdc` | RTT 转发 | `view` 管 CDC 数据，`hid` 管目标、时钟、精确地址及转发启停，共用串口 `session` |
 | `spicdc` | SPI 转发 | `session` 管从机 SPI/DMA 配置与启停；`stream` 管接收显示/记录；`serial` 管 CDC |
 | `scope` | J-Scope | ELF/DWARF 变量、标量/数组/成员、1–8 通道、速率标定、采样、触发/游标、分道/缩放、CSV/原始包和质量报告 |
-| `dbg` | 调试器 | OpenOCD Wasm 通过 WebUSB 使用 ARM/SWD 或 RISC-V/JTAG，提供预设和 CFG 导入、断点、暂停/继续/单步、寄存器/内存、源码、调用栈与异常诊断 |
+| `dbg` | 调试器 | OpenOCD Wasm 通过 WebUSB 使用 ARM/SWD 或 RISC-V/JTAG，提供预设和 CFG 导入、断点、暂停/继续/单步、寄存器/内存、源码、调用栈、异常诊断与 RTT 交互终端 |
 | `flash` | 烧录器 | OpenOCD Wasm，支持 ELF/HEX/BIN、Flash 扇区烧录与读回、目标复位及 IDCODE |
 | `swo` | SWO PC 采样 | OpenOCD Wasm 配置目标寄存器，专用接收链路提供采样，支持离线分析、热点/区间/回放和导出 |
 | `etm` | ETM 执行轨迹 | OpenOCD Wasm 配置目标寄存器和断点，Kingst 采集高速 Trace，提供导入、解码和分析导出。批处理优先 `trace` |

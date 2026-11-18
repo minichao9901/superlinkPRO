@@ -401,7 +401,7 @@ console.log('== 9. RTT 同屏（模拟目标里有一个合法的 RTT 控制块�
              wired: d.rtt ? { sameProbe: d.rtt.mem === d.session.probe,
                               hasRead: typeof d.rtt.mem?.readMem === 'function',
                               hasWrite: typeof d.rtt.mem?.writeMem === 'function' } : null,
-             text: document.getElementById('d-rtt').textContent.slice(0, 200),
+             text: d.rttTerminal.buffer.active.getLine(0)?.translateToString(true) || '',
              info: document.getElementById('d-rtt-info').textContent };`);
   ok(r.rtt && r.rtt.addr === '0x20000100' && r.rtt.maxUp === 1, 'RTT 控制块定位成功', JSON.stringify(r.rtt));
   /**
@@ -415,17 +415,20 @@ console.log('== 9. RTT 同屏（模拟目标里有一个合法的 RTT 控制块�
   ok(/tick|dbg/.test(r.text), 'RTT 输出窗里真的出现了目标打印的内容', r.text.slice(0, 80));
 
   const clear = await ev(`
-    const d = window.__tools.dbg, rtt = d.rtt, el = document.getElementById('d-rtt');
-    const before = el.textContent.length;
+    const d = window.__tools.dbg, rtt = d.rtt, term = d.rttTerminal;
+    const text = () => Array.from({length: term.buffer.active.length}, (_, i) =>
+      term.buffer.active.getLine(i)?.translateToString(true)).join('').trim();
+    const before = text().length;
     const info = document.getElementById('d-rtt-info').textContent;
     document.getElementById('d-rtt-clear').click();
-    const empty = el.textContent === '';
+    await new Promise(resolve => term.write('', resolve));
+    const empty = text() === '';
     await d.runLine('c');
     await new Promise(r => setTimeout(r, 900));
     await d.runLine('halt');
     return { before, empty, same: d.rtt === rtt,
       infoSame: document.getElementById('d-rtt-info').textContent === info,
-      resumed: /tick|dbg/.test(el.textContent) };`);
+      resumed: /tick|dbg/.test(text()) };`);
   ok(clear.before > 0 && clear.empty, 'RTT 清屏按钮清掉已有显示', JSON.stringify(clear));
   ok(clear.same && clear.infoSame && clear.resumed, 'RTT 清屏保留连接且后续输出继续显示', JSON.stringify(clear));
 }
