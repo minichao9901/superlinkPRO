@@ -26,7 +26,9 @@ await cdp.connect();
 try {
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
   await cdp.send('Page.navigate', { url: url.href });
-  await waitFor('window.__tools?.dbg');
+  await waitFor(`location.origin === ${JSON.stringify(url.origin)} &&
+    new URLSearchParams(location.search).get('test') === ${JSON.stringify(url.searchParams.get('test'))} && window.__tools?.dbg`);
+  await cdp.send('Page.bringToFront');
   assert.equal(await cdp.eval('return document.documentElement.dataset.bootEntry;'), mode);
   await cdp.eval(`
     window.dbg = window.__tools.dbg;
@@ -81,10 +83,11 @@ try {
   await cdp.eval("initRtt(); sendUp('msh >');");
   await waitFor("!dbg.rttTerminal.options.disableStdin && termText() === 'msh >'");
   assert.equal(await cdp.eval('dbg.rttTerminal.focus(); return dbg.session.halted;'), true);
+  await waitFor('document.activeElement === dbg.rttTerminal.textarea');
   await key('h', 'KeyH', 72, 'h');
   await key('Backspace', 'Backspace', 8);
   await key('Enter', 'Enter', 13);
-  await waitFor('!dbg.rttInput');
+  await waitFor('downPointers()[0] === 1 && !dbg.rttInput');
   assert.deepEqual(await cdp.eval('return downPointers();'), [1, 6]);
   assert.deepEqual(await cdp.eval('return readDown();'), [0x68, 0x7f, 0x0d]);
   assert.equal(await cdp.eval('return termText();'), 'msh >');
